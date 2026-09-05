@@ -1,7 +1,5 @@
-// Package semreg reserves the v1 namespace for reviewed, protocol-neutral
-// Project Helianthus semantic contracts.
-//
-// The bootstrap package intentionally exports no schema or runtime behavior.
-// Public types will be added only after their architecture and API contract is
-// reviewed in helianthus-docs-semantic.
+// Package semreg implements the protocol-neutral v1 semantic foundation.
+// It deliberately owns no transport, protocol, vendor, gateway, or consumer
+// behavior. Publication, evaluation, operation, and projection runtimes remain
+// separate work.
 package semreg
