@@ -1091,13 +1091,13 @@ func (r *Registry) Definition(kind DefinitionKind, ref DefinitionRef) (PackValid
 	return r.Validator(ref.Pack)
 }
 func (r *Registry) ValidateFact(key FactKey, value *Value) error {
-	if err := key.Validate(); err != nil {
-		return err
-	}
+	keyErr := key.Validate()
+	var valueErr error
 	if value != nil {
-		if err := value.Validate(); err != nil {
-			return err
-		}
+		valueErr = value.Validate()
+	}
+	if err := bestError(keyErr, valueErr); err != nil {
+		return err
 	}
 	validator, err := r.Validator(PackRef{ID: key.PackID, Version: key.PackVersion})
 	if err != nil {
