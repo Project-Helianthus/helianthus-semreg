@@ -289,10 +289,15 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
-	if err := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate()); err != nil {
-		return Snapshot{}, nil, err
+	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate())
+	// Local member validation ranks malformed/missing fields, invalid values,
+	// bounds and collection order before reference/lifecycle semantics. Keep
+	// those partial records out of pointer-dependent staging. A well-formed
+	// record's semantic error must still compete with independent state errors.
+	if structureError != nil && errorRanks[ErrorIdentifier(structureError)] < errorRanks[DanglingReference] {
+		return Snapshot{}, nil, structureError
 	}
-	var failure error
+	failure := structureError
 	check := func(err error) { failure = bestError(failure, err) }
 	if batch.AssetID != k.asset {
 		check(errID(InvalidValue, "publication asset"))
@@ -302,6 +307,11 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	cursors := cursorMap(k.current)
 	if cursor, ok := cursors[key]; ok {
 		cmp := compareUint64(batch.Sequence, cursor.LastSequence)
+		if cmp <= 0 && structureError != nil {
+			// Preserve the accepted-sequence partition: malformed replays do
+			// not acquire diagnostics from a hypothetical new post-state.
+			return Snapshot{}, nil, structureError
+		}
 		if cmp < 0 {
 			return Snapshot{}, nil, errID(SequenceConflict, "publication sequence")
 		}
@@ -560,8 +570,10 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 			check(errID(StaleDriverGeneration, "future generation fence"))
 		}
 	}
+	// Fact lifecycle is checked against the transitioned bindings and complete
+	// typed dependency graph below. An inferred fact has no header dependency.
 	if containsFence(batch.GenerationFences, batch.SourceID, batch.SourceEpochID, batch.DriverGeneration) &&
-		(len(batch.BindingUpserts) != 0 || len(batch.IdentityLinkUpserts) != 0 || len(batch.FactUpserts) != 0 || len(batch.ServiceUpserts) != 0 || len(batch.CapabilityUpserts) != 0) {
+		(len(batch.BindingUpserts) != 0 || len(batch.IdentityLinkUpserts) != 0 || len(batch.ServiceUpserts) != 0 || len(batch.CapabilityUpserts) != 0) {
 		check(errID(StaleDriverGeneration, "fenced header generation upsert"))
 	}
 
@@ -1537,6 +1549,11 @@ func (s Snapshot) Validate() error {
 			errs = append(errs, errID(InvalidValue, "fact asset"))
 		}
 		for _, candidate := range envelope.Candidates {
+			if candidate.CandidateID.Validate() != nil {
+				// Match partial-wire identity collection: malformed IDs are
+				// member errors, not keys in the global candidate namespace.
+				continue
+			}
 			if _, exists := candidates[candidate.CandidateID]; exists {
 				errs = append(errs, errID(DuplicateKey, "candidate id"))
 			}
