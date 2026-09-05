@@ -33,17 +33,9 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	if len(v.Facts) > maxDerivationNodes {
 		errs = append(errs, errID(BoundsExceeded, "evaluation facts"))
 	}
-	dup, ordered := false, true
-	seen := make(map[CandidateID]struct{}, len(v.Facts))
-	for index, fact := range v.Facts {
-		if _, exists := seen[fact.CandidateID]; exists {
-			dup = true
-		}
-		seen[fact.CandidateID] = struct{}{}
-		if index > 0 && strings.Compare(string(v.Facts[index-1].CandidateID), string(fact.CandidateID)) > 0 {
-			ordered = false
-		}
-	}
+	dup, ordered := duplicateAndOrder(v.Facts, func(a, b EvaluatedFact) int {
+		return strings.Compare(string(a.CandidateID), string(b.CandidateID))
+	})
 	for _, fact := range v.Facts {
 		errs = append(errs, fact.Validate())
 	}
