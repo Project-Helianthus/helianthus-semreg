@@ -131,6 +131,54 @@ func TestEvaluationRejectsTimeFailuresAndCombinesDeepInputs(t *testing.T) {
 	}
 }
 
+func TestEvaluationNamedWallAndOverflowOrderingControls(t *testing.T) {
+	candidate := evaluationCandidate("candidate:evaluation:named-wall", "fact.power", "1000", "100")
+	snapshot := evaluationSnapshot(t, candidate)
+	snapshot.EvaluatedAt = TimePoint{UnixNanoseconds: "1000", ClockID: "clock.local", UncertaintyNS: "1"}
+	snapshotID, err := snapshot.computedID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot.SnapshotID = snapshotID
+
+	t.Run("identical named wall rejects proven backward order", func(t *testing.T) {
+		context := evaluationContext("997", "clock-epoch:restart", "1", "1")
+		context.EvaluatedAt.ClockID = "clock.local"
+		requireID(t, func() error { _, err := EvaluateSnapshot(snapshot, context); return err }(), InvalidTime)
+	})
+	t.Run("identical named wall accepts uncertainty overlap", func(t *testing.T) {
+		context := evaluationContext("999", "clock-epoch:restart", "1", "1")
+		context.EvaluatedAt.ClockID = "clock.local"
+		view, err := EvaluateSnapshot(snapshot, context)
+		if err != nil || view.Facts[0].Freshness != FreshnessUnknown {
+			t.Fatalf("view=%+v err=%v", view, err)
+		}
+	})
+	t.Run("different named walls remain freshness unknown", func(t *testing.T) {
+		context := evaluationContext("1", "clock-epoch:restart", "1", "0")
+		context.EvaluatedAt.ClockID = "clock.other"
+		view, err := EvaluateSnapshot(snapshot, context)
+		if err != nil || view.Facts[0].Freshness != FreshnessUnknown {
+			t.Fatalf("view=%+v err=%v", view, err)
+		}
+	})
+
+	overflow := evaluationCandidate("candidate:evaluation:overflow-before-unknown", "fact.power", "1000", "100")
+	overflow.Times.ReceivedAt.UnixNanoseconds = "-9223372036854775808"
+	overflow.FreshnessPolicy.MaxWallUncertaintyNS = "0"
+	overflowSnapshot := evaluationSnapshot(t, overflow)
+	context := evaluationContext("9223372036854775807", "clock-epoch:restart", "1", "1")
+	requireID(t, func() error { _, err := EvaluateSnapshot(overflowSnapshot, context); return err }(), InvalidTime)
+
+	representable := evaluationCandidate("candidate:evaluation:representable-unknown", "fact.power", "1000", "100")
+	representable.FreshnessPolicy.MaxWallUncertaintyNS = "0"
+	representableSnapshot := evaluationSnapshot(t, representable)
+	view, err := EvaluateSnapshot(representableSnapshot, evaluationContext("1040", "clock-epoch:restart", "1", "1"))
+	if err != nil || view.Facts[0].Freshness != FreshnessUnknown {
+		t.Fatalf("representable excessive uncertainty: %+v %v", view, err)
+	}
+}
+
 type recordingSelectionPolicy struct {
 	id      PolicyID
 	version SemanticVersion
@@ -271,6 +319,69 @@ func TestSelectionContractMatrix(t *testing.T) {
 	if policy.Calls() != baselineCalls || wrong.Calls() != 1 {
 		t.Fatalf("invalid input dispatched a policy: valid=%d wrong=%d", policy.Calls(), wrong.Calls())
 	}
+}
+
+func TestSelectionGlobalRankingAndSharedBindingControls(t *testing.T) {
+	power := evaluationCandidate("candidate:evaluation:rank-power", "fact.power", "1000", "100")
+	voltage := evaluationCandidate("candidate:evaluation:rank-voltage", "fact.voltage", "1000", "100")
+	snapshot := evaluationSnapshot(t, power, voltage)
+	view, err := EvaluateSnapshot(snapshot, evaluationContext("1030", "clock-epoch:evaluation", "130", "0"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := &recordingSelectionPolicy{id: "policy:rank", version: "1.0.0", chosen: voltage.CandidateID}
+	kernel, err := NewSelectionKernel(policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	missing := voltage.Key
+	missing.FactID = "fact.missing"
+
+	cases := []struct {
+		name     string
+		snapshot Snapshot
+		view     EvaluationView
+		key      FactKey
+		want     ErrorID
+	}{
+		{"identifier outranks digest and missing key", func() Snapshot { s := snapshot; s.SnapshotID = "!"; return s }(), func() EvaluationView {
+			v := view
+			v.EvaluationDigest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+			return v
+		}(), missing, InvalidIdentifier},
+		{"duplicate correspondence outranks missing key", snapshot, func() EvaluationView {
+			v := view
+			v.Facts = append(append([]EvaluatedFact(nil), v.Facts...), v.Facts[0])
+			return v
+		}(), missing, DuplicateKey},
+		{"missing key and extra candidate outrank revision drift", snapshot, func() EvaluationView {
+			v := copiedEvaluationView(t, view)
+			v.Facts[0].CandidateRevision = "99"
+			v.Facts = append(v.Facts, EvaluatedFact{CandidateID: "candidate:extra", CandidateRevision: "1", Freshness: FreshnessFresh, EffectiveAvailability: AvailabilityAvailable})
+			sealEvaluationView(t, &v)
+			return v
+		}(), missing, DanglingReference},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := policy.Calls()
+			_, err := kernel.SelectPresentation(tc.snapshot, tc.view, tc.key, policy.id, policy.version)
+			requireID(t, err, tc.want)
+			if policy.Calls() != calls {
+				t.Fatal("invalid combined input invoked policy")
+			}
+		})
+	}
+
+	selection, err := kernel.SelectPresentation(snapshot, view, voltage.Key, policy.id, policy.version)
+	if err != nil || policy.Calls() != 1 {
+		t.Fatalf("valid combined control: selection=%+v err=%v calls=%d", selection, err, policy.Calls())
+	}
+	foreign := copiedEvaluationView(t, view)
+	foreign.Facts = foreign.Facts[:1]
+	sealEvaluationView(t, &foreign)
+	selection.Contract = "wrong"
+	requireID(t, ValidateSelection(snapshot, foreign, selection), InvalidContract)
 }
 
 func TestEvaluationConcurrentReadOnlyDeterminism(t *testing.T) {

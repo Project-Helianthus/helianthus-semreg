@@ -188,10 +188,11 @@ func contextNotEarlierThanSnapshot(snapshot Snapshot, context EvaluationContext)
 	return earlierComparableWall(snapshot.EvaluatedAt, context.EvaluatedAt)
 }
 
-// earlierComparableWall rejects a demonstrably earlier point. Uncomparable
-// clocks are intentionally not ordered here; freshness will become unknown.
+// earlierComparableWall rejects a demonstrably earlier point. Identically
+// named wall-clock realizations are comparable even when they are not UTC;
+// differently named clocks are intentionally not ordered here.
 func earlierComparableWall(then, now TimePoint) error {
-	if then.ClockID != "clock.utc" || now.ClockID != "clock.utc" {
+	if then.ClockID != now.ClockID {
 		return nil
 	}
 	thenNS, tok := i64(then.UnixNanoseconds)
@@ -248,9 +249,6 @@ func evaluateCrossEpoch(received TimePoint, policy FreshnessPolicy, evaluated Ti
 	if upper.Sign() < 0 {
 		return "", errID(InvalidTime, "negative wall delta")
 	}
-	if u.Cmp(maxU) > 0 {
-		return FreshnessUnknown, nil
-	}
 	if upper.BitLen() > 64 {
 		return "", errID(InvalidTime, "elapsed interval overflow")
 	}
@@ -260,6 +258,9 @@ func evaluateCrossEpoch(received TimePoint, policy FreshnessPolicy, evaluated Ti
 	}
 	if lower.BitLen() > 64 {
 		return "", errID(InvalidTime, "elapsed interval overflow")
+	}
+	if u.Cmp(maxU) > 0 {
+		return FreshnessUnknown, nil
 	}
 	fresh, _ := u64(policy.FreshForNS)
 	retain, _ := u64(policy.RetainForNS)
@@ -326,6 +327,50 @@ type SelectionKernel struct {
 	policies map[selectionPolicyKey]SelectionPolicy
 }
 
+type snapshotViewCorrespondence struct {
+	candidates          map[CandidateID]FactCandidate
+	envelopeByCandidate map[CandidateID]FactEnvelope
+	evaluated           map[CandidateID]EvaluatedFact
+}
+
+// snapshotViewBinding builds the one shared complete correspondence used by
+// policy dispatch and public result validation. It collects missing/extra and
+// revision failures independently so global error ranking is traversal-free.
+func snapshotViewBinding(snapshot Snapshot, view EvaluationView) (snapshotViewCorrespondence, error) {
+	binding := snapshotViewCorrespondence{
+		candidates:          make(map[CandidateID]FactCandidate),
+		envelopeByCandidate: make(map[CandidateID]FactEnvelope),
+		evaluated:           make(map[CandidateID]EvaluatedFact, len(view.Facts)),
+	}
+	var errs []error
+	if view.SnapshotID != snapshot.SnapshotID || view.Revisions != snapshot.Revisions {
+		errs = append(errs, errID(RevisionConflict, "snapshot evaluation binding"))
+	}
+	for _, envelope := range snapshot.Facts {
+		for _, candidate := range envelope.Candidates {
+			binding.candidates[candidate.CandidateID] = candidate
+			binding.envelopeByCandidate[candidate.CandidateID] = envelope
+		}
+	}
+	for _, fact := range view.Facts {
+		binding.evaluated[fact.CandidateID] = fact
+		candidate, ok := binding.candidates[fact.CandidateID]
+		if !ok {
+			errs = append(errs, errID(DanglingReference, "evaluated candidate"))
+			continue
+		}
+		if candidate.Revision != fact.CandidateRevision {
+			errs = append(errs, errID(RevisionConflict, "evaluated candidate revision"))
+		}
+	}
+	for id := range binding.candidates {
+		if _, ok := binding.evaluated[id]; !ok {
+			errs = append(errs, errID(DanglingReference, "missing evaluated candidate"))
+		}
+	}
+	return binding, bestError(errs...)
+}
+
 func NewSelectionKernel(policies ...SelectionPolicy) (*SelectionKernel, error) {
 	kernel := &SelectionKernel{policies: make(map[selectionPolicyKey]SelectionPolicy)}
 	for _, policy := range policies {
@@ -359,59 +404,30 @@ func (k *SelectionKernel) SelectPresentation(snapshot Snapshot, view EvaluationV
 	if k == nil {
 		return Selection{}, errID(DefinitionOwnerMissing, "selection kernel")
 	}
-	if err := view.Validate(); err != nil {
-		return Selection{}, err
-	}
-	if err := snapshot.Validate(); err != nil {
-		return Selection{}, err
-	}
-	if err := bestError(key.Validate(), policyID.Validate(), policyVersion.Validate()); err != nil {
-		return Selection{}, err
-	}
-	if view.SnapshotID != snapshot.SnapshotID || view.Revisions != snapshot.Revisions {
-		return Selection{}, errID(RevisionConflict, "snapshot evaluation binding")
-	}
-
-	candidates := make(map[CandidateID]FactCandidate)
-	envelopeByCandidate := make(map[CandidateID]FactEnvelope)
-	for _, envelope := range snapshot.Facts {
-		for _, candidate := range envelope.Candidates {
-			candidates[candidate.CandidateID] = candidate
-			envelopeByCandidate[candidate.CandidateID] = envelope
-		}
-	}
-	evaluated := make(map[CandidateID]EvaluatedFact, len(view.Facts))
-	for _, fact := range view.Facts {
-		candidate, ok := candidates[fact.CandidateID]
-		if !ok {
-			return Selection{}, errID(DanglingReference, "evaluated candidate")
-		}
-		if candidate.Revision != fact.CandidateRevision {
-			return Selection{}, errID(RevisionConflict, "evaluated candidate revision")
-		}
-		evaluated[fact.CandidateID] = fact
-	}
-	for id := range candidates {
-		if _, ok := evaluated[id]; !ok {
-			return Selection{}, errID(DanglingReference, "missing evaluated candidate")
-		}
-	}
-
+	binding, correspondenceErr := snapshotViewBinding(snapshot, view)
 	requested, found := findEnvelope(snapshot.Facts, key)
+	var requestedErr error
 	if !found {
-		return Selection{}, errID(DanglingReference, "requested fact key")
+		requestedErr = errID(DanglingReference, "requested fact key")
 	}
 	policyKey := selectionPolicyKey{id: policyID, version: policyVersion}
 	k.mu.RLock()
 	policy, registered := k.policies[policyKey]
 	k.mu.RUnlock()
+	var policyErr error
 	if !registered {
-		return Selection{}, errID(DefinitionOwnerMissing, "selection policy")
+		policyErr = errID(DefinitionOwnerMissing, "selection policy")
+	}
+	if err := bestError(
+		view.Validate(), snapshot.Validate(), key.Validate(), policyID.Validate(), policyVersion.Validate(),
+		correspondenceErr, requestedErr, policyErr,
+	); err != nil {
+		return Selection{}, err
 	}
 
 	facts := make([]EvaluatedFact, 0, len(requested.Candidates))
 	for _, candidate := range requested.Candidates {
-		fact, ok := evaluated[candidate.CandidateID]
+		fact, ok := binding.evaluated[candidate.CandidateID]
 		if !ok {
 			return Selection{}, errID(DanglingReference, "requested evaluated candidate")
 		}
@@ -422,11 +438,11 @@ func (k *SelectionKernel) SelectPresentation(snapshot Snapshot, view EvaluationV
 	if err != nil {
 		return Selection{}, errID(InvalidValue, "selection policy")
 	}
-	candidate, ok := candidates[selected]
-	if !ok || !selectionFactKeysEqual(envelopeByCandidate[selected].Key, key) {
+	candidate, ok := binding.candidates[selected]
+	if !ok || !selectionFactKeysEqual(binding.envelopeByCandidate[selected].Key, key) {
 		return Selection{}, errID(InvalidValue, "selected candidate")
 	}
-	if _, ok := evaluated[selected]; !ok {
+	if _, ok := binding.evaluated[selected]; !ok {
 		return Selection{}, errID(InvalidValue, "selected candidate evaluation")
 	}
 	return Selection{Contract: ContractSelectionV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, EvaluationDigest: view.EvaluationDigest, Context: view.Context, Key: cloneFactKey(key), PolicyID: policyID, PolicyVersion: policyVersion, SelectedCandidate: selected, CandidateRevision: candidate.Revision, PresentationOnly: true}, nil
@@ -435,21 +451,15 @@ func (k *SelectionKernel) SelectPresentation(snapshot Snapshot, view EvaluationV
 // ValidateSelection verifies a selection result against the exact immutable
 // snapshot and evaluation that bound it. It does not dispatch a policy.
 func ValidateSelection(snapshot Snapshot, view EvaluationView, selection Selection) error {
-	if err := view.Validate(); err != nil {
-		return err
-	}
-	if err := snapshot.Validate(); err != nil {
-		return err
-	}
-	if err := selection.Validate(); err != nil {
-		return err
-	}
+	binding, correspondenceErr := snapshotViewBinding(snapshot, view)
+	var bindingErr error
 	if selection.SnapshotID != snapshot.SnapshotID || selection.Revisions != snapshot.Revisions || selection.EvaluationDigest != view.EvaluationDigest || !reflect.DeepEqual(selection.Context, view.Context) {
-		return errID(RevisionConflict, "selection evaluation binding")
+		bindingErr = errID(RevisionConflict, "selection evaluation binding")
 	}
 	requested, found := findEnvelope(snapshot.Facts, selection.Key)
+	var requestedErr error
 	if !found {
-		return errID(DanglingReference, "selection requested fact key")
+		requestedErr = errID(DanglingReference, "selection requested fact key")
 	}
 	var candidate *FactCandidate
 	for index := range requested.Candidates {
@@ -458,21 +468,23 @@ func ValidateSelection(snapshot Snapshot, view EvaluationView, selection Selecti
 			break
 		}
 	}
+	var candidateErr error
 	if candidate == nil {
-		return errID(DanglingReference, "selected candidate")
+		candidateErr = errID(DanglingReference, "selected candidate")
+	} else if candidate.Revision != selection.CandidateRevision {
+		candidateErr = errID(RevisionConflict, "selected candidate revision")
 	}
-	if candidate.Revision != selection.CandidateRevision {
-		return errID(RevisionConflict, "selected candidate revision")
+	evaluated, evaluatedFound := binding.evaluated[selection.SelectedCandidate]
+	var evaluatedErr error
+	if !evaluatedFound {
+		evaluatedErr = errID(DanglingReference, "selected evaluated candidate")
+	} else if evaluated.CandidateRevision != selection.CandidateRevision {
+		evaluatedErr = errID(RevisionConflict, "selected evaluated candidate revision")
 	}
-	for _, fact := range view.Facts {
-		if fact.CandidateID == selection.SelectedCandidate {
-			if fact.CandidateRevision != selection.CandidateRevision {
-				return errID(RevisionConflict, "selected evaluated candidate revision")
-			}
-			return nil
-		}
-	}
-	return errID(DanglingReference, "selected evaluated candidate")
+	return bestError(
+		view.Validate(), snapshot.Validate(), selection.Validate(), correspondenceErr,
+		bindingErr, requestedErr, candidateErr, evaluatedErr,
+	)
 }
 
 func findEnvelope(envelopes []FactEnvelope, key FactKey) (FactEnvelope, bool) {

@@ -7,7 +7,7 @@ compatibility fixtures.
 ## Implemented v1 foundation, publication, evaluation, and selection
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
-[`helianthus-docs-semantic` contract at b16667d](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/b16667d719defc7b0fef0400ee3ad387469018ac/api/v1).
+[`helianthus-docs-semantic` contract at da5ab44](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/da5ab4415d3bec73f9572aec1c495a6cdcbcba47/api/v1).
 It provides:
 
 - protocol-neutral identities, exact values, evidence, lineage, time, quality,
@@ -28,10 +28,11 @@ It provides:
   pairs and returns immutable, snapshot/view-bound presentation-only results.
 
 The self-contained fixture runners execute the copied K-POS-005 restart-time
-vector plus focused K-POS-019/K-POS-025 and K-NEG-056 through K-NEG-065
-evaluation/selection matrices, alongside the foundation and publication
-fixtures pinned to the same accepted contract. Passing these checks does not
-establish all runtime acceptance criteria.
+vector plus the exact corrected K-POS-019/K-POS-025 and K-NEG-056 through
+K-NEG-065 inputs from docs issue #6, alongside the foundation and publication
+fixtures. The new subset is pinned to the accepted docs commit and its exact
+source-file SHA-256. Passing these checks does not establish all runtime
+acceptance criteria.
 
 Operation/projection/admission runtime, capability-pack catalogs/mappings,
 persistence, migrations and integrations remain deferred.
