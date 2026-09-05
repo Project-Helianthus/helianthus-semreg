@@ -84,6 +84,21 @@ func collectionCompare(a, b reflect.Value) int {
 	return 0
 }
 
+// Identity encoding is unambiguous and independent of non-key fields. All
+// numeric key strings have already passed canonical syntax validation.
+func collectionKey(v reflect.Value) string {
+	if v.Kind() == reflect.String {
+		return v.String()
+	}
+	var parts []string
+	for _, name := range collectionKeyFields(v.Type()) {
+		field, _ := wireField(v.Type(), name)
+		parts = append(parts, v.FieldByIndex(field.Index).String())
+	}
+	encoded, _ := json.Marshal(parts)
+	return string(encoded)
+}
+
 func nodeMember(node jsonNode, name string) (jsonNode, bool) {
 	for _, member := range node.object {
 		if member.key == name {
@@ -142,7 +157,9 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 	if node.kind != 'a' || (element.Kind() != reflect.String && len(collectionKeyFields(element)) == 0) {
 		return nil
 	}
-	var keys []reflect.Value
+	seen := make(map[string]struct{})
+	var previous reflect.Value
+	duplicate, descending := false, false
 	for _, child := range node.array {
 		projection := child
 		if fields := collectionKeyFields(element); len(fields) != 0 {
@@ -170,7 +187,15 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 		raw, _ := json.Marshal(jsonNodeValue(projection))
 		value := reflect.New(element)
 		if json.Unmarshal(raw, value.Interface()) == nil && collectionKeyValid(value.Elem()) {
-			keys = append(keys, value.Elem())
+			key := collectionKey(value.Elem())
+			if _, exists := seen[key]; exists {
+				duplicate = true
+			}
+			seen[key] = struct{}{}
+			if previous.IsValid() && collectionCompare(previous, value.Elem()) > 0 {
+				descending = true
+			}
+			previous = value.Elem()
 		}
 	}
 	duplicateClass, ordered := DuplicateKey, true
@@ -181,17 +206,39 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 		duplicateClass, ordered = CausalBudgetExceeded, false
 	}
 	var errs []error
-	for i := range keys {
-		for j := 0; j < i; j++ {
-			if collectionCompare(keys[j], keys[i]) == 0 {
-				errs = append(errs, errID(duplicateClass, "collection key"))
-			}
-		}
-		if ordered && i > 0 && collectionCompare(keys[i-1], keys[i]) > 0 {
-			errs = append(errs, errID(NoncanonicalOrder, "collection keys"))
-		}
+	if duplicate {
+		errs = append(errs, errID(duplicateClass, "collection key"))
+	}
+	if ordered && descending {
+		errs = append(errs, errID(NoncanonicalOrder, "collection keys"))
 	}
 	return errs
+}
+
+func enclosingWireErrors(node jsonNode, t reflect.Type) []error {
+	if t != reflect.TypeOf(CausalContext{}) || node.kind != 'o' {
+		return nil
+	}
+	point := func(name string) *TimePoint {
+		child, present := nodeMember(node, name)
+		if !present {
+			return nil
+		}
+		var errs []error
+		validateShape(child, reflect.TypeOf(TimePoint{}), &errs)
+		for _, err := range errs {
+			if ErrorIdentifier(err) != UnknownMember {
+				return nil
+			}
+		}
+		raw, _ := json.Marshal(jsonNodeValue(child))
+		var value TimePoint
+		if json.Unmarshal(raw, &value) != nil || value.Validate() != nil {
+			return nil
+		}
+		return &value
+	}
+	return causalTimeErrors(point("first_seen_at"), point("expires_at"))
 }
 
 // Conditional required members remain knowable even when an unrelated field

@@ -196,25 +196,20 @@ func validateText(s string, min, max int, controls bool) error {
 }
 func duplicateAndOrder[T any](items []T, compare func(T, T) int) (bool, bool) {
 	// Invalid keys do not acquire an identity through their Go zero value.
-	valid := make([]T, 0, len(items))
+	seen := make(map[string]struct{})
+	var previous T
+	havePrevious, duplicate, ordered := false, false, true
 	for _, item := range items {
 		if collectionKeyValid(reflect.ValueOf(item)) {
-			valid = append(valid, item)
-		}
-	}
-	items = valid
-	duplicate := false
-	for i := range items {
-		for j := 0; j < i; j++ {
-			if compare(items[i], items[j]) == 0 {
+			key := collectionKey(reflect.ValueOf(item))
+			if _, exists := seen[key]; exists {
 				duplicate = true
 			}
-		}
-	}
-	ordered := true
-	for i := 1; i < len(items); i++ {
-		if compare(items[i-1], items[i]) > 0 {
-			ordered = false
+			seen[key] = struct{}{}
+			if havePrevious && compare(previous, item) > 0 {
+				ordered = false
+			}
+			previous, havePrevious = item, true
 		}
 	}
 	return duplicate, ordered
@@ -533,26 +528,31 @@ func (s Symbol) Validate() error {
 }
 func (q Quantity) Validate() error { return bestError(q.Number.Validate(), q.Unit.Validate()) }
 func (v Value) Validate() error {
+	var errs []error
 	count := 0
 	if v.Quantity != nil {
 		count++
+		errs = append(errs, v.Quantity.Validate())
 	}
 	if v.Boolean != nil {
 		count++
 	}
 	if v.Text != nil {
 		count++
+		errs = append(errs, validateText(*v.Text, 0, 4096, true))
 	}
 	if v.Symbol != nil {
 		count++
+		errs = append(errs, v.Symbol.Validate())
 	}
 	if v.Symbols != nil {
 		count++
+		errs = append(errs, validateSymbols(v.Symbols))
 	}
 	if v.Time != nil {
 		count++
+		errs = append(errs, v.Time.Validate())
 	}
-	var errs []error
 	if count != 1 {
 		errs = append(errs, errID(InvalidValue, "value payload"))
 	}
@@ -560,8 +560,6 @@ func (v Value) Validate() error {
 	case ValueQuantity:
 		if v.Quantity == nil {
 			errs = append(errs, errID(InvalidValue, "quantity payload"))
-		} else {
-			errs = append(errs, v.Quantity.Validate())
 		}
 	case ValueBoolean:
 		if v.Boolean == nil {
@@ -570,42 +568,44 @@ func (v Value) Validate() error {
 	case ValueText:
 		if v.Text == nil {
 			errs = append(errs, errID(InvalidValue, "text payload"))
-		} else {
-			errs = append(errs, validateText(*v.Text, 0, 4096, true))
 		}
 	case ValueSymbol:
 		if v.Symbol == nil {
 			errs = append(errs, errID(InvalidValue, "symbol payload"))
-		} else {
-			errs = append(errs, v.Symbol.Validate())
 		}
 	case ValueSymbols:
-		dup, ordered := duplicateAndOrder(v.Symbols, func(a, b Symbol) int {
-			if c := strings.Compare(string(a.Namespace), string(b.Namespace)); c != 0 {
-				return c
-			}
-			return strings.Compare(a.Token, b.Token)
-		})
-		for _, s := range v.Symbols {
-			errs = append(errs, s.Validate())
-		}
-		if len(v.Symbols) < 1 || len(v.Symbols) > 64 {
-			errs = append(errs, errID(BoundsExceeded, "symbols"))
-		}
-		if dup {
-			errs = append(errs, errID(DuplicateKey, "symbols"))
-		}
-		if !ordered {
-			errs = append(errs, errID(NoncanonicalOrder, "symbols"))
+		if v.Symbols == nil {
+			errs = append(errs, errID(InvalidValue, "symbols payload"))
 		}
 	case ValueTime:
 		if v.Time == nil {
 			errs = append(errs, errID(InvalidValue, "time payload"))
-		} else {
-			errs = append(errs, v.Time.Validate())
 		}
 	default:
 		errs = append(errs, errID(InvalidEnum, "value kind"))
+	}
+	return bestError(errs...)
+}
+
+func validateSymbols(symbols []Symbol) error {
+	var errs []error
+	dup, ordered := duplicateAndOrder(symbols, func(a, b Symbol) int {
+		if c := strings.Compare(string(a.Namespace), string(b.Namespace)); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Token, b.Token)
+	})
+	for _, s := range symbols {
+		errs = append(errs, s.Validate())
+	}
+	if len(symbols) < 1 || len(symbols) > 64 {
+		errs = append(errs, errID(BoundsExceeded, "symbols"))
+	}
+	if dup {
+		errs = append(errs, errID(DuplicateKey, "symbols"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "symbols"))
 	}
 	return bestError(errs...)
 }
@@ -754,11 +754,25 @@ func (c CausalContext) Validate() error {
 		errs = append(errs, target.Validate())
 	}
 	dup, _ := duplicateAndOrder(c.Path, func(a, b TargetID) int { return strings.Compare(string(a), string(b)) })
-	if c.FirstSeenAt.ClockID != "clock.utc" || c.ExpiresAt.ClockID != "clock.utc" {
+	errs = append(errs, causalTimeErrors(&c.FirstSeenAt, &c.ExpiresAt)...)
+	if c.MaxHops < 1 || c.MaxHops > 16 || c.HopCount > c.MaxHops || int(c.HopCount) != len(c.Path) || dup {
+		errs = append(errs, errID(CausalBudgetExceeded, "causal path"))
+	}
+	return bestError(errs...)
+}
+
+// Shared by typed validation and partial wire validation: time rules depend
+// only on the supplied time points, never on whether hop counters can bind.
+func causalTimeErrors(firstPoint, expiresPoint *TimePoint) []error {
+	var errs []error
+	if firstPoint != nil && firstPoint.ClockID != "clock.utc" || expiresPoint != nil && expiresPoint.ClockID != "clock.utc" {
 		errs = append(errs, errID(InvalidTime, "causal clock"))
 	}
-	if first, ok1 := i64(c.FirstSeenAt.UnixNanoseconds); ok1 {
-		if expires, ok2 := i64(c.ExpiresAt.UnixNanoseconds); ok2 {
+	if firstPoint == nil || expiresPoint == nil {
+		return errs
+	}
+	if first, ok1 := i64(firstPoint.UnixNanoseconds); ok1 {
+		if expires, ok2 := i64(expiresPoint.UnixNanoseconds); ok2 {
 			delta := new(big.Int).Sub(expires, first)
 			limit := big.NewInt(300_000_000_000)
 			if delta.Sign() < 0 {
@@ -768,10 +782,7 @@ func (c CausalContext) Validate() error {
 			}
 		}
 	}
-	if c.MaxHops < 1 || c.MaxHops > 16 || c.HopCount > c.MaxHops || int(c.HopCount) != len(c.Path) || dup {
-		errs = append(errs, errID(CausalBudgetExceeded, "causal path"))
-	}
-	return bestError(errs...)
+	return errs
 }
 func (c FactCandidate) Validate() error {
 	var errs []error
@@ -1448,11 +1459,10 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		}
 		for name, field := range fields {
 			if !field.optional && !seen[name] {
-				if name == "contract" {
-					*errors = append(*errors, errID(InvalidContract, "contract"))
-				} else {
-					*errors = append(*errors, errID(MissingMember, name))
-				}
+				// Foundation record members are references, not semantic document
+				// discriminators. In particular EvidenceRef.contract is required
+				// evidence metadata, even when EvidenceRef is the Decode target.
+				*errors = append(*errors, errID(MissingMember, name))
 			}
 		}
 	case reflect.Slice:
@@ -1544,6 +1554,7 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	}
 	var errs []error
 	errs = append(errs, conditionalMemberErrors(node, t)...)
+	errs = append(errs, enclosingWireErrors(node, t)...)
 	switch t.Kind() {
 	case reflect.Struct:
 		fields := map[string]reflect.Type{}
