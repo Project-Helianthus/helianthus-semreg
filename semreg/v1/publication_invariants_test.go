@@ -34,6 +34,150 @@ func assertHistoricalBytes(t *testing.T, s Snapshot, raw []byte) {
 	}
 }
 
+func invariantInitialWithHooks(t *testing.T) (*PublicationKernel, PublicationBatch, Snapshot, []byte, *retainingBoundaryValidator) {
+	t.Helper()
+	hooks := boundaryValidator()
+	k, err := NewPublicationKernel("asset:site", hooks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+	sealPublicationBatch(t, &b)
+	s, raw, err := k.Apply(b, publicationMonotonic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hooks.factCalls, hooks.serviceCalls, hooks.capabilityCalls, hooks.fieldCalls = 0, 0, 0, 0
+	hooks.matchCalls, hooks.predicateCalls, hooks.retained = 0, 0, nil
+	return k, b, s, raw, hooks
+}
+
+func TestPublicationHeaderOwnershipErrorRanking(t *testing.T) {
+	owners := []struct {
+		name   string
+		mutate func(PublicationBatch, PublicationBatch) PublicationBatch
+	}{
+		{"kernel-asset", func(_, next PublicationBatch) PublicationBatch {
+			next.AssetID = "asset:other"
+			return next
+		}},
+		{"binding-asset", func(initial, next PublicationBatch) PublicationBatch {
+			next.BindingUpserts = []NativeBinding{publicationBinding("asset:other", initial.SourceID, initial.SourceEpochID, "binding:new", "1")}
+			return next
+		}},
+		{"source-id", func(_, next PublicationBatch) PublicationBatch {
+			next.SourceUpserts = []SourceDescriptor{publicationSource("source:other", "epoch:other")}
+			return next
+		}},
+		{"generation-fence", func(_, next PublicationBatch) PublicationBatch {
+			next.GenerationFences = []GenerationFence{publicationFence("source:other", next.SourceEpochID, next.DriverGeneration, publicEvidence("b"))}
+			return next
+		}},
+		{"identity-asset", func(_, next PublicationBatch) PublicationBatch {
+			next.IdentityLinkUpserts = []IdentityLink{publicationLink("asset:other", "binding:a")}
+			return next
+		}},
+		{"observed-candidate", func(initial, next PublicationBatch) PublicationBatch {
+			next.FactUpserts = []FactCandidate{publicationCandidate("candidate:new", "fact.power", true, "source:other", initial.SourceEpochID, "binding:a", "1")}
+			return next
+		}},
+		{"service-asset", func(initial, next PublicationBatch) PublicationBatch {
+			next.ServiceUpserts = []ServiceInstance{publicationService("asset:other", "service:new", "binding:a", initial.SourceEpochID, "1")}
+			return next
+		}},
+		{"capability-asset", func(initial, next PublicationBatch) PublicationBatch {
+			next.CapabilityUpserts = []CapabilityInstance{publicationCapability("asset:other", "capability:new", initial.ServiceUpserts[0].InstanceID, "binding:a", initial.SourceEpochID, "1")}
+			return next
+		}},
+	}
+	sealUnchecked := func(t *testing.T, batch *PublicationBatch) {
+		t.Helper()
+		digest, err := batch.computedDigestUnchecked()
+		if err != nil {
+			t.Fatal(err)
+		}
+		batch.BatchDigest = digest
+	}
+	for _, owner := range owners {
+		for _, fault := range []string{"ownership-only", "ownership-and-time", "ownership-and-enum"} {
+			t.Run(owner.name+"/"+fault, func(t *testing.T) {
+				k, initial, _, _, hooks := invariantInitialWithHooks(t)
+				next := publicationBatch(initial.AssetID, initial.SourceID, initial.SourceEpochID, "1", "2", "1")
+				next = owner.mutate(initial, next)
+				if fault == "ownership-and-time" {
+					next.ObservedAt.UnixNanoseconds = "bad"
+				}
+				if fault == "ownership-and-enum" {
+					if len(next.IdentityLinkUpserts) == 0 {
+						next.IdentityLinkUpserts = []IdentityLink{initial.IdentityLinkUpserts[0]}
+					}
+					next.IdentityLinkUpserts[0].State = "bad"
+				}
+				sealUnchecked(t, &next)
+				assertRejectedUnchanged(t, k, next, InvalidValue)
+				if hooks.calls() != 0 || len(hooks.retained) != 0 {
+					t.Fatalf("preflight rejection reached hooks: calls=%d retained=%d", hooks.calls(), len(hooks.retained))
+				}
+			})
+		}
+	}
+	for _, fault := range []struct {
+		name string
+		want ErrorID
+	}{
+		{"time-only", InvalidTime},
+		{"enum-only", InvalidEnum},
+	} {
+		t.Run(fault.name, func(t *testing.T) {
+			k, initial, _, _ := invariantInitial(t)
+			next := publicationBatch(initial.AssetID, initial.SourceID, initial.SourceEpochID, "1", "2", "1")
+			if fault.want == InvalidTime {
+				next.ObservedAt.UnixNanoseconds = "bad"
+			} else {
+				link := initial.IdentityLinkUpserts[0]
+				link.State = "bad"
+				next.IdentityLinkUpserts = []IdentityLink{link}
+			}
+			sealUnchecked(t, &next)
+			assertRejectedUnchanged(t, k, next, fault.want)
+		})
+	}
+	for _, control := range []struct {
+		name   string
+		want   ErrorID
+		mutate func(*FactCandidate)
+	}{
+		{"missing-source", MissingMember, func(candidate *FactCandidate) { candidate.Origin.SourceID = nil }},
+		{"missing-epoch", MissingMember, func(candidate *FactCandidate) { candidate.SourceEpochID = nil }},
+		{"missing-generation", MissingMember, func(candidate *FactCandidate) { candidate.DriverGeneration = nil }},
+		{"invalid-source", InvalidIdentifier, func(candidate *FactCandidate) {
+			invalid := SourceID("!")
+			candidate.Origin.SourceID = &invalid
+		}},
+		{"invalid-epoch", InvalidIdentifier, func(candidate *FactCandidate) {
+			invalid := SourceEpochID("!")
+			candidate.SourceEpochID = &invalid
+		}},
+		{"invalid-generation", InvalidIdentifier, func(candidate *FactCandidate) {
+			invalid := Uint64("bad")
+			candidate.DriverGeneration = &invalid
+		}},
+	} {
+		t.Run("candidate-pointer/"+control.name, func(t *testing.T) {
+			k, initial, _, _, hooks := invariantInitialWithHooks(t)
+			next := publicationBatch(initial.AssetID, initial.SourceID, initial.SourceEpochID, "1", "2", "1")
+			candidate := publicationCandidate("candidate:new", "fact.power", true, initial.SourceID, initial.SourceEpochID, "binding:a", "1")
+			control.mutate(&candidate)
+			next.FactUpserts = []FactCandidate{candidate}
+			sealUnchecked(t, &next)
+			assertRejectedUnchanged(t, k, next, control.want)
+			if hooks.calls() != 0 || len(hooks.retained) != 0 {
+				t.Fatalf("partial candidate reached hooks: calls=%d retained=%d", hooks.calls(), len(hooks.retained))
+			}
+		})
+	}
+}
+
 func TestPublicationOwnershipMatrix(t *testing.T) {
 	for _, kind := range []string{"observed", "inferred-over-observed", "binding", "link", "service", "capability"} {
 		t.Run(kind, func(t *testing.T) {

@@ -300,13 +300,7 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
-	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate())
-	// The kernel asset is a header-only fact and remains safe to diagnose even
-	// when nested records cannot be staged. Rank it with local structure before
-	// the partial-record guard.
-	if batch.AssetID != k.asset {
-		structureError = bestError(structureError, errID(InvalidValue, "publication asset"))
-	}
+	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch))
 	// Local member validation ranks malformed/missing fields, invalid values,
 	// bounds and collection order before reference/lifecycle semantics. Keep
 	// those partial records out of pointer-dependent staging. A well-formed
@@ -400,6 +394,50 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	k.canonical = append([]byte(nil), canonical...)
 	k.replays[key] = publicationResult{snapshot: cloneSnapshot(working), canonical: append([]byte(nil), canonical...)}
 	return cloneSnapshot(working), append([]byte(nil), canonical...), nil
+}
+
+// publicationHeaderOwnershipError compares only supplied scalar ownership
+// headers. It is safe for partial records and deliberately excludes any check
+// that needs a referenced record, inferred identity, or lifecycle state.
+func publicationHeaderOwnershipError(kernelAsset AssetID, batch PublicationBatch) error {
+	var failure error
+	check := func(mismatch bool, detail string) {
+		if mismatch {
+			failure = bestError(failure, errID(InvalidValue, detail))
+		}
+	}
+	check(batch.AssetID != kernelAsset, "publication asset")
+	for _, source := range batch.SourceUpserts {
+		check(source.SourceID != batch.SourceID, "source ownership")
+	}
+	for _, binding := range batch.BindingUpserts {
+		check(binding.AssetID != batch.AssetID || binding.SourceID != batch.SourceID || binding.SourceEpochID != batch.SourceEpochID || binding.DriverGeneration != batch.DriverGeneration, "binding ownership")
+	}
+	for _, fence := range batch.GenerationFences {
+		check(fence.SourceID != batch.SourceID || fence.SourceEpochID != batch.SourceEpochID, "generation fence ownership")
+	}
+	for _, link := range batch.IdentityLinkUpserts {
+		check(link.AssetID != batch.AssetID, "identity asset")
+	}
+	for _, candidate := range batch.FactUpserts {
+		if candidate.Quality.Assertion != AssertionObserved {
+			continue
+		}
+		check(suppliedObservedOwnershipMismatch(candidate, batch), "candidate ownership")
+	}
+	for _, service := range batch.ServiceUpserts {
+		check(service.AssetID != batch.AssetID || service.SourceEpochID != batch.SourceEpochID || service.DriverGeneration != batch.DriverGeneration, "service header ownership")
+	}
+	for _, capability := range batch.CapabilityUpserts {
+		check(capability.AssetID != batch.AssetID || capability.SourceEpochID != batch.SourceEpochID || capability.DriverGeneration != batch.DriverGeneration, "capability header ownership")
+	}
+	return failure
+}
+
+func suppliedObservedOwnershipMismatch(candidate FactCandidate, batch PublicationBatch) bool {
+	mismatch := candidate.Origin.SourceID != nil && *candidate.Origin.SourceID != batch.SourceID
+	mismatch = mismatch || candidate.SourceEpochID != nil && *candidate.SourceEpochID != batch.SourceEpochID
+	return mismatch || candidate.DriverGeneration != nil && *candidate.DriverGeneration != batch.DriverGeneration
 }
 
 type componentChanges struct {
@@ -525,9 +563,6 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		check(errID(StaleSourceEpoch, "publication source epoch"))
 	}
 	for _, source := range batch.SourceUpserts {
-		if source.SourceID != batch.SourceID {
-			check(errID(InvalidValue, "source ownership"))
-		}
 		key := sourceKey{source.SourceID, source.SourceEpochID}
 		if existing, ok := sources[key]; ok {
 			if existing.ProfileID != source.ProfileID || existing.ProfileVersion != source.ProfileVersion {
@@ -568,9 +603,6 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		}
 	}
 	for _, fence := range batch.GenerationFences {
-		if fence.SourceID != batch.SourceID || fence.SourceEpochID != batch.SourceEpochID {
-			check(errID(InvalidValue, "generation fence ownership"))
-		}
 		fenceKey := cursorKey{fence.SourceID, fence.SourceEpochID, fence.DriverGeneration}
 		cursor, ok := cursors[fenceKey]
 		if !ok {
@@ -630,9 +662,6 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 
 	transitionedBindings := cloneMap(bindings)
 	for _, binding := range batch.BindingUpserts {
-		if binding.AssetID != batch.AssetID || binding.SourceID != batch.SourceID || binding.SourceEpochID != batch.SourceEpochID || binding.DriverGeneration != batch.DriverGeneration {
-			check(errID(InvalidValue, "binding ownership"))
-		}
 		if source, ok := sources[sourceKey{binding.SourceID, binding.SourceEpochID}]; !ok {
 			check(errID(DanglingReference, "binding source"))
 		} else if source.State != SourceCurrent {
@@ -655,9 +684,6 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	for _, link := range batch.IdentityLinkUpserts {
 		if _, exists := originalBindings[link.BindingID]; exists {
 			check(validatePriorBindingForBatch(link.BindingID, batch, transitionedBindings))
-		}
-		if link.AssetID != batch.AssetID {
-			check(errID(InvalidValue, "identity asset"))
 		}
 		binding, ok := bindings[link.BindingID]
 		if !ok {
@@ -727,9 +753,6 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	}
 
 	for _, service := range batch.ServiceUpserts {
-		if service.AssetID != batch.AssetID || service.SourceEpochID != batch.SourceEpochID || service.DriverGeneration != batch.DriverGeneration {
-			check(errID(InvalidValue, "service header ownership"))
-		}
 		if err := k.registry.ValidateService(service); err != nil {
 			check(err)
 		}
@@ -772,9 +795,6 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	}
 
 	for _, capability := range batch.CapabilityUpserts {
-		if capability.AssetID != batch.AssetID || capability.SourceEpochID != batch.SourceEpochID || capability.DriverGeneration != batch.DriverGeneration {
-			check(errID(InvalidValue, "capability header ownership"))
-		}
 		if err := k.registry.ValidateCapability(capability); err != nil {
 			check(err)
 		}
@@ -1077,8 +1097,11 @@ func validatePriorBindingForBatch(id NativeBindingID, batch PublicationBatch, bi
 
 func validateObservedForBatch(candidate FactCandidate, batch PublicationBatch, bindings map[NativeBindingID]NativeBinding) error {
 	var failure error
-	if candidate.Origin.SourceID == nil || *candidate.Origin.SourceID != batch.SourceID || *candidate.SourceEpochID != batch.SourceEpochID || *candidate.DriverGeneration != batch.DriverGeneration {
+	if candidate.Origin.SourceID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil || suppliedObservedOwnershipMismatch(candidate, batch) {
 		failure = errID(InvalidValue, "candidate ownership")
+	}
+	if candidate.BindingID == nil {
+		return bestError(failure, errID(MissingMember, "observed source path"))
 	}
 	binding, ok := bindings[*candidate.BindingID]
 	if !ok {
