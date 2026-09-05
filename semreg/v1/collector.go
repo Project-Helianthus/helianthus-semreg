@@ -118,6 +118,20 @@ func fieldSemanticErrors(parent reflect.Type, name string, node jsonNode, t refl
 	if len(shape) != 0 {
 		return errs
 	}
+	// Presence/null and token compatibility were checked above. Normalize the
+	// declared scalar type, not a synthesized Go value, before domain dispatch.
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if parent == reflect.TypeOf(Decimal{}) && name == "exponent10" {
+		if number, ok := node.scalar.(json.Number); ok {
+			exponent, err := number.Int64()
+			if err == nil && (exponent < -18 || exponent > 18) {
+				errs = append(errs, errID(InvalidDecimal, "exponent10"))
+			}
+		}
+		return errs
+	}
 	value, isString := node.scalar.(string)
 	if !isString {
 		return errs

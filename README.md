@@ -4,27 +4,36 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
-## Bootstrap status
+## Implemented BASE foundation
 
-This repository currently contains ownership and validation scaffolding only.
-It does not publish a semantic schema, runtime interpreter, stable API, native
-mapping, or release-ready implementation. The first typed architecture and API
-contract must be reviewed in
-[`helianthus-docs-semantic`](https://github.com/Project-Helianthus/helianthus-docs-semantic)
-before dependent implementation is accepted here.
+The `semreg/v1` package implements the typed BASE foundation against the accepted
+[`helianthus-docs-semantic` contract at b16667d](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/b16667d719defc7b0fef0400ee3ad387469018ac/api/v1).
+It provides:
 
-The documentation-only package at `semreg/v1` reserves the first versioned
-namespace and proves that the module builds independently. It exports no model
-or runtime behavior. Independently versioned thermal, PV, storage, EVSE, and
-infrastructure capability packages will be added only through later scoped
-issues with accepted contracts and fixtures.
+- protocol-neutral identities, exact values, evidence, lineage, time, quality,
+  fact candidates/envelopes/conflicts, definitions, services and capabilities;
+- record `Validate` methods and stable rejection IDs through `ErrorIdentifier`;
+- `NewRegistry` with exact pack and definition ownership and typed validator
+  hooks;
+- strict recursive `Decode[T]` and convenience decoders, plus `CanonicalJSON`
+  and `DigestRecord` for supported valid foundation records.
+
+The self-contained fixture runner exercises 25 available foundation properties
+from 30 copied vectors. Five runtime operations are explicitly deferred; passing
+foundation checks does not establish all runtime acceptance criteria.
+
+Publication application, immutable Snapshot/revision state, whole-snapshot
+resolution, evaluation, selection, operation/projection/admission runtime,
+capability-pack catalogs/mappings, migrations and integrations remain deferred.
+The foundation does not establish INT-05 completion, hardware validation,
+release-level security review or software-release acceptance.
 
 ## Ownership boundary
 
-This repository will own protocol-neutral identities, facts, relations,
-capabilities, operations, projections, lifecycle contracts, and compatibility
-fixtures. It will preserve native evidence, alternatives, conflicts, unknown
-values, and explicit projection loss.
+The repository's ownership includes protocol-neutral semantic contracts and
+compatibility fixtures. The implemented foundation preserves native evidence,
+alternatives, conflicts and unknown values; the broader operation, projection
+and lifecycle runtime remains future scoped work.
 
 It does not own transport framing or I/O, protocol lifecycle, vendor/profile
 qualification, native decoding or identity, raw evidence capture, gateway
@@ -35,8 +44,8 @@ repositories.
 
 ## Compatibility sources
 
-The first implementation work must inventory and test its public migration
-donors rather than copying them into this repository as universal semantics.
+Future migration work must inventory and test its public migration donors
+rather than copying them into this repository as universal semantics.
 Reviewed starting points include:
 
 - [`helianthus-ebusreg@738142f`](https://github.com/Project-Helianthus/helianthus-ebusreg/tree/738142f97519b3d5566f6d75d9c3975d7ffe2e96),
@@ -60,10 +69,13 @@ Run the complete local check from a standalone clone:
 ./scripts/ci_local.sh
 ```
 
-The check formats and builds the module with workspace discovery disabled,
-rejects external module dependencies and non-module imports, and runs vet and
-race-enabled tests. Protocol conformance and physical smoke gates do not apply
-to this ownership-only bootstrap.
+The check verifies formatting, module tidy/diffs and declared dependency/import
+boundaries, then runs vet, race-enabled tests and build with workspace discovery
+disabled. The sole direct external dependency is `golang.org/x/text v0.22.0`
+for NFC validation; the script permits its explicit module graph and rejects
+undeclared modules and imports outside this module or x/text. The foundation is
+checked with Go 1.22. Native protocol conformance and physical smoke gates do not
+apply to this protocol-neutral BASE implementation.
 
 ## License
 
