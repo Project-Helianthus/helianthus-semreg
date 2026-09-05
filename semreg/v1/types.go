@@ -3,6 +3,13 @@ package semreg
 // ContractKernelV1 is the root semantic-kernel contract identifier.
 const ContractKernelV1 ContractVersion = "helianthus.semantic.kernel/v1"
 
+// ContractEvaluationV1 and ContractSelectionV1 identify the two immutable
+// time/presentation records. They are deliberately separate from Snapshot.
+const (
+	ContractEvaluationV1 ContractVersion = "helianthus.semantic.evaluation/v1"
+	ContractSelectionV1  ContractVersion = "helianthus.semantic.selection/v1"
+)
+
 type ContractVersion string
 type DefinitionID string
 type OpaqueID string
@@ -456,6 +463,55 @@ type Snapshot struct {
 	Capabilities      []CapabilityInstance `json:"capabilities"`
 	Fences            []GenerationFence    `json:"fences"`
 	Cursors           []PublicationCursor  `json:"cursors"`
+}
+
+// EvaluationContext is supplied by the caller. Evaluation never obtains time
+// from a process clock or from publication state.
+type EvaluationContext struct {
+	EvaluatedAt       TimePoint      `json:"evaluated_at"`
+	EvaluateMonotonic MonotonicPoint `json:"evaluate_monotonic"`
+}
+
+type EvaluatedFact struct {
+	CandidateID           CandidateID  `json:"candidate_id"`
+	CandidateRevision     Uint64       `json:"candidate_revision"`
+	Freshness             Freshness    `json:"freshness"`
+	EffectiveAvailability Availability `json:"effective_availability"`
+}
+
+// EvaluationView is a complete, snapshot-bound, time-only result. Its digest
+// is SHA-256 over this record with EvaluationDigest omitted.
+type EvaluationView struct {
+	Contract         ContractVersion   `json:"contract"`
+	SnapshotID       SnapshotID        `json:"snapshot_id"`
+	Revisions        RevisionVector    `json:"revisions"`
+	Context          EvaluationContext `json:"context"`
+	Facts            []EvaluatedFact   `json:"facts"`
+	EvaluationDigest Digest            `json:"evaluation_digest"`
+}
+
+// Selection is a presentation-only result bound to a complete immutable
+// snapshot and evaluation view. It is never part of either input record.
+type Selection struct {
+	Contract          ContractVersion   `json:"contract"`
+	SnapshotID        SnapshotID        `json:"snapshot_id"`
+	Revisions         RevisionVector    `json:"revisions"`
+	EvaluationDigest  Digest            `json:"evaluation_digest"`
+	Context           EvaluationContext `json:"context"`
+	Key               FactKey           `json:"key"`
+	PolicyID          PolicyID          `json:"policy_id"`
+	PolicyVersion     SemanticVersion   `json:"policy_version"`
+	SelectedCandidate CandidateID       `json:"selected_candidate"`
+	CandidateRevision Uint64            `json:"candidate_revision"`
+	PresentationOnly  bool              `json:"presentation_only"`
+}
+
+// SelectionPolicy owns only cross-source presentation choice. It cannot
+// publish, route, or grant operation authority.
+type SelectionPolicy interface {
+	PolicyID() PolicyID
+	Version() SemanticVersion
+	Select(FactEnvelope, []EvaluatedFact) (CandidateID, error)
 }
 
 type PackValidator interface {
