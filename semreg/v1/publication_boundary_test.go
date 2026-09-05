@@ -177,6 +177,42 @@ func boundarySealBytes(t *testing.T, b *PublicationBatch) {
 	b.BatchDigest = Digest(fmt.Sprintf("sha256:%x", sha256.Sum256(raw)))
 }
 
+func TestPublicationBoundaryKernelAssetRanking(t *testing.T) {
+	for _, mode := range []string{"asset", "time", "enum", "asset-time", "asset-enum", "asset-contract", "asset-member", "asset-identifier"} {
+		t.Run(mode, func(t *testing.T) {
+			k, initial, before, beforeRaw := invariantInitial(t)
+			batch := publicationBatch(initial.AssetID, initial.SourceID, initial.SourceEpochID, "1", "2", "1")
+			want := InvalidValue
+			switch mode {
+			case "asset":
+				batch.AssetID = "asset:other"
+			case "time":
+				batch.ObservedAt.UnixNanoseconds, want = "bad", InvalidTime
+			case "enum":
+				source := initial.SourceUpserts[0]
+				source.State = "other"
+				batch.SourceUpserts, want = []SourceDescriptor{source}, InvalidEnum
+			case "asset-time":
+				batch.AssetID, batch.ObservedAt.UnixNanoseconds = "asset:other", "bad"
+			case "asset-enum":
+				batch.AssetID = "asset:other"
+				source := initial.SourceUpserts[0]
+				source.State = "other"
+				batch.SourceUpserts = []SourceDescriptor{source}
+			case "asset-contract":
+				batch.AssetID, batch.Contract, want = "asset:other", "wrong/v1", InvalidContract
+			case "asset-member":
+				batch.AssetID, batch.FactUpserts, want = "asset:other", nil, MissingMember
+			case "asset-identifier":
+				batch.AssetID, batch.SourceID, want = "asset:other", "!", InvalidIdentifier
+			}
+			boundarySealBytes(t, &batch)
+			assertRejectedUnchanged(t, k, batch, want)
+			assertHistoricalBytes(t, before, beforeRaw)
+		})
+	}
+}
+
 func TestPublicationBoundaryDigestPrecedence(t *testing.T) {
 	for _, fault := range []string{"valid", "retired-source", "fenced-binding", "self-cycle", "identity-proof", "activation-proof", "causal-budget"} {
 		for _, digest := range []string{"correct", "incorrect", "malformed"} {

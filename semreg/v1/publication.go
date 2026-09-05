@@ -22,7 +22,11 @@ const (
 	maxSnapshotFences       = 128
 	maxSnapshotCursors      = 128
 	maxDerivationNodes      = 4096
-	maxDerivationDepth      = 32
+	// A conforming replacement can transiently contain every retained node and
+	// every node in the final graph. Anything larger cannot close to the public
+	// maximum because upserted candidates are never silently discarded.
+	maxStagedDerivationNodes = maxDerivationNodes * 2
+	maxDerivationDepth       = 32
 )
 
 func (f GenerationFence) Validate() error {
@@ -123,6 +127,9 @@ func (b PublicationBatch) validateStructure(requireDigest bool) error {
 		if reflect.ValueOf(collection).IsNil() {
 			errs = append(errs, errID(MissingMember, "publication collection"))
 		}
+	}
+	if len(b.FactUpserts) > maxStagedDerivationNodes || len(b.FactWithdrawals) > maxDerivationNodes {
+		errs = append(errs, errID(BoundsExceeded, "publication candidate operations"))
 	}
 	for _, record := range b.SourceUpserts {
 		errs = append(errs, record.Validate())
@@ -294,6 +301,12 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate())
+	// The kernel asset is a header-only fact and remains safe to diagnose even
+	// when nested records cannot be staged. Rank it with local structure before
+	// the partial-record guard.
+	if batch.AssetID != k.asset {
+		structureError = bestError(structureError, errID(InvalidValue, "publication asset"))
+	}
 	// Local member validation ranks malformed/missing fields, invalid values,
 	// bounds and collection order before reference/lifecycle semantics. Keep
 	// those partial records out of pointer-dependent staging. A well-formed
@@ -303,9 +316,6 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	}
 	failure := structureError
 	check := func(err error) { failure = bestError(failure, err) }
-	if batch.AssetID != k.asset {
-		check(errID(InvalidValue, "publication asset"))
-	}
 
 	key := cursorKey{batch.SourceID, batch.SourceEpochID, batch.DriverGeneration}
 	cursors := cursorMap(k.current)
@@ -689,10 +699,16 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 			}
 			_, err := validateRevisionedUpsert(existing, candidate)
 			check(err)
-			candidates[candidate.CandidateID] = candidate
-		} else {
-			candidates[candidate.CandidateID] = candidate
 		}
+		if _, exists := candidates[candidate.CandidateID]; !exists && len(candidates) >= maxStagedDerivationNodes {
+			// More than max retained plus max final nodes cannot become a
+			// conforming graph: new upserts are either accepted or reject the
+			// batch, never cascade-removed. Continue collecting higher-ranked
+			// ownership/validator diagnostics without growing graph state.
+			check(errID(BoundsExceeded, "derivation staging nodes"))
+			continue
+		}
+		candidates[candidate.CandidateID] = candidate
 		upsertedCandidates[candidate.CandidateID] = struct{}{}
 	}
 	for _, id := range batch.FactWithdrawals {
@@ -1097,8 +1113,8 @@ func compareCursor(a, b PublicationCursor) int {
 }
 
 func closeCandidateGraph(candidates map[CandidateID]FactCandidate, upserted map[CandidateID]struct{}, bindings map[NativeBindingID]NativeBinding) error {
-	if len(candidates) > maxDerivationNodes {
-		return errID(BoundsExceeded, "derivation nodes")
+	if len(candidates) > maxStagedDerivationNodes {
+		return errID(BoundsExceeded, "derivation staging nodes")
 	}
 	resolver := candidateGraphResolver{
 		candidates: candidates,
@@ -1123,13 +1139,14 @@ func closeCandidateGraph(candidates map[CandidateID]FactCandidate, upserted map[
 			}
 		}
 	}
-	if upsertError != nil {
-		return upsertError
-	}
 	for _, id := range remove {
 		delete(candidates, id)
 	}
-	return nil
+	var sizeError error
+	if len(candidates) > maxDerivationNodes {
+		sizeError = errID(BoundsExceeded, "derivation nodes")
+	}
+	return bestError(upsertError, sizeError)
 }
 
 type candidateGraphResult struct {

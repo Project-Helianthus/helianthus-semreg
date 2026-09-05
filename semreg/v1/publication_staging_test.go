@@ -323,3 +323,133 @@ func TestPublicationStagingErrorResource(t *testing.T) {
 		assertRejectedUnchanged(t, k, batch, DanglingReference)
 	}
 }
+
+func TestPublicationFinalCandidateCardinality(t *testing.T) {
+	k := newTestPublicationKernel(t, "asset:site")
+	initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+	root := initial.FactUpserts[0]
+	for i := 1; i < maxDerivationNodes; i++ {
+		candidate := publicationDerivedCandidate(
+			CandidateID(fmt.Sprintf("candidate:retained%04d", i)),
+			DefinitionID(fmt.Sprintf("fact.group%03d", i/32)),
+			[]FactCandidate{root},
+		)
+		initial.FactUpserts = append(initial.FactUpserts, candidate)
+	}
+	sort.Slice(initial.FactUpserts, func(i, j int) bool {
+		return initial.FactUpserts[i].CandidateID < initial.FactUpserts[j].CandidateID
+	})
+	sealPublicationBatch(t, &initial)
+	before, beforeRaw, err := k.Apply(initial, publicationMonotonic)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	next := publicationBatch(initial.AssetID, initial.SourceID, initial.SourceEpochID, "1", "2", "1")
+	next.FactWithdrawals = []CandidateID{root.CandidateID}
+	for _, id := range []CandidateID{"candidate:newa", "candidate:newb"} {
+		next.FactUpserts = append(next.FactUpserts, publicationCandidate(id, "fact.new", true, initial.SourceID, initial.SourceEpochID, "binding:a", "1"))
+	}
+	sealPublicationBatch(t, &next)
+	result, raw, err := k.Apply(next, publicationMonotonic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Facts) != 1 || len(result.Facts[0].Candidates) != 2 {
+		t.Fatal("atomic cascade did not close to two candidates")
+	}
+	if result.Revisions != (RevisionVector{Semantic: "2", Identity: "1", Facts: "2", Services: "1", Capabilities: "1"}) {
+		t.Fatalf("once-only revisions: %+v", result.Revisions)
+	}
+	for _, candidate := range result.Facts[0].Candidates {
+		if candidate.Revision != "1" {
+			t.Fatalf("new candidate revision: %s", candidate.Revision)
+		}
+	}
+	replay, replayRaw, err := k.Apply(next, publicationMonotonic)
+	if err != nil || !reflect.DeepEqual(result, replay) || !bytes.Equal(raw, replayRaw) {
+		t.Fatal("atomic replacement replay changed")
+	}
+	assertHistoricalBytes(t, before, beforeRaw)
+}
+
+func TestPublicationFinalCandidateCardinalityControls(t *testing.T) {
+	binding := publicationBinding("asset:site", "source:a", "epoch:a", "binding:a", "1")
+	bindings := map[NativeBindingID]NativeBinding{binding.BindingID: binding}
+
+	t.Run("oversized-final", func(t *testing.T) {
+		candidates := make(map[CandidateID]FactCandidate, maxDerivationNodes+1)
+		upserted := make(map[CandidateID]struct{}, maxDerivationNodes+1)
+		for i := 0; i <= maxDerivationNodes; i++ {
+			id := CandidateID(fmt.Sprintf("candidate:new%04d", i))
+			candidates[id] = publicationCandidate(id, "fact.new", true, binding.SourceID, binding.SourceEpochID, binding.BindingID, binding.DriverGeneration)
+			upserted[id] = struct{}{}
+		}
+		requireID(t, closeCandidateGraph(candidates, upserted, bindings), BoundsExceeded)
+		if len(candidates) != maxDerivationNodes+1 {
+			t.Fatal("oversized upserts were silently removed")
+		}
+	})
+
+	t.Run("invalid-same-batch-inferred", func(t *testing.T) {
+		root := publicationCandidate("candidate:missing", "fact.root", true, binding.SourceID, binding.SourceEpochID, binding.BindingID, binding.DriverGeneration)
+		candidate := publicationDerivedCandidate("candidate:invalid", "fact.invalid", []FactCandidate{root})
+		candidates := map[CandidateID]FactCandidate{candidate.CandidateID: candidate}
+		upserted := map[CandidateID]struct{}{candidate.CandidateID: {}}
+		requireID(t, closeCandidateGraph(candidates, upserted, bindings), DanglingReference)
+		if len(candidates) != 1 {
+			t.Fatal("invalid same-batch upsert was silently removed")
+		}
+	})
+
+	t.Run("staging-operation-bound", func(t *testing.T) {
+		batch := publicationBatch("asset:site", "source:a", "epoch:a", "1", "1", "0")
+		for i := 0; i <= maxStagedDerivationNodes; i++ {
+			id := CandidateID(fmt.Sprintf("candidate:staged%04d", i))
+			batch.FactUpserts = append(batch.FactUpserts, publicationCandidate(id, "fact.staged", true, binding.SourceID, binding.SourceEpochID, binding.BindingID, binding.DriverGeneration))
+		}
+		requireID(t, batch.validateStructure(false), BoundsExceeded)
+	})
+}
+
+func TestPublicationCascadeStagingResource(t *testing.T) {
+	binding := publicationBinding("asset:site", "source:a", "epoch:a", "binding:a", "1")
+	bindings := map[NativeBindingID]NativeBinding{binding.BindingID: binding}
+	var previous uint64
+	for _, finalNodes := range []int{256, 1024, maxDerivationNodes} {
+		t.Run(fmt.Sprint(finalNodes), func(t *testing.T) {
+			missing := publicationCandidate("candidate:withdrawn", "fact.root", true, binding.SourceID, binding.SourceEpochID, binding.BindingID, binding.DriverGeneration)
+			candidates := make(map[CandidateID]FactCandidate, 2*finalNodes-1)
+			upserted := make(map[CandidateID]struct{}, finalNodes)
+			for i := 0; i < finalNodes-1; i++ {
+				id := CandidateID(fmt.Sprintf("candidate:retained%04d", i))
+				candidates[id] = publicationDerivedCandidate(id, "fact.retained", []FactCandidate{missing})
+			}
+			for i := 0; i < finalNodes; i++ {
+				id := CandidateID(fmt.Sprintf("candidate:new%04d", i))
+				candidates[id] = publicationCandidate(id, "fact.new", true, binding.SourceID, binding.SourceEpochID, binding.BindingID, binding.DriverGeneration)
+				upserted[id] = struct{}{}
+			}
+			transient := len(candidates)
+			if transient > maxStagedDerivationNodes {
+				t.Fatalf("transient graph %d exceeds staging bound %d", transient, maxStagedDerivationNodes)
+			}
+			runtime.GC()
+			var before, after runtime.MemStats
+			runtime.ReadMemStats(&before)
+			if err := closeCandidateGraph(candidates, upserted, bindings); err != nil {
+				t.Fatal(err)
+			}
+			runtime.ReadMemStats(&after)
+			if len(candidates) != finalNodes {
+				t.Fatalf("final graph nodes=%d want=%d", len(candidates), finalNodes)
+			}
+			allocated := after.TotalAlloc - before.TotalAlloc
+			t.Logf("transient_nodes=%d final_nodes=%d allocated=%d allocations=%d", transient, len(candidates), allocated, after.Mallocs-before.Mallocs)
+			if allocated > 64<<20 || previous != 0 && allocated > 5*previous+(2<<20) {
+				t.Fatal("cascade staging exceeded proportional allocation bound")
+			}
+			previous = allocated
+		})
+	}
+}
