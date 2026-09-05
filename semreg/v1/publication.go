@@ -302,19 +302,37 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	defer k.mu.Unlock()
 	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch))
 	// Local member validation ranks malformed/missing fields, invalid values,
-	// bounds and collection order before reference/lifecycle semantics. Keep
-	// those partial records out of pointer-dependent staging. A well-formed
-	// record's semantic error must still compete with independent state errors.
+	// bounds and collection order before reference/lifecycle semantics. Higher-
+	// ranked malformed records need no retained lookup at all.
+	if structureError != nil && errorRanks[ErrorIdentifier(structureError)] < errorRanks[InvalidValue] {
+		return Snapshot{}, nil, structureError
+	}
+
+	key := cursorKey{batch.SourceID, batch.SourceEpochID, batch.DriverGeneration}
+	cursors := cursorMap(k.current)
+	cursor, knownCursor := cursors[key]
+	sequenceComparison := 1
+	if knownCursor {
+		sequenceComparison = compareUint64(batch.Sequence, cursor.LastSequence)
+	}
+	// Retained source ownership is immutable and needs no structurally valid
+	// proposed record or hypothetical post-state. Do not add current-state
+	// diagnostics to an accepted or older sequence: those remain in the replay
+	// and sequence-conflict partition below.
+	if !knownCursor || sequenceComparison > 0 {
+		structureError = bestError(structureError, publicationRetainedSourceOwnershipError(k.current, batch))
+	}
+	// Keep all partial records out of pointer-dependent staging and validator
+	// hooks. A well-formed record's semantic error must still compete with
+	// independent later state errors.
 	if structureError != nil && errorRanks[ErrorIdentifier(structureError)] < errorRanks[DanglingReference] {
 		return Snapshot{}, nil, structureError
 	}
 	failure := structureError
 	check := func(err error) { failure = bestError(failure, err) }
 
-	key := cursorKey{batch.SourceID, batch.SourceEpochID, batch.DriverGeneration}
-	cursors := cursorMap(k.current)
-	if cursor, ok := cursors[key]; ok {
-		cmp := compareUint64(batch.Sequence, cursor.LastSequence)
+	if knownCursor {
+		cmp := sequenceComparison
 		if cmp <= 0 && structureError != nil {
 			// Preserve the accepted-sequence partition: malformed replays do
 			// not acquire diagnostics from a hypothetical new post-state.
@@ -438,6 +456,95 @@ func suppliedObservedOwnershipMismatch(candidate FactCandidate, batch Publicatio
 	mismatch := candidate.Origin.SourceID != nil && *candidate.Origin.SourceID != batch.SourceID
 	mismatch = mismatch || candidate.SourceEpochID != nil && *candidate.SourceEpochID != batch.SourceEpochID
 	return mismatch || candidate.DriverGeneration != nil && *candidate.DriverGeneration != batch.DriverGeneration
+}
+
+// publicationRetainedSourceOwnershipError resolves only IDs whose owners are
+// already immutable in the current snapshot. Source ownership cannot be
+// changed by a generation fence or epoch retirement, unlike lifecycle path
+// checks that must remain in applyTo. Missing IDs remain reference diagnostics.
+func publicationRetainedSourceOwnershipError(current *Snapshot, batch PublicationBatch) error {
+	if current == nil {
+		return nil
+	}
+	bindings := make(map[NativeBindingID]SourceID, len(current.Bindings))
+	for _, binding := range current.Bindings {
+		bindings[binding.BindingID] = binding.SourceID
+	}
+	foreignBinding := func(id NativeBindingID) bool {
+		source, ok := bindings[id]
+		return ok && source != batch.SourceID
+	}
+
+	var failure error
+	checkBinding := func(id NativeBindingID, detail string) {
+		if foreignBinding(id) {
+			failure = bestError(failure, errID(InvalidValue, detail))
+		}
+	}
+	for _, link := range batch.IdentityLinkUpserts {
+		checkBinding(link.BindingID, "retained identity-link source ownership")
+	}
+
+	candidates := make(map[CandidateID]NativeBindingID)
+	if len(batch.FactUpserts) != 0 || len(batch.FactWithdrawals) != 0 {
+		for _, envelope := range current.Facts {
+			for _, candidate := range envelope.Candidates {
+				if candidate.Quality.Assertion == AssertionObserved && candidate.BindingID != nil {
+					candidates[candidate.CandidateID] = *candidate.BindingID
+				}
+			}
+		}
+	}
+	for _, candidate := range batch.FactUpserts {
+		if candidate.Quality.Assertion == AssertionObserved && candidate.BindingID != nil {
+			checkBinding(*candidate.BindingID, "retained candidate binding source ownership")
+		}
+		if binding, ok := candidates[candidate.CandidateID]; ok {
+			checkBinding(binding, "retained candidate source ownership")
+		}
+	}
+	for _, id := range batch.FactWithdrawals {
+		if binding, ok := candidates[id]; ok {
+			checkBinding(binding, "retained fact-withdrawal source ownership")
+		}
+	}
+
+	services := make(map[ServiceInstanceID]NativeBindingID)
+	if len(batch.ServiceUpserts) != 0 || len(batch.ServiceWithdrawals) != 0 {
+		for _, service := range current.Services {
+			services[service.InstanceID] = service.BindingID
+		}
+	}
+	for _, service := range batch.ServiceUpserts {
+		checkBinding(service.BindingID, "retained service binding source ownership")
+		if binding, ok := services[service.InstanceID]; ok {
+			checkBinding(binding, "retained service source ownership")
+		}
+	}
+	for _, id := range batch.ServiceWithdrawals {
+		if binding, ok := services[id]; ok {
+			checkBinding(binding, "retained service-withdrawal source ownership")
+		}
+	}
+
+	capabilities := make(map[CapabilityInstanceID]NativeBindingID)
+	if len(batch.CapabilityUpserts) != 0 || len(batch.CapabilityWithdrawals) != 0 {
+		for _, capability := range current.Capabilities {
+			capabilities[capability.InstanceID] = capability.BindingID
+		}
+	}
+	for _, capability := range batch.CapabilityUpserts {
+		checkBinding(capability.BindingID, "retained capability binding source ownership")
+		if binding, ok := capabilities[capability.InstanceID]; ok {
+			checkBinding(binding, "retained capability source ownership")
+		}
+	}
+	for _, id := range batch.CapabilityWithdrawals {
+		if binding, ok := capabilities[id]; ok {
+			checkBinding(binding, "retained capability-withdrawal source ownership")
+		}
+	}
+	return failure
 }
 
 type componentChanges struct {
