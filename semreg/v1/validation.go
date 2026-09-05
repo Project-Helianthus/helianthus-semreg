@@ -509,7 +509,9 @@ func (d Decimal) Validate() error {
 }
 func (s Symbol) Validate() error {
 	var value error
-	if err := validateText(s.Token, 1, 256, false); err != nil {
+	if s.Token == "" {
+		value = errID(InvalidValue, "symbol token")
+	} else if err := validateText(s.Token, 1, 256, false); err != nil {
 		value = err
 	}
 	if strings.HasPrefix(string(s.Namespace), "native.") {
@@ -839,8 +841,10 @@ func compareDefinition(a, b DefinitionRef) int {
 	if c := strings.Compare(string(a.ID), string(b.ID)); c != 0 {
 		return c
 	}
-	c, _ := compareSemver(a.Version, b.Version)
-	return c
+	if c, ok := compareSemver(a.Version, b.Version); ok {
+		return c
+	}
+	return strings.Compare(string(a.Version), string(b.Version))
 }
 func (d DefinitionIndex) Validate() error {
 	var errs []error
@@ -989,7 +993,11 @@ func NewRegistry(validators ...PackValidator) (*Registry, error) {
 		}
 		pack := hook.Pack()
 		index := cloneIndex(hook.Definitions())
-		errs = append(errs, pack.Validate(), index.Validate())
+		indexErr := index.Validate()
+		if ErrorIdentifier(indexErr) == DuplicateKey {
+			indexErr = errID(DefinitionOwnerConflict, "duplicate indexed definition")
+		}
+		errs = append(errs, pack.Validate(), indexErr)
 		if index.Pack != pack {
 			errs = append(errs, errID(DefinitionOwnerConflict, "validator pack mismatch"))
 		}
@@ -1054,8 +1062,7 @@ func (r *Registry) ValidateFact(key FactKey, value *Value) error {
 			return err
 		}
 	}
-	ref := DefinitionRef{Pack: PackRef{ID: key.PackID, Version: key.PackVersion}, ID: key.FactID, Version: key.PackVersion}
-	validator, err := r.Definition(DefinitionField, ref)
+	validator, err := r.Validator(PackRef{ID: key.PackID, Version: key.PackVersion})
 	if err != nil {
 		return err
 	}
@@ -1360,12 +1367,16 @@ func parseJSONNode(decoder *json.Decoder, duplicate *bool) (jsonNode, error) {
 	}
 }
 func validateShape(node jsonNode, t reflect.Type, errors *[]error) {
+	validateShapeWithNumberDomain(node, t, errors, InvalidValue)
+}
+
+func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]error, numberRangeError ErrorID) {
 	if t.Kind() == reflect.Pointer {
 		if node.kind == 'n' {
 			*errors = append(*errors, errID(MissingMember, "null"))
 			return
 		}
-		validateShape(node, t.Elem(), errors)
+		validateShapeWithNumberDomain(node, t.Elem(), errors, numberRangeError)
 		return
 	}
 	if node.kind == 'n' {
@@ -1412,7 +1423,11 @@ func validateShape(node jsonNode, t reflect.Type, errors *[]error) {
 				continue
 			}
 			seen[member.key] = true
-			validateShape(member.value, field.t, errors)
+			fieldRangeError := InvalidValue
+			if t == reflect.TypeOf(Decimal{}) && member.key == "exponent10" {
+				fieldRangeError = InvalidDecimal
+			}
+			validateShapeWithNumberDomain(member.value, field.t, errors, fieldRangeError)
 		}
 		for name, field := range fields {
 			if !field.optional && !seen[name] {
@@ -1429,7 +1444,7 @@ func validateShape(node jsonNode, t reflect.Type, errors *[]error) {
 			return
 		}
 		for _, child := range node.array {
-			validateShape(child, t.Elem(), errors)
+			validateShapeWithNumberDomain(child, t.Elem(), errors, numberRangeError)
 		}
 	case reflect.String:
 		if node.kind != 's' {
@@ -1459,7 +1474,13 @@ func validateShape(node jsonNode, t reflect.Type, errors *[]error) {
 		}
 		if t.Kind() >= reflect.Int && t.Kind() <= reflect.Int64 {
 			if _, err := strconv.ParseInt(number.String(), 10, t.Bits()); err != nil {
-				*errors = append(*errors, errID(InvalidValue, "integer token"))
+				id := InvalidValue
+				if numberRangeError != InvalidValue {
+					if _, ok := new(big.Int).SetString(number.String(), 10); ok {
+						id = numberRangeError
+					}
+				}
+				*errors = append(*errors, errID(id, "integer token"))
 			}
 		} else if _, err := strconv.ParseUint(number.String(), 10, t.Bits()); err != nil {
 			*errors = append(*errors, errID(InvalidValue, "integer token"))
@@ -1468,6 +1489,77 @@ func validateShape(node jsonNode, t reflect.Type, errors *[]error) {
 		*errors = append(*errors, errID(InvalidValue, "unsupported wire type"))
 	}
 }
+
+var recordInterface = reflect.TypeOf((*Record)(nil)).Elem()
+
+func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
+	if node.kind == 'n' {
+		return nil
+	}
+	if t.Kind() == reflect.Pointer {
+		return independentlyKnowableErrors(node, t.Elem())
+	}
+	var shapeErrors []error
+	validateShape(node, t, &shapeErrors)
+	if len(shapeErrors) == 0 && (t.Implements(recordInterface) || reflect.PointerTo(t).Implements(recordInterface)) {
+		encoded, err := json.Marshal(jsonNodeValue(node))
+		if err == nil {
+			value := reflect.New(t)
+			if json.Unmarshal(encoded, value.Interface()) == nil {
+				if record, ok := value.Elem().Interface().(Record); ok {
+					return []error{record.Validate()}
+				}
+				if record, ok := value.Interface().(Record); ok {
+					return []error{record.Validate()}
+				}
+			}
+		}
+	}
+	var errs []error
+	switch t.Kind() {
+	case reflect.Struct:
+		fields := map[string]reflect.Type{}
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			name := strings.Split(field.Tag.Get("json"), ",")[0]
+			if name != "" && name != "-" {
+				fields[name] = field.Type
+			}
+		}
+		for _, member := range node.object {
+			if fieldType, ok := fields[member.key]; ok {
+				errs = append(errs, independentlyKnowableErrors(member.value, fieldType)...)
+			}
+		}
+	case reflect.Slice:
+		for _, child := range node.array {
+			errs = append(errs, independentlyKnowableErrors(child, t.Elem())...)
+		}
+	}
+	return errs
+}
+
+func jsonNodeValue(node jsonNode) interface{} {
+	switch node.kind {
+	case 'o':
+		value := make(map[string]interface{}, len(node.object))
+		for _, member := range node.object {
+			value[member.key] = jsonNodeValue(member.value)
+		}
+		return value
+	case 'a':
+		value := make([]interface{}, len(node.array))
+		for i, child := range node.array {
+			value[i] = jsonNodeValue(child)
+		}
+		return value
+	case 'n':
+		return nil
+	default:
+		return node.scalar
+	}
+}
+
 func decodeRecord[T Record](raw []byte) (T, error) {
 	var zero T
 	node, duplicate, syntax := parseJSON(raw)
@@ -1480,14 +1572,13 @@ func decodeRecord[T Record](raw []byte) (T, error) {
 	}
 	targetType := reflect.TypeOf((*T)(nil)).Elem()
 	validateShape(node, targetType, &errs)
-	if err := bestError(errs...); err != nil {
-		return zero, err
-	}
 	var result T
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return zero, errID(InvalidJSON, "typed decode")
+	if err := json.Unmarshal(raw, &result); err == nil {
+		errs = append(errs, result.Validate())
+	} else {
+		errs = append(errs, independentlyKnowableErrors(node, targetType)...)
 	}
-	if err := result.Validate(); err != nil {
+	if err := bestError(errs...); err != nil {
 		return zero, err
 	}
 	return result, nil

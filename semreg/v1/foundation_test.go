@@ -3,8 +3,10 @@ package semreg
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -37,11 +39,28 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		}
 	})
 	t.Run("K-POS-003", func(t *testing.T) {
+		var input struct {
+			CandidateID CandidateID `json:"candidate_id"`
+			Quality     Quality     `json:"quality"`
+			Origin      struct {
+				OriginID      OriginID   `json:"origin_id"`
+				Kind          OriginKind `json:"kind"`
+				EvidenceCount int        `json:"evidence_count"`
+			} `json:"origin"`
+			Derivation Derivation    `json:"derivation"`
+			Evidence   []EvidenceRef `json:"evidence"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, "K-POS-003"), &input); err != nil {
+			t.Fatal(err)
+		}
 		candidate := validInferredCandidate()
+		candidate.CandidateID, candidate.Quality = input.CandidateID, input.Quality
+		candidate.Origin = OriginRef{OriginID: input.Origin.OriginID, Kind: input.Origin.Kind, Evidence: input.Evidence}
+		candidate.Derivation, candidate.Evidence = &input.Derivation, input.Evidence
 		if err := candidate.Validate(); err != nil {
 			t.Fatal(err)
 		}
-		if len(candidate.Derivation.Inputs) != 3 || candidate.Quality.Promotion != PromotionPromoted || len(candidate.Evidence) != 1 {
+		if input.Origin.EvidenceCount != len(candidate.Origin.Evidence) || !reflect.DeepEqual(candidate.Derivation, &input.Derivation) || !reflect.DeepEqual(candidate.Evidence, input.Evidence) || !reflect.DeepEqual(candidate.Quality, input.Quality) {
 			t.Fatal("lineage or promotion was not retained")
 		}
 	})
@@ -78,11 +97,11 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		}
 	})
 	t.Run("K-POS-007", func(t *testing.T) {
-		envelope := conflictingEnvelope(t)
+		envelope := exactVectorConflictEnvelope(t, vectors, "K-POS-007")
 		if err := envelope.Validate(); err != nil {
 			t.Fatal(err)
 		}
-		if len(envelope.Candidates) != 2 || len(envelope.Conflicts) != 1 || len(envelope.Conflicts[0].Evidence) != 2 {
+		if len(envelope.Candidates) != 2 || envelope.Candidates[0].CandidateID != "candidate:source:a" || envelope.Candidates[1].CandidateID != "candidate:source:b" || *envelope.Candidates[0].Value.Text != "21" || *envelope.Candidates[1].Value.Text != "22" || len(envelope.Conflicts) != 1 || envelope.Conflicts[0].ConflictID != exactVectorConflictID || len(envelope.Conflicts[0].Evidence) != 2 {
 			t.Fatal("derived conflict is incomplete")
 		}
 	})
@@ -121,7 +140,24 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		requireID(t, p.Validate(), InvalidTime)
 	})
 	t.Run("K-NEG-006", func(t *testing.T) {
-		t.Skip("the vector performs an incomparable-epoch elapsed operation; structural Times validation intentionally does not subtract epochs")
+		var input struct {
+			ReceiptClockEpochID  ClockEpochID `json:"receipt_clock_epoch_id"`
+			ReceiptTicks         Uint64       `json:"receipt_ticks"`
+			EvaluateClockEpochID ClockEpochID `json:"evaluate_clock_epoch_id"`
+			EvaluateTicks        Uint64       `json:"evaluate_ticks"`
+			ComparableWallTime   bool         `json:"comparable_wall_time"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, "K-NEG-006"), &input); err != nil {
+			t.Fatal(err)
+		}
+		if input.ComparableWallTime {
+			t.Fatal("pinned vector unexpectedly permits a wall-time comparison")
+		}
+		times := validTimes()
+		times.ReceiptMonotonic = MonotonicPoint{ClockEpochID: input.ReceiptClockEpochID, Nanoseconds: input.ReceiptTicks}
+		times.EvaluateMonotonic = MonotonicPoint{ClockEpochID: input.EvaluateClockEpochID, Nanoseconds: input.EvaluateTicks}
+		_, err := times.ElapsedMonotonicNS()
+		requireID(t, err, IncomparableClockEpoch)
 	})
 	t.Run("K-NEG-007", func(t *testing.T) {
 		_, err := Decode[EvidenceRef](vectorJSON(t, vectors, "K-NEG-007"))
@@ -157,10 +193,37 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		_, err := Decode[Quality](vectorJSON(t, vectors, "K-NEG-031"))
 		requireID(t, err, InvalidEnum)
 	})
-	t.Run("K-NEG-032", func(t *testing.T) { f := validEnvelopeWithCount(t, 33); requireID(t, f.Validate(), BoundsExceeded) })
+	t.Run("K-NEG-032", func(t *testing.T) {
+		var input struct {
+			CandidateCount int  `json:"candidate_count"`
+			Limit          int  `json:"limit"`
+			OtherwiseValid bool `json:"otherwise_valid"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, "K-NEG-032"), &input); err != nil {
+			t.Fatal(err)
+		}
+		if !input.OtherwiseValid || input.CandidateCount != input.Limit+1 {
+			t.Fatal("unexpected pinned bounds premise")
+		}
+		f := validEnvelopeWithCount(t, input.CandidateCount)
+		for i := 1; i < len(f.Candidates); i++ {
+			if f.Candidates[i-1].CandidateID >= f.Candidates[i].CandidateID {
+				t.Fatalf("candidate order is not canonical at %d", i)
+			}
+		}
+		requireID(t, f.Validate(), BoundsExceeded)
+	})
 	t.Run("K-NEG-033", func(t *testing.T) {
-		d := validInferredCandidate().Derivation
-		d.Inputs[0], d.Inputs[1] = d.Inputs[1], d.Inputs[0]
+		var input struct {
+			Inputs []DerivationInput `json:"inputs"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, "K-NEG-033"), &input); err != nil {
+			t.Fatal(err)
+		}
+		d := Derivation{Algorithm: "algorithm.test", Version: "1.0.0", Inputs: input.Inputs, Evidence: []EvidenceRef{}}
+		if len(d.Inputs) != 2 || d.Inputs[0].CandidateID != "candidate:b" || d.Inputs[1].CandidateID != "candidate:a" {
+			t.Fatal("pinned derivation inputs changed")
+		}
 		requireID(t, d.Validate(), NoncanonicalOrder)
 	})
 	t.Run("K-NEG-043", func(t *testing.T) {
@@ -178,9 +241,81 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		t.Skip("capability admission is deferred; the empty activation-proof validation partition is covered outside the vector namespace")
 	})
 	t.Run("K-NEG-054", func(t *testing.T) {
-		f := conflictingEnvelope(t)
-		f.Conflicts[0].Evidence = f.Conflicts[0].Evidence[:1]
+		f := exactVectorConflictEnvelope(t, vectors, "K-NEG-054")
+		if f.Candidates[0].Revision != "4" || f.Candidates[1].Revision != "2" || *f.Candidates[0].Value.Text != "21" || *f.Candidates[1].Value.Text != "22" {
+			t.Fatal("pinned conflict candidates changed")
+		}
 		requireID(t, f.Validate(), InvalidValue)
+	})
+}
+
+func TestAuditStableErrorPartitionAndPrecedence(t *testing.T) {
+	t.Run("identifier-before-unrelated-token", func(t *testing.T) {
+		for _, raw := range []string{`{"number":{"coefficient":23,"exponent10":1},"unit":"!"}`, `{"unit":"!","number":{"exponent10":1,"coefficient":23}}`} {
+			_, err := Decode[Quantity]([]byte(raw))
+			requireID(t, err, InvalidIdentifier)
+		}
+	})
+	t.Run("collection-duplicate-before-unknown-member", func(t *testing.T) {
+		for _, raw := range []string{`{"assertion":"observed","qualification":"qualified","promotion":"promoted","validity":"good","availability":"available","freshness":"fresh","reasons":["reason.a","reason.a"],"unknown":true}`, `{"unknown":true,"reasons":["reason.a","reason.a"],"freshness":"fresh","availability":"available","validity":"good","promotion":"promoted","qualification":"qualified","assertion":"observed"}`} {
+			_, err := Decode[Quality]([]byte(raw))
+			requireID(t, err, DuplicateKey)
+		}
+	})
+	t.Run("decimal-domain-range-before-host-range", func(t *testing.T) {
+		for _, exponent := range []string{"2147483648", "-2147483649"} {
+			_, err := DecodeDecimal([]byte(`{"coefficient":"23","exponent10":` + exponent + `}`))
+			requireID(t, err, InvalidDecimal)
+		}
+	})
+	t.Run("invalid-semver-is-not-comparator-equality", func(t *testing.T) {
+		pack := PackRef{ID: "pack.test", Version: "1.0.0"}
+		index := DefinitionIndex{Pack: pack, Fields: []DefinitionRef{{Pack: pack, ID: "field.test", Version: "bad"}, {Pack: pack, ID: "field.test", Version: "1.2.0"}}, Services: []DefinitionRef{}, Capabilities: []DefinitionRef{}, Operations: []DefinitionRef{}, EffectRules: []DefinitionRef{}}
+		requireID(t, index.Validate(), InvalidIdentifier)
+	})
+	t.Run("duplicate-exact-definition-is-owner-conflict-at-construction", func(t *testing.T) {
+		pack := PackRef{ID: "pack.test", Version: "1.0.0"}
+		ref := DefinitionRef{Pack: pack, ID: "field.test", Version: "1.2.0"}
+		_, err := NewRegistry(&countingValidator{pack: pack, index: DefinitionIndex{Pack: pack, Fields: []DefinitionRef{ref, ref}, Services: []DefinitionRef{}, Capabilities: []DefinitionRef{}, Operations: []DefinitionRef{}, EffectRules: []DefinitionRef{}}})
+		requireID(t, err, DefinitionOwnerConflict)
+	})
+	t.Run("empty-symbol-token-is-invalid-value", func(t *testing.T) {
+		requireID(t, (Symbol{Namespace: "native.test", Token: "", Known: false}).Validate(), InvalidValue)
+	})
+}
+
+func TestAuditFactKeyPackDispatch(t *testing.T) {
+	pack := PackRef{ID: "pack.test", Version: "1.0.0"}
+	for _, tc := range []struct {
+		name   string
+		fields []DefinitionRef
+	}{{"no-field-index", []DefinitionRef{}}, {"independently-versioned-field", []DefinitionRef{{Pack: pack, ID: "fact.test", Version: "1.2.0"}}}} {
+		t.Run(tc.name, func(t *testing.T) {
+			hook := &countingValidator{pack: pack, index: DefinitionIndex{Pack: pack, Fields: tc.fields, Services: []DefinitionRef{}, Capabilities: []DefinitionRef{}, Operations: []DefinitionRef{}, EffectRules: []DefinitionRef{}}}
+			registry, err := NewRegistry(hook)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := registry.ValidateFactCandidate(validCandidate("a", true)); err != nil {
+				t.Fatal(err)
+			}
+			if hook.factCalls != 1 || hook.serviceCalls != 0 || hook.capabilityCalls != 0 || hook.fieldCalls != 0 {
+				t.Fatalf("unexpected hook calls: fact=%d service=%d capability=%d field=%d", hook.factCalls, hook.serviceCalls, hook.capabilityCalls, hook.fieldCalls)
+			}
+		})
+	}
+	t.Run("missing-pack-fails-closed", func(t *testing.T) {
+		hook := &countingValidator{pack: pack, index: DefinitionIndex{Pack: pack, Fields: []DefinitionRef{}, Services: []DefinitionRef{}, Capabilities: []DefinitionRef{}, Operations: []DefinitionRef{}, EffectRules: []DefinitionRef{}}}
+		registry, err := NewRegistry(hook)
+		if err != nil {
+			t.Fatal(err)
+		}
+		candidate := validCandidate("a", true)
+		candidate.Key.PackID = "pack.missing"
+		requireID(t, registry.ValidateFactCandidate(candidate), DefinitionOwnerMissing)
+		if hook.factCalls != 0 {
+			t.Fatalf("missing pack invoked fact hook %d times", hook.factCalls)
+		}
 	})
 }
 
@@ -277,12 +412,7 @@ func TestAuditJCSNFCAndBounds(t *testing.T) {
 		t.Fatalf("UTF-16 key order=%s err=%v", keys, err)
 	}
 	for _, record := range []Record{Symbol{Namespace: "native.test", Token: "", Known: false}, Symbol{Namespace: "native.test", Token: "e\u0301", Known: false}, Value{Kind: ValueText, Text: pointer("e\u0301")}} {
-		requireID(t, record.Validate(), func() ErrorID {
-			if _, ok := record.(Symbol); ok && record.(Symbol).Token == "" {
-				return BoundsExceeded
-			}
-			return InvalidValue
-		}())
+		requireID(t, record.Validate(), InvalidValue)
 	}
 	tooLong := strings.Repeat("x", 4097)
 	requireID(t, (Value{Kind: ValueText, Text: &tooLong}).Validate(), BoundsExceeded)
@@ -594,11 +724,90 @@ func conflictingEnvelope(t *testing.T) FactEnvelope {
 	}
 	return FactEnvelope{AssetID: "asset:a", Key: validKey(), Candidates: candidates, Conflicts: conflicts, Revision: "1"}
 }
+
+const exactVectorConflictID ConflictID = "sha256:c72851b563f24371e84fb4c2e03fb515e9c662ceb79fcb2fb2080cf510c04a67"
+
+func exactVectorConflictEnvelope(t *testing.T, vectors map[string]fixtureVector, id string) FactEnvelope {
+	t.Helper()
+	aEvidence := EvidenceRef{Owner: "owner.source.a", Kind: "evidence.source", Digest: "sha256:1111111111111111111111111111111111111111111111111111111111111111", Contract: "source.evidence/v1", Access: EvidenceAccessPublic, Redaction: RedactionNone}
+	bEvidence := EvidenceRef{Owner: "owner.source.b", Kind: "evidence.source", Digest: "sha256:2222222222222222222222222222222222222222222222222222222222222222", Contract: "source.evidence/v1", Access: EvidenceAccessPublic, Redaction: RedactionNone}
+	makeCandidate := func(candidateID CandidateID, text string, evidence EvidenceRef, revision Uint64) FactCandidate {
+		candidate := validCandidate(strings.TrimPrefix(string(candidateID), "candidate:"), true)
+		candidate.CandidateID = candidateID
+		candidate.Value = &Value{Kind: ValueText, Text: pointer(text)}
+		candidate.Evidence = []EvidenceRef{evidence}
+		candidate.Origin.Evidence = []EvidenceRef{evidence}
+		candidate.Revision = revision
+		return candidate
+	}
+	var ids []CandidateID
+	var values []string
+	revisions := []Uint64{"1", "1"}
+	conflictEvidence := []EvidenceRef{aEvidence, bEvidence}
+	switch id {
+	case "K-POS-007":
+		var input struct {
+			CandidateIDs                    []CandidateID `json:"candidate_ids"`
+			CandidateValues                 []string      `json:"candidate_values"`
+			CandidateEligibility            string        `json:"candidate_eligibility"`
+			PublisherMetadataMembersPresent bool          `json:"publisher_metadata_members_present"`
+			DerivedConflicts                []struct {
+				Kind       ConflictKind  `json:"kind"`
+				State      ConflictState `json:"state"`
+				Candidates []CandidateID `json:"candidates"`
+				Evidence   []string      `json:"evidence"`
+			} `json:"derived_conflicts"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, id), &input); err != nil {
+			t.Fatal(err)
+		}
+		ids, values = input.CandidateIDs, input.CandidateValues
+		if input.CandidateEligibility != "qualified_promoted" || input.PublisherMetadataMembersPresent || len(input.DerivedConflicts) != 1 || input.DerivedConflicts[0].Kind != ConflictValue || input.DerivedConflicts[0].State != ConflictOpen || !reflect.DeepEqual(input.DerivedConflicts[0].Candidates, ids) || !reflect.DeepEqual(input.DerivedConflicts[0].Evidence, []string{"evidence:source:a", "evidence:source:b"}) {
+			t.Fatal("pinned derived-conflict shorthand changed")
+		}
+	case "K-NEG-054":
+		var input struct {
+			Candidates       []string `json:"candidates"`
+			CanonicalValues  []string `json:"canonical_values"`
+			SuppliedConflict struct {
+				Kind       ConflictKind  `json:"kind"`
+				State      ConflictState `json:"state"`
+				Candidates []CandidateID `json:"candidates"`
+				Evidence   []string      `json:"evidence"`
+			} `json:"supplied_conflict"`
+			DerivedEvidence     []string `json:"derived_evidence"`
+			AllOtherFieldsValid bool     `json:"all_other_fields_valid"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, id), &input); err != nil {
+			t.Fatal(err)
+		}
+		values = input.CanonicalValues
+		for i, candidate := range input.Candidates {
+			parts := strings.Split(candidate, "@")
+			if len(parts) != 2 {
+				t.Fatalf("invalid pinned candidate %q", candidate)
+			}
+			ids = append(ids, CandidateID(parts[0]))
+			revisions[i] = Uint64(parts[1])
+		}
+		if input.SuppliedConflict.Kind != ConflictValue || input.SuppliedConflict.State != ConflictOpen || !reflect.DeepEqual(ids, input.SuppliedConflict.Candidates) || !reflect.DeepEqual(input.SuppliedConflict.Evidence, []string{"evidence:source:a"}) || !reflect.DeepEqual(input.DerivedEvidence, []string{"evidence:source:a", "evidence:source:b"}) || !input.AllOtherFieldsValid {
+			t.Fatal("pinned supplied conflict aliases changed")
+		}
+		conflictEvidence = []EvidenceRef{aEvidence}
+	default:
+		t.Fatalf("unsupported exact conflict vector %s", id)
+	}
+	if len(ids) != 2 || len(values) != 2 {
+		t.Fatalf("unexpected exact conflict vector cardinality: ids=%d values=%d", len(ids), len(values))
+	}
+	candidates := []FactCandidate{makeCandidate(ids[0], values[0], aEvidence, revisions[0]), makeCandidate(ids[1], values[1], bEvidence, revisions[1])}
+	return FactEnvelope{AssetID: "asset:a", Key: validKey(), Candidates: candidates, Conflicts: []Conflict{{ConflictID: exactVectorConflictID, Kind: ConflictValue, Candidates: []CandidateID{ids[0], ids[1]}, Evidence: conflictEvidence, State: ConflictOpen}}, Revision: "1"}
+}
 func validEnvelopeWithCount(t *testing.T, count int) FactEnvelope {
 	t.Helper()
 	candidates := make([]FactCandidate, count)
 	for i := 0; i < count; i++ {
-		id := letterID(i)
+		id := fmt.Sprintf("x%02d", i)
 		candidates[i] = validCandidate(id, true)
 	}
 	return FactEnvelope{AssetID: "asset:a", Key: validKey(), Candidates: candidates, Conflicts: []Conflict{}, Revision: "1"}
