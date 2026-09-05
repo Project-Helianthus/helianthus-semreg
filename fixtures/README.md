@@ -6,10 +6,19 @@ for protocol-neutral semantic contracts.
 [`v1/foundation-vectors.json`](v1/foundation-vectors.json) copies the 30
 foundation-relevant vector entries from the merged semantic v1 contract at
 `Project-Helianthus/helianthus-docs-semantic@b16667d719defc7b0fef0400ee3ad387469018ac`.
-Tests execute 26 foundation vectors, including the implemented BASE publication
-and snapshot behavior. Four vector operations remain deferred: K-POS-005,
-K-NEG-014, K-NEG-015, and K-NEG-048. Evaluation, presentation selection,
-operations, and projection runtimes remain separate work; these fixtures do not
+Tests execute 27 foundation vectors, including the implemented BASE publication
+and snapshot behavior. K-POS-005 is executed directly from this copied vector.
+
+[`v1/evaluation-selection-vectors.json`](v1/evaluation-selection-vectors.json)
+copies K-POS-019, K-POS-025, and K-NEG-056 through K-NEG-065 from the docs issue
+#6 correction accepted at
+`Project-Helianthus/helianthus-docs-semantic@da5ab4415d3bec73f9572aec1c495a6cdcbcba47`.
+Its source manifest pins both that commit and the exact corrected
+`acceptance-vectors.json` bytes by SHA-256. Tests decode and execute the complete
+snapshot, evaluation, selection, and named mutation inputs.
+
+Three foundation vector operations remain deferred: K-NEG-014, K-NEG-015, and K-NEG-048.
+Operation and projection runtimes remain separate work; these fixtures do not
 claim INT-05 or full runtime completion.
 
 [`v1/publication-vectors.json`](v1/publication-vectors.json) pins deterministic

@@ -21,7 +21,7 @@ func collectionKeyFields(t reflect.Type) []string {
 		return []string{"namespace", "token"}
 	case reflect.TypeOf(Dimension{}), reflect.TypeOf(TypedField{}):
 		return []string{"id"}
-	case reflect.TypeOf(DerivationInput{}), reflect.TypeOf(FactCandidate{}):
+	case reflect.TypeOf(DerivationInput{}), reflect.TypeOf(FactCandidate{}), reflect.TypeOf(EvaluatedFact{}):
 		return []string{"candidate_id"}
 	case reflect.TypeOf(Conflict{}):
 		return []string{"conflict_id"}

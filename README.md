@@ -4,10 +4,10 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
-## Implemented v1 foundation and publication snapshots
+## Implemented v1 foundation, publication, evaluation, and selection
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
-[`helianthus-docs-semantic` contract at b16667d](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/b16667d719defc7b0fef0400ee3ad387469018ac/api/v1).
+[`helianthus-docs-semantic` contract at da5ab44](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/da5ab4415d3bec73f9572aec1c495a6cdcbcba47/api/v1).
 It provides:
 
 - protocol-neutral identities, exact values, evidence, lineage, time, quality,
@@ -20,15 +20,22 @@ It provides:
 - `PublicationKernel`, which applies canonical `PublicationBatch` patches
   atomically and returns deep-copied immutable `Snapshot` values and bytes with
   exact revision, replay, lifecycle-fence, dependency-cascade and conflict
-  behavior.
+  behavior;
+- pure `EvaluateSnapshot`, which creates a complete, digest-bound time view
+  from an explicit context, including conservative restart-time uncertainty and
+  transitive derivation aging; and
+- `SelectionKernel`, which registers exact presentation-policy ID/version
+  pairs and returns immutable, snapshot/view-bound presentation-only results.
 
-The self-contained fixture runners exercise 26 available foundation properties
-from 30 copied vectors plus deterministic publication scenarios pinned to the
-same accepted contract. Four later runtime operations are explicitly deferred;
-passing these checks does not establish all runtime acceptance criteria.
+The self-contained fixture runners execute the copied K-POS-005 restart-time
+vector plus the exact corrected K-POS-019/K-POS-025 and K-NEG-056 through
+K-NEG-065 inputs from docs issue #6, alongside the foundation and publication
+fixtures. The new subset is pinned to the accepted docs commit and its exact
+source-file SHA-256. Passing these checks does not establish all runtime
+acceptance criteria.
 
-Evaluation, selection, operation/projection/admission runtime, capability-pack
-catalogs/mappings, persistence, migrations and integrations remain deferred.
+Operation/projection/admission runtime, capability-pack catalogs/mappings,
+persistence, migrations and integrations remain deferred.
 This increment does not establish INT-05 completion, hardware validation,
 release-level security review or software-release acceptance.
 
@@ -36,8 +43,8 @@ release-level security review or software-release acceptance.
 
 The repository's ownership includes protocol-neutral semantic contracts and
 compatibility fixtures. The implementation preserves native evidence,
-alternatives, conflicts and unknown values; the broader evaluation, operation
-and projection runtime remains future scoped work.
+alternatives, conflicts and unknown values; operation and projection runtime
+remain future scoped work.
 
 It does not own transport framing or I/O, protocol lifecycle, vendor/profile
 qualification, native decoding or identity, raw evidence capture, gateway

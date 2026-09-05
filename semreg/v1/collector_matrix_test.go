@@ -30,6 +30,48 @@ func TestCollectorAllocationScaling(t *testing.T) {
 	}
 }
 
+func TestEvaluationViewDuplicateCollectorAllocationScaling(t *testing.T) {
+	var previous uint64
+	for _, n := range []int{256, 512} {
+		facts := make([]EvaluatedFact, 0, n+1)
+		for index := 0; index < n; index++ {
+			facts = append(facts, EvaluatedFact{
+				CandidateID:           CandidateID(fmt.Sprintf("candidate:%04d", index)),
+				CandidateRevision:     "1",
+				Freshness:             FreshnessFresh,
+				EffectiveAvailability: AvailabilityAvailable,
+			})
+		}
+		facts = append(facts, facts[0])
+		raw, err := json.Marshal(map[string]any{
+			"contract":          ContractEvaluationV1,
+			"snapshot_id":       "snapshot:allocation",
+			"revisions":         RevisionVector{Semantic: "1", Identity: "1", Facts: "1", Services: "1", Capabilities: "1"},
+			"context":           nil,
+			"facts":             facts,
+			"evaluation_digest": "sha256:" + strings.Repeat("0", 64),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.GC()
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		_, decodeErr := DecodeEvaluationView(raw)
+		runtime.ReadMemStats(&after)
+		requireID(t, decodeErr, DuplicateKey)
+		allocated := after.TotalAlloc - before.TotalAlloc
+		t.Logf("evaluated_facts=%d input=%d allocated=%d", n+1, len(raw), allocated)
+		if allocated > 32<<20 {
+			t.Errorf("bounded evaluation view allocated %d bytes, limit 32 MiB", allocated)
+		}
+		if previous != 0 && allocated > 3*previous+(512<<10) {
+			t.Errorf("doubling evaluation facts grew allocation from %d to %d", previous, allocated)
+		}
+		previous = allocated
+	}
+}
+
 func TestCollectorCombinedMutationMatrix(t *testing.T) {
 	t.Run("root-contract-discriminator", func(t *testing.T) {
 		_, err := Decode[ContractVersion]([]byte(`"!"`))

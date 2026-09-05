@@ -702,6 +702,44 @@ func (p FreshnessPolicy) Validate() error {
 	}
 	return bestError(errs...)
 }
+
+func (c EvaluationContext) Validate() error {
+	return bestError(c.EvaluatedAt.Validate(), c.EvaluateMonotonic.Validate())
+}
+
+func (f EvaluatedFact) Validate() error {
+	var errs []error
+	errs = append(errs, f.CandidateID.Validate())
+	if !positive(f.CandidateRevision) {
+		errs = append(errs, errID(InvalidIdentifier, "evaluated candidate revision"))
+	}
+	if f.Freshness != FreshnessFresh && f.Freshness != FreshnessStale && f.Freshness != FreshnessExpired && f.Freshness != FreshnessUnknown {
+		errs = append(errs, errID(InvalidEnum, "evaluated freshness"))
+	}
+	if f.EffectiveAvailability != AvailabilityAvailable && f.EffectiveAvailability != AvailabilityDegraded && f.EffectiveAvailability != AvailabilityUnavailable && f.EffectiveAvailability != AvailabilityWithdrawn {
+		errs = append(errs, errID(InvalidEnum, "effective availability"))
+	}
+	return bestError(errs...)
+}
+
+func (v EvaluationView) Validate() error {
+	return v.validateStructure(true)
+}
+
+func (s Selection) Validate() error {
+	var errs []error
+	if s.Contract != ContractSelectionV1 {
+		errs = append(errs, errID(InvalidContract, "selection"))
+	}
+	errs = append(errs, s.SnapshotID.Validate(), s.Revisions.Validate(), s.EvaluationDigest.Validate(), s.Context.Validate(), s.Key.Validate(), s.PolicyID.Validate(), s.PolicyVersion.Validate(), s.SelectedCandidate.Validate())
+	if !positive(s.CandidateRevision) {
+		errs = append(errs, errID(InvalidIdentifier, "selection candidate revision"))
+	}
+	if !s.PresentationOnly {
+		errs = append(errs, errID(InvalidValue, "presentation only"))
+	}
+	return bestError(errs...)
+}
 func (q Quality) Validate() error {
 	dup, ordered := duplicateAndOrder(q.Reasons, func(a, b DefinitionID) int { return strings.Compare(string(a), string(b)) })
 	var errs []error
@@ -1522,7 +1560,7 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		}
 		// Only public document records own a contract discriminator. A decoded
 		// EvidenceRef still treats contract as ordinary required metadata.
-		document := t == reflect.TypeOf(PublicationBatch{}) || t == reflect.TypeOf(Snapshot{})
+		document := t == reflect.TypeOf(PublicationBatch{}) || t == reflect.TypeOf(Snapshot{}) || t == reflect.TypeOf(EvaluationView{}) || t == reflect.TypeOf(Selection{})
 		seen := map[string]bool{}
 		for _, member := range node.object {
 			field, ok := fields[member.key]
@@ -1533,7 +1571,13 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 			seen[member.key] = true
 			if document && member.key == "contract" {
 				value, ok := member.value.scalar.(string)
-				if member.value.kind != 's' || !ok || ContractVersion(value) != ContractKernelV1 {
+				expected := ContractKernelV1
+				if t == reflect.TypeOf(EvaluationView{}) {
+					expected = ContractEvaluationV1
+				} else if t == reflect.TypeOf(Selection{}) {
+					expected = ContractSelectionV1
+				}
+				if member.value.kind != 's' || !ok || ContractVersion(value) != expected {
 					*errors = append(*errors, errID(InvalidContract, "contract"))
 				}
 				continue
@@ -1715,11 +1759,13 @@ func decodeRecord[T Record](raw []byte) (T, error) {
 	}
 	return result, nil
 }
-func Decode[T Record](raw []byte) (T, error)                { return decodeRecord[T](raw) }
-func DecodeDecimal(raw []byte) (Decimal, error)             { return Decode[Decimal](raw) }
-func DecodeValue(raw []byte) (Value, error)                 { return Decode[Value](raw) }
-func DecodeFactCandidate(raw []byte) (FactCandidate, error) { return Decode[FactCandidate](raw) }
-func DecodeFactEnvelope(raw []byte) (FactEnvelope, error)   { return Decode[FactEnvelope](raw) }
+func Decode[T Record](raw []byte) (T, error)                  { return decodeRecord[T](raw) }
+func DecodeDecimal(raw []byte) (Decimal, error)               { return Decode[Decimal](raw) }
+func DecodeValue(raw []byte) (Value, error)                   { return Decode[Value](raw) }
+func DecodeFactCandidate(raw []byte) (FactCandidate, error)   { return Decode[FactCandidate](raw) }
+func DecodeFactEnvelope(raw []byte) (FactEnvelope, error)     { return Decode[FactEnvelope](raw) }
+func DecodeEvaluationView(raw []byte) (EvaluationView, error) { return Decode[EvaluationView](raw) }
+func DecodeSelection(raw []byte) (Selection, error)           { return Decode[Selection](raw) }
 func DecodeCapabilityInstance(raw []byte) (CapabilityInstance, error) {
 	return Decode[CapabilityInstance](raw)
 }

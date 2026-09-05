@@ -76,7 +76,27 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		}
 	})
 	t.Run("K-POS-005", func(t *testing.T) {
-		t.Skip("restore and policy-aware freshness evaluation are deferred; no substitute assertion is reported")
+		var input struct {
+			Policy        FreshnessPolicy `json:"policy"`
+			ReceivedAt    TimePoint       `json:"received_at"`
+			EvaluatedAt   TimePoint       `json:"evaluated_at"`
+			ReceiptEpoch  ClockEpochID    `json:"receipt_clock_epoch_id"`
+			EvaluateEpoch ClockEpochID    `json:"evaluate_clock_epoch_id"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, "K-POS-005"), &input); err != nil {
+			t.Fatal(err)
+		}
+		candidate := evaluationCandidate("candidate:vector:005", "fact.vector005", "100000000000", "1")
+		candidate.FreshnessPolicy = input.Policy
+		candidate.Times = Times{ReceivedAt: input.ReceivedAt, ReceiptMonotonic: MonotonicPoint{ClockEpochID: input.ReceiptEpoch, Nanoseconds: "999999999999"}, EvaluatedAt: input.ReceivedAt, EvaluateMonotonic: MonotonicPoint{ClockEpochID: input.ReceiptEpoch, Nanoseconds: "999999999999"}}
+		snapshot := evaluationSnapshot(t, candidate)
+		view, err := EvaluateSnapshot(snapshot, EvaluationContext{EvaluatedAt: input.EvaluatedAt, EvaluateMonotonic: MonotonicPoint{ClockEpochID: input.EvaluateEpoch, Nanoseconds: "1"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := factResult(t, view, candidate.CandidateID).Freshness; got != FreshnessStale {
+			t.Fatalf("freshness=%s, want stale", got)
+		}
 	})
 	t.Run("K-POS-006", func(t *testing.T) {
 		raw := vectorJSON(t, vectors, "K-POS-006")

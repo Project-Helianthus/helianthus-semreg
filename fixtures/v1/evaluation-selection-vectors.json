@@ -1,0 +1,1094 @@
+{
+  "contract": "helianthus.semantic.kernel.acceptance/v1",
+  "source": {
+    "repository": "Project-Helianthus/helianthus-docs-semantic",
+    "commit": "da5ab4415d3bec73f9572aec1c495a6cdcbcba47",
+    "correction_issue": 6,
+    "path": "api/v1/acceptance-vectors.json",
+    "sha256": "51a177ce08e478cd9b003c213813abcf6e969ce1dc4cff4b276f7a2d480344f8"
+  },
+  "vectors": [
+    {
+      "id": "K-POS-019",
+      "polarity": "positive",
+      "record_type": "EvaluationView",
+      "operation": "evaluate",
+      "coverage": [
+        "freshness",
+        "snapshot",
+        "time"
+      ],
+      "input": {
+        "snapshot": {
+          "contract": "helianthus.semantic.kernel/v1",
+          "snapshot_id": "sha256:bf2624f9835cd4e38ad101c2bf87df7be319f150efe8321d78fec9a209607bb6",
+          "asset_id": "asset:evaluation",
+          "revisions": {
+            "semantic": "10",
+            "identity": "2",
+            "facts": "7",
+            "services": "1",
+            "capabilities": "1"
+          },
+          "evaluated_at": {
+            "unix_nanoseconds": "201",
+            "clock_id": "clock.utc",
+            "uncertainty_ns": "0"
+          },
+          "evaluate_monotonic": {
+            "clock_epoch_id": "clock-epoch:publication",
+            "nanoseconds": "100"
+          },
+          "sources": [
+            {
+              "source_id": "source:evaluation",
+              "source_epoch_id": "epoch:evaluation",
+              "protocol_id": "protocol.test",
+              "profile_id": "profile.test",
+              "profile_version": "release-1",
+              "registry_evidence": {
+                "owner": "owner.test",
+                "kind": "evidence.test",
+                "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "contract": "test.contract/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "started_at": {
+                "unix_nanoseconds": "100",
+                "clock_id": "clock.utc",
+                "uncertainty_ns": "0"
+              },
+              "state": "current",
+              "revision": "1"
+            }
+          ],
+          "bindings": [
+            {
+              "binding_id": "binding:evaluation",
+              "asset_id": "asset:evaluation",
+              "source_id": "source:evaluation",
+              "source_epoch_id": "epoch:evaluation",
+              "driver_generation": "1",
+              "native_resource": {
+                "owner": "owner.test",
+                "kind": "evidence.test",
+                "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                "contract": "test.contract/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "state": "current",
+              "revision": "1"
+            }
+          ],
+          "identity_links": [
+            {
+              "asset_id": "asset:evaluation",
+              "binding_id": "binding:evaluation",
+              "state": "qualified",
+              "basis": [
+                {
+                  "owner": "owner.test",
+                  "kind": "evidence.test",
+                  "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+                  "contract": "test.contract/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ],
+              "revision": "1"
+            }
+          ],
+          "facts": [
+            {
+              "asset_id": "asset:evaluation",
+              "key": {
+                "pack_id": "pack.test",
+                "pack_version": "1.0.0",
+                "fact_id": "fact.power",
+                "dimensions": []
+              },
+              "candidates": [
+                {
+                  "candidate_id": "candidate:meter:power",
+                  "key": {
+                    "pack_id": "pack.test",
+                    "pack_version": "1.0.0",
+                    "fact_id": "fact.power",
+                    "dimensions": []
+                  },
+                  "value": {
+                    "kind": "boolean",
+                    "boolean": true
+                  },
+                  "quality": {
+                    "assertion": "observed",
+                    "qualification": "qualified",
+                    "promotion": "promoted",
+                    "validity": "good",
+                    "availability": "available",
+                    "freshness": "fresh",
+                    "reasons": []
+                  },
+                  "times": {
+                    "received_at": {
+                      "unix_nanoseconds": "100000000000",
+                      "clock_id": "clock.utc",
+                      "uncertainty_ns": "0"
+                    },
+                    "receipt_monotonic": {
+                      "clock_epoch_id": "clock-epoch:boot-1",
+                      "nanoseconds": "1000"
+                    },
+                    "evaluated_at": {
+                      "unix_nanoseconds": "100000000000",
+                      "clock_id": "clock.utc",
+                      "uncertainty_ns": "0"
+                    },
+                    "evaluate_monotonic": {
+                      "clock_epoch_id": "clock-epoch:boot-1",
+                      "nanoseconds": "1000"
+                    }
+                  },
+                  "freshness_policy": {
+                    "policy_id": "policy:audit",
+                    "version": "1.0.0",
+                    "fresh_for_ns": "30000000000",
+                    "retain_for_ns": "120000000000",
+                    "max_wall_uncertainty_ns": "1000000"
+                  },
+                  "binding_id": "binding:evaluation",
+                  "source_epoch_id": "epoch:evaluation",
+                  "driver_generation": "1",
+                  "origin": {
+                    "origin_id": "origin:candidate:meter:power",
+                    "kind": "native_observation",
+                    "source_id": "source:evaluation",
+                    "source_epoch_id": "epoch:evaluation",
+                    "binding_id": "binding:evaluation",
+                    "evidence": [
+                      {
+                        "owner": "owner.test",
+                        "kind": "evidence.test",
+                        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+                        "contract": "test.contract/v1",
+                        "access": "public",
+                        "redaction": "none"
+                      }
+                    ]
+                  },
+                  "evidence": [
+                    {
+                      "owner": "owner.test",
+                      "kind": "evidence.test",
+                      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                      "contract": "test.contract/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ],
+                  "revision": "4"
+                }
+              ],
+              "conflicts": [],
+              "revision": "1"
+            }
+          ],
+          "services": [
+            {
+              "instance_id": "service:evaluation",
+              "asset_id": "asset:evaluation",
+              "definition": {
+                "pack": {
+                  "id": "pack.test",
+                  "version": "1.0.0"
+                },
+                "id": "service.test",
+                "version": "1.0.0"
+              },
+              "binding_id": "binding:evaluation",
+              "source_epoch_id": "epoch:evaluation",
+              "driver_generation": "1",
+              "qualification": "qualified",
+              "availability": "available",
+              "revision": "1"
+            }
+          ],
+          "capabilities": [
+            {
+              "instance_id": "capability:evaluation",
+              "asset_id": "asset:evaluation",
+              "service_instance": "service:evaluation",
+              "definition": {
+                "pack": {
+                  "id": "pack.test",
+                  "version": "1.0.0"
+                },
+                "id": "capability.test",
+                "version": "1.0.0"
+              },
+              "binding_id": "binding:evaluation",
+              "source_epoch_id": "epoch:evaluation",
+              "driver_generation": "1",
+              "qualification": "qualified",
+              "availability": "available",
+              "constraints": [],
+              "activation_evidence": [
+                {
+                  "owner": "helianthus.gateway",
+                  "kind": "driver.activation",
+                  "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+                  "contract": "helianthus.gateway.driver.activation.v1",
+                  "access": "public",
+                  "redaction": "metadata_only"
+                }
+              ],
+              "revision": "1"
+            }
+          ],
+          "fences": [],
+          "cursors": [
+            {
+              "source_id": "source:evaluation",
+              "source_epoch_id": "epoch:evaluation",
+              "driver_generation": "1",
+              "last_sequence": "1",
+              "last_batch_digest": "sha256:9adee07c0cdb111c3e064fa788f5e6f9fb6354b24c66f788e2f5081a0bec6ea2",
+              "fenced": false
+            }
+          ]
+        },
+        "candidate_id": "candidate:meter:power",
+        "contexts": [
+          {
+            "context": {
+              "evaluated_at": {
+                "unix_nanoseconds": "129999999999",
+                "clock_id": "clock.utc",
+                "uncertainty_ns": "0"
+              },
+              "evaluate_monotonic": {
+                "clock_epoch_id": "clock-epoch:boot-1",
+                "nanoseconds": "30000000999"
+              }
+            },
+            "expected_freshness": "fresh",
+            "expected_evaluation_digest": "sha256:f566e8d029b0b0ab54d3a1b7bcea665c6519e142a2219aa5cb599853ccf6461b"
+          },
+          {
+            "context": {
+              "evaluated_at": {
+                "unix_nanoseconds": "130000000000",
+                "clock_id": "clock.utc",
+                "uncertainty_ns": "0"
+              },
+              "evaluate_monotonic": {
+                "clock_epoch_id": "clock-epoch:boot-1",
+                "nanoseconds": "30000001000"
+              }
+            },
+            "expected_freshness": "stale",
+            "expected_evaluation_digest": "sha256:3d8db85ba5a476c80a70103de7efc3d3d45204e9f00819009b22ec0a0b4ee0f0"
+          },
+          {
+            "context": {
+              "evaluated_at": {
+                "unix_nanoseconds": "220000000000",
+                "clock_id": "clock.utc",
+                "uncertainty_ns": "0"
+              },
+              "evaluate_monotonic": {
+                "clock_epoch_id": "clock-epoch:boot-1",
+                "nanoseconds": "120000001000"
+              }
+            },
+            "expected_freshness": "expired",
+            "expected_evaluation_digest": "sha256:571fbfb22cffa426afcac446c9f09ffb347b902fc7cec94c7e45c7b001016683"
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "fresh_stale_expired_thresholds_exact",
+          "snapshot_id_unchanged",
+          "revision_vector_unchanged",
+          "snapshot_canonical_bytes_unchanged",
+          "evaluation_digests_distinct"
+        ]
+      },
+      "criterion": "Pure evaluation applies exact fresh/stale/expired boundaries without a native publication or snapshot mutation."
+    },
+    {
+      "id": "K-POS-025",
+      "polarity": "positive",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "conflict",
+        "freshness",
+        "serialization",
+        "snapshot"
+      ],
+      "input": {
+        "snapshot": {
+          "contract": "helianthus.semantic.kernel/v1",
+          "snapshot_id": "sha256:c1af5be9470c99d886de71c2bf05514acf88280d4373c3347af997969472c811",
+          "asset_id": "asset:site:01",
+          "revisions": {
+            "semantic": "40",
+            "identity": "6",
+            "facts": "12",
+            "services": "4",
+            "capabilities": "4"
+          },
+          "evaluated_at": {
+            "unix_nanoseconds": "35000000000",
+            "clock_id": "clock.utc",
+            "uncertainty_ns": "1000"
+          },
+          "evaluate_monotonic": {
+            "clock_epoch_id": "clock-epoch:selection-2",
+            "nanoseconds": "35000000000"
+          },
+          "sources": [
+            {
+              "source_id": "source:inverter",
+              "source_epoch_id": "epoch:inverter",
+              "protocol_id": "protocol.test",
+              "profile_id": "profile.test",
+              "profile_version": "test-1",
+              "registry_evidence": {
+                "owner": "helianthus.registry.test",
+                "kind": "native.profile",
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "contract": "helianthus.evidence.test/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "started_at": {
+                "unix_nanoseconds": "10000000001",
+                "clock_id": "clock.utc",
+                "uncertainty_ns": "1000"
+              },
+              "state": "current",
+              "revision": "1"
+            },
+            {
+              "source_id": "source:meter",
+              "source_epoch_id": "epoch:meter",
+              "protocol_id": "protocol.test",
+              "profile_id": "profile.test",
+              "profile_version": "test-1",
+              "registry_evidence": {
+                "owner": "helianthus.registry.test",
+                "kind": "native.profile",
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "contract": "helianthus.evidence.test/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "started_at": {
+                "unix_nanoseconds": "10000000002",
+                "clock_id": "clock.utc",
+                "uncertainty_ns": "1000"
+              },
+              "state": "current",
+              "revision": "1"
+            }
+          ],
+          "bindings": [
+            {
+              "binding_id": "binding:inverter",
+              "asset_id": "asset:site:01",
+              "source_id": "source:inverter",
+              "source_epoch_id": "epoch:inverter",
+              "driver_generation": "1",
+              "native_resource": {
+                "owner": "helianthus.registry.test",
+                "kind": "native.resource",
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "contract": "helianthus.evidence.test/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "state": "current",
+              "revision": "1"
+            },
+            {
+              "binding_id": "binding:meter",
+              "asset_id": "asset:site:01",
+              "source_id": "source:meter",
+              "source_epoch_id": "epoch:meter",
+              "driver_generation": "1",
+              "native_resource": {
+                "owner": "helianthus.registry.test",
+                "kind": "native.resource",
+                "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "contract": "helianthus.evidence.test/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "state": "current",
+              "revision": "1"
+            }
+          ],
+          "identity_links": [
+            {
+              "asset_id": "asset:site:01",
+              "binding_id": "binding:inverter",
+              "state": "qualified",
+              "basis": [
+                {
+                  "owner": "helianthus.registry.test",
+                  "kind": "identity.basis",
+                  "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "contract": "helianthus.evidence.test/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ],
+              "revision": "1"
+            },
+            {
+              "asset_id": "asset:site:01",
+              "binding_id": "binding:meter",
+              "state": "qualified",
+              "basis": [
+                {
+                  "owner": "helianthus.registry.test",
+                  "kind": "identity.basis",
+                  "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "contract": "helianthus.evidence.test/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ],
+              "revision": "1"
+            }
+          ],
+          "facts": [
+            {
+              "asset_id": "asset:site:01",
+              "key": {
+                "pack_id": "helianthus.pack.electrical",
+                "pack_version": "1.0.0",
+                "fact_id": "helianthus.electrical.power",
+                "dimensions": []
+              },
+              "candidates": [
+                {
+                  "candidate_id": "candidate:power:a",
+                  "key": {
+                    "pack_id": "helianthus.pack.electrical",
+                    "pack_version": "1.0.0",
+                    "fact_id": "helianthus.electrical.power",
+                    "dimensions": []
+                  },
+                  "value": {
+                    "kind": "quantity",
+                    "quantity": {
+                      "number": {
+                        "coefficient": "5",
+                        "exponent10": 3
+                      },
+                      "unit": "unit.watt"
+                    }
+                  },
+                  "quality": {
+                    "assertion": "observed",
+                    "qualification": "qualified",
+                    "promotion": "promoted",
+                    "validity": "good",
+                    "availability": "available",
+                    "freshness": "fresh",
+                    "reasons": []
+                  },
+                  "times": {
+                    "received_at": {
+                      "unix_nanoseconds": "30000000000",
+                      "clock_id": "clock.utc",
+                      "uncertainty_ns": "1000"
+                    },
+                    "receipt_monotonic": {
+                      "clock_epoch_id": "clock-epoch:selection-2",
+                      "nanoseconds": "30000000000"
+                    },
+                    "evaluated_at": {
+                      "unix_nanoseconds": "35000000000",
+                      "clock_id": "clock.utc",
+                      "uncertainty_ns": "1000"
+                    },
+                    "evaluate_monotonic": {
+                      "clock_epoch_id": "clock-epoch:selection-2",
+                      "nanoseconds": "35000000000"
+                    }
+                  },
+                  "freshness_policy": {
+                    "policy_id": "policy.freshness.test",
+                    "version": "1.0.0",
+                    "fresh_for_ns": "30000000000",
+                    "retain_for_ns": "120000000000",
+                    "max_wall_uncertainty_ns": "1000000"
+                  },
+                  "binding_id": "binding:inverter",
+                  "source_epoch_id": "epoch:inverter",
+                  "driver_generation": "1",
+                  "origin": {
+                    "origin_id": "origin:a",
+                    "kind": "native_observation",
+                    "source_id": "source:inverter",
+                    "source_epoch_id": "epoch:inverter",
+                    "binding_id": "binding:inverter",
+                    "evidence": [
+                      {
+                        "owner": "helianthus.registry.test",
+                        "kind": "native.observation",
+                        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "contract": "helianthus.evidence.test/v1",
+                        "access": "public",
+                        "redaction": "none"
+                      }
+                    ]
+                  },
+                  "evidence": [
+                    {
+                      "owner": "helianthus.registry.test",
+                      "kind": "native.observation",
+                      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                      "contract": "helianthus.evidence.test/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ],
+                  "revision": "3"
+                }
+              ],
+              "conflicts": [],
+              "revision": "3"
+            },
+            {
+              "asset_id": "asset:site:01",
+              "key": {
+                "pack_id": "helianthus.pack.electrical",
+                "pack_version": "1.0.0",
+                "fact_id": "helianthus.electrical.voltage",
+                "dimensions": []
+              },
+              "candidates": [
+                {
+                  "candidate_id": "candidate:voltage:b",
+                  "key": {
+                    "pack_id": "helianthus.pack.electrical",
+                    "pack_version": "1.0.0",
+                    "fact_id": "helianthus.electrical.voltage",
+                    "dimensions": []
+                  },
+                  "value": {
+                    "kind": "quantity",
+                    "quantity": {
+                      "number": {
+                        "coefficient": "23",
+                        "exponent10": 1
+                      },
+                      "unit": "unit.volt"
+                    }
+                  },
+                  "quality": {
+                    "assertion": "observed",
+                    "qualification": "qualified",
+                    "promotion": "promoted",
+                    "validity": "good",
+                    "availability": "available",
+                    "freshness": "fresh",
+                    "reasons": []
+                  },
+                  "times": {
+                    "received_at": {
+                      "unix_nanoseconds": "31000000000",
+                      "clock_id": "clock.utc",
+                      "uncertainty_ns": "1000"
+                    },
+                    "receipt_monotonic": {
+                      "clock_epoch_id": "clock-epoch:selection-2",
+                      "nanoseconds": "31000000000"
+                    },
+                    "evaluated_at": {
+                      "unix_nanoseconds": "35000000000",
+                      "clock_id": "clock.utc",
+                      "uncertainty_ns": "1000"
+                    },
+                    "evaluate_monotonic": {
+                      "clock_epoch_id": "clock-epoch:selection-2",
+                      "nanoseconds": "35000000000"
+                    }
+                  },
+                  "freshness_policy": {
+                    "policy_id": "policy.freshness.test",
+                    "version": "1.0.0",
+                    "fresh_for_ns": "30000000000",
+                    "retain_for_ns": "120000000000",
+                    "max_wall_uncertainty_ns": "1000000"
+                  },
+                  "binding_id": "binding:meter",
+                  "source_epoch_id": "epoch:meter",
+                  "driver_generation": "1",
+                  "origin": {
+                    "origin_id": "origin:b",
+                    "kind": "native_observation",
+                    "source_id": "source:meter",
+                    "source_epoch_id": "epoch:meter",
+                    "binding_id": "binding:meter",
+                    "evidence": [
+                      {
+                        "owner": "helianthus.registry.test",
+                        "kind": "native.observation",
+                        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        "contract": "helianthus.evidence.test/v1",
+                        "access": "public",
+                        "redaction": "none"
+                      }
+                    ]
+                  },
+                  "evidence": [
+                    {
+                      "owner": "helianthus.registry.test",
+                      "kind": "native.observation",
+                      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                      "contract": "helianthus.evidence.test/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ],
+                  "revision": "7"
+                }
+              ],
+              "conflicts": [],
+              "revision": "2"
+            }
+          ],
+          "services": [],
+          "capabilities": [],
+          "fences": [],
+          "cursors": [
+            {
+              "source_id": "source:inverter",
+              "source_epoch_id": "epoch:inverter",
+              "driver_generation": "1",
+              "last_sequence": "1",
+              "last_batch_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "fenced": false
+            },
+            {
+              "source_id": "source:meter",
+              "source_epoch_id": "epoch:meter",
+              "driver_generation": "1",
+              "last_sequence": "1",
+              "last_batch_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "fenced": false
+            }
+          ]
+        },
+        "evaluation_view": {
+          "contract": "helianthus.semantic.evaluation/v1",
+          "snapshot_id": "sha256:c1af5be9470c99d886de71c2bf05514acf88280d4373c3347af997969472c811",
+          "revisions": {
+            "semantic": "40",
+            "identity": "6",
+            "facts": "12",
+            "services": "4",
+            "capabilities": "4"
+          },
+          "context": {
+            "evaluated_at": {
+              "unix_nanoseconds": "40000000000",
+              "clock_id": "clock.utc",
+              "uncertainty_ns": "1000"
+            },
+            "evaluate_monotonic": {
+              "clock_epoch_id": "clock-epoch:selection-2",
+              "nanoseconds": "40000000000"
+            }
+          },
+          "facts": [
+            {
+              "candidate_id": "candidate:power:a",
+              "candidate_revision": "3",
+              "freshness": "fresh",
+              "effective_availability": "available"
+            },
+            {
+              "candidate_id": "candidate:voltage:b",
+              "candidate_revision": "7",
+              "freshness": "fresh",
+              "effective_availability": "available"
+            }
+          ],
+          "evaluation_digest": "sha256:88de782f869ed861bdd3307b1e84802c088269590dbde6c120161029814002b1"
+        },
+        "requested_key": {
+          "pack_id": "helianthus.pack.electrical",
+          "pack_version": "1.0.0",
+          "fact_id": "helianthus.electrical.voltage",
+          "dimensions": []
+        },
+        "policy": {
+          "policy_id": "policy.presentation.prefer_meter",
+          "policy_version": "1.0.0",
+          "registered_once": true
+        },
+        "policy_input": {
+          "envelope_key": {
+            "pack_id": "helianthus.pack.electrical",
+            "pack_version": "1.0.0",
+            "fact_id": "helianthus.electrical.voltage",
+            "dimensions": []
+          },
+          "candidate_ids": [
+            "candidate:voltage:b"
+          ],
+          "evaluated_fact_ids": [
+            "candidate:voltage:b"
+          ]
+        },
+        "repeat_identical_call": true
+      },
+      "expect": {
+        "result": "accept",
+        "selection": {
+          "snapshot_id": "sha256:c1af5be9470c99d886de71c2bf05514acf88280d4373c3347af997969472c811",
+          "revisions": {
+            "semantic": "40",
+            "identity": "6",
+            "facts": "12",
+            "services": "4",
+            "capabilities": "4"
+          },
+          "evaluation_digest": "sha256:88de782f869ed861bdd3307b1e84802c088269590dbde6c120161029814002b1",
+          "context": {
+            "evaluated_at": {
+              "unix_nanoseconds": "40000000000",
+              "clock_id": "clock.utc",
+              "uncertainty_ns": "1000"
+            },
+            "evaluate_monotonic": {
+              "clock_epoch_id": "clock-epoch:selection-2",
+              "nanoseconds": "40000000000"
+            }
+          },
+          "key": {
+            "pack_id": "helianthus.pack.electrical",
+            "pack_version": "1.0.0",
+            "fact_id": "helianthus.electrical.voltage",
+            "dimensions": []
+          },
+          "policy_id": "policy.presentation.prefer_meter",
+          "policy_version": "1.0.0",
+          "selected_candidate": "candidate:voltage:b",
+          "candidate_revision": "7",
+          "presentation_only": true,
+          "contract": "helianthus.semantic.selection/v1"
+        },
+        "repeat_selection": {
+          "snapshot_id": "sha256:c1af5be9470c99d886de71c2bf05514acf88280d4373c3347af997969472c811",
+          "revisions": {
+            "semantic": "40",
+            "identity": "6",
+            "facts": "12",
+            "services": "4",
+            "capabilities": "4"
+          },
+          "evaluation_digest": "sha256:88de782f869ed861bdd3307b1e84802c088269590dbde6c120161029814002b1",
+          "context": {
+            "evaluated_at": {
+              "unix_nanoseconds": "40000000000",
+              "clock_id": "clock.utc",
+              "uncertainty_ns": "1000"
+            },
+            "evaluate_monotonic": {
+              "clock_epoch_id": "clock-epoch:selection-2",
+              "nanoseconds": "40000000000"
+            }
+          },
+          "key": {
+            "pack_id": "helianthus.pack.electrical",
+            "pack_version": "1.0.0",
+            "fact_id": "helianthus.electrical.voltage",
+            "dimensions": []
+          },
+          "policy_id": "policy.presentation.prefer_meter",
+          "policy_version": "1.0.0",
+          "selected_candidate": "candidate:voltage:b",
+          "candidate_revision": "7",
+          "presentation_only": true,
+          "contract": "helianthus.semantic.selection/v1"
+        },
+        "assertions": [
+          "snapshot_and_view_ids_and_revisions_match",
+          "evaluation_digest_recomputed",
+          "evaluation_context_repeated_exactly",
+          "requested_voltage_envelope_selected",
+          "power_candidate_excluded_from_policy_input",
+          "policy_receives_value_quality_provenance_conflict_and_evaluation",
+          "identical_inputs_produce_identical_bytes",
+          "no_store_clock_or_native_lookup"
+        ]
+      },
+      "criterion": "Complete immutable snapshot and evaluation inputs select the voltage candidate from the voltage envelope in a multi-key snapshot, deterministically and without hidden data."
+    },
+    {
+      "id": "K-NEG-056",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "conflict",
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "requested_key_from_base": true,
+        "policy_return": {
+          "candidate_id": "candidate:power:a"
+        },
+        "expected_requested_envelope_candidate_ids": [
+          "candidate:voltage:b"
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_value",
+        "state_unchanged": true
+      },
+      "criterion": "A deterministic policy result from another fact envelope cannot be labeled as the requested voltage selection."
+    },
+    {
+      "id": "K-NEG-057",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "evaluation_view.snapshot_id",
+          "replacement": "snapshot:multi:other"
+        },
+        "recompute_evaluation_digest": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "revision_conflict",
+        "state_unchanged": true
+      },
+      "criterion": "Selection rejects otherwise valid snapshot and evaluation inputs whose snapshot IDs differ."
+    },
+    {
+      "id": "K-NEG-058",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "evaluation_view.revisions.facts",
+          "replacement": "13"
+        },
+        "recompute_evaluation_digest": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "revision_conflict",
+        "state_unchanged": true
+      },
+      "criterion": "Selection rejects a view whose complete revision vector differs from its snapshot."
+    },
+    {
+      "id": "K-NEG-059",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "evaluation_view.evaluation_digest",
+          "replacement": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "digest_syntax_valid": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "digest_mismatch",
+        "state_unchanged": true
+      },
+      "criterion": "A syntactically valid evaluation digest that does not match the canonical view bytes is rejected before policy dispatch."
+    },
+    {
+      "id": "K-NEG-060",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "requested_key",
+          "replacement": {
+            "pack_id": "helianthus.pack.hvac",
+            "pack_version": "1.0.0",
+            "fact_id": "helianthus.hvac.temperature",
+            "dimensions": []
+          }
+        }
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "dangling_reference",
+        "state_unchanged": true
+      },
+      "criterion": "A requested fact key absent from the supplied immutable snapshot is rejected before policy dispatch."
+    },
+    {
+      "id": "K-NEG-061",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "freshness",
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "evaluation_view.facts",
+          "remove_candidate_id": "candidate:voltage:b"
+        },
+        "recompute_evaluation_digest": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "dangling_reference",
+        "state_unchanged": true
+      },
+      "criterion": "A view that omits a snapshot candidate cannot provide the complete selector input."
+    },
+    {
+      "id": "K-NEG-062",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "validate_result",
+      "coverage": [
+        "freshness",
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "selection.context.evaluate_monotonic.nanoseconds",
+          "replacement": "40000000001"
+        }
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "revision_conflict",
+        "state_unchanged": true
+      },
+      "criterion": "A selection result must repeat the complete evaluation context exactly rather than substitute another monotonic point."
+    },
+    {
+      "id": "K-NEG-063",
+      "polarity": "negative",
+      "record_type": "SelectionPolicy",
+      "operation": "select_presentation",
+      "coverage": [
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "policy_id": "policy.presentation.missing",
+        "policy_version": "1.0.0",
+        "exact_registration_absent": true,
+        "base_vector": "K-POS-025"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "definition_owner_missing",
+        "state_unchanged": true
+      },
+      "criterion": "Selection dispatch requires one exact registered kernel policy ID and version."
+    },
+    {
+      "id": "K-NEG-064",
+      "polarity": "negative",
+      "record_type": "SelectionPolicy",
+      "operation": "register",
+      "coverage": [
+        "serialization",
+        "snapshot"
+      ],
+      "input": {
+        "policy_id": "policy.presentation.prefer_meter",
+        "policy_version": "1.0.0",
+        "registration_count": 2
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "definition_owner_conflict",
+        "state_unchanged": true
+      },
+      "criterion": "Duplicate registration of the same kernel selection-policy ID and version is rejected deterministically."
+    },
+    {
+      "id": "K-NEG-065",
+      "polarity": "negative",
+      "record_type": "Selection",
+      "operation": "select_presentation",
+      "coverage": [
+        "freshness",
+        "serialization",
+        "snapshot"
+      ],
+      "prior_vector": "K-POS-025",
+      "input": {
+        "base_vector": "K-POS-025",
+        "mutation": {
+          "path": "evaluation_view.facts[candidate:voltage:b].candidate_revision",
+          "replacement": "8"
+        },
+        "recompute_evaluation_digest": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "revision_conflict",
+        "state_unchanged": true
+      },
+      "criterion": "A correctly redigested view whose candidate revision differs from the immutable snapshot is rejected before policy dispatch."
+    }
+  ]
+}
