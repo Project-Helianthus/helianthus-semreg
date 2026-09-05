@@ -4,7 +4,7 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
-## Implemented BASE foundation
+## Implemented v1 foundation and publication snapshots
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
 [`helianthus-docs-semantic` contract at b16667d](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/b16667d719defc7b0fef0400ee3ad387469018ac/api/v1).
@@ -16,24 +16,28 @@ It provides:
 - `NewRegistry` with exact pack and definition ownership and typed validator
   hooks;
 - strict recursive `Decode[T]` and convenience decoders, plus `CanonicalJSON`
-  and `DigestRecord` for supported valid foundation records.
+  and `DigestRecord` for supported valid records; and
+- `PublicationKernel`, which applies canonical `PublicationBatch` patches
+  atomically and returns deep-copied immutable `Snapshot` values and bytes with
+  exact revision, replay, lifecycle-fence, dependency-cascade and conflict
+  behavior.
 
-The self-contained fixture runner exercises 25 available foundation properties
-from 30 copied vectors. Five runtime operations are explicitly deferred; passing
-foundation checks does not establish all runtime acceptance criteria.
+The self-contained fixture runners exercise 25 available foundation properties
+from 30 copied vectors plus deterministic publication scenarios pinned to the
+same accepted contract. Five later runtime operations are explicitly deferred;
+passing these checks does not establish all runtime acceptance criteria.
 
-Publication application, immutable Snapshot/revision state, whole-snapshot
-resolution, evaluation, selection, operation/projection/admission runtime,
-capability-pack catalogs/mappings, migrations and integrations remain deferred.
-The foundation does not establish INT-05 completion, hardware validation,
+Evaluation, selection, operation/projection/admission runtime, capability-pack
+catalogs/mappings, persistence, migrations and integrations remain deferred.
+This increment does not establish INT-05 completion, hardware validation,
 release-level security review or software-release acceptance.
 
 ## Ownership boundary
 
 The repository's ownership includes protocol-neutral semantic contracts and
-compatibility fixtures. The implemented foundation preserves native evidence,
-alternatives, conflicts and unknown values; the broader operation, projection
-and lifecycle runtime remains future scoped work.
+compatibility fixtures. The implementation preserves native evidence,
+alternatives, conflicts and unknown values; the broader evaluation, operation
+and projection runtime remains future scoped work.
 
 It does not own transport framing or I/O, protocol lifecycle, vendor/profile
 qualification, native decoding or identity, raw evidence capture, gateway
