@@ -277,6 +277,16 @@ type Quality struct {
 	Freshness     Freshness      `json:"freshness"`
 	Reasons       []DefinitionID `json:"reasons"`
 }
+type CausalContext struct {
+	Origin              OriginRef      `json:"origin"`
+	CorrelationID       CorrelationID  `json:"correlation_id"`
+	ParentCorrelationID *CorrelationID `json:"parent_correlation_id,omitempty"`
+	HopCount            uint16         `json:"hop_count"`
+	MaxHops             uint16         `json:"max_hops"`
+	FirstSeenAt         TimePoint      `json:"first_seen_at"`
+	ExpiresAt           TimePoint      `json:"expires_at"`
+	Path                []TargetID     `json:"path"`
+}
 type FactCandidate struct {
 	CandidateID      CandidateID      `json:"candidate_id"`
 	Key              FactKey          `json:"key"`
@@ -288,6 +298,7 @@ type FactCandidate struct {
 	SourceEpochID    *SourceEpochID   `json:"source_epoch_id,omitempty"`
 	DriverGeneration *Uint64          `json:"driver_generation,omitempty"`
 	Origin           OriginRef        `json:"origin"`
+	Causal           *CausalContext   `json:"causal,omitempty"`
 	Evidence         []EvidenceRef    `json:"evidence"`
 	Derivation       *Derivation      `json:"derivation,omitempty"`
 	Revision         Uint64           `json:"revision"`

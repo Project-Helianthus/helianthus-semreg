@@ -30,14 +30,16 @@ env GOWORK=off go mod tidy
 git diff --exit-code -- go.mod go.sum
 
 module_list=$(env GOWORK=off go list -m all)
-if [[ "$module_list" != "github.com/Project-Helianthus/helianthus-semreg" ]]; then
-  echo "bootstrap must have no external module dependencies" >&2
-  echo "$module_list" >&2
-  exit 1
+unexpected_modules=$(printf '%s\n' "$module_list" |
+	grep -Ev '^(github.com/Project-Helianthus/helianthus-semreg|golang.org/x/mod v0\.17\.0|golang.org/x/sync v0\.11\.0|golang.org/x/text v0\.22\.0|golang.org/x/tools v0\.21\.1-0\.20240508182429-e35e4ccd0d2d)$' || true)
+if [[ -n "$unexpected_modules" ]]; then
+	echo "semantic foundation has undeclared external module dependencies:" >&2
+	echo "$unexpected_modules" >&2
+	exit 1
 fi
 
 non_module_imports=$(env GOWORK=off go list -deps -f '{{if not .Standard}}{{.ImportPath}}{{end}}' ./... |
-  grep -Ev '^github\.com/Project-Helianthus/helianthus-semreg($|/)' || true)
+	grep -Ev '^(github\.com/Project-Helianthus/helianthus-semreg($|/)|golang\.org/x/text($|/))' || true)
 if [[ -n "$non_module_imports" ]]; then
   echo "semantic packages import non-module code:" >&2
   echo "$non_module_imports" >&2

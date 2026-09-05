@@ -1,0 +1,978 @@
+{
+  "contract": "helianthus.semantic.kernel.acceptance/v1",
+  "source": {
+    "repository": "Project-Helianthus/helianthus-docs-semantic",
+    "commit": "b16667d719defc7b0fef0400ee3ad387469018ac",
+    "path": "api/v1/acceptance-vectors.json"
+  },
+  "vectors": [
+    {
+      "id": "K-POS-001",
+      "polarity": "positive",
+      "record_type": "Decimal",
+      "operation": "validate",
+      "coverage": [
+        "serialization"
+      ],
+      "input": {
+        "coefficient": "23",
+        "exponent10": 1
+      },
+      "expect": {
+        "result": "accept",
+        "canonical_json": "{\"coefficient\":\"23\",\"exponent10\":1}"
+      },
+      "criterion": "Exact 230 is accepted without a floating-point token or noncanonical trailing zero."
+    },
+    {
+      "id": "K-POS-002",
+      "polarity": "positive",
+      "record_type": "IdentityLink",
+      "operation": "validate",
+      "coverage": [
+        "identity",
+        "lineage"
+      ],
+      "input": {
+        "asset_id": "asset:heat-pump:01",
+        "binding_id": "binding:eebus:01",
+        "state": "qualified",
+        "basis": [
+          {
+            "owner": "helianthus.eebusreg",
+            "kind": "native.identity",
+            "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "contract": "helianthus.eebus.runtime.native-snapshot.v2",
+            "access": "public",
+            "redaction": "redacted"
+          }
+        ],
+        "revision": "1"
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "qualified_link_retains_basis"
+        ]
+      },
+      "criterion": "A qualified link has native-owner evidence and does not expose a bus address as asset identity."
+    },
+    {
+      "id": "K-POS-003",
+      "polarity": "positive",
+      "record_type": "FactCandidate",
+      "operation": "validate",
+      "coverage": [
+        "lineage",
+        "qualification"
+      ],
+      "input": {
+        "candidate_id": "candidate:derived:power-total",
+        "quality": {
+          "assertion": "inferred",
+          "qualification": "qualified",
+          "promotion": "promoted",
+          "validity": "good",
+          "availability": "available",
+          "freshness": "fresh",
+          "reasons": []
+        },
+        "origin": {
+          "origin_id": "origin:derived:power-total",
+          "kind": "derived",
+          "evidence_count": 1
+        },
+        "derivation": {
+          "algorithm": "helianthus.sum.phases",
+          "version": "1.0.0",
+          "inputs": [
+            {
+              "candidate_id": "candidate:phase:l1",
+              "candidate_revision": "4",
+              "source_paths": [
+                {
+                  "binding_id": "binding:meter:l1",
+                  "source_id": "source:meter:01",
+                  "source_epoch_id": "source-epoch:meter:01",
+                  "driver_generation": "3"
+                }
+              ]
+            },
+            {
+              "candidate_id": "candidate:phase:l2",
+              "candidate_revision": "4",
+              "source_paths": [
+                {
+                  "binding_id": "binding:meter:l2",
+                  "source_id": "source:meter:01",
+                  "source_epoch_id": "source-epoch:meter:01",
+                  "driver_generation": "3"
+                }
+              ]
+            },
+            {
+              "candidate_id": "candidate:phase:l3",
+              "candidate_revision": "4",
+              "source_paths": [
+                {
+                  "binding_id": "binding:meter:l3",
+                  "source_id": "source:meter:01",
+                  "source_epoch_id": "source-epoch:meter:01",
+                  "driver_generation": "3"
+                }
+              ]
+            }
+          ],
+          "evidence": []
+        },
+        "evidence": [
+          {
+            "owner": "helianthus.modbusreg",
+            "kind": "profile.observation",
+            "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "contract": "helianthus.modbus.profile.v1",
+            "access": "public",
+            "redaction": "none"
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "derivation_inputs_retained",
+          "promotion_does_not_erase_lineage"
+        ]
+      },
+      "criterion": "An inferred promoted fact names an acyclic versioned derivation and keeps native evidence."
+    },
+    {
+      "id": "K-POS-004",
+      "polarity": "positive",
+      "record_type": "Times",
+      "operation": "validate",
+      "coverage": [
+        "time"
+      ],
+      "input": {
+        "received_at": {
+          "unix_nanoseconds": "1000000000",
+          "clock_id": "clock.utc",
+          "uncertainty_ns": "1000"
+        },
+        "receipt_monotonic": {
+          "clock_epoch_id": "clock-epoch:boot-1",
+          "nanoseconds": "500"
+        },
+        "evaluated_at": {
+          "unix_nanoseconds": "1000001000",
+          "clock_id": "clock.utc",
+          "uncertainty_ns": "1000"
+        },
+        "evaluate_monotonic": {
+          "clock_epoch_id": "clock-epoch:boot-1",
+          "nanoseconds": "1500"
+        }
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "elapsed_monotonic_ns_equals_1000"
+        ]
+      },
+      "criterion": "Receipt and evaluation are ordered by one monotonic clock epoch."
+    },
+    {
+      "id": "K-POS-005",
+      "polarity": "positive",
+      "record_type": "FreshnessPolicy",
+      "operation": "restore",
+      "coverage": [
+        "freshness",
+        "time"
+      ],
+      "input": {
+        "policy": {
+          "policy_id": "policy:telemetry",
+          "version": "1.0.0",
+          "fresh_for_ns": "30000000000",
+          "retain_for_ns": "300000000000",
+          "max_wall_uncertainty_ns": "2000000"
+        },
+        "received_at": {
+          "unix_nanoseconds": "100000000000",
+          "clock_id": "clock.utc",
+          "uncertainty_ns": "500000"
+        },
+        "evaluated_at": {
+          "unix_nanoseconds": "140000000000",
+          "clock_id": "clock.utc",
+          "uncertainty_ns": "500000"
+        },
+        "receipt_clock_epoch_id": "clock-epoch:before-restart",
+        "evaluate_clock_epoch_id": "clock-epoch:after-restart"
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "freshness_equals_stale",
+          "monotonic_ticks_not_subtracted"
+        ]
+      },
+      "criterion": "A restart uses conservative comparable UTC intervals and retains the fact as stale."
+    },
+    {
+      "id": "K-POS-006",
+      "polarity": "positive",
+      "record_type": "Symbol",
+      "operation": "validate",
+      "coverage": [
+        "qualification",
+        "serialization"
+      ],
+      "input": {
+        "namespace": "native.modbusreg.growatt",
+        "token": "0x9f",
+        "known": false
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "token_round_trips",
+          "symbol_does_not_satisfy_known_capability"
+        ]
+      },
+      "criterion": "An unknown native symbol remains representable without becoming a known semantic symbol."
+    },
+    {
+      "id": "K-POS-007",
+      "polarity": "positive",
+      "record_type": "FactEnvelope",
+      "operation": "validate",
+      "coverage": [
+        "conflict",
+        "snapshot"
+      ],
+      "input": {
+        "candidate_ids": [
+          "candidate:source:a",
+          "candidate:source:b"
+        ],
+        "candidate_values": [
+          "21",
+          "22"
+        ],
+        "candidate_eligibility": "qualified_promoted",
+        "publisher_metadata_members_present": false,
+        "derived_conflicts": [
+          {
+            "kind": "value",
+            "state": "open",
+            "candidates": [
+              "candidate:source:a",
+              "candidate:source:b"
+            ],
+            "evidence": [
+              "evidence:source:a",
+              "evidence:source:b"
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "both_candidates_retained",
+          "conflict_kernel_derived",
+          "publisher_has_no_cross_source_metadata_authority"
+        ]
+      },
+      "criterion": "Conflicting qualified candidates coexist and the kernel derives visible conflict metadata without publisher selection or resolution input."
+    },
+    {
+      "id": "K-POS-008",
+      "polarity": "positive",
+      "record_type": "CapabilityInstance",
+      "operation": "validate",
+      "coverage": [
+        "capability",
+        "generation"
+      ],
+      "input": {
+        "instance_id": "capability:limit:01",
+        "definition": {
+          "pack": {
+            "id": "helianthus.pack.evse",
+            "version": "1.0.0"
+          },
+          "id": "helianthus.evse.current_limit",
+          "version": "1.2.0"
+        },
+        "binding_id": "binding:evse:01",
+        "source_epoch_id": "source-epoch:evse:01",
+        "driver_generation": "7",
+        "qualification": "qualified",
+        "availability": "available",
+        "activation_evidence": [
+          {
+            "owner": "helianthus.gateway",
+            "kind": "driver.activation",
+            "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "contract": "helianthus.gateway.driver.activation.v1",
+            "access": "public",
+            "redaction": "metadata_only"
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "exact_version_range_can_match",
+          "generation_bound"
+        ]
+      },
+      "criterion": "A qualified available capability is bound to completed activation and one generation."
+    },
+    {
+      "id": "K-POS-022",
+      "polarity": "positive",
+      "record_type": "DefinitionIndex",
+      "operation": "register_validate",
+      "coverage": [
+        "capability",
+        "operation",
+        "serialization"
+      ],
+      "input": {
+        "validators_in_registration_order": [
+          {
+            "pack": {
+              "id": "helianthus.pack.thermal",
+              "version": "1.0.0"
+            },
+            "fields": [],
+            "services": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.thermal",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.thermal.service.control",
+                "version": "1.0.0"
+              }
+            ],
+            "capabilities": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.thermal",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.thermal.temperature_setpoint",
+                "version": "1.0.0"
+              }
+            ],
+            "operations": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.thermal",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.operation.set_temperature",
+                "version": "1.0.0"
+              }
+            ],
+            "effect_rules": []
+          },
+          {
+            "pack": {
+              "id": "helianthus.pack.evse",
+              "version": "1.0.0"
+            },
+            "fields": [],
+            "services": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.evse",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.evse.service.control",
+                "version": "1.0.0"
+              }
+            ],
+            "capabilities": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.evse",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.evse.current_limit",
+                "version": "1.0.0"
+              }
+            ],
+            "operations": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.evse",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.evse.set_current_limit",
+                "version": "1.0.0"
+              }
+            ],
+            "effect_rules": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.evse",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.evse.effect.current_limit",
+                "version": "1.0.0"
+              }
+            ]
+          }
+        ],
+        "intent_kind": {
+          "pack": {
+            "id": "helianthus.pack.evse",
+            "version": "1.0.0"
+          },
+          "id": "helianthus.evse.set_current_limit",
+          "version": "1.0.0"
+        },
+        "repeat_with_registration_order_reversed": true
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "evse_validator_selected_by_exact_pack_ref",
+          "service_capability_operation_owners_resolve_exactly",
+          "operation_and_effect_entries_resolve_exactly",
+          "registration_order_does_not_change_result",
+          "no_prefix_inference_or_probing"
+        ]
+      },
+      "criterion": "Multiple packs dispatch deterministically through the explicit pack and unique definition index in either registration order."
+    },
+    {
+      "id": "K-NEG-002",
+      "polarity": "negative",
+      "record_type": "NativeBinding",
+      "operation": "validate",
+      "coverage": [
+        "identity"
+      ],
+      "input": {
+        "asset_id": " bus address 03 ",
+        "binding_id": "binding:01"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_identifier",
+        "state_unchanged": true
+      },
+      "criterion": "Whitespace and an untyped bus-address surrogate cannot form an asset ID."
+    },
+    {
+      "id": "K-NEG-003",
+      "polarity": "negative",
+      "record_type": "Decimal",
+      "operation": "validate",
+      "coverage": [
+        "serialization"
+      ],
+      "input": {
+        "coefficient": "230",
+        "exponent10": 0
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_decimal",
+        "state_unchanged": true
+      },
+      "criterion": "A non-zero coefficient with a trailing zero is not canonical."
+    },
+    {
+      "id": "K-NEG-004",
+      "polarity": "negative",
+      "record_type": "Value",
+      "operation": "validate",
+      "coverage": [
+        "serialization",
+        "qualification"
+      ],
+      "input": {
+        "kind": "quantity",
+        "quantity": {
+          "number": {
+            "coefficient": "23",
+            "exponent10": 1
+          },
+          "unit": "unit.volt"
+        },
+        "boolean": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_value",
+        "state_unchanged": true
+      },
+      "criterion": "A tagged value cannot select quantity and boolean payloads together."
+    },
+    {
+      "id": "K-NEG-005",
+      "polarity": "negative",
+      "record_type": "FreshnessPolicy",
+      "operation": "validate",
+      "coverage": [
+        "time",
+        "freshness"
+      ],
+      "input": {
+        "fresh_for_ns": "300",
+        "retain_for_ns": "300",
+        "max_wall_uncertainty_ns": "1"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_time",
+        "state_unchanged": true
+      },
+      "criterion": "Retention must be strictly longer than freshness."
+    },
+    {
+      "id": "K-NEG-006",
+      "polarity": "negative",
+      "record_type": "Times",
+      "operation": "validate",
+      "coverage": [
+        "time",
+        "freshness"
+      ],
+      "input": {
+        "receipt_clock_epoch_id": "clock-epoch:a",
+        "receipt_ticks": "900",
+        "evaluate_clock_epoch_id": "clock-epoch:b",
+        "evaluate_ticks": "1000",
+        "comparable_wall_time": false
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "incomparable_clock_epoch",
+        "state_unchanged": true
+      },
+      "criterion": "Numeric monotonic ticks from different epochs cannot be subtracted."
+    },
+    {
+      "id": "K-NEG-007",
+      "polarity": "negative",
+      "record_type": "EvidenceRef",
+      "operation": "validate",
+      "coverage": [
+        "lineage"
+      ],
+      "input": {
+        "owner": "helianthus.eebusreg",
+        "kind": "native.snapshot",
+        "digest": "sha256:ABC",
+        "contract": "helianthus.eebus.runtime.native-snapshot.v2",
+        "access": "restricted",
+        "redaction": "none"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_evidence",
+        "state_unchanged": true
+      },
+      "criterion": "Malformed digest and unredacted restricted evidence cannot enter a public record."
+    },
+    {
+      "id": "K-NEG-008",
+      "polarity": "negative",
+      "record_type": "Derivation",
+      "operation": "validate",
+      "coverage": [
+        "lineage"
+      ],
+      "input": {
+        "candidate_id": "candidate:a",
+        "inputs": [
+          "candidate:b"
+        ],
+        "candidate_b_inputs": [
+          "candidate:a"
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "derivation_cycle",
+        "state_unchanged": true
+      },
+      "criterion": "A two-node derivation cycle is rejected atomically."
+    },
+    {
+      "id": "K-NEG-009",
+      "polarity": "negative",
+      "record_type": "IdentityLink",
+      "operation": "validate",
+      "coverage": [
+        "identity",
+        "conflict"
+      ],
+      "input": {
+        "asset_id": "asset:01",
+        "binding_id": "binding:02",
+        "state": "qualified",
+        "basis": []
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "identity_not_qualified",
+        "state_unchanged": true
+      },
+      "criterion": "Similar observations without native-owner evidence cannot qualify identity."
+    },
+    {
+      "id": "K-NEG-014",
+      "polarity": "negative",
+      "record_type": "CapabilityInstance",
+      "operation": "admit",
+      "coverage": [
+        "capability",
+        "qualification"
+      ],
+      "input": {
+        "qualification": "candidate",
+        "availability": "available",
+        "activation_evidence": []
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "capability_not_qualified",
+        "state_unchanged": true
+      },
+      "criterion": "Catalog or candidate presence does not create an actionable capability."
+    },
+    {
+      "id": "K-NEG-015",
+      "polarity": "negative",
+      "record_type": "CapabilityInstance",
+      "operation": "admit",
+      "coverage": [
+        "capability"
+      ],
+      "input": {
+        "qualification": "qualified",
+        "availability": "degraded",
+        "allow_degraded": false
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "capability_unavailable",
+        "state_unchanged": true
+      },
+      "criterion": "Degraded operation is unavailable without an explicit permitting contract."
+    },
+    {
+      "id": "K-NEG-027",
+      "polarity": "negative",
+      "record_type": "Decimal",
+      "operation": "decode",
+      "coverage": [
+        "serialization"
+      ],
+      "input_json": "{\"coefficient\":\"23\",\"coefficient\":\"24\",\"exponent10\":1}",
+      "expect": {
+        "result": "reject",
+        "error_id": "duplicate_key",
+        "state_unchanged": true
+      },
+      "criterion": "Duplicate JSON members are rejected before typed decoding."
+    },
+    {
+      "id": "K-NEG-028",
+      "polarity": "negative",
+      "record_type": "Decimal",
+      "operation": "decode",
+      "coverage": [
+        "serialization"
+      ],
+      "input": {
+        "coefficient": "23",
+        "exponent10": 1,
+        "display_precision": 1
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "unknown_member",
+        "state_unchanged": true
+      },
+      "criterion": "An undeclared v1 member is not silently discarded into an extension bag."
+    },
+    {
+      "id": "K-NEG-029",
+      "polarity": "negative",
+      "record_type": "Decimal",
+      "operation": "decode",
+      "coverage": [
+        "serialization"
+      ],
+      "input_json": "{\"coefficient\":\"23\",\"exponent10\":1} trailing",
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_json",
+        "state_unchanged": true
+      },
+      "criterion": "Trailing data after one JSON value is rejected before typed decoding."
+    },
+    {
+      "id": "K-NEG-030",
+      "polarity": "negative",
+      "record_type": "Decimal",
+      "operation": "decode",
+      "coverage": [
+        "serialization"
+      ],
+      "input": {
+        "coefficient": "23"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "missing_member",
+        "state_unchanged": true
+      },
+      "criterion": "A missing required exponent member has one stable rejection class."
+    },
+    {
+      "id": "K-NEG-031",
+      "polarity": "negative",
+      "record_type": "Quality",
+      "operation": "validate",
+      "coverage": [
+        "qualification",
+        "serialization"
+      ],
+      "input": {
+        "assertion": "measured",
+        "qualification": "qualified",
+        "promotion": "promoted",
+        "validity": "good",
+        "availability": "available",
+        "freshness": "fresh",
+        "reasons": []
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_enum",
+        "state_unchanged": true
+      },
+      "criterion": "An enum token outside the exact v1 set is rejected deterministically."
+    },
+    {
+      "id": "K-NEG-032",
+      "polarity": "negative",
+      "record_type": "FactEnvelope",
+      "operation": "validate",
+      "coverage": [
+        "snapshot",
+        "serialization"
+      ],
+      "input": {
+        "candidate_count": 33,
+        "limit": 32,
+        "otherwise_valid": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "bounds_exceeded",
+        "state_unchanged": true
+      },
+      "criterion": "A collection beyond its explicit maximum is rejected without truncation."
+    },
+    {
+      "id": "K-NEG-033",
+      "polarity": "negative",
+      "record_type": "Derivation",
+      "operation": "validate",
+      "coverage": [
+        "lineage",
+        "serialization"
+      ],
+      "input": {
+        "inputs": [
+          {
+            "candidate_id": "candidate:b",
+            "candidate_revision": "1",
+            "source_paths": [
+              {
+                "binding_id": "binding:b",
+                "source_id": "source:b",
+                "source_epoch_id": "epoch:b",
+                "driver_generation": "1"
+              }
+            ]
+          },
+          {
+            "candidate_id": "candidate:a",
+            "candidate_revision": "1",
+            "source_paths": [
+              {
+                "binding_id": "binding:a",
+                "source_id": "source:a",
+                "source_epoch_id": "epoch:a",
+                "driver_generation": "1"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "noncanonical_order",
+        "state_unchanged": true
+      },
+      "criterion": "Set-like derivation inputs in descending candidate order are rejected rather than silently reordered."
+    },
+    {
+      "id": "K-NEG-043",
+      "polarity": "negative",
+      "record_type": "DefinitionIndex",
+      "operation": "register",
+      "coverage": [
+        "capability",
+        "operation"
+      ],
+      "input": {
+        "indexes": [
+          {
+            "pack": {
+              "id": "helianthus.pack.alpha",
+              "version": "1.0.0"
+            },
+            "operations": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.alpha",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.operation.shared",
+                "version": "1.0.0"
+              }
+            ]
+          },
+          {
+            "pack": {
+              "id": "helianthus.pack.beta",
+              "version": "1.0.0"
+            },
+            "operations": [
+              {
+                "pack": {
+                  "id": "helianthus.pack.beta",
+                  "version": "1.0.0"
+                },
+                "id": "helianthus.operation.shared",
+                "version": "1.0.0"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "definition_owner_conflict",
+        "state_unchanged": true
+      },
+      "criterion": "Two packs cannot claim the same operation definition kind, ID, and version."
+    },
+    {
+      "id": "K-NEG-047",
+      "polarity": "negative",
+      "record_type": "IdentityLink",
+      "operation": "validate",
+      "coverage": [
+        "identity",
+        "lineage"
+      ],
+      "input": {
+        "asset_id": "asset:01",
+        "binding_id": "binding:01",
+        "state": "qualified",
+        "basis": [],
+        "revision": "1",
+        "all_other_fields_valid": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "identity_not_qualified",
+        "state_unchanged": true
+      },
+      "criterion": "An empty qualified identity basis uses the identity-specific error, not invalid_evidence."
+    },
+    {
+      "id": "K-NEG-048",
+      "polarity": "negative",
+      "record_type": "CapabilityInstance",
+      "operation": "admit",
+      "coverage": [
+        "capability",
+        "qualification"
+      ],
+      "input": {
+        "qualification": "qualified",
+        "availability": "available",
+        "activation_evidence": [],
+        "binding_and_generation_current": true,
+        "definition_owner_registered": true,
+        "all_other_fields_valid": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "capability_not_qualified",
+        "state_unchanged": true
+      },
+      "criterion": "Empty activation proof uses the capability-specific error, not invalid_evidence."
+    },
+    {
+      "id": "K-NEG-054",
+      "polarity": "negative",
+      "record_type": "FactEnvelope",
+      "operation": "validate",
+      "coverage": [
+        "conflict",
+        "serialization",
+        "snapshot"
+      ],
+      "input": {
+        "candidates": [
+          "candidate:source:a@4",
+          "candidate:source:b@2"
+        ],
+        "canonical_values": [
+          "21",
+          "22"
+        ],
+        "supplied_conflict": {
+          "kind": "value",
+          "state": "open",
+          "candidates": [
+            "candidate:source:a",
+            "candidate:source:b"
+          ],
+          "evidence": [
+            "evidence:source:a"
+          ]
+        },
+        "derived_evidence": [
+          "evidence:source:a",
+          "evidence:source:b"
+        ],
+        "all_other_fields_valid": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_value",
+        "state_unchanged": true
+      },
+      "criterion": "A decoded snapshot cannot omit candidate evidence from kernel-derived conflict metadata."
+    }
+  ]
+}

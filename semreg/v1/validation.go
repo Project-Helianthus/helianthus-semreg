@@ -8,34 +8,57 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf16"
 	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 const (
-	InvalidJSON             ErrorID = "invalid_json"
-	DuplicateKey            ErrorID = "duplicate_key"
-	InvalidContract         ErrorID = "invalid_contract"
-	MissingMember           ErrorID = "missing_member"
-	UnknownMember           ErrorID = "unknown_member"
-	InvalidIdentifier       ErrorID = "invalid_identifier"
-	InvalidDecimal          ErrorID = "invalid_decimal"
-	InvalidValue            ErrorID = "invalid_value"
-	InvalidTime             ErrorID = "invalid_time"
-	InvalidEvidence         ErrorID = "invalid_evidence"
-	InvalidEnum             ErrorID = "invalid_enum"
-	BoundsExceeded          ErrorID = "bounds_exceeded"
-	NoncanonicalOrder       ErrorID = "noncanonical_order"
-	DefinitionOwnerConflict ErrorID = "definition_owner_conflict"
-	DefinitionOwnerMissing  ErrorID = "definition_owner_missing"
-	IdentityNotQualified    ErrorID = "identity_not_qualified"
-	CapabilityNotQualified  ErrorID = "capability_not_qualified"
-	DerivationCycle         ErrorID = "derivation_cycle"
-	IncomparableClockEpoch  ErrorID = "incomparable_clock_epoch"
+	InvalidJSON                    ErrorID = "invalid_json"
+	DuplicateKey                   ErrorID = "duplicate_key"
+	InvalidContract                ErrorID = "invalid_contract"
+	MissingMember                  ErrorID = "missing_member"
+	UnknownMember                  ErrorID = "unknown_member"
+	InvalidIdentifier              ErrorID = "invalid_identifier"
+	InvalidDecimal                 ErrorID = "invalid_decimal"
+	InvalidValue                   ErrorID = "invalid_value"
+	InvalidTime                    ErrorID = "invalid_time"
+	InvalidEvidence                ErrorID = "invalid_evidence"
+	InvalidEnum                    ErrorID = "invalid_enum"
+	BoundsExceeded                 ErrorID = "bounds_exceeded"
+	NoncanonicalOrder              ErrorID = "noncanonical_order"
+	DigestMismatch                 ErrorID = "digest_mismatch"
+	DanglingReference              ErrorID = "dangling_reference"
+	DerivationCycle                ErrorID = "derivation_cycle"
+	StaleSourceEpoch               ErrorID = "stale_source_epoch"
+	StaleDriverGeneration          ErrorID = "stale_driver_generation"
+	SequenceConflict               ErrorID = "sequence_conflict"
+	RevisionConflict               ErrorID = "revision_conflict"
+	IncomparableClockEpoch         ErrorID = "incomparable_clock_epoch"
+	GenerationTransitionIncomplete ErrorID = "generation_transition_incomplete"
+	DefinitionOwnerConflict        ErrorID = "definition_owner_conflict"
+	DefinitionOwnerMissing         ErrorID = "definition_owner_missing"
+	IdentityNotQualified           ErrorID = "identity_not_qualified"
+	CapabilityNotQualified         ErrorID = "capability_not_qualified"
+	CapabilityUnavailable          ErrorID = "capability_unavailable"
+	AuthorityMissing               ErrorID = "authority_missing"
+	DeadlineExpired                ErrorID = "deadline_expired"
+	PreconditionFailed             ErrorID = "precondition_failed"
+	RouteSelectionForbidden        ErrorID = "route_selection_forbidden"
+	AmbiguousRoute                 ErrorID = "ambiguous_route"
+	RetryForbidden                 ErrorID = "retry_forbidden"
+	InvalidOutcome                 ErrorID = "invalid_outcome"
+	EchoSuppressed                 ErrorID = "echo_suppressed"
+	CausalBudgetExceeded           ErrorID = "causal_budget_exceeded"
+	ProjectionIncomplete           ErrorID = "projection_incomplete"
+	AliasNotRoutable               ErrorID = "alias_not_routable"
 )
 
 type Error struct {
@@ -57,13 +80,47 @@ func ErrorIdentifier(err error) ErrorID {
 	return InvalidValue
 }
 
+var errorRanks = map[ErrorID]int{
+	InvalidJSON: 1, DuplicateKey: 2, InvalidContract: 3, MissingMember: 4, UnknownMember: 5,
+	InvalidIdentifier: 6, InvalidDecimal: 7, InvalidValue: 8, InvalidTime: 9, InvalidEvidence: 10,
+	InvalidEnum: 11, BoundsExceeded: 12, NoncanonicalOrder: 13, DigestMismatch: 14,
+	DanglingReference: 15, DerivationCycle: 16, StaleSourceEpoch: 17, StaleDriverGeneration: 18,
+	SequenceConflict: 19, RevisionConflict: 20, IncomparableClockEpoch: 21,
+	GenerationTransitionIncomplete: 22, DefinitionOwnerConflict: 23, DefinitionOwnerMissing: 24,
+	IdentityNotQualified: 25, CapabilityNotQualified: 26, CapabilityUnavailable: 27,
+	AuthorityMissing: 28, DeadlineExpired: 29, PreconditionFailed: 30,
+	RouteSelectionForbidden: 31, AmbiguousRoute: 32, RetryForbidden: 33, InvalidOutcome: 34,
+	EchoSuppressed: 35, CausalBudgetExceeded: 36, ProjectionIncomplete: 37, AliasNotRoutable: 38,
+}
+
+func bestError(errors ...error) error {
+	var best error
+	bestRank := int(^uint(0) >> 1)
+	for _, candidate := range errors {
+		if candidate == nil {
+			continue
+		}
+		rank, ok := errorRanks[ErrorIdentifier(candidate)]
+		if !ok {
+			rank = errorRanks[InvalidValue]
+		}
+		if rank < bestRank {
+			best, bestRank = candidate, rank
+		}
+	}
+	return best
+}
+
 var (
 	contractRE    = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*(?:[./]v[1-9][0-9]*)$`)
 	definitionRE  = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$`)
 	opaqueRE      = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/@-]*$`)
 	semverRE      = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
 	digestRE      = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+	errorIDRE     = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 	coefficientRE = regexp.MustCompile(`^(0|-?[1-9][0-9]*)$`)
+	u64RE         = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
+	i64RE         = regexp.MustCompile(`^(0|-?[1-9][0-9]*)$`)
 )
 
 func validDefinition(v DefinitionID) bool {
@@ -74,89 +131,374 @@ func validContract(v ContractVersion) bool {
 }
 func validOpaque(v string) bool          { return len(v) >= 1 && len(v) <= 256 && opaqueRE.MatchString(v) }
 func validSemver(v SemanticVersion) bool { return semverRE.MatchString(string(v)) }
+func validVersionLabel(v VersionLabel) bool {
+	s := string(v)
+	if len(s) < 1 || len(s) > 128 || strings.TrimSpace(s) != s {
+		return false
+	}
+	for _, r := range s {
+		if r > unicode.MaxASCII || unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
 func u64(v Uint64) (*big.Int, bool) {
-	if !regexp.MustCompile(`^(0|[1-9][0-9]*)$`).MatchString(string(v)) {
+	if !u64RE.MatchString(string(v)) {
 		return nil, false
 	}
 	n, ok := new(big.Int).SetString(string(v), 10)
-	return n, ok && n.BitLen() <= 64
+	return n, ok && n.Sign() >= 0 && n.BitLen() <= 64
 }
 func i64(v Int64) (*big.Int, bool) {
-	if !regexp.MustCompile(`^(0|-?[1-9][0-9]*)$`).MatchString(string(v)) {
+	if !i64RE.MatchString(string(v)) {
 		return nil, false
 	}
 	n, ok := new(big.Int).SetString(string(v), 10)
 	return n, ok && n.IsInt64()
 }
 func positive(v Uint64) bool { n, ok := u64(v); return ok && n.Sign() > 0 }
-func sortedUnique[T interface{}](items []T, key func(T) string) (bool, bool) {
-	previous := ""
-	for i, x := range items {
-		k := key(x)
-		if i > 0 && k <= previous {
-			return false, k == previous
-		}
-		previous = k
+func compareSemver(a, b SemanticVersion) (int, bool) {
+	if !validSemver(a) || !validSemver(b) {
+		return 0, false
 	}
-	return true, false
-}
-func validateEvidence(e EvidenceRef) error {
-	if !validDefinition(e.Owner) || !validDefinition(e.Kind) || !validContract(e.Contract) || !digestRE.MatchString(string(e.Digest)) {
-		return errID(InvalidEvidence, "evidence reference")
-	}
-	if e.Access != EvidenceAccessPublic && e.Access != EvidenceAccessAuthorized && e.Access != EvidenceAccessRestricted {
-		return errID(InvalidEnum, "evidence access")
-	}
-	if e.Redaction != RedactionNone && e.Redaction != RedactionRedacted && e.Redaction != RedactionMetadataOnly {
-		return errID(InvalidEnum, "redaction")
-	}
-	if e.Access == EvidenceAccessRestricted && e.Redaction == RedactionNone {
-		return errID(InvalidEvidence, "restricted evidence")
-	}
-	return nil
-}
-
-func (e EvidenceRef) Validate() error { return validateEvidence(e) }
-
-func (b NativeBinding) Validate() error {
-	if !validOpaque(string(b.BindingID)) || !validOpaque(string(b.AssetID)) || !validOpaque(string(b.SourceID)) || !validOpaque(string(b.SourceEpochID)) || !positive(b.DriverGeneration) || !positive(b.Revision) {
-		return errID(InvalidIdentifier, "native binding")
-	}
-	if b.State != BindingCurrent && b.State != BindingFenced && b.State != BindingRetired {
-		return errID(InvalidEnum, "binding state")
-	}
-	return b.NativeResource.Validate()
-}
-func validateEvidenceSet(es []EvidenceRef, min, max int) error {
-	if len(es) < min || len(es) > max {
-		return errID(BoundsExceeded, "evidence")
-	}
-	ok, dup := sortedUnique(es, func(e EvidenceRef) string {
-		return string(e.Owner) + "\x00" + string(e.Kind) + "\x00" + string(e.Contract) + "\x00" + string(e.Digest)
-	})
-	if dup {
-		return errID(DuplicateKey, "evidence")
-	}
-	if !ok {
-		return errID(NoncanonicalOrder, "evidence")
-	}
-	for _, e := range es {
-		if err := validateEvidence(e); err != nil {
-			return err
+	ap, bp := strings.Split(string(a), "."), strings.Split(string(b), ".")
+	for i := range ap {
+		an, _ := new(big.Int).SetString(ap[i], 10)
+		bn, _ := new(big.Int).SetString(bp[i], 10)
+		if cmp := an.Cmp(bn); cmp != 0 {
+			return cmp, true
 		}
 	}
-	return nil
+	return 0, true
 }
-func validateText(s string, max int, controls bool) bool {
-	if !utf8.ValidString(s) || len(s) > max {
-		return false
+func compareUint64(a, b Uint64) int {
+	an, _ := u64(a)
+	bn, _ := u64(b)
+	if an == nil || bn == nil {
+		return strings.Compare(string(a), string(b))
+	}
+	return an.Cmp(bn)
+}
+func validateText(s string, min, max int, controls bool) error {
+	if !utf8.ValidString(s) || !norm.NFC.IsNormalString(s) {
+		return errID(InvalidValue, "text")
+	}
+	if len(s) < min || len(s) > max {
+		return errID(BoundsExceeded, "text")
 	}
 	for _, r := range s {
 		if unicode.IsControl(r) && (!controls || (r != '\t' && r != '\n' && r != '\r')) {
-			return false
+			return errID(InvalidValue, "text control")
 		}
 	}
-	return true
+	return nil
+}
+func duplicateAndOrder[T any](items []T, compare func(T, T) int) (bool, bool) {
+	duplicate := false
+	for i := range items {
+		for j := 0; j < i; j++ {
+			if compare(items[i], items[j]) == 0 {
+				duplicate = true
+			}
+		}
+	}
+	ordered := true
+	for i := 1; i < len(items); i++ {
+		if compare(items[i-1], items[i]) > 0 {
+			ordered = false
+		}
+	}
+	return duplicate, ordered
+}
+
+type Record interface{ Validate() error }
+
+func (v ContractVersion) Validate() error {
+	if !validContract(v) {
+		return errID(InvalidContract, "contract")
+	}
+	return nil
+}
+func (v DefinitionID) Validate() error {
+	if !validDefinition(v) {
+		return errID(InvalidIdentifier, "definition")
+	}
+	return nil
+}
+func (v OpaqueID) Validate() error {
+	if !validOpaque(string(v)) {
+		return errID(InvalidIdentifier, "opaque id")
+	}
+	return nil
+}
+func (v Digest) Validate() error {
+	if !digestRE.MatchString(string(v)) {
+		return errID(InvalidValue, "digest")
+	}
+	return nil
+}
+func (v ErrorID) Validate() error {
+	if !errorIDRE.MatchString(string(v)) {
+		return errID(InvalidValue, "error id")
+	}
+	if _, ok := errorRanks[v]; !ok {
+		return errID(InvalidValue, "error id")
+	}
+	return nil
+}
+func (v SemanticVersion) Validate() error {
+	if !validSemver(v) {
+		return errID(InvalidIdentifier, "semantic version")
+	}
+	return nil
+}
+func (v VersionLabel) Validate() error {
+	if !validVersionLabel(v) {
+		return errID(InvalidValue, "version label")
+	}
+	return nil
+}
+func (v Uint64) Validate() error {
+	if _, ok := u64(v); !ok {
+		return errID(InvalidValue, "uint64")
+	}
+	return nil
+}
+func (v Int64) Validate() error {
+	if _, ok := i64(v); !ok {
+		return errID(InvalidValue, "int64")
+	}
+	return nil
+}
+func (r VersionRange) Validate() error {
+	cmp, ok := compareSemver(r.Minimum, r.MaximumExclusive)
+	var syntax error
+	if !validSemver(r.Minimum) || !validSemver(r.MaximumExclusive) {
+		syntax = errID(InvalidIdentifier, "version range")
+	}
+	var order error
+	if ok && cmp >= 0 {
+		order = errID(InvalidValue, "version range")
+	}
+	return bestError(syntax, order)
+}
+func (r VersionRange) Matches(v SemanticVersion) (bool, error) {
+	if err := bestError(r.Validate(), v.Validate()); err != nil {
+		return false, err
+	}
+	low, _ := compareSemver(r.Minimum, v)
+	high, _ := compareSemver(v, r.MaximumExclusive)
+	return low <= 0 && high < 0, nil
+}
+
+func validateOpaqueValue(v string, detail string) error {
+	if !validOpaque(v) {
+		return errID(InvalidIdentifier, detail)
+	}
+	return nil
+}
+func (v AssetID) Validate() error         { return validateOpaqueValue(string(v), "asset id") }
+func (v SourceID) Validate() error        { return validateOpaqueValue(string(v), "source id") }
+func (v SourceEpochID) Validate() error   { return validateOpaqueValue(string(v), "source epoch id") }
+func (v ClockEpochID) Validate() error    { return validateOpaqueValue(string(v), "clock epoch id") }
+func (v NativeBindingID) Validate() error { return validateOpaqueValue(string(v), "binding id") }
+func (v CandidateID) Validate() error     { return validateOpaqueValue(string(v), "candidate id") }
+func (v ConflictID) Validate() error      { return validateOpaqueValue(string(v), "conflict id") }
+func (v CapabilityInstanceID) Validate() error {
+	return validateOpaqueValue(string(v), "capability instance id")
+}
+func (v ServiceInstanceID) Validate() error {
+	return validateOpaqueValue(string(v), "service instance id")
+}
+func (v SnapshotID) Validate() error     { return validateOpaqueValue(string(v), "snapshot id") }
+func (v BatchID) Validate() error        { return validateOpaqueValue(string(v), "batch id") }
+func (v IntentID) Validate() error       { return validateOpaqueValue(string(v), "intent id") }
+func (v AttemptID) Validate() error      { return validateOpaqueValue(string(v), "attempt id") }
+func (v OriginID) Validate() error       { return validateOpaqueValue(string(v), "origin id") }
+func (v CorrelationID) Validate() error  { return validateOpaqueValue(string(v), "correlation id") }
+func (v IdempotencyKey) Validate() error { return validateOpaqueValue(string(v), "idempotency key") }
+func (v PolicyID) Validate() error       { return validateOpaqueValue(string(v), "policy id") }
+func (v TargetID) Validate() error       { return validateOpaqueValue(string(v), "target id") }
+
+func validateEvidence(e EvidenceRef) error {
+	var syntax error
+	if !validDefinition(e.Owner) || !validDefinition(e.Kind) || !validContract(e.Contract) || !digestRE.MatchString(string(e.Digest)) {
+		syntax = errID(InvalidEvidence, "evidence reference")
+	}
+	var enum error
+	if e.Access != EvidenceAccessPublic && e.Access != EvidenceAccessAuthorized && e.Access != EvidenceAccessRestricted {
+		enum = errID(InvalidEnum, "evidence access")
+	}
+	if e.Redaction != RedactionNone && e.Redaction != RedactionRedacted && e.Redaction != RedactionMetadataOnly {
+		enum = bestError(enum, errID(InvalidEnum, "redaction"))
+	}
+	var access error
+	if e.Access == EvidenceAccessRestricted && e.Redaction == RedactionNone {
+		access = errID(InvalidEvidence, "restricted evidence")
+	}
+	return bestError(syntax, access, enum)
+}
+func (e EvidenceRef) Validate() error { return validateEvidence(e) }
+func compareEvidence(a, b EvidenceRef) int {
+	ak := string(a.Owner) + "\x00" + string(a.Kind) + "\x00" + string(a.Contract) + "\x00" + string(a.Digest)
+	bk := string(b.Owner) + "\x00" + string(b.Kind) + "\x00" + string(b.Contract) + "\x00" + string(b.Digest)
+	return strings.Compare(ak, bk)
+}
+func validateEvidenceSet(es []EvidenceRef, min, max int) error {
+	dup, ordered := duplicateAndOrder(es, compareEvidence)
+	var errs []error
+	if es == nil {
+		errs = append(errs, errID(MissingMember, "evidence"))
+	}
+	if dup {
+		errs = append(errs, errID(DuplicateKey, "evidence"))
+	}
+	for _, e := range es {
+		errs = append(errs, e.Validate())
+	}
+	if len(es) < min || len(es) > max {
+		errs = append(errs, errID(BoundsExceeded, "evidence"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "evidence"))
+	}
+	return bestError(errs...)
+}
+
+func (s SourceDescriptor) Validate() error {
+	var enum error
+	if s.State != SourceCurrent && s.State != SourceRetired {
+		enum = errID(InvalidEnum, "source state")
+	}
+	return bestError(s.SourceID.Validate(), s.SourceEpochID.Validate(), s.ProtocolID.Validate(), s.ProfileID.Validate(), s.ProfileVersion.Validate(), s.RegistryEvidence.Validate(), s.StartedAt.Validate(), func() error {
+		if !positive(s.Revision) {
+			return errID(InvalidIdentifier, "source revision")
+		}
+		return nil
+	}(), enum)
+}
+func (o OriginRef) Validate() error {
+	var errs []error
+	errs = append(errs, o.OriginID.Validate(), validateEvidenceSet(o.Evidence, 1, 32))
+	var enum error
+	if o.Kind != OriginNativeObservation && o.Kind != OriginDerived && o.Kind != OriginOperator && o.Kind != OriginAutomation && o.Kind != OriginProjection {
+		enum = errID(InvalidEnum, "origin kind")
+	}
+	errs = append(errs, enum)
+	if o.SourceID != nil {
+		errs = append(errs, o.SourceID.Validate())
+	}
+	if o.SourceEpochID != nil {
+		errs = append(errs, o.SourceEpochID.Validate())
+	}
+	if o.BindingID != nil {
+		errs = append(errs, o.BindingID.Validate())
+	}
+	if o.Kind == OriginNativeObservation {
+		if o.SourceID == nil || o.SourceEpochID == nil || o.BindingID == nil {
+			errs = append(errs, errID(MissingMember, "native origin path"))
+		}
+	} else if o.SourceID != nil || o.SourceEpochID != nil || o.BindingID != nil {
+		errs = append(errs, errID(InvalidValue, "non-native origin path"))
+	}
+	return bestError(errs...)
+}
+func (b NativeBinding) Validate() error {
+	var enum error
+	if b.State != BindingCurrent && b.State != BindingFenced && b.State != BindingRetired {
+		enum = errID(InvalidEnum, "binding state")
+	}
+	return bestError(b.BindingID.Validate(), b.AssetID.Validate(), b.SourceID.Validate(), b.SourceEpochID.Validate(), func() error {
+		if !positive(b.DriverGeneration) || !positive(b.Revision) {
+			return errID(InvalidIdentifier, "native binding")
+		}
+		return nil
+	}(), b.NativeResource.Validate(), enum)
+}
+func (i IdentityLink) Validate() error {
+	var enum error
+	if i.State != LinkCandidate && i.State != LinkQualified && i.State != LinkRejected && i.State != LinkConflict && i.State != LinkWithdrawn {
+		enum = errID(InvalidEnum, "link state")
+	}
+	var proof error
+	if len(i.Basis) == 0 {
+		proof = errID(IdentityNotQualified, "identity basis")
+	} else {
+		proof = validateEvidenceSet(i.Basis, 1, 32)
+	}
+	return bestError(i.AssetID.Validate(), i.BindingID.Validate(), func() error {
+		if !positive(i.Revision) {
+			return errID(InvalidIdentifier, "identity revision")
+		}
+		return nil
+	}(), enum, proof)
+}
+func (p SourcePathRef) Validate() error {
+	return bestError(p.BindingID.Validate(), p.SourceID.Validate(), p.SourceEpochID.Validate(), func() error {
+		if !positive(p.DriverGeneration) {
+			return errID(InvalidIdentifier, "driver generation")
+		}
+		return nil
+	}())
+}
+func compareSourcePath(a, b SourcePathRef) int {
+	if c := strings.Compare(string(a.SourceID), string(b.SourceID)); c != 0 {
+		return c
+	}
+	if c := strings.Compare(string(a.SourceEpochID), string(b.SourceEpochID)); c != 0 {
+		return c
+	}
+	if c := compareUint64(a.DriverGeneration, b.DriverGeneration); c != 0 {
+		return c
+	}
+	return strings.Compare(string(a.BindingID), string(b.BindingID))
+}
+func (d DerivationInput) Validate() error {
+	dup, ordered := duplicateAndOrder(d.SourcePaths, compareSourcePath)
+	var errs []error
+	if d.SourcePaths == nil {
+		errs = append(errs, errID(MissingMember, "source paths"))
+	}
+	errs = append(errs, d.CandidateID.Validate())
+	if !positive(d.CandidateRevision) {
+		errs = append(errs, errID(InvalidIdentifier, "candidate revision"))
+	}
+	for _, p := range d.SourcePaths {
+		errs = append(errs, p.Validate())
+	}
+	if len(d.SourcePaths) < 1 || len(d.SourcePaths) > 32 {
+		errs = append(errs, errID(BoundsExceeded, "source paths"))
+	}
+	if dup {
+		errs = append(errs, errID(DuplicateKey, "source paths"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "source paths"))
+	}
+	return bestError(errs...)
+}
+func (d Derivation) Validate() error {
+	dup, ordered := duplicateAndOrder(d.Inputs, func(a, b DerivationInput) int { return strings.Compare(string(a.CandidateID), string(b.CandidateID)) })
+	var errs []error
+	if d.Inputs == nil {
+		errs = append(errs, errID(MissingMember, "derivation inputs"))
+	}
+	errs = append(errs, d.Algorithm.Validate(), d.Version.Validate())
+	for _, in := range d.Inputs {
+		errs = append(errs, in.Validate())
+	}
+	if len(d.Inputs) < 1 || len(d.Inputs) > 32 {
+		errs = append(errs, errID(BoundsExceeded, "derivation inputs"))
+	}
+	if dup {
+		errs = append(errs, errID(DerivationCycle, "derivation input"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "derivation inputs"))
+	}
+	errs = append(errs, validateEvidenceSet(d.Evidence, 0, 32))
+	return bestError(errs...)
 }
 
 func (d Decimal) Validate() error {
@@ -166,14 +508,20 @@ func (d Decimal) Validate() error {
 	return nil
 }
 func (s Symbol) Validate() error {
-	if !validDefinition(s.Namespace) || !validateText(s.Token, 256, false) || (strings.HasPrefix(string(s.Namespace), "native.") && s.Known) {
-		return errID(InvalidValue, "symbol")
+	var value error
+	if err := validateText(s.Token, 1, 256, false); err != nil {
+		value = err
 	}
-	if !s.Known && !strings.HasPrefix(string(s.Namespace), "native.") {
-		return errID(InvalidValue, "unknown symbol namespace")
+	if strings.HasPrefix(string(s.Namespace), "native.") {
+		if s.Known {
+			value = bestError(value, errID(InvalidValue, "known native symbol"))
+		}
+	} else if !s.Known {
+		value = bestError(value, errID(InvalidValue, "unknown symbol namespace"))
 	}
-	return nil
+	return bestError(s.Namespace.Validate(), value)
 }
+func (q Quantity) Validate() error { return bestError(q.Number.Validate(), q.Unit.Validate()) }
 func (v Value) Validate() error {
 	count := 0
 	if v.Quantity != nil {
@@ -194,610 +542,1098 @@ func (v Value) Validate() error {
 	if v.Time != nil {
 		count++
 	}
+	var errs []error
 	if count != 1 {
-		return errID(InvalidValue, "value payload")
+		errs = append(errs, errID(InvalidValue, "value payload"))
 	}
 	switch v.Kind {
 	case ValueQuantity:
-		if v.Quantity == nil || v.Quantity.Number.Validate() != nil || !validDefinition(v.Quantity.Unit) {
-			return errID(InvalidValue, "quantity")
+		if v.Quantity == nil {
+			errs = append(errs, errID(InvalidValue, "quantity payload"))
+		} else {
+			errs = append(errs, v.Quantity.Validate())
 		}
 	case ValueBoolean:
 		if v.Boolean == nil {
-			return errID(InvalidValue, "boolean")
+			errs = append(errs, errID(InvalidValue, "boolean payload"))
 		}
 	case ValueText:
-		if v.Text == nil || !validateText(*v.Text, 4096, true) {
-			return errID(InvalidValue, "text")
+		if v.Text == nil {
+			errs = append(errs, errID(InvalidValue, "text payload"))
+		} else {
+			errs = append(errs, validateText(*v.Text, 0, 4096, true))
 		}
 	case ValueSymbol:
 		if v.Symbol == nil {
-			return errID(InvalidValue, "symbol")
+			errs = append(errs, errID(InvalidValue, "symbol payload"))
+		} else {
+			errs = append(errs, v.Symbol.Validate())
 		}
 	case ValueSymbols:
-		if len(v.Symbols) < 1 || len(v.Symbols) > 64 {
-			return errID(BoundsExceeded, "symbols")
-		}
-		ok, dup := sortedUnique(v.Symbols, func(s Symbol) string { return string(s.Namespace) + "\x00" + s.Token })
-		if dup {
-			return errID(DuplicateKey, "symbols")
-		}
-		if !ok {
-			return errID(NoncanonicalOrder, "symbols")
-		}
-		for _, s := range v.Symbols {
-			if err := s.Validate(); err != nil {
-				return err
+		dup, ordered := duplicateAndOrder(v.Symbols, func(a, b Symbol) int {
+			if c := strings.Compare(string(a.Namespace), string(b.Namespace)); c != 0 {
+				return c
 			}
+			return strings.Compare(a.Token, b.Token)
+		})
+		for _, s := range v.Symbols {
+			errs = append(errs, s.Validate())
+		}
+		if len(v.Symbols) < 1 || len(v.Symbols) > 64 {
+			errs = append(errs, errID(BoundsExceeded, "symbols"))
+		}
+		if dup {
+			errs = append(errs, errID(DuplicateKey, "symbols"))
+		}
+		if !ordered {
+			errs = append(errs, errID(NoncanonicalOrder, "symbols"))
 		}
 	case ValueTime:
 		if v.Time == nil {
-			return errID(InvalidValue, "time")
+			errs = append(errs, errID(InvalidValue, "time payload"))
+		} else {
+			errs = append(errs, v.Time.Validate())
 		}
 	default:
-		return errID(InvalidEnum, "value kind")
+		errs = append(errs, errID(InvalidEnum, "value kind"))
 	}
-	if v.Symbol != nil {
-		return v.Symbol.Validate()
-	}
-	if v.Time != nil {
-		return v.Time.Validate()
-	}
-	return nil
+	return bestError(errs...)
 }
-func (t TimePoint) Validate() error {
-	if _, ok := i64(t.UnixNanoseconds); !ok || !validDefinition(t.ClockID) || !func() bool { _, ok := u64(t.UncertaintyNS); return ok }() {
-		return errID(InvalidTime, "time point")
+func (d Dimension) Validate() error {
+	var kind error
+	if d.Value.Kind != ValueBoolean && d.Value.Kind != ValueText && d.Value.Kind != ValueSymbol && d.Value.Kind != ValueQuantity {
+		kind = errID(InvalidValue, "dimension kind")
 	}
-	return nil
-}
-func (m MonotonicPoint) Validate() error {
-	if !validOpaque(string(m.ClockEpochID)) {
-		return errID(InvalidIdentifier, "clock epoch")
-	}
-	if _, ok := u64(m.Nanoseconds); !ok {
-		return errID(InvalidTime, "monotonic")
-	}
-	return nil
-}
-func (t Times) Validate() error {
-	if err := t.ReceivedAt.Validate(); err != nil {
-		return err
-	}
-	if err := t.EvaluatedAt.Validate(); err != nil {
-		return err
-	}
-	if err := t.ReceiptMonotonic.Validate(); err != nil {
-		return err
-	}
-	if err := t.EvaluateMonotonic.Validate(); err != nil {
-		return err
-	}
-	if t.PhenomenonAt != nil {
-		if err := t.PhenomenonAt.Validate(); err != nil {
-			return err
-		}
-	}
-	if t.SourceAt != nil {
-		if err := t.SourceAt.Validate(); err != nil {
-			return err
-		}
-	}
-	if t.ReceiptMonotonic.ClockEpochID != t.EvaluateMonotonic.ClockEpochID {
-		return errID(IncomparableClockEpoch, "monotonic epoch")
-	}
-	r, _ := u64(t.ReceiptMonotonic.Nanoseconds)
-	e, _ := u64(t.EvaluateMonotonic.Nanoseconds)
-	if e.Cmp(r) < 0 {
-		return errID(InvalidTime, "monotonic order")
-	}
-	return nil
-}
-func (p FreshnessPolicy) Validate() error {
-	if !validOpaque(string(p.PolicyID)) || !validSemver(p.Version) || !positive(p.FreshForNS) {
-		return errID(InvalidTime, "freshness policy")
-	}
-	f, _ := u64(p.FreshForNS)
-	r, ok := u64(p.RetainForNS)
-	if !ok || r.Cmp(f) <= 0 {
-		return errID(InvalidTime, "retention")
-	}
-	if _, ok := u64(p.MaxWallUncertaintyNS); !ok {
-		return errID(InvalidTime, "uncertainty")
-	}
-	return nil
-}
-func (q Quality) Validate() error {
-	if q.Assertion != AssertionObserved && q.Assertion != AssertionInferred {
-		return errID(InvalidEnum, "assertion")
-	}
-	if q.Qualification != QualificationCandidate && q.Qualification != QualificationQualified && q.Qualification != QualificationUnsupported && q.Qualification != QualificationUnknown && q.Qualification != QualificationRejected {
-		return errID(InvalidEnum, "qualification")
-	}
-	if q.Promotion != PromotionUnpromoted && q.Promotion != PromotionPromoted {
-		return errID(InvalidEnum, "promotion")
-	}
-	if q.Validity != ValidityGood && q.Validity != ValiditySuspect && q.Validity != ValidityBad && q.Validity != ValidityUnknown {
-		return errID(InvalidEnum, "validity")
-	}
-	if q.Availability != AvailabilityAvailable && q.Availability != AvailabilityDegraded && q.Availability != AvailabilityUnavailable && q.Availability != AvailabilityWithdrawn {
-		return errID(InvalidEnum, "availability")
-	}
-	if q.Freshness != FreshnessFresh && q.Freshness != FreshnessStale && q.Freshness != FreshnessExpired && q.Freshness != FreshnessUnknown {
-		return errID(InvalidEnum, "freshness")
-	}
-	if q.Promotion == PromotionPromoted && (q.Qualification != QualificationQualified || (q.Validity != ValidityGood && q.Validity != ValiditySuspect) || (q.Availability != AvailabilityAvailable && q.Availability != AvailabilityDegraded)) {
-		return errID(InvalidValue, "promotion")
-	}
-	ok, dup := sortedUnique(q.Reasons, func(v DefinitionID) string { return string(v) })
-	if dup {
-		return errID(DuplicateKey, "reasons")
-	}
-	if !ok {
-		return errID(NoncanonicalOrder, "reasons")
-	}
-	if len(q.Reasons) > 16 {
-		return errID(BoundsExceeded, "reasons")
-	}
-	for _, r := range q.Reasons {
-		if !validDefinition(r) {
-			return errID(InvalidIdentifier, "reason")
-		}
-	}
-	return nil
+	return bestError(d.ID.Validate(), d.Value.Validate(), kind)
 }
 func (k FactKey) Validate() error {
-	if !validDefinition(k.PackID) || !validSemver(k.PackVersion) || !validDefinition(k.FactID) || len(k.Dimensions) > 16 {
-		return errID(InvalidIdentifier, "fact key")
+	dup, ordered := duplicateAndOrder(k.Dimensions, func(a, b Dimension) int {
+		return strings.Compare(string(a.ID), string(b.ID))
+	})
+	var errs []error
+	if k.Dimensions == nil {
+		errs = append(errs, errID(MissingMember, "dimensions"))
 	}
-	ok, dup := sortedUnique(k.Dimensions, func(d Dimension) string { return string(d.ID) })
-	if dup {
-		return errID(DuplicateKey, "dimensions")
-	}
-	if !ok {
-		return errID(NoncanonicalOrder, "dimensions")
-	}
+	errs = append(errs, k.PackID.Validate(), k.PackVersion.Validate(), k.FactID.Validate())
 	for _, d := range k.Dimensions {
-		if !validDefinition(d.ID) || d.Value.Validate() != nil {
-			return errID(InvalidValue, "dimension")
-		}
+		errs = append(errs, d.Validate())
 	}
-	return nil
-}
-func (i IdentityLink) Validate() error {
-	if !validOpaque(string(i.AssetID)) || !validOpaque(string(i.BindingID)) || !positive(i.Revision) {
-		return errID(InvalidIdentifier, "identity")
+	if len(k.Dimensions) > 16 {
+		errs = append(errs, errID(BoundsExceeded, "dimensions"))
 	}
-	if i.State != LinkCandidate && i.State != LinkQualified && i.State != LinkRejected && i.State != LinkConflict && i.State != LinkWithdrawn {
-		return errID(InvalidEnum, "link state")
-	}
-	if len(i.Basis) == 0 {
-		return errID(IdentityNotQualified, "identity basis")
-	}
-	return validateEvidenceSet(i.Basis, 1, 32)
-}
-func (d Derivation) Validate() error {
-	if !validDefinition(d.Algorithm) || !validSemver(d.Version) || len(d.Inputs) < 1 || len(d.Inputs) > 32 {
-		return errID(BoundsExceeded, "derivation")
-	}
-	ok, dup := sortedUnique(d.Inputs, func(v DerivationInput) string { return string(v.CandidateID) })
 	if dup {
-		return errID(DerivationCycle, "derivation input")
+		errs = append(errs, errID(DuplicateKey, "dimensions"))
 	}
-	if !ok {
-		return errID(NoncanonicalOrder, "derivation inputs")
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "dimensions"))
 	}
-	for _, in := range d.Inputs {
-		if !validOpaque(string(in.CandidateID)) || !positive(in.CandidateRevision) || len(in.SourcePaths) < 1 || len(in.SourcePaths) > 32 {
-			return errID(InvalidIdentifier, "derivation input")
-		}
-		ok, dup = sortedUnique(in.SourcePaths, func(p SourcePathRef) string {
-			return string(p.SourceID) + "\x00" + string(p.SourceEpochID) + "\x00" + string(p.DriverGeneration) + "\x00" + string(p.BindingID)
-		})
-		if dup {
-			return errID(DuplicateKey, "source paths")
-		}
-		if !ok {
-			return errID(NoncanonicalOrder, "source paths")
-		}
-	}
-	return validateEvidenceSet(d.Evidence, 0, 32)
-}
-func (c FactCandidate) Validate() error {
-	if !validOpaque(string(c.CandidateID)) || !positive(c.Revision) {
-		return errID(InvalidIdentifier, "candidate")
-	}
-	if err := c.Key.Validate(); err != nil {
-		return err
-	}
-	if err := c.Quality.Validate(); err != nil {
-		return err
-	}
-	if err := c.Times.Validate(); err != nil {
-		return err
-	}
-	if err := c.FreshnessPolicy.Validate(); err != nil {
-		return err
-	}
-	if err := validateEvidenceSet(c.Evidence, 1, 32); err != nil {
-		return err
-	}
-	if (c.Quality.Qualification == QualificationUnsupported || c.Quality.Qualification == QualificationRejected || c.Quality.Availability == AvailabilityWithdrawn) && c.Value != nil {
-		return errID(InvalidValue, "forbidden candidate value")
-	}
-	if c.Value == nil && c.Quality.Qualification != QualificationUnsupported && c.Quality.Qualification != QualificationRejected && c.Quality.Availability != AvailabilityWithdrawn {
-		return errID(MissingMember, "candidate value")
-	}
-	if c.Value != nil {
-		if err := c.Value.Validate(); err != nil {
-			return err
-		}
-	}
-	if c.Quality.Assertion == AssertionInferred {
-		if c.Derivation == nil {
-			return errID(MissingMember, "derivation")
-		}
-		return c.Derivation.Validate()
-	}
-	if c.Derivation != nil {
-		return errID(InvalidValue, "observed derivation")
-	}
-	if c.BindingID == nil || c.SourceEpochID == nil || c.DriverGeneration == nil || !positive(*c.DriverGeneration) {
-		return errID(MissingMember, "observed source path")
-	}
-	return nil
+	return bestError(errs...)
 }
 
-type Registry struct {
-	validators map[PackRef]PackValidator
-	owners     map[string]PackRef
+func (t TimePoint) Validate() error {
+	var timeErr error
+	if _, ok := i64(t.UnixNanoseconds); !ok {
+		timeErr = errID(InvalidTime, "unix nanoseconds")
+	}
+	if _, ok := u64(t.UncertaintyNS); !ok {
+		timeErr = bestError(timeErr, errID(InvalidTime, "uncertainty"))
+	}
+	return bestError(t.ClockID.Validate(), timeErr)
+}
+func (m MonotonicPoint) Validate() error {
+	var timeErr error
+	if _, ok := u64(m.Nanoseconds); !ok {
+		timeErr = errID(InvalidTime, "monotonic")
+	}
+	return bestError(m.ClockEpochID.Validate(), timeErr)
+}
+func (t Times) Validate() error {
+	var errs []error
+	errs = append(errs, t.ReceivedAt.Validate(), t.ReceiptMonotonic.Validate(), t.EvaluatedAt.Validate(), t.EvaluateMonotonic.Validate())
+	if t.PhenomenonAt != nil {
+		errs = append(errs, t.PhenomenonAt.Validate())
+	}
+	if t.SourceAt != nil {
+		errs = append(errs, t.SourceAt.Validate())
+	}
+	if t.ReceiptMonotonic.ClockEpochID == t.EvaluateMonotonic.ClockEpochID {
+		r, rok := u64(t.ReceiptMonotonic.Nanoseconds)
+		e, eok := u64(t.EvaluateMonotonic.Nanoseconds)
+		if rok && eok && e.Cmp(r) < 0 {
+			errs = append(errs, errID(InvalidTime, "monotonic order"))
+		}
+	}
+	return bestError(errs...)
 }
 
-func NewRegistry(validators ...PackValidator) (*Registry, error) {
-	r := &Registry{validators: make(map[PackRef]PackValidator), owners: make(map[string]PackRef)}
-	for _, v := range validators {
-		if v == nil {
-			return nil, errID(DefinitionOwnerConflict, "nil validator")
-		}
-		p := v.Pack()
-		if _, ok := r.validators[p]; ok {
-			return nil, errID(DefinitionOwnerConflict, "duplicate pack")
-		}
-		idx := v.Definitions()
-		if idx.Pack != p {
-			return nil, errID(DefinitionOwnerConflict, "index pack")
-		}
-		if err := idx.Validate(); err != nil {
-			return nil, err
-		}
-		r.validators[p] = v
-		for _, group := range []struct {
-			k  string
-			rs []DefinitionRef
-		}{{"field", idx.Fields}, {"service", idx.Services}, {"capability", idx.Capabilities}, {"operation", idx.Operations}, {"effect", idx.EffectRules}} {
-			for _, d := range group.rs {
-				k := group.k + "\x00" + string(d.ID) + "\x00" + string(d.Version)
-				if _, ok := r.owners[k]; ok {
-					return nil, errID(DefinitionOwnerConflict, "definition")
-				}
-				r.owners[k] = p
+// ElapsedMonotonicNS returns a same-epoch elapsed interval. It never compares
+// numeric ticks from different clock epochs.
+func (t Times) ElapsedMonotonicNS() (Uint64, error) {
+	if err := t.Validate(); err != nil {
+		return "", err
+	}
+	if t.ReceiptMonotonic.ClockEpochID != t.EvaluateMonotonic.ClockEpochID {
+		return "", errID(IncomparableClockEpoch, "monotonic epoch")
+	}
+	received, _ := u64(t.ReceiptMonotonic.Nanoseconds)
+	evaluated, _ := u64(t.EvaluateMonotonic.Nanoseconds)
+	return Uint64(new(big.Int).Sub(evaluated, received).String()), nil
+}
+func (p FreshnessPolicy) Validate() error {
+	var errs []error
+	errs = append(errs, p.PolicyID.Validate(), p.Version.Validate())
+	f, fok := u64(p.FreshForNS)
+	r, rok := u64(p.RetainForNS)
+	_, uok := u64(p.MaxWallUncertaintyNS)
+	if !fok || !rok || !uok || f.Sign() <= 0 || (fok && rok && r.Cmp(f) <= 0) {
+		errs = append(errs, errID(InvalidTime, "freshness policy"))
+	}
+	return bestError(errs...)
+}
+func (q Quality) Validate() error {
+	dup, ordered := duplicateAndOrder(q.Reasons, func(a, b DefinitionID) int { return strings.Compare(string(a), string(b)) })
+	var errs []error
+	if q.Reasons == nil {
+		errs = append(errs, errID(MissingMember, "reasons"))
+	}
+	for _, r := range q.Reasons {
+		errs = append(errs, r.Validate())
+	}
+	if q.Assertion != AssertionObserved && q.Assertion != AssertionInferred {
+		errs = append(errs, errID(InvalidEnum, "assertion"))
+	}
+	if q.Qualification != QualificationCandidate && q.Qualification != QualificationQualified && q.Qualification != QualificationUnsupported && q.Qualification != QualificationUnknown && q.Qualification != QualificationRejected {
+		errs = append(errs, errID(InvalidEnum, "qualification"))
+	}
+	if q.Promotion != PromotionUnpromoted && q.Promotion != PromotionPromoted {
+		errs = append(errs, errID(InvalidEnum, "promotion"))
+	}
+	if q.Validity != ValidityGood && q.Validity != ValiditySuspect && q.Validity != ValidityBad && q.Validity != ValidityUnknown {
+		errs = append(errs, errID(InvalidEnum, "validity"))
+	}
+	if q.Availability != AvailabilityAvailable && q.Availability != AvailabilityDegraded && q.Availability != AvailabilityUnavailable && q.Availability != AvailabilityWithdrawn {
+		errs = append(errs, errID(InvalidEnum, "availability"))
+	}
+	if q.Freshness != FreshnessFresh && q.Freshness != FreshnessStale && q.Freshness != FreshnessExpired && q.Freshness != FreshnessUnknown {
+		errs = append(errs, errID(InvalidEnum, "freshness"))
+	}
+	if q.Promotion == PromotionPromoted && (q.Qualification != QualificationQualified || (q.Validity != ValidityGood && q.Validity != ValiditySuspect) || (q.Availability != AvailabilityAvailable && q.Availability != AvailabilityDegraded)) {
+		errs = append(errs, errID(InvalidValue, "promotion"))
+	}
+	if len(q.Reasons) > 16 {
+		errs = append(errs, errID(BoundsExceeded, "reasons"))
+	}
+	if dup {
+		errs = append(errs, errID(DuplicateKey, "reasons"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "reasons"))
+	}
+	return bestError(errs...)
+}
+func (c CausalContext) Validate() error {
+	var errs []error
+	if c.Path == nil {
+		errs = append(errs, errID(MissingMember, "causal path"))
+	}
+	errs = append(errs, c.Origin.Validate(), c.CorrelationID.Validate(), c.FirstSeenAt.Validate(), c.ExpiresAt.Validate())
+	if c.ParentCorrelationID != nil {
+		errs = append(errs, c.ParentCorrelationID.Validate())
+	}
+	for _, target := range c.Path {
+		errs = append(errs, target.Validate())
+	}
+	dup, _ := duplicateAndOrder(c.Path, func(a, b TargetID) int { return strings.Compare(string(a), string(b)) })
+	if c.FirstSeenAt.ClockID != "clock.utc" || c.ExpiresAt.ClockID != "clock.utc" {
+		errs = append(errs, errID(InvalidTime, "causal clock"))
+	}
+	if first, ok1 := i64(c.FirstSeenAt.UnixNanoseconds); ok1 {
+		if expires, ok2 := i64(c.ExpiresAt.UnixNanoseconds); ok2 {
+			delta := new(big.Int).Sub(expires, first)
+			limit := big.NewInt(300_000_000_000)
+			if delta.Sign() < 0 {
+				errs = append(errs, errID(InvalidTime, "causal order"))
+			} else if delta.Cmp(limit) > 0 {
+				errs = append(errs, errID(CausalBudgetExceeded, "causal lifetime"))
 			}
 		}
+	}
+	if c.MaxHops < 1 || c.MaxHops > 16 || c.HopCount > c.MaxHops || int(c.HopCount) != len(c.Path) || dup {
+		errs = append(errs, errID(CausalBudgetExceeded, "causal path"))
+	}
+	return bestError(errs...)
+}
+func (c FactCandidate) Validate() error {
+	var errs []error
+	errs = append(errs, c.CandidateID.Validate(), c.Key.Validate(), c.Quality.Validate(), c.Times.Validate(), c.FreshnessPolicy.Validate(), c.Origin.Validate(), validateEvidenceSet(c.Evidence, 1, 32))
+	if !positive(c.Revision) {
+		errs = append(errs, errID(InvalidIdentifier, "candidate revision"))
+	}
+	if c.Causal != nil {
+		errs = append(errs, c.Causal.Validate())
+	}
+	valueForbidden := c.Quality.Qualification == QualificationUnsupported || c.Quality.Qualification == QualificationRejected || c.Quality.Availability == AvailabilityWithdrawn
+	if valueForbidden && c.Value != nil {
+		errs = append(errs, errID(InvalidValue, "forbidden candidate value"))
+	}
+	if !valueForbidden && c.Value == nil {
+		errs = append(errs, errID(MissingMember, "candidate value"))
+	}
+	if c.Value != nil {
+		errs = append(errs, c.Value.Validate())
+	}
+	if c.Quality.Assertion == AssertionInferred {
+		if c.BindingID != nil || c.SourceEpochID != nil || c.DriverGeneration != nil {
+			errs = append(errs, errID(InvalidValue, "inferred source path"))
+		}
+		if c.Derivation == nil {
+			errs = append(errs, errID(MissingMember, "derivation"))
+		} else {
+			errs = append(errs, c.Derivation.Validate())
+			for _, in := range c.Derivation.Inputs {
+				if in.CandidateID == c.CandidateID {
+					errs = append(errs, errID(DerivationCycle, "self reference"))
+				}
+			}
+		}
+	}
+	if c.Quality.Assertion == AssertionObserved {
+		if c.Derivation != nil {
+			errs = append(errs, errID(InvalidValue, "observed derivation"))
+		}
+		if c.BindingID == nil || c.SourceEpochID == nil || c.DriverGeneration == nil {
+			errs = append(errs, errID(MissingMember, "observed source path"))
+		} else {
+			errs = append(errs, c.BindingID.Validate(), c.SourceEpochID.Validate())
+			if !positive(*c.DriverGeneration) {
+				errs = append(errs, errID(InvalidIdentifier, "driver generation"))
+			}
+		}
+	}
+	if c.Origin.Kind == OriginDerived && c.Derivation == nil {
+		errs = append(errs, errID(MissingMember, "derived origin derivation"))
+	}
+	if c.Origin.Kind == OriginNativeObservation {
+		if c.BindingID == nil || c.SourceEpochID == nil || c.DriverGeneration == nil {
+			errs = append(errs, errID(MissingMember, "native observation path"))
+		} else {
+			if c.BindingID != nil && c.Origin.BindingID != nil && *c.BindingID != *c.Origin.BindingID {
+				errs = append(errs, errID(InvalidValue, "origin binding"))
+			}
+			if c.SourceEpochID != nil && c.Origin.SourceEpochID != nil && *c.SourceEpochID != *c.Origin.SourceEpochID {
+				errs = append(errs, errID(InvalidValue, "origin epoch"))
+			}
+		}
+	}
+	if c.Origin.Kind == OriginProjection && c.Causal == nil {
+		errs = append(errs, errID(MissingMember, "projection causal context"))
+	}
+	return bestError(errs...)
+}
+
+func (p PackRef) Validate() error { return bestError(p.ID.Validate(), p.Version.Validate()) }
+func (d DefinitionRef) Validate() error {
+	return bestError(d.Pack.Validate(), d.ID.Validate(), d.Version.Validate())
+}
+func compareDefinition(a, b DefinitionRef) int {
+	if c := strings.Compare(string(a.ID), string(b.ID)); c != 0 {
+		return c
+	}
+	c, _ := compareSemver(a.Version, b.Version)
+	return c
+}
+func (d DefinitionIndex) Validate() error {
+	var errs []error
+	errs = append(errs, d.Pack.Validate())
+	for _, group := range [][]DefinitionRef{d.Fields, d.Services, d.Capabilities, d.Operations, d.EffectRules} {
+		if group == nil {
+			errs = append(errs, errID(MissingMember, "definition collection"))
+		}
+		dup, ordered := duplicateAndOrder(group, compareDefinition)
+		for _, ref := range group {
+			errs = append(errs, ref.Validate())
+			if ref.Pack != d.Pack {
+				errs = append(errs, errID(DefinitionOwnerConflict, "definition index pack"))
+			}
+		}
+		if dup {
+			errs = append(errs, errID(DuplicateKey, "definitions"))
+		}
+		if !ordered {
+			errs = append(errs, errID(NoncanonicalOrder, "definitions"))
+		}
+	}
+	return bestError(errs...)
+}
+func (f TypedField) Validate() error { return bestError(f.ID.Validate(), f.Value.Validate()) }
+func (p PredicateOp) Validate() error {
+	if p != PredicateEqual && p != PredicateNotEqual && p != PredicateLess && p != PredicateLessEqual && p != PredicateGreater && p != PredicateGreaterEqual && p != PredicateContains {
+		return errID(InvalidEnum, "predicate")
+	}
+	return nil
+}
+func (s ServiceInstance) Validate() error {
+	var enum error
+	if s.Qualification != QualificationCandidate && s.Qualification != QualificationQualified && s.Qualification != QualificationUnsupported && s.Qualification != QualificationUnknown && s.Qualification != QualificationRejected {
+		enum = errID(InvalidEnum, "service qualification")
+	}
+	if s.Availability != AvailabilityAvailable && s.Availability != AvailabilityDegraded && s.Availability != AvailabilityUnavailable && s.Availability != AvailabilityWithdrawn {
+		enum = bestError(enum, errID(InvalidEnum, "service availability"))
+	}
+	var numeric error
+	if !positive(s.DriverGeneration) || !positive(s.Revision) {
+		numeric = errID(InvalidIdentifier, "service generation/revision")
+	}
+	return bestError(s.InstanceID.Validate(), s.AssetID.Validate(), s.Definition.Validate(), s.BindingID.Validate(), s.SourceEpochID.Validate(), numeric, enum)
+}
+func (c CapabilityInstance) Validate() error {
+	var errs []error
+	if c.Constraints == nil {
+		errs = append(errs, errID(MissingMember, "constraints"))
+	}
+	errs = append(errs, c.InstanceID.Validate(), c.AssetID.Validate(), c.ServiceInstance.Validate(), c.Definition.Validate(), c.BindingID.Validate(), c.SourceEpochID.Validate())
+	if !positive(c.DriverGeneration) || !positive(c.Revision) {
+		errs = append(errs, errID(InvalidIdentifier, "capability generation/revision"))
+	}
+	if c.Qualification != QualificationCandidate && c.Qualification != QualificationQualified && c.Qualification != QualificationUnsupported && c.Qualification != QualificationUnknown && c.Qualification != QualificationRejected {
+		errs = append(errs, errID(InvalidEnum, "capability qualification"))
+	}
+	if c.Availability != AvailabilityAvailable && c.Availability != AvailabilityDegraded && c.Availability != AvailabilityUnavailable && c.Availability != AvailabilityWithdrawn {
+		errs = append(errs, errID(InvalidEnum, "capability availability"))
+	}
+	dup, ordered := duplicateAndOrder(c.Constraints, func(a, b TypedField) int { return strings.Compare(string(a.ID), string(b.ID)) })
+	for _, field := range c.Constraints {
+		errs = append(errs, field.Validate())
+	}
+	if len(c.Constraints) > 64 {
+		errs = append(errs, errID(BoundsExceeded, "constraints"))
+	}
+	if dup {
+		errs = append(errs, errID(DuplicateKey, "constraints"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "constraints"))
+	}
+	if len(c.ActivationEvidence) == 0 {
+		errs = append(errs, errID(CapabilityNotQualified, "activation evidence"))
+	} else {
+		errs = append(errs, validateEvidenceSet(c.ActivationEvidence, 1, 32))
+	}
+	return bestError(errs...)
+}
+
+type DefinitionKind string
+
+const (
+	DefinitionField      DefinitionKind = "field"
+	DefinitionService    DefinitionKind = "service"
+	DefinitionCapability DefinitionKind = "capability"
+	DefinitionOperation  DefinitionKind = "operation"
+	DefinitionEffectRule DefinitionKind = "effect_rule"
+)
+
+type definitionKey struct {
+	kind    DefinitionKind
+	id      DefinitionID
+	version SemanticVersion
+}
+type Registry struct {
+	validators map[PackRef]PackValidator
+	indexes    map[PackRef]DefinitionIndex
+	owners     map[definitionKey]PackRef
+}
+type frozenValidator struct {
+	hook  PackValidator
+	index DefinitionIndex
+}
+
+func (v frozenValidator) Pack() PackRef                { return v.index.Pack }
+func (v frozenValidator) Definitions() DefinitionIndex { return cloneIndex(v.index) }
+func (v frozenValidator) ValidateFact(k FactKey, value *Value) error {
+	return v.hook.ValidateFact(k, value)
+}
+func (v frozenValidator) ValidateService(s ServiceInstance) error { return v.hook.ValidateService(s) }
+func (v frozenValidator) ValidateCapability(c CapabilityInstance) error {
+	return v.hook.ValidateCapability(c)
+}
+func (v frozenValidator) ValidateField(r DefinitionRef, f TypedField) error {
+	return v.hook.ValidateField(r, f)
+}
+func (v frozenValidator) MatchConstraints(c CapabilityInstance, f []TypedField) error {
+	return v.hook.MatchConstraints(c, f)
+}
+func (v frozenValidator) EvaluatePredicate(c FactCandidate, p PredicateOp, value Value) (bool, error) {
+	return v.hook.EvaluatePredicate(c, p, value)
+}
+func cloneRefs(in []DefinitionRef) []DefinitionRef {
+	if in == nil {
+		return nil
+	}
+	return append(make([]DefinitionRef, 0, len(in)), in...)
+}
+func cloneIndex(i DefinitionIndex) DefinitionIndex {
+	i.Fields = cloneRefs(i.Fields)
+	i.Services = cloneRefs(i.Services)
+	i.Capabilities = cloneRefs(i.Capabilities)
+	i.Operations = cloneRefs(i.Operations)
+	i.EffectRules = cloneRefs(i.EffectRules)
+	return i
+}
+func NewRegistry(validators ...PackValidator) (*Registry, error) {
+	r := &Registry{validators: map[PackRef]PackValidator{}, indexes: map[PackRef]DefinitionIndex{}, owners: map[definitionKey]PackRef{}}
+	var errs []error
+	for _, hook := range validators {
+		if hook == nil || reflect.ValueOf(hook).Kind() == reflect.Ptr && reflect.ValueOf(hook).IsNil() {
+			errs = append(errs, errID(DefinitionOwnerConflict, "nil validator"))
+			continue
+		}
+		pack := hook.Pack()
+		index := cloneIndex(hook.Definitions())
+		errs = append(errs, pack.Validate(), index.Validate())
+		if index.Pack != pack {
+			errs = append(errs, errID(DefinitionOwnerConflict, "validator pack mismatch"))
+		}
+		if _, exists := r.validators[pack]; exists {
+			errs = append(errs, errID(DefinitionOwnerConflict, "duplicate pack"))
+			continue
+		}
+		frozen := frozenValidator{hook: hook, index: index}
+		r.validators[pack] = frozen
+		r.indexes[pack] = index
+		groups := []struct {
+			kind DefinitionKind
+			refs []DefinitionRef
+		}{{DefinitionField, index.Fields}, {DefinitionService, index.Services}, {DefinitionCapability, index.Capabilities}, {DefinitionOperation, index.Operations}, {DefinitionEffectRule, index.EffectRules}}
+		for _, group := range groups {
+			for _, ref := range group.refs {
+				key := definitionKey{group.kind, ref.ID, ref.Version}
+				if owner, exists := r.owners[key]; exists && owner != ref.Pack {
+					errs = append(errs, errID(DefinitionOwnerConflict, "definition owner"))
+				} else if exists {
+					errs = append(errs, errID(DefinitionOwnerConflict, "duplicate definition"))
+				} else {
+					r.owners[key] = ref.Pack
+				}
+			}
+		}
+	}
+	if err := bestError(errs...); err != nil {
+		return nil, err
 	}
 	return r, nil
 }
 func (r *Registry) Validator(pack PackRef) (PackValidator, error) {
+	if r == nil {
+		return nil, errID(DefinitionOwnerMissing, "registry")
+	}
 	v, ok := r.validators[pack]
 	if !ok {
 		return nil, errID(DefinitionOwnerMissing, "pack")
 	}
 	return v, nil
 }
-func (p PackRef) Validate() error {
-	if !validDefinition(p.ID) || !validSemver(p.Version) {
-		return errID(InvalidIdentifier, "pack")
+func (r *Registry) Definition(kind DefinitionKind, ref DefinitionRef) (PackValidator, error) {
+	if r == nil {
+		return nil, errID(DefinitionOwnerMissing, "registry")
 	}
-	return nil
-}
-func (d DefinitionRef) Validate() error {
-	if d.Pack.Validate() != nil || !validDefinition(d.ID) || !validSemver(d.Version) {
-		return errID(InvalidIdentifier, "definition")
+	if err := ref.Validate(); err != nil {
+		return nil, err
 	}
-	return nil
+	owner, ok := r.owners[definitionKey{kind, ref.ID, ref.Version}]
+	if !ok || owner != ref.Pack {
+		return nil, errID(DefinitionOwnerMissing, "definition")
+	}
+	return r.Validator(ref.Pack)
 }
-func (d DefinitionIndex) Validate() error {
-	if err := d.Pack.Validate(); err != nil {
+func (r *Registry) ValidateFact(key FactKey, value *Value) error {
+	if err := key.Validate(); err != nil {
 		return err
 	}
-	for _, rs := range [][]DefinitionRef{d.Fields, d.Services, d.Capabilities, d.Operations, d.EffectRules} {
-		ok, dup := sortedUnique(rs, func(r DefinitionRef) string { return string(r.ID) + "\x00" + string(r.Version) })
-		if dup {
-			return errID(DuplicateKey, "definitions")
-		}
-		if !ok {
-			return errID(NoncanonicalOrder, "definitions")
-		}
-		for _, r := range rs {
-			if r.Validate() != nil || r.Pack != d.Pack {
-				return errID(DefinitionOwnerConflict, "definition index")
-			}
+	if value != nil {
+		if err := value.Validate(); err != nil {
+			return err
 		}
 	}
-	return nil
+	ref := DefinitionRef{Pack: PackRef{ID: key.PackID, Version: key.PackVersion}, ID: key.FactID, Version: key.PackVersion}
+	validator, err := r.Definition(DefinitionField, ref)
+	if err != nil {
+		return err
+	}
+	return validator.ValidateFact(key, value)
 }
-func (c CapabilityInstance) Validate() error {
-	if !validOpaque(string(c.InstanceID)) || !validOpaque(string(c.AssetID)) || !validOpaque(string(c.ServiceInstance)) || c.Definition.Validate() != nil || !validOpaque(string(c.BindingID)) || !validOpaque(string(c.SourceEpochID)) || !positive(c.DriverGeneration) || !positive(c.Revision) {
-		return errID(InvalidIdentifier, "capability")
+func (r *Registry) ValidateService(service ServiceInstance) error {
+	if err := service.Validate(); err != nil {
+		return err
 	}
-	if c.Qualification != QualificationCandidate && c.Qualification != QualificationQualified && c.Qualification != QualificationUnsupported && c.Qualification != QualificationUnknown && c.Qualification != QualificationRejected {
-		return errID(InvalidEnum, "capability qualification")
+	validator, err := r.Definition(DefinitionService, service.Definition)
+	if err != nil {
+		return err
 	}
-	if c.Availability != AvailabilityAvailable && c.Availability != AvailabilityDegraded && c.Availability != AvailabilityUnavailable && c.Availability != AvailabilityWithdrawn {
-		return errID(InvalidEnum, "capability availability")
+	return validator.ValidateService(service)
+}
+func (r *Registry) ValidateCapability(capability CapabilityInstance) error {
+	if err := capability.Validate(); err != nil {
+		return err
 	}
-	if len(c.ActivationEvidence) == 0 {
-		return errID(CapabilityNotQualified, "activation evidence")
+	validator, err := r.Definition(DefinitionCapability, capability.Definition)
+	if err != nil {
+		return err
 	}
-	return validateEvidenceSet(c.ActivationEvidence, 1, 32)
+	return validator.ValidateCapability(capability)
+}
+func (r *Registry) ValidateFactCandidate(candidate FactCandidate) error {
+	if err := candidate.Validate(); err != nil {
+		return err
+	}
+	return r.ValidateFact(candidate.Key, candidate.Value)
+}
+func (r *Registry) ValidateField(ref DefinitionRef, field TypedField) error {
+	if err := bestError(ref.Validate(), field.Validate()); err != nil {
+		return err
+	}
+	if ref.ID != field.ID {
+		return errID(InvalidValue, "field definition")
+	}
+	validator, err := r.Definition(DefinitionField, ref)
+	if err != nil {
+		return err
+	}
+	return validator.ValidateField(ref, field)
 }
 
-func (f TypedField) Validate() error {
-	if !validDefinition(f.ID) {
-		return errID(InvalidIdentifier, "field")
+func (c Conflict) Validate() error {
+	dup, ordered := duplicateAndOrder(c.Candidates, func(a, b CandidateID) int { return strings.Compare(string(a), string(b)) })
+	var errs []error
+	errs = append(errs, c.ConflictID.Validate())
+	for _, id := range c.Candidates {
+		errs = append(errs, id.Validate())
 	}
-	return f.Value.Validate()
+	if c.Kind != ConflictValue {
+		errs = append(errs, errID(InvalidEnum, "conflict kind"))
+	}
+	if c.State != ConflictOpen {
+		errs = append(errs, errID(InvalidEnum, "conflict state"))
+	}
+	if len(c.Candidates) < 2 || len(c.Candidates) > 32 {
+		errs = append(errs, errID(BoundsExceeded, "conflict candidates"))
+	}
+	if dup {
+		errs = append(errs, errID(DuplicateKey, "conflict candidates"))
+	}
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "conflict candidates"))
+	}
+	errs = append(errs, validateEvidenceSet(c.Evidence, 1, 1024))
+	return bestError(errs...)
 }
-func (s ServiceInstance) Validate() error {
-	if !validOpaque(string(s.InstanceID)) || !validOpaque(string(s.AssetID)) || s.Definition.Validate() != nil || !validOpaque(string(s.BindingID)) || !validOpaque(string(s.SourceEpochID)) || !positive(s.DriverGeneration) || !positive(s.Revision) {
-		return errID(InvalidIdentifier, "service")
+func sameFactKey(a, b FactKey) bool {
+	ab, ea := CanonicalJSON(a)
+	bb, eb := CanonicalJSON(b)
+	return ea == nil && eb == nil && bytes.Equal(ab, bb)
+}
+func deriveConflicts(asset AssetID, key FactKey, candidates []FactCandidate) ([]Conflict, error) {
+	eligible := make([]FactCandidate, 0, len(candidates))
+	values := map[string]struct{}{}
+	evidence := []EvidenceRef{}
+	for _, candidate := range candidates {
+		if candidate.Value == nil || candidate.Quality.Qualification != QualificationQualified || candidate.Quality.Promotion != PromotionPromoted {
+			continue
+		}
+		canonical, err := CanonicalJSON(*candidate.Value)
+		if err != nil {
+			return nil, err
+		}
+		values[string(canonical)] = struct{}{}
+		eligible = append(eligible, candidate)
+		evidence = append(evidence, candidate.Evidence...)
 	}
-	if s.Qualification != QualificationCandidate && s.Qualification != QualificationQualified && s.Qualification != QualificationUnsupported && s.Qualification != QualificationUnknown && s.Qualification != QualificationRejected {
-		return errID(InvalidEnum, "service qualification")
+	if len(values) < 2 {
+		return []Conflict{}, nil
 	}
-	if s.Availability != AvailabilityAvailable && s.Availability != AvailabilityDegraded && s.Availability != AvailabilityUnavailable && s.Availability != AvailabilityWithdrawn {
-		return errID(InvalidEnum, "service availability")
+	sort.Slice(eligible, func(i, j int) bool { return eligible[i].CandidateID < eligible[j].CandidateID })
+	ids := make([]CandidateID, len(eligible))
+	for i, candidate := range eligible {
+		ids[i] = candidate.CandidateID
 	}
-	return nil
+	sort.Slice(evidence, func(i, j int) bool { return compareEvidence(evidence[i], evidence[j]) < 0 })
+	dedup := evidence[:0]
+	for _, item := range evidence {
+		if len(dedup) == 0 || compareEvidence(dedup[len(dedup)-1], item) != 0 {
+			dedup = append(dedup, item)
+		}
+	}
+	identity := struct {
+		Contract   ContractVersion `json:"contract"`
+		AssetID    AssetID         `json:"asset_id"`
+		Key        FactKey         `json:"key"`
+		Kind       ConflictKind    `json:"kind"`
+		Candidates []CandidateID   `json:"candidates"`
+	}{"helianthus.semantic.conflict-id/v1", asset, key, ConflictValue, ids}
+	raw, err := json.Marshal(identity)
+	if err != nil {
+		return nil, errID(InvalidJSON, "conflict id")
+	}
+	canonical, err := canonicalize(raw)
+	if err != nil {
+		return nil, err
+	}
+	sum := sha256.Sum256(canonical)
+	return []Conflict{{ConflictID: ConflictID("sha256:" + hex.EncodeToString(sum[:])), Kind: ConflictValue, Candidates: ids, Evidence: append([]EvidenceRef(nil), dedup...), State: ConflictOpen}}, nil
 }
 func (f FactEnvelope) Validate() error {
-	if !validOpaque(string(f.AssetID)) || f.Key.Validate() != nil || !positive(f.Revision) {
-		return errID(InvalidIdentifier, "fact envelope")
+	dup, ordered := duplicateAndOrder(f.Candidates, func(a, b FactCandidate) int { return strings.Compare(string(a.CandidateID), string(b.CandidateID)) })
+	var errs []error
+	if f.Candidates == nil {
+		errs = append(errs, errID(MissingMember, "candidates"))
+	}
+	if f.Conflicts == nil {
+		errs = append(errs, errID(MissingMember, "conflicts"))
+	}
+	errs = append(errs, f.AssetID.Validate(), f.Key.Validate())
+	if !positive(f.Revision) {
+		errs = append(errs, errID(InvalidIdentifier, "fact revision"))
+	}
+	for _, candidate := range f.Candidates {
+		errs = append(errs, candidate.Validate())
+		if !sameFactKey(candidate.Key, f.Key) {
+			errs = append(errs, errID(InvalidValue, "candidate key"))
+		}
 	}
 	if len(f.Candidates) < 1 || len(f.Candidates) > 32 {
-		return errID(BoundsExceeded, "candidates")
+		errs = append(errs, errID(BoundsExceeded, "candidates"))
 	}
-	ok, dup := sortedUnique(f.Candidates, func(c FactCandidate) string { return string(c.CandidateID) })
 	if dup {
-		return errID(DuplicateKey, "candidates")
+		errs = append(errs, errID(DuplicateKey, "candidates"))
 	}
-	if !ok {
-		return errID(NoncanonicalOrder, "candidates")
+	if !ordered {
+		errs = append(errs, errID(NoncanonicalOrder, "candidates"))
 	}
-	for _, c := range f.Candidates {
-		if !sameFactKey(c.Key, f.Key) {
-			return errID(InvalidValue, "candidate key")
-		}
-		if err := c.Validate(); err != nil {
-			return err
-		}
+	cdup, cordered := duplicateAndOrder(f.Conflicts, func(a, b Conflict) int { return strings.Compare(string(a.ConflictID), string(b.ConflictID)) })
+	for _, conflict := range f.Conflicts {
+		errs = append(errs, conflict.Validate())
 	}
-	ok, dup = sortedUnique(f.Conflicts, func(c Conflict) string { return string(c.ConflictID) })
-	if dup {
-		return errID(DuplicateKey, "conflicts")
+	if cdup {
+		errs = append(errs, errID(DuplicateKey, "conflicts"))
 	}
-	if !ok {
-		return errID(NoncanonicalOrder, "conflicts")
+	if !cordered {
+		errs = append(errs, errID(NoncanonicalOrder, "conflicts"))
 	}
-	for _, c := range f.Conflicts {
-		if c.Kind != ConflictValue || c.State != ConflictOpen || len(c.Candidates) < 2 || len(c.Candidates) > 32 {
-			return errID(InvalidValue, "conflict")
-		}
-		ok, dup := sortedUnique(c.Candidates, func(id CandidateID) string { return string(id) })
-		if dup {
-			return errID(DuplicateKey, "conflict candidates")
-		}
-		if !ok {
-			return errID(NoncanonicalOrder, "conflict candidates")
-		}
-		if err := validateEvidenceSet(c.Evidence, 1, 1024); err != nil {
-			return err
-		}
+	expected, deriveErr := deriveConflicts(f.AssetID, f.Key, f.Candidates)
+	errs = append(errs, deriveErr)
+	if deriveErr == nil && !reflect.DeepEqual(expected, f.Conflicts) {
+		errs = append(errs, errID(InvalidValue, "derived conflicts"))
 	}
-	return nil
+	return bestError(errs...)
 }
 
-func sameFactKey(left, right FactKey) bool {
-	a, errA := json.Marshal(left)
-	b, errB := json.Marshal(right)
-	return errA == nil && errB == nil && bytes.Equal(a, b)
+type jsonNode struct {
+	scalar any
+	object []jsonMember
+	array  []jsonNode
+	kind   byte
+}
+type jsonMember struct {
+	key   string
+	value jsonNode
 }
 
-// DecodeDecimal applies the v1 wire checks before binding a decimal. It is
-// intentionally narrow: later records each expose an equally typed decoder.
-func DecodeDecimal(raw []byte) (Decimal, error) {
-	members, err := strictObject(raw)
+func validateUnicodeEscapes(raw []byte) bool {
+	inString := false
+	escaped := false
+	for i := 0; i < len(raw); i++ {
+		b := raw[i]
+		if !inString {
+			if b == '"' {
+				inString = true
+			}
+			continue
+		}
+		if escaped {
+			escaped = false
+			if b != 'u' {
+				continue
+			}
+			if i+4 >= len(raw) {
+				return false
+			}
+			n, err := strconv.ParseUint(string(raw[i+1:i+5]), 16, 16)
+			if err != nil {
+				return false
+			}
+			i += 4
+			if n >= 0xD800 && n <= 0xDBFF {
+				if i+6 >= len(raw) || raw[i+1] != '\\' || raw[i+2] != 'u' {
+					return false
+				}
+				m, err := strconv.ParseUint(string(raw[i+3:i+7]), 16, 16)
+				if err != nil || m < 0xDC00 || m > 0xDFFF {
+					return false
+				}
+				i += 6
+			} else if n >= 0xDC00 && n <= 0xDFFF {
+				return false
+			}
+			continue
+		}
+		if b == '\\' {
+			escaped = true
+			continue
+		}
+		if b == '"' {
+			inString = false
+		}
+	}
+	return !inString && !escaped
+}
+func parseJSON(raw []byte) (jsonNode, bool, error) {
+	if len(raw) == 0 || bytes.HasPrefix(raw, []byte{0xEF, 0xBB, 0xBF}) || !utf8.Valid(raw) || !validateUnicodeEscapes(raw) {
+		return jsonNode{}, false, errID(InvalidJSON, "utf-8 json")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	duplicate := false
+	node, err := parseJSONNode(decoder, &duplicate)
 	if err != nil {
-		return Decimal{}, err
+		return jsonNode{}, duplicate, errID(InvalidJSON, "json value")
 	}
-	if len(members) != 2 {
-		if _, ok := members["coefficient"]; !ok {
-			return Decimal{}, errID(MissingMember, "coefficient")
-		}
-		if _, ok := members["exponent10"]; !ok {
-			return Decimal{}, errID(MissingMember, "exponent10")
-		}
-		return Decimal{}, errID(UnknownMember, "decimal member")
+	if _, err = decoder.Token(); err != io.EOF {
+		return jsonNode{}, duplicate, errID(InvalidJSON, "trailing data")
 	}
-	coefficient, ok := members["coefficient"]
-	if !ok {
-		return Decimal{}, errID(MissingMember, "coefficient")
-	}
-	exponent, ok := members["exponent10"]
-	if !ok {
-		return Decimal{}, errID(MissingMember, "exponent10")
-	}
-	var d Decimal
-	if json.Unmarshal(coefficient, &d.Coefficient) != nil || json.Unmarshal(exponent, &d.Exponent10) != nil {
-		return Decimal{}, errID(InvalidValue, "decimal token")
-	}
-	if err := d.Validate(); err != nil {
-		return Decimal{}, err
-	}
-	return d, nil
+	return node, duplicate, nil
 }
-
-func strictObject(raw []byte) (map[string]json.RawMessage, error) {
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.UseNumber()
-	t, err := d.Token()
+func parseJSONNode(decoder *json.Decoder, duplicate *bool) (jsonNode, error) {
+	token, err := decoder.Token()
 	if err != nil {
-		return nil, errID(InvalidJSON, "object")
+		return jsonNode{}, err
 	}
-	if delim, ok := t.(json.Delim); !ok || delim != '{' {
-		return nil, errID(InvalidJSON, "object")
-	}
-	m := make(map[string]json.RawMessage)
-	for d.More() {
-		keyToken, err := d.Token()
-		if err != nil {
-			return nil, errID(InvalidJSON, "member")
+	switch value := token.(type) {
+	case json.Delim:
+		switch value {
+		case '{':
+			node := jsonNode{kind: 'o'}
+			seen := map[string]bool{}
+			for decoder.More() {
+				keyToken, err := decoder.Token()
+				if err != nil {
+					return jsonNode{}, err
+				}
+				key, ok := keyToken.(string)
+				if !ok {
+					return jsonNode{}, fmt.Errorf("object key")
+				}
+				child, err := parseJSONNode(decoder, duplicate)
+				if err != nil {
+					return jsonNode{}, err
+				}
+				if seen[key] {
+					*duplicate = true
+				}
+				seen[key] = true
+				node.object = append(node.object, jsonMember{key, child})
+			}
+			end, err := decoder.Token()
+			if err != nil || end != json.Delim('}') {
+				return jsonNode{}, fmt.Errorf("object end")
+			}
+			return node, nil
+		case '[':
+			node := jsonNode{kind: 'a'}
+			for decoder.More() {
+				child, err := parseJSONNode(decoder, duplicate)
+				if err != nil {
+					return jsonNode{}, err
+				}
+				node.array = append(node.array, child)
+			}
+			end, err := decoder.Token()
+			if err != nil || end != json.Delim(']') {
+				return jsonNode{}, fmt.Errorf("array end")
+			}
+			return node, nil
+		default:
+			return jsonNode{}, fmt.Errorf("delimiter")
 		}
-		key, ok := keyToken.(string)
-		if !ok {
-			return nil, errID(InvalidJSON, "key")
-		}
-		var value json.RawMessage
-		if err := d.Decode(&value); err != nil {
-			return nil, errID(InvalidJSON, "value")
-		}
-		if _, exists := m[key]; exists {
-			return nil, errID(DuplicateKey, "member")
-		}
-		m[key] = value
+	case nil:
+		return jsonNode{kind: 'n'}, nil
+	default:
+		return jsonNode{kind: 's', scalar: value}, nil
 	}
-	if _, err := d.Token(); err != nil {
-		return nil, errID(InvalidJSON, "end object")
-	}
-	var extra json.RawMessage
-	if err := d.Decode(&extra); err != io.EOF {
-		return nil, errID(InvalidJSON, "trailing data")
-	}
-	return m, nil
 }
-
-// Record is a typed public semantic record accepted by CanonicalJSON.
-type Record interface{ Validate() error }
+func validateShape(node jsonNode, t reflect.Type, errors *[]error) {
+	if t.Kind() == reflect.Pointer {
+		if node.kind == 'n' {
+			*errors = append(*errors, errID(MissingMember, "null"))
+			return
+		}
+		validateShape(node, t.Elem(), errors)
+		return
+	}
+	if node.kind == 'n' {
+		*errors = append(*errors, errID(MissingMember, "null"))
+		return
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		if node.kind != 'o' {
+			*errors = append(*errors, errID(InvalidValue, "object token"))
+			return
+		}
+		fields := map[string]struct {
+			t        reflect.Type
+			optional bool
+		}{}
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			tag := field.Tag.Get("json")
+			if tag == "-" {
+				continue
+			}
+			parts := strings.Split(tag, ",")
+			name := parts[0]
+			if name == "" {
+				name = field.Name
+			}
+			optional := false
+			for _, part := range parts[1:] {
+				if part == "omitempty" {
+					optional = true
+				}
+			}
+			fields[name] = struct {
+				t        reflect.Type
+				optional bool
+			}{field.Type, optional}
+		}
+		seen := map[string]bool{}
+		for _, member := range node.object {
+			field, ok := fields[member.key]
+			if !ok {
+				*errors = append(*errors, errID(UnknownMember, member.key))
+				continue
+			}
+			seen[member.key] = true
+			validateShape(member.value, field.t, errors)
+		}
+		for name, field := range fields {
+			if !field.optional && !seen[name] {
+				if name == "contract" {
+					*errors = append(*errors, errID(InvalidContract, "contract"))
+				} else {
+					*errors = append(*errors, errID(MissingMember, name))
+				}
+			}
+		}
+	case reflect.Slice:
+		if node.kind != 'a' {
+			*errors = append(*errors, errID(InvalidValue, "array token"))
+			return
+		}
+		for _, child := range node.array {
+			validateShape(child, t.Elem(), errors)
+		}
+	case reflect.String:
+		if node.kind != 's' {
+			*errors = append(*errors, errID(InvalidValue, "string token"))
+			return
+		}
+		if _, ok := node.scalar.(string); !ok {
+			*errors = append(*errors, errID(InvalidValue, "string token"))
+		}
+	case reflect.Bool:
+		if node.kind != 's' {
+			*errors = append(*errors, errID(InvalidValue, "boolean token"))
+			return
+		}
+		if _, ok := node.scalar.(bool); !ok {
+			*errors = append(*errors, errID(InvalidValue, "boolean token"))
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if node.kind != 's' {
+			*errors = append(*errors, errID(InvalidValue, "number token"))
+			return
+		}
+		number, ok := node.scalar.(json.Number)
+		if !ok {
+			*errors = append(*errors, errID(InvalidValue, "number token"))
+			return
+		}
+		if t.Kind() >= reflect.Int && t.Kind() <= reflect.Int64 {
+			if _, err := strconv.ParseInt(number.String(), 10, t.Bits()); err != nil {
+				*errors = append(*errors, errID(InvalidValue, "integer token"))
+			}
+		} else if _, err := strconv.ParseUint(number.String(), 10, t.Bits()); err != nil {
+			*errors = append(*errors, errID(InvalidValue, "integer token"))
+		}
+	default:
+		*errors = append(*errors, errID(InvalidValue, "unsupported wire type"))
+	}
+}
+func decodeRecord[T Record](raw []byte) (T, error) {
+	var zero T
+	node, duplicate, syntax := parseJSON(raw)
+	if syntax != nil {
+		return zero, syntax
+	}
+	var errs []error
+	if duplicate {
+		errs = append(errs, errID(DuplicateKey, "member"))
+	}
+	targetType := reflect.TypeOf((*T)(nil)).Elem()
+	validateShape(node, targetType, &errs)
+	if err := bestError(errs...); err != nil {
+		return zero, err
+	}
+	var result T
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return zero, errID(InvalidJSON, "typed decode")
+	}
+	if err := result.Validate(); err != nil {
+		return zero, err
+	}
+	return result, nil
+}
+func Decode[T Record](raw []byte) (T, error)                { return decodeRecord[T](raw) }
+func DecodeDecimal(raw []byte) (Decimal, error)             { return Decode[Decimal](raw) }
+func DecodeValue(raw []byte) (Value, error)                 { return Decode[Value](raw) }
+func DecodeFactCandidate(raw []byte) (FactCandidate, error) { return Decode[FactCandidate](raw) }
+func DecodeFactEnvelope(raw []byte) (FactEnvelope, error)   { return Decode[FactEnvelope](raw) }
+func DecodeCapabilityInstance(raw []byte) (CapabilityInstance, error) {
+	return Decode[CapabilityInstance](raw)
+}
 
 func CanonicalJSON(record Record) ([]byte, error) {
 	if record == nil {
 		return nil, errID(InvalidValue, "record")
 	}
+	value := reflect.ValueOf(record)
+	if (value.Kind() == reflect.Ptr || value.Kind() == reflect.Map || value.Kind() == reflect.Slice || value.Kind() == reflect.Interface) && value.IsNil() {
+		return nil, errID(InvalidValue, "nil record")
+	}
 	if err := record.Validate(); err != nil {
 		return nil, err
 	}
-	b, err := json.Marshal(record)
+	raw, err := json.Marshal(record)
 	if err != nil {
 		return nil, errID(InvalidJSON, "marshal")
 	}
-	return canonicalize(b)
+	return canonicalize(raw)
 }
 func DigestRecord(record Record) (Digest, error) {
-	b, err := CanonicalJSON(record)
+	canonical, err := CanonicalJSON(record)
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(b)
+	sum := sha256.Sum256(canonical)
 	return Digest("sha256:" + hex.EncodeToString(sum[:])), nil
 }
 func canonicalize(raw []byte) ([]byte, error) {
-	var out bytes.Buffer
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.UseNumber()
-	if err := canonValue(d, &out); err != nil {
-		return nil, errID(InvalidJSON, "canonical json")
+	node, duplicate, err := parseJSON(raw)
+	if err != nil {
+		return nil, err
 	}
-	if d.More() {
-		return nil, errID(InvalidJSON, "trailing data")
+	if duplicate {
+		return nil, errID(DuplicateKey, "member")
+	}
+	var out bytes.Buffer
+	if err := writeCanonical(&out, node); err != nil {
+		return nil, errID(InvalidJSON, "canonical json")
 	}
 	return out.Bytes(), nil
 }
-func canonValue(d *json.Decoder, out *bytes.Buffer) error {
-	tok, err := d.Token()
-	if err != nil {
-		return err
+func compareJCSKey(a, b string) int {
+	au, bu := utf16.Encode([]rune(a)), utf16.Encode([]rune(b))
+	for i := 0; i < len(au) && i < len(bu); i++ {
+		if au[i] < bu[i] {
+			return -1
+		}
+		if au[i] > bu[i] {
+			return 1
+		}
 	}
-	switch x := tok.(type) {
-	case json.Delim:
-		if x == '{' {
-			members := map[string]json.RawMessage{}
-			for d.More() {
-				k, err := d.Token()
-				if err != nil {
-					return err
-				}
-				key, ok := k.(string)
-				if !ok {
-					return fmt.Errorf("key")
-				}
-				var r json.RawMessage
-				if err := d.Decode(&r); err != nil {
-					return err
-				}
-				if _, ok := members[key]; ok {
-					return fmt.Errorf("duplicate")
-				}
-				members[key] = r
+	if len(au) < len(bu) {
+		return -1
+	}
+	if len(au) > len(bu) {
+		return 1
+	}
+	return 0
+}
+func writeJSONString(out *bytes.Buffer, value string) error {
+	if !utf8.ValidString(value) {
+		return fmt.Errorf("invalid utf-8")
+	}
+	out.WriteByte('"')
+	for _, r := range value {
+		switch r {
+		case '"', '\\':
+			out.WriteByte('\\')
+			out.WriteRune(r)
+		case '\b':
+			out.WriteString(`\b`)
+		case '\t':
+			out.WriteString(`\t`)
+		case '\n':
+			out.WriteString(`\n`)
+		case '\f':
+			out.WriteString(`\f`)
+		case '\r':
+			out.WriteString(`\r`)
+		default:
+			if r < 0x20 {
+				fmt.Fprintf(out, `\u%04x`, r)
+			} else {
+				out.WriteRune(r)
 			}
-			if _, err := d.Token(); err != nil {
+		}
+	}
+	out.WriteByte('"')
+	return nil
+}
+func writeCanonical(out *bytes.Buffer, node jsonNode) error {
+	switch node.kind {
+	case 'n':
+		out.WriteString("null")
+	case 's':
+		switch value := node.scalar.(type) {
+		case string:
+			return writeJSONString(out, value)
+		case bool:
+			out.WriteString(strconv.FormatBool(value))
+		case json.Number:
+			out.WriteString(value.String())
+		default:
+			return fmt.Errorf("scalar")
+		}
+	case 'a':
+		out.WriteByte('[')
+		for i, child := range node.array {
+			if i > 0 {
+				out.WriteByte(',')
+			}
+			if err := writeCanonical(out, child); err != nil {
 				return err
 			}
-			keys := make([]string, 0, len(members))
-			for k := range members {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-			out.WriteByte('{')
-			for i, k := range keys {
-				if i > 0 {
-					out.WriteByte(',')
-				}
-				kb, _ := json.Marshal(k)
-				out.Write(kb)
-				out.WriteByte(':')
-				nested := json.NewDecoder(bytes.NewReader(members[k]))
-				nested.UseNumber()
-				if err := canonValue(nested, out); err != nil {
-					return err
-				}
-			}
-			out.WriteByte('}')
-			return nil
 		}
-		if x == '[' {
-			out.WriteByte('[')
-			for i := 0; d.More(); i++ {
-				if i > 0 {
-					out.WriteByte(',')
-				}
-				if err := canonValue(d, out); err != nil {
-					return err
-				}
+		out.WriteByte(']')
+	case 'o':
+		members := append([]jsonMember(nil), node.object...)
+		sort.Slice(members, func(i, j int) bool { return compareJCSKey(members[i].key, members[j].key) < 0 })
+		out.WriteByte('{')
+		for i, member := range members {
+			if i > 0 {
+				out.WriteByte(',')
 			}
-			_, err := d.Token()
-			out.WriteByte(']')
-			return err
+			if err := writeJSONString(out, member.key); err != nil {
+				return err
+			}
+			out.WriteByte(':')
+			if err := writeCanonical(out, member.value); err != nil {
+				return err
+			}
 		}
-	case string:
-		b, _ := json.Marshal(x)
-		out.Write(b)
-	case bool:
-		out.WriteString(strconv.FormatBool(x))
-	case nil:
-		return fmt.Errorf("null")
-	case json.Number:
-		out.WriteString(x.String())
+		out.WriteByte('}')
 	default:
-		return fmt.Errorf("token")
+		return fmt.Errorf("node")
 	}
 	return nil
 }
