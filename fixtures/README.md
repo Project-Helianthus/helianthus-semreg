@@ -1,13 +1,16 @@
 # Compatibility fixtures
 
-This directory is the future home of versioned, public compatibility fixtures
+This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
 [`v1/foundation-vectors.json`](v1/foundation-vectors.json) copies the 30
 foundation-relevant vector entries from the merged semantic v1 contract at
 `Project-Helianthus/helianthus-docs-semantic@b16667d719defc7b0fef0400ee3ad387469018ac`.
-Tests execute supported foundation properties and explicitly skip vector
-operations that require the deferred snapshot, evaluation, or admission runtime.
+Tests execute 26 foundation vectors, including the implemented BASE publication
+and snapshot behavior. Four vector operations remain deferred: K-POS-005,
+K-NEG-014, K-NEG-015, and K-NEG-048. Evaluation, presentation selection,
+operations, and projection runtimes remain separate work; these fixtures do not
+claim INT-05 or full runtime completion.
 
 [`v1/publication-vectors.json`](v1/publication-vectors.json) pins deterministic
 publication scenarios to the same accepted documentation revision. The matching

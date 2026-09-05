@@ -425,7 +425,9 @@ func (i IdentityLink) Validate() error {
 		enum = errID(InvalidEnum, "link state")
 	}
 	var proof error
-	if len(i.Basis) == 0 {
+	if i.Basis == nil {
+		proof = errID(MissingMember, "identity basis")
+	} else if len(i.Basis) == 0 {
 		proof = errID(IdentityNotQualified, "identity basis")
 	} else {
 		proof = validateEvidenceSet(i.Basis, 1, 32)
@@ -927,9 +929,7 @@ func (s ServiceInstance) Validate() error {
 }
 func (c CapabilityInstance) Validate() error {
 	var errs []error
-	if c.Constraints == nil {
-		errs = append(errs, errID(MissingMember, "constraints"))
-	}
+	errs = append(errs, validateConstraintFields(c.Constraints))
 	errs = append(errs, c.InstanceID.Validate(), c.AssetID.Validate(), c.ServiceInstance.Validate(), c.Definition.Validate(), c.BindingID.Validate(), c.SourceEpochID.Validate())
 	if !positive(c.DriverGeneration) || !positive(c.Revision) {
 		errs = append(errs, errID(InvalidIdentifier, "capability generation/revision"))
@@ -940,11 +940,26 @@ func (c CapabilityInstance) Validate() error {
 	if c.Availability != AvailabilityAvailable && c.Availability != AvailabilityDegraded && c.Availability != AvailabilityUnavailable && c.Availability != AvailabilityWithdrawn {
 		errs = append(errs, errID(InvalidEnum, "capability availability"))
 	}
-	dup, ordered := duplicateAndOrder(c.Constraints, func(a, b TypedField) int { return strings.Compare(string(a.ID), string(b.ID)) })
-	for _, field := range c.Constraints {
+	if c.ActivationEvidence == nil {
+		errs = append(errs, errID(MissingMember, "activation evidence"))
+	} else if len(c.ActivationEvidence) == 0 {
+		errs = append(errs, errID(CapabilityNotQualified, "activation evidence"))
+	} else {
+		errs = append(errs, validateEvidenceSet(c.ActivationEvidence, 1, 32))
+	}
+	return bestError(errs...)
+}
+
+func validateConstraintFields(fields []TypedField) error {
+	var errs []error
+	if fields == nil {
+		errs = append(errs, errID(MissingMember, "constraints"))
+	}
+	dup, ordered := duplicateAndOrder(fields, func(a, b TypedField) int { return strings.Compare(string(a.ID), string(b.ID)) })
+	for _, field := range fields {
 		errs = append(errs, field.Validate())
 	}
-	if len(c.Constraints) > 64 {
+	if len(fields) > 64 {
 		errs = append(errs, errID(BoundsExceeded, "constraints"))
 	}
 	if dup {
@@ -952,11 +967,6 @@ func (c CapabilityInstance) Validate() error {
 	}
 	if !ordered {
 		errs = append(errs, errID(NoncanonicalOrder, "constraints"))
-	}
-	if len(c.ActivationEvidence) == 0 {
-		errs = append(errs, errID(CapabilityNotQualified, "activation evidence"))
-	} else {
-		errs = append(errs, validateEvidenceSet(c.ActivationEvidence, 1, 32))
 	}
 	return bestError(errs...)
 }
@@ -982,27 +992,85 @@ type Registry struct {
 	owners     map[definitionKey]PackRef
 }
 type frozenValidator struct {
-	hook  PackValidator
-	index DefinitionIndex
+	hook   PackValidator
+	index  DefinitionIndex
+	owners map[definitionKey]PackRef
+}
+
+func (v frozenValidator) owns(kind DefinitionKind, ref DefinitionRef) error {
+	if owner, ok := v.owners[definitionKey{kind, ref.ID, ref.Version}]; !ok || owner != ref.Pack || owner != v.Pack() {
+		return errID(DefinitionOwnerMissing, "definition")
+	}
+	return nil
 }
 
 func (v frozenValidator) Pack() PackRef                { return v.index.Pack }
 func (v frozenValidator) Definitions() DefinitionIndex { return cloneIndex(v.index) }
 func (v frozenValidator) ValidateFact(k FactKey, value *Value) error {
-	return v.hook.ValidateFact(k, value)
+	var valueErr error
+	if value != nil {
+		valueErr = value.Validate()
+	}
+	if err := bestError(k.Validate(), valueErr); err != nil {
+		return err
+	}
+	if (PackRef{ID: k.PackID, Version: k.PackVersion}) != v.Pack() {
+		return errID(DefinitionOwnerMissing, "fact pack")
+	}
+	if value != nil {
+		detached := copyHookValue(*value)
+		value = &detached
+	}
+	return v.hook.ValidateFact(copyHookKey(k), value)
 }
-func (v frozenValidator) ValidateService(s ServiceInstance) error { return v.hook.ValidateService(s) }
+func (v frozenValidator) ValidateService(s ServiceInstance) error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	if err := v.owns(DefinitionService, s.Definition); err != nil {
+		return err
+	}
+	// ServiceInstance contains only scalar/value fields.
+	return v.hook.ValidateService(s)
+}
 func (v frozenValidator) ValidateCapability(c CapabilityInstance) error {
-	return v.hook.ValidateCapability(c)
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	if err := v.owns(DefinitionCapability, c.Definition); err != nil {
+		return err
+	}
+	return v.hook.ValidateCapability(copyHookCapability(c))
 }
 func (v frozenValidator) ValidateField(r DefinitionRef, f TypedField) error {
-	return v.hook.ValidateField(r, f)
+	if err := bestError(r.Validate(), f.Validate()); err != nil {
+		return err
+	}
+	if r.ID != f.ID {
+		return errID(InvalidValue, "field definition")
+	}
+	if err := v.owns(DefinitionField, r); err != nil {
+		return err
+	}
+	return v.hook.ValidateField(r, copyHookField(f))
 }
 func (v frozenValidator) MatchConstraints(c CapabilityInstance, f []TypedField) error {
-	return v.hook.MatchConstraints(c, f)
+	if err := bestError(c.Validate(), validateConstraintFields(f)); err != nil {
+		return err
+	}
+	if err := v.owns(DefinitionCapability, c.Definition); err != nil {
+		return err
+	}
+	return v.hook.MatchConstraints(copyHookCapability(c), copyHookFields(f))
 }
 func (v frozenValidator) EvaluatePredicate(c FactCandidate, p PredicateOp, value Value) (bool, error) {
-	return v.hook.EvaluatePredicate(c, p, value)
+	if err := bestError(c.Validate(), p.Validate(), value.Validate()); err != nil {
+		return false, err
+	}
+	if (PackRef{ID: c.Key.PackID, Version: c.Key.PackVersion}) != v.Pack() {
+		return false, errID(DefinitionOwnerMissing, "fact pack")
+	}
+	return v.hook.EvaluatePredicate(copyHookCandidate(c), p, copyHookValue(value))
 }
 func cloneRefs(in []DefinitionRef) []DefinitionRef {
 	if in == nil {
@@ -1039,7 +1107,7 @@ func NewRegistry(validators ...PackValidator) (*Registry, error) {
 			errs = append(errs, errID(DefinitionOwnerConflict, "duplicate pack"))
 			continue
 		}
-		frozen := frozenValidator{hook: hook, index: index}
+		frozen := frozenValidator{hook: hook, index: index, owners: r.owners}
 		r.validators[pack] = frozen
 		r.indexes[pack] = index
 		groups := []struct {

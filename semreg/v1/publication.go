@@ -49,17 +49,21 @@ func (c PublicationCursor) Validate() error {
 }
 
 func (b PublicationBatch) Validate() error {
-	if err := b.validateStructure(true); err != nil {
-		return err
+	structureError := b.validateStructure(true)
+	// Digest binds complete canonical bytes independently of acceptance. Every
+	// malformed/member/value/bounds/order error precedes digest in the contract;
+	// only later reference/lifecycle semantics may safely compete with it.
+	if structureError != nil && errorRanks[ErrorIdentifier(structureError)] < errorRanks[DigestMismatch] {
+		return structureError
 	}
 	digest, err := b.computedDigestUnchecked()
 	if err != nil {
 		return err
 	}
 	if digest != b.BatchDigest {
-		return errID(DigestMismatch, "publication batch")
+		return bestError(structureError, errID(DigestMismatch, "publication batch"))
 	}
-	return nil
+	return structureError
 }
 
 // ComputedDigest returns the canonical batch digest with batch_digest omitted.
