@@ -195,6 +195,14 @@ func validateText(s string, min, max int, controls bool) error {
 	return nil
 }
 func duplicateAndOrder[T any](items []T, compare func(T, T) int) (bool, bool) {
+	// Invalid keys do not acquire an identity through their Go zero value.
+	valid := make([]T, 0, len(items))
+	for _, item := range items {
+		if collectionKeyValid(reflect.ValueOf(item)) {
+			valid = append(valid, item)
+		}
+	}
+	items = valid
 	duplicate := false
 	for i := range items {
 		for j := 0; j < i; j++ {
@@ -847,6 +855,10 @@ func compareDefinition(a, b DefinitionRef) int {
 	return strings.Compare(string(a.Version), string(b.Version))
 }
 func (d DefinitionIndex) Validate() error {
+	return bestError(d.validationErrors(DuplicateKey)...)
+}
+
+func (d DefinitionIndex) validationErrors(duplicateClass ErrorID) []error {
 	var errs []error
 	errs = append(errs, d.Pack.Validate())
 	for _, group := range [][]DefinitionRef{d.Fields, d.Services, d.Capabilities, d.Operations, d.EffectRules} {
@@ -861,13 +873,13 @@ func (d DefinitionIndex) Validate() error {
 			}
 		}
 		if dup {
-			errs = append(errs, errID(DuplicateKey, "definitions"))
+			errs = append(errs, errID(duplicateClass, "definitions"))
 		}
 		if !ordered {
 			errs = append(errs, errID(NoncanonicalOrder, "definitions"))
 		}
 	}
-	return bestError(errs...)
+	return errs
 }
 func (f TypedField) Validate() error { return bestError(f.ID.Validate(), f.Value.Validate()) }
 func (p PredicateOp) Validate() error {
@@ -993,11 +1005,10 @@ func NewRegistry(validators ...PackValidator) (*Registry, error) {
 		}
 		pack := hook.Pack()
 		index := cloneIndex(hook.Definitions())
-		indexErr := index.Validate()
-		if ErrorIdentifier(indexErr) == DuplicateKey {
-			indexErr = errID(DefinitionOwnerConflict, "duplicate indexed definition")
-		}
-		errs = append(errs, pack.Validate(), indexErr)
+		// Classify the complete diagnostic set in registration context before
+		// ranking: a later ownership conflict cannot hide an earlier bad ID.
+		errs = append(errs, pack.Validate())
+		errs = append(errs, index.validationErrors(DefinitionOwnerConflict)...)
 		if index.Pack != pack {
 			errs = append(errs, errID(DefinitionOwnerConflict, "validator pack mismatch"))
 		}
@@ -1014,6 +1025,9 @@ func NewRegistry(validators ...PackValidator) (*Registry, error) {
 		}{{DefinitionField, index.Fields}, {DefinitionService, index.Services}, {DefinitionCapability, index.Capabilities}, {DefinitionOperation, index.Operations}, {DefinitionEffectRule, index.EffectRules}}
 		for _, group := range groups {
 			for _, ref := range group.refs {
+				if ref.Validate() != nil {
+					continue
+				}
 				key := definitionKey{group.kind, ref.ID, ref.Version}
 				if owner, exists := r.owners[key]; exists && owner != ref.Pack {
 					errs = append(errs, errID(DefinitionOwnerConflict, "definition owner"))
@@ -1427,6 +1441,9 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 			if t == reflect.TypeOf(Decimal{}) && member.key == "exponent10" {
 				fieldRangeError = InvalidDecimal
 			}
+			if t == reflect.TypeOf(CausalContext{}) && (member.key == "hop_count" || member.key == "max_hops") {
+				fieldRangeError = CausalBudgetExceeded
+			}
 			validateShapeWithNumberDomain(member.value, field.t, errors, fieldRangeError)
 		}
 		for name, field := range fields {
@@ -1483,7 +1500,11 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 				*errors = append(*errors, errID(id, "integer token"))
 			}
 		} else if _, err := strconv.ParseUint(number.String(), 10, t.Bits()); err != nil {
-			*errors = append(*errors, errID(InvalidValue, "integer token"))
+			id := InvalidValue
+			if numberRangeError != InvalidValue && i64RE.MatchString(number.String()) {
+				id = numberRangeError
+			}
+			*errors = append(*errors, errID(id, "integer token"))
 		}
 	default:
 		*errors = append(*errors, errID(InvalidValue, "unsupported wire type"))
@@ -1501,7 +1522,13 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	}
 	var shapeErrors []error
 	validateShape(node, t, &shapeErrors)
-	if len(shapeErrors) == 0 && (t.Implements(recordInterface) || reflect.PointerTo(t).Implements(recordInterface)) {
+	bindable := true
+	for _, err := range shapeErrors {
+		if ErrorIdentifier(err) != UnknownMember {
+			bindable = false
+		}
+	}
+	if bindable && (t.Implements(recordInterface) || reflect.PointerTo(t).Implements(recordInterface)) {
 		encoded, err := json.Marshal(jsonNodeValue(node))
 		if err == nil {
 			value := reflect.New(t)
@@ -1516,6 +1543,7 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 		}
 	}
 	var errs []error
+	errs = append(errs, conditionalMemberErrors(node, t)...)
 	switch t.Kind() {
 	case reflect.Struct:
 		fields := map[string]reflect.Type{}
@@ -1528,10 +1556,11 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 		}
 		for _, member := range node.object {
 			if fieldType, ok := fields[member.key]; ok {
-				errs = append(errs, independentlyKnowableErrors(member.value, fieldType)...)
+				errs = append(errs, fieldSemanticErrors(t, member.key, member.value, fieldType)...)
 			}
 		}
 	case reflect.Slice:
+		errs = append(errs, wireCollectionErrors(node, t.Elem())...)
 		for _, child := range node.array {
 			errs = append(errs, independentlyKnowableErrors(child, t.Elem())...)
 		}
@@ -1572,14 +1601,15 @@ func decodeRecord[T Record](raw []byte) (T, error) {
 	}
 	targetType := reflect.TypeOf((*T)(nil)).Elem()
 	validateShape(node, targetType, &errs)
-	var result T
-	if err := json.Unmarshal(raw, &result); err == nil {
-		errs = append(errs, result.Validate())
-	} else {
-		errs = append(errs, independentlyKnowableErrors(node, targetType)...)
-	}
+	// Validate the original tree, including presence, before binding. Partial
+	// unmarshalling synthesizes missing keys and may leave a typed nil receiver.
+	errs = append(errs, independentlyKnowableErrors(node, targetType)...)
 	if err := bestError(errs...); err != nil {
 		return zero, err
+	}
+	var result T
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return zero, errID(InvalidValue, "record binding")
 	}
 	return result, nil
 }
