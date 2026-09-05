@@ -1452,6 +1452,9 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 				optional bool
 			}{field.Type, optional}
 		}
+		// Only public document records own a contract discriminator. A decoded
+		// EvidenceRef still treats contract as ordinary required metadata.
+		document := t == reflect.TypeOf(PublicationBatch{}) || t == reflect.TypeOf(Snapshot{})
 		seen := map[string]bool{}
 		for _, member := range node.object {
 			field, ok := fields[member.key]
@@ -1460,6 +1463,13 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 				continue
 			}
 			seen[member.key] = true
+			if document && member.key == "contract" {
+				value, ok := member.value.scalar.(string)
+				if member.value.kind != 's' || !ok || ContractVersion(value) != ContractKernelV1 {
+					*errors = append(*errors, errID(InvalidContract, "contract"))
+				}
+				continue
+			}
 			fieldRangeError := InvalidValue
 			if t == reflect.TypeOf(Decimal{}) && member.key == "exponent10" {
 				fieldRangeError = InvalidDecimal
@@ -1471,10 +1481,11 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		}
 		for name, field := range fields {
 			if !field.optional && !seen[name] {
-				// Foundation record members are references, not semantic document
-				// discriminators. In particular EvidenceRef.contract is required
-				// evidence metadata, even when EvidenceRef is the Decode target.
-				*errors = append(*errors, errID(MissingMember, name))
+				id := MissingMember
+				if document && name == "contract" {
+					id = InvalidContract
+				}
+				*errors = append(*errors, errID(id, name))
 			}
 		}
 	case reflect.Slice:

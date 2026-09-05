@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"sort"
 	"strings"
@@ -853,11 +854,11 @@ func sealPublicationBatch(t *testing.T, batch *PublicationBatch) {
 
 func assertRejectedUnchanged(t *testing.T, kernel *PublicationKernel, batch PublicationBatch, want ErrorID) {
 	t.Helper()
-	_, before, _ := kernel.Current()
+	beforeSnapshot, before, beforeOK := kernel.Current()
 	_, _, err := kernel.Apply(batch, publicationMonotonic)
 	requireID(t, err, want)
-	_, after, _ := kernel.Current()
-	if !bytes.Equal(before, after) {
+	afterSnapshot, after, afterOK := kernel.Current()
+	if beforeOK != afterOK || !reflect.DeepEqual(beforeSnapshot, afterSnapshot) || !bytes.Equal(before, after) {
 		t.Fatalf("%s rejection mutated state", want)
 	}
 }

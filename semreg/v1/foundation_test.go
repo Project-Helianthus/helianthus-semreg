@@ -164,7 +164,41 @@ func TestPinnedFoundationVectors(t *testing.T) {
 		requireID(t, err, InvalidEvidence)
 	})
 	t.Run("K-NEG-008", func(t *testing.T) {
-		t.Skip("two-node snapshot derivation-graph resolution is deferred; local self-reference remains covered below")
+		var input struct {
+			CandidateID      CandidateID   `json:"candidate_id"`
+			Inputs           []CandidateID `json:"inputs"`
+			CandidateBInputs []CandidateID `json:"candidate_b_inputs"`
+		}
+		if err := json.Unmarshal(vectorJSON(t, vectors, "K-NEG-008"), &input); err != nil {
+			t.Fatal(err)
+		}
+		if len(input.Inputs) != 1 || len(input.CandidateBInputs) != 1 {
+			t.Fatal("pinned two-node graph changed")
+		}
+		k, batch, prior, priorBytes := invariantInitial(t)
+		a := publicationDerivedCandidate(input.CandidateID, "fact.cycle_a", batch.FactUpserts)
+		b := publicationDerivedCandidate(input.Inputs[0], "fact.cycle_b", batch.FactUpserts)
+		a.Derivation.Inputs[0].CandidateID = input.Inputs[0]
+		b.Derivation.Inputs[0].CandidateID = input.CandidateBInputs[0]
+		// Expand the exact shorthand into complete candidate records. Validate
+		// the containing snapshot, where cross-candidate graph resolution lives.
+		candidateMap := map[CandidateID]FactCandidate{a.CandidateID: a, b.CandidateID: b}
+		facts, err := rebuildEnvelopes(nil, prior.AssetID, candidateMap)
+		if err != nil {
+			t.Fatal(err)
+		}
+		invalid := cloneSnapshot(prior)
+		invalid.Facts = facts
+		recomputeSnapshotID(t, &invalid)
+		requireID(t, invalid.Validate(), DerivationCycle)
+		raw, _ := json.Marshal(invalid)
+		_, err = Decode[Snapshot](raw)
+		requireID(t, err, DerivationCycle)
+		next := publicationBatch(batch.AssetID, batch.SourceID, batch.SourceEpochID, "1", "2", "1")
+		next.FactUpserts = []FactCandidate{a, b}
+		sealPublicationBatch(t, &next)
+		assertRejectedUnchanged(t, k, next, DerivationCycle)
+		assertHistoricalBytes(t, prior, priorBytes)
 	})
 	t.Run("K-NEG-009", func(t *testing.T) {
 		requireID(t, (IdentityLink{AssetID: "asset:01", BindingID: "binding:02", State: LinkQualified, Basis: []EvidenceRef{}, Revision: "1"}).Validate(), IdentityNotQualified)

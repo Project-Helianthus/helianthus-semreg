@@ -22,9 +22,9 @@ It provides:
   exact revision, replay, lifecycle-fence, dependency-cascade and conflict
   behavior.
 
-The self-contained fixture runners exercise 25 available foundation properties
+The self-contained fixture runners exercise 26 available foundation properties
 from 30 copied vectors plus deterministic publication scenarios pinned to the
-same accepted contract. Five later runtime operations are explicitly deferred;
+same accepted contract. Four later runtime operations are explicitly deferred;
 passing these checks does not establish all runtime acceptance criteria.
 
 Evaluation, selection, operation/projection/admission runtime, capability-pack
