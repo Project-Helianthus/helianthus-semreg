@@ -179,15 +179,15 @@ func (b PublicationBatch) validateStructure(requireDigest bool) error {
 }
 
 func orderedUnique[T any](values []T, compare func(T, T) int) error {
-	for i := 1; i < len(values); i++ {
-		switch cmp := compare(values[i-1], values[i]); {
-		case cmp == 0:
-			return errID(DuplicateKey, "collection")
-		case cmp > 0:
-			return errID(NoncanonicalOrder, "collection")
-		}
+	duplicate, ordered := duplicateAndOrder(values, compare)
+	var duplicateErr, orderErr error
+	if duplicate {
+		duplicateErr = errID(DuplicateKey, "collection")
 	}
-	return nil
+	if !ordered {
+		orderErr = errID(NoncanonicalOrder, "collection")
+	}
+	return bestError(duplicateErr, orderErr)
 }
 
 func compareSource(a, b SourceDescriptor) int {
@@ -460,6 +460,9 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	for _, capability := range snapshot.Capabilities {
 		capabilities[capability.InstanceID] = capability
 	}
+	originalBindings := cloneMap(bindings)
+	originalServices := cloneMap(services)
+	originalCapabilities := cloneMap(capabilities)
 	for _, fence := range snapshot.Fences {
 		fences[cursorKey{fence.SourceID, fence.SourceEpochID, fence.DriverGeneration}] = fence
 	}
@@ -557,18 +560,8 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		return componentChanges{}, errID(StaleDriverGeneration, "fenced header generation upsert")
 	}
 
-	for epoch := range retirements {
-		key := sourceKey{batch.SourceID, epoch}
-		source := sources[key]
-		source.State = SourceRetired
-		source.Revision = increment(source.Revision)
-		sources[key] = source
-		for _, binding := range bindings {
-			if binding.SourceID == batch.SourceID && binding.SourceEpochID == epoch {
-				transitionBinding(binding, BindingRetired, bindings, links, services, capabilities)
-			}
-		}
-	}
+	// Apply the narrower generation transition first. If the same batch also
+	// retires the epoch, retirement is the stronger final tombstone state.
 	for _, fence := range batch.GenerationFences {
 		fenceKey := cursorKey{fence.SourceID, fence.SourceEpochID, fence.DriverGeneration}
 		fences[fenceKey] = fence
@@ -577,7 +570,23 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		cursors[fenceKey] = cursor
 		for _, binding := range bindings {
 			if binding.SourceID == fence.SourceID && binding.SourceEpochID == fence.SourceEpochID && binding.DriverGeneration == fence.DriverGeneration {
-				transitionBinding(binding, BindingFenced, bindings, links, services, capabilities)
+				if err := transitionBinding(binding, BindingFenced, fence.Evidence, bindings, links, services, capabilities); err != nil {
+					return componentChanges{}, err
+				}
+			}
+		}
+	}
+	for epoch := range retirements {
+		key := sourceKey{batch.SourceID, epoch}
+		source := sources[key]
+		source.State = SourceRetired
+		source.Revision = increment(source.Revision)
+		sources[key] = source
+		for _, binding := range bindings {
+			if binding.SourceID == batch.SourceID && binding.SourceEpochID == epoch {
+				if err := transitionBinding(binding, BindingRetired, nil, bindings, links, services, capabilities); err != nil {
+					return componentChanges{}, err
+				}
 			}
 		}
 	}
@@ -661,16 +670,13 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		upsertedCandidates[candidate.CandidateID] = struct{}{}
 	}
 	for _, id := range batch.FactWithdrawals {
-		candidate, ok := candidates[id]
+		candidate, ok := originalCandidates[id]
 		if !ok {
-			if _, existed := originalCandidates[id]; existed {
-				continue
-			}
 			return componentChanges{}, errID(DanglingReference, "fact withdrawal")
 		}
 		if candidate.Quality.Assertion == AssertionObserved {
-			binding := bindings[*candidate.BindingID]
-			if binding.SourceID != batch.SourceID || binding.SourceEpochID != batch.SourceEpochID || binding.DriverGeneration != batch.DriverGeneration {
+			binding, bindingOK := originalBindings[*candidate.BindingID]
+			if !bindingOK || !withdrawalCovered(batch, binding.SourceID, binding.SourceEpochID, binding.DriverGeneration) {
 				return componentChanges{}, errID(InvalidValue, "fact withdrawal ownership")
 			}
 		}
@@ -688,7 +694,7 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		if service.AssetID != batch.AssetID || binding.SourceID != batch.SourceID || service.SourceEpochID != batch.SourceEpochID || service.DriverGeneration != batch.DriverGeneration || binding.State != BindingCurrent {
 			return componentChanges{}, lifecycleOrValue(binding, "service ownership")
 		}
-		if existing, ok := services[service.InstanceID]; ok {
+		if existing, ok := originalServices[service.InstanceID]; ok {
 			if existing.Availability == AvailabilityWithdrawn {
 				return componentChanges{}, lifecycleError(binding)
 			}
@@ -707,14 +713,15 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		}
 	}
 	for _, id := range batch.ServiceWithdrawals {
-		service, ok := services[id]
+		original, ok := originalServices[id]
 		if !ok {
 			return componentChanges{}, errID(DanglingReference, "service withdrawal")
 		}
-		binding := bindings[service.BindingID]
-		if binding.SourceID != batch.SourceID || service.SourceEpochID != batch.SourceEpochID || service.DriverGeneration != batch.DriverGeneration {
+		binding, bindingOK := originalBindings[original.BindingID]
+		if !bindingOK || original.SourceEpochID != binding.SourceEpochID || original.DriverGeneration != binding.DriverGeneration || !withdrawalCovered(batch, binding.SourceID, original.SourceEpochID, original.DriverGeneration) {
 			return componentChanges{}, errID(InvalidValue, "service withdrawal ownership")
 		}
+		service := services[id]
 		if service.Availability != AvailabilityWithdrawn {
 			service.Availability, service.Revision = AvailabilityWithdrawn, increment(service.Revision)
 			services[id] = service
@@ -733,10 +740,14 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		if !serviceOK {
 			return componentChanges{}, errID(DanglingReference, "capability service")
 		}
-		if capability.AssetID != batch.AssetID || binding.SourceID != batch.SourceID || capability.SourceEpochID != batch.SourceEpochID || capability.DriverGeneration != batch.DriverGeneration || binding.State != BindingCurrent || service.Availability == AvailabilityWithdrawn {
+		serviceForValidation := service
+		if original, existed := originalServices[capability.ServiceInstance]; existed {
+			serviceForValidation = original
+		}
+		if capability.AssetID != batch.AssetID || binding.SourceID != batch.SourceID || capability.SourceEpochID != batch.SourceEpochID || capability.DriverGeneration != batch.DriverGeneration || binding.State != BindingCurrent || serviceForValidation.Availability == AvailabilityWithdrawn {
 			return componentChanges{}, lifecycleOrValue(binding, "capability ownership")
 		}
-		if existing, ok := capabilities[capability.InstanceID]; ok {
+		if existing, ok := originalCapabilities[capability.InstanceID]; ok {
 			if existing.Availability == AvailabilityWithdrawn {
 				return componentChanges{}, lifecycleError(binding)
 			}
@@ -755,14 +766,15 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 		}
 	}
 	for _, id := range batch.CapabilityWithdrawals {
-		capability, ok := capabilities[id]
+		original, ok := originalCapabilities[id]
 		if !ok {
 			return componentChanges{}, errID(DanglingReference, "capability withdrawal")
 		}
-		binding := bindings[capability.BindingID]
-		if binding.SourceID != batch.SourceID || capability.SourceEpochID != batch.SourceEpochID || capability.DriverGeneration != batch.DriverGeneration {
+		binding, bindingOK := originalBindings[original.BindingID]
+		if !bindingOK || original.SourceEpochID != binding.SourceEpochID || original.DriverGeneration != binding.DriverGeneration || !withdrawalCovered(batch, binding.SourceID, original.SourceEpochID, original.DriverGeneration) {
 			return componentChanges{}, errID(InvalidValue, "capability withdrawal ownership")
 		}
+		capability := capabilities[id]
 		if capability.Availability != AvailabilityWithdrawn {
 			capability.Availability, capability.Revision = AvailabilityWithdrawn, increment(capability.Revision)
 			capabilities[id] = capability
@@ -779,6 +791,14 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 
 	newCursor := PublicationCursor{SourceID: batch.SourceID, SourceEpochID: batch.SourceEpochID, DriverGeneration: batch.DriverGeneration, LastSequence: batch.Sequence, LastBatchDigest: batch.BatchDigest, Fenced: containsFence(batch.GenerationFences, batch.SourceID, batch.SourceEpochID, batch.DriverGeneration)}
 	cursors[cursorKey{batch.SourceID, batch.SourceEpochID, batch.DriverGeneration}] = newCursor
+
+	normalizeObjectRevisions(before.Sources, sources, func(value SourceDescriptor) sourceKey {
+		return sourceKey{value.SourceID, value.SourceEpochID}
+	})
+	normalizeObjectRevisions(before.Bindings, bindings, func(value NativeBinding) NativeBindingID { return value.BindingID })
+	normalizeObjectRevisions(before.IdentityLinks, links, func(value IdentityLink) NativeBindingID { return value.BindingID })
+	normalizeObjectRevisions(before.Services, services, func(value ServiceInstance) ServiceInstanceID { return value.InstanceID })
+	normalizeObjectRevisions(before.Capabilities, capabilities, func(value CapabilityInstance) CapabilityInstanceID { return value.InstanceID })
 
 	snapshot.Sources = sortedMapValues(sources, func(a, z SourceDescriptor) int { return compareSource(a, z) })
 	snapshot.Bindings = sortedMapValues(bindings, func(a, z NativeBinding) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) })
@@ -807,14 +827,46 @@ func containsFence(fences []GenerationFence, source SourceID, epoch SourceEpochI
 	return false
 }
 
-func transitionBinding(binding NativeBinding, state BindingState, bindings map[NativeBindingID]NativeBinding, links map[NativeBindingID]IdentityLink, services map[ServiceInstanceID]ServiceInstance, capabilities map[CapabilityInstanceID]CapabilityInstance) {
+func withdrawalCovered(batch PublicationBatch, source SourceID, epoch SourceEpochID, generation Uint64) bool {
+	if source != batch.SourceID {
+		return false
+	}
+	if epoch == batch.SourceEpochID && generation == batch.DriverGeneration {
+		return true
+	}
+	if containsFence(batch.GenerationFences, source, epoch, generation) {
+		return true
+	}
+	if _, retiring := findRetirement(batch.SourceRetirements, epoch); retiring {
+		return true
+	}
+	return false
+}
+
+func findRetirement(retirements []SourceEpochID, epoch SourceEpochID) (SourceEpochID, bool) {
+	for _, retired := range retirements {
+		if retired == epoch {
+			return retired, true
+		}
+	}
+	return "", false
+}
+
+func transitionBinding(binding NativeBinding, state BindingState, evidence []EvidenceRef, bindings map[NativeBindingID]NativeBinding, links map[NativeBindingID]IdentityLink, services map[ServiceInstanceID]ServiceInstance, capabilities map[CapabilityInstanceID]CapabilityInstance) error {
 	if binding.State != state {
 		binding.State, binding.Revision = state, increment(binding.Revision)
 		bindings[binding.BindingID] = binding
 	}
-	if link, ok := links[binding.BindingID]; ok && link.State != LinkWithdrawn {
-		link.State, link.Revision = LinkWithdrawn, increment(link.Revision)
-		links[binding.BindingID] = link
+	if link, ok := links[binding.BindingID]; ok {
+		basis, err := unionEvidence(link.Basis, evidence)
+		if err != nil {
+			return err
+		}
+		if link.State != LinkWithdrawn || !reflect.DeepEqual(link.Basis, basis) {
+			link.Basis = basis
+			link.State, link.Revision = LinkWithdrawn, increment(link.Revision)
+			links[binding.BindingID] = link
+		}
 	}
 	for id, service := range services {
 		if service.BindingID == binding.BindingID && service.Availability != AvailabilityWithdrawn {
@@ -827,6 +879,59 @@ func transitionBinding(binding NativeBinding, state BindingState, bindings map[N
 			capability.Availability, capability.Revision = AvailabilityWithdrawn, increment(capability.Revision)
 			capabilities[id] = capability
 		}
+	}
+	return nil
+}
+
+func unionEvidence(sets ...[]EvidenceRef) ([]EvidenceRef, error) {
+	var result []EvidenceRef
+	for _, set := range sets {
+		result = append(result, set...)
+	}
+	sort.Slice(result, func(i, j int) bool { return compareEvidence(result[i], result[j]) < 0 })
+	dedup := result[:0]
+	for _, item := range result {
+		if len(dedup) == 0 || compareEvidence(dedup[len(dedup)-1], item) != 0 {
+			dedup = append(dedup, item)
+		}
+	}
+	if err := validateEvidenceSet(dedup, 1, 32); err != nil {
+		return nil, err
+	}
+	return append([]EvidenceRef(nil), dedup...), nil
+}
+
+func cloneMap[K comparable, V any](source map[K]V) map[K]V {
+	result := make(map[K]V, len(source))
+	for key, value := range source {
+		result[key] = value
+	}
+	return result
+}
+
+func normalizeObjectRevisions[K comparable, V any](before []V, after map[K]V, key func(V) K) {
+	previous := make(map[K]V, len(before))
+	for _, value := range before {
+		previous[key(value)] = value
+	}
+	for objectKey, value := range after {
+		old, ok := previous[objectKey]
+		if !ok {
+			continue
+		}
+		oldValue, nextValue := reflect.ValueOf(old), reflect.ValueOf(value)
+		oldRevision := oldValue.FieldByName("Revision").Interface().(Uint64)
+		oldClone, nextClone := reflect.New(oldValue.Type()).Elem(), reflect.New(nextValue.Type()).Elem()
+		oldClone.Set(oldValue)
+		nextClone.Set(nextValue)
+		oldClone.FieldByName("Revision").Set(reflect.ValueOf(Uint64("0")))
+		nextClone.FieldByName("Revision").Set(reflect.ValueOf(Uint64("0")))
+		revision := oldRevision
+		if !reflect.DeepEqual(oldClone.Interface(), nextClone.Interface()) {
+			revision = increment(oldRevision)
+		}
+		nextClone.FieldByName("Revision").Set(reflect.ValueOf(revision))
+		after[objectKey] = nextClone.Interface().(V)
 	}
 }
 
@@ -896,142 +1001,112 @@ func compareCursor(a, b PublicationCursor) int {
 }
 
 func closeCandidateGraph(candidates map[CandidateID]FactCandidate, upserted map[CandidateID]struct{}, bindings map[NativeBindingID]NativeBinding) error {
-	for {
-		removed := false
-		for id := range candidates {
-			valid, graphErr := candidateReferencesValid(id, candidates, bindings)
-			if valid {
-				continue
-			}
-			if _, isUpsert := upserted[id]; isUpsert {
-				return graphErr
-			}
-			delete(candidates, id)
-			removed = true
-		}
-		if !removed {
-			break
-		}
-	}
 	if len(candidates) > maxDerivationNodes {
 		return errID(BoundsExceeded, "derivation nodes")
 	}
-	states := make(map[CandidateID]uint8, len(candidates))
-	depths := make(map[CandidateID]int, len(candidates))
-	var visit func(CandidateID) (int, error)
-	visit = func(id CandidateID) (int, error) {
-		if states[id] == 1 {
-			return 0, errID(DerivationCycle, "candidate graph")
-		}
-		if states[id] == 2 {
-			return depths[id], nil
-		}
-		states[id] = 1
-		depth := 1
-		candidate := candidates[id]
-		if candidate.Derivation != nil {
-			for _, input := range candidate.Derivation.Inputs {
-				childDepth, err := visit(input.CandidateID)
-				if err != nil {
-					return 0, err
-				}
-				if childDepth+1 > depth {
-					depth = childDepth + 1
-				}
+	resolver := candidateGraphResolver{
+		candidates: candidates,
+		bindings:   bindings,
+		states:     make(map[CandidateID]uint8, len(candidates)),
+		results:    make(map[CandidateID]candidateGraphResult, len(candidates)),
+	}
+	ids := make([]CandidateID, 0, len(candidates))
+	for id := range candidates {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	var upsertErrors []error
+	var remove []CandidateID
+	for _, id := range ids {
+		if _, err := resolver.resolve(id); err != nil {
+			if _, isUpsert := upserted[id]; isUpsert {
+				upsertErrors = append(upsertErrors, err)
+			} else {
+				remove = append(remove, id)
 			}
 		}
-		if depth > maxDerivationDepth {
-			return 0, errID(DerivationCycle, "derivation depth")
-		}
-		states[id], depths[id] = 2, depth
-		return depth, nil
 	}
-	for id := range candidates {
-		if _, err := visit(id); err != nil {
-			return err
-		}
+	if err := bestError(upsertErrors...); err != nil {
+		return err
+	}
+	for _, id := range remove {
+		delete(candidates, id)
 	}
 	return nil
 }
 
-func candidateReferencesValid(id CandidateID, candidates map[CandidateID]FactCandidate, bindings map[NativeBindingID]NativeBinding) (bool, error) {
-	candidate := candidates[id]
-	if candidate.Quality.Assertion == AssertionObserved {
-		if candidate.BindingID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil || candidate.Origin.SourceID == nil {
-			return false, errID(DanglingReference, "observed candidate path")
-		}
-		binding, ok := bindings[*candidate.BindingID]
-		if !ok {
-			return false, errID(DanglingReference, "observed candidate binding")
-		}
-		if binding.State != BindingCurrent {
-			return false, lifecycleError(binding)
-		}
-		if binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration {
-			return false, errID(DanglingReference, "observed candidate path")
-		}
-		return true, nil
-	}
-	if candidate.Derivation == nil {
-		return false, errID(DanglingReference, "derived candidate")
-	}
-	for _, input := range candidate.Derivation.Inputs {
-		dependency, ok := candidates[input.CandidateID]
-		if !ok || dependency.Revision != input.CandidateRevision {
-			return false, errID(DanglingReference, "derivation input")
-		}
-		paths, err := resolvedSourcePaths(dependency, candidates, make(map[CandidateID]bool))
-		if err != nil {
-			return false, err
-		}
-		if !reflect.DeepEqual(paths, input.SourcePaths) {
-			return false, errID(DanglingReference, "derivation source paths")
-		}
-		for _, path := range paths {
-			binding, ok := bindings[path.BindingID]
-			if !ok {
-				return false, errID(DanglingReference, "derivation binding")
-			}
-			if binding.State != BindingCurrent {
-				return false, lifecycleError(binding)
-			}
-			if binding.SourceID != path.SourceID || binding.SourceEpochID != path.SourceEpochID || binding.DriverGeneration != path.DriverGeneration {
-				return false, errID(DanglingReference, "derivation path")
-			}
-		}
-	}
-	return true, nil
+type candidateGraphResult struct {
+	paths []SourcePathRef
+	depth int
+	err   error
 }
 
-func resolvedSourcePaths(candidate FactCandidate, candidates map[CandidateID]FactCandidate, visiting map[CandidateID]bool) ([]SourcePathRef, error) {
-	if visiting[candidate.CandidateID] {
-		return nil, errID(DerivationCycle, "candidate graph")
+type candidateGraphResolver struct {
+	candidates map[CandidateID]FactCandidate
+	bindings   map[NativeBindingID]NativeBinding
+	states     map[CandidateID]uint8
+	results    map[CandidateID]candidateGraphResult
+}
+
+func (r *candidateGraphResolver) resolve(id CandidateID) (candidateGraphResult, error) {
+	if r.states[id] == 1 {
+		return candidateGraphResult{}, errID(DerivationCycle, "candidate graph")
 	}
-	if len(visiting) >= maxDerivationDepth {
-		return nil, errID(DerivationCycle, "derivation depth")
+	if r.states[id] == 2 {
+		result := r.results[id]
+		return result, result.err
+	}
+	candidate, ok := r.candidates[id]
+	if !ok {
+		return candidateGraphResult{}, errID(DanglingReference, "derivation input")
+	}
+	r.states[id] = 1
+	result := candidateGraphResult{depth: 1}
+	finish := func(err error) (candidateGraphResult, error) {
+		result.err = err
+		r.states[id], r.results[id] = 2, result
+		return result, err
 	}
 	if candidate.Quality.Assertion == AssertionObserved {
 		if candidate.BindingID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil || candidate.Origin.SourceID == nil {
-			return nil, errID(DanglingReference, "observed source path")
+			return finish(errID(DanglingReference, "observed candidate path"))
 		}
-		return []SourcePathRef{{BindingID: *candidate.BindingID, SourceID: *candidate.Origin.SourceID, SourceEpochID: *candidate.SourceEpochID, DriverGeneration: *candidate.DriverGeneration}}, nil
+		binding, bindingOK := r.bindings[*candidate.BindingID]
+		if !bindingOK {
+			return finish(errID(DanglingReference, "observed candidate binding"))
+		}
+		if binding.State != BindingCurrent {
+			return finish(lifecycleError(binding))
+		}
+		if binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration {
+			return finish(errID(DanglingReference, "observed candidate path"))
+		}
+		result.paths = []SourcePathRef{{BindingID: *candidate.BindingID, SourceID: *candidate.Origin.SourceID, SourceEpochID: *candidate.SourceEpochID, DriverGeneration: *candidate.DriverGeneration}}
+		return finish(nil)
 	}
-	visiting[candidate.CandidateID] = true
-	defer delete(visiting, candidate.CandidateID)
 	if candidate.Derivation == nil {
-		return nil, errID(DanglingReference, "derivation")
+		return finish(errID(DanglingReference, "derived candidate"))
 	}
 	var paths []SourcePathRef
 	for _, input := range candidate.Derivation.Inputs {
-		dependency, ok := candidates[input.CandidateID]
-		if !ok || dependency.Revision != input.CandidateRevision {
-			return nil, errID(DanglingReference, "derivation input")
+		dependency, dependencyOK := r.candidates[input.CandidateID]
+		if !dependencyOK || dependency.Revision != input.CandidateRevision {
+			return finish(errID(DanglingReference, "derivation input"))
 		}
-		resolved, err := resolvedSourcePaths(dependency, candidates, visiting)
+		resolved, err := r.resolve(input.CandidateID)
 		if err != nil {
-			return nil, err
+			return finish(err)
 		}
-		paths = append(paths, resolved...)
+		if !reflect.DeepEqual(resolved.paths, input.SourcePaths) {
+			return finish(errID(DanglingReference, "derivation source paths"))
+		}
+		if resolved.depth+1 > result.depth {
+			result.depth = resolved.depth + 1
+		}
+		paths = append(paths, resolved.paths...)
+	}
+	if result.depth > maxDerivationDepth {
+		return finish(errID(DerivationCycle, "derivation depth"))
 	}
 	sort.Slice(paths, func(i, j int) bool { return compareSourcePath(paths[i], paths[j]) < 0 })
 	dedup := paths[:0]
@@ -1041,9 +1116,10 @@ func resolvedSourcePaths(candidate FactCandidate, candidates map[CandidateID]Fac
 		}
 	}
 	if len(dedup) > 32 {
-		return nil, errID(BoundsExceeded, "derivation source paths")
+		return finish(errID(BoundsExceeded, "derivation source paths"))
 	}
-	return append([]SourcePathRef(nil), dedup...), nil
+	result.paths = append([]SourcePathRef(nil), dedup...)
+	return finish(nil)
 }
 
 func rebuildEnvelopes(previous []FactEnvelope, asset AssetID, candidates map[CandidateID]FactCandidate) ([]FactEnvelope, error) {
@@ -1191,6 +1267,12 @@ func (s Snapshot) Validate() error {
 			if unfenced[group] > 1 {
 				errs = append(errs, errID(StaleDriverGeneration, "multiple current generations"))
 			}
+		}
+	}
+	for key := range fenceByKey {
+		cursor, ok := cursorByKey[key]
+		if !ok || !cursor.Fenced {
+			errs = append(errs, errID(DanglingReference, "fence cursor"))
 		}
 	}
 	bindings := make(map[NativeBindingID]NativeBinding, len(s.Bindings))

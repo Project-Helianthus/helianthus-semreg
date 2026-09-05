@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 var publicationMonotonic = MonotonicPoint{ClockEpochID: "clock-epoch:publication", Nanoseconds: "100"}
@@ -371,6 +373,358 @@ func TestPublicationBoundsCanonicalReferencesAndCallerIsolation(t *testing.T) {
 	requireID(t, err, DuplicateKey)
 }
 
+func TestPublicationTransitionMatrixCompositionAndWithdrawals(t *testing.T) {
+	t.Run("source-upsert-and-retirement-compose-once", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		restart := publicationBatch("asset:site", "source:a", "epoch:new", "1", "1", "1")
+		changed := initial.SourceUpserts[0]
+		changed.ProfileVersion = "2.0.0"
+		changed.Revision = "2"
+		restart.SourceUpserts = []SourceDescriptor{changed, publicationSource("source:a", "epoch:new")}
+		restart.SourceRetirements = []SourceEpochID{"epoch:a"}
+		sealPublicationBatch(t, &restart)
+		result, _, err := kernel.Apply(restart, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		retired := sourceByEpoch(t, result, "epoch:a")
+		if retired.State != SourceRetired || retired.ProfileVersion != "2.0.0" || retired.Revision != "2" {
+			t.Fatalf("source mutations did not compose once: %+v", retired)
+		}
+	})
+
+	t.Run("service-capability-upsert-and-withdrawal-compose-once", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		before, _, err := kernel.Apply(initial, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		update := publicationBatch("asset:site", "source:a", "epoch:a", "1", "2", "1")
+		service := initial.ServiceUpserts[0]
+		service.Availability, service.Revision = AvailabilityUnavailable, "2"
+		capability := initial.CapabilityUpserts[0]
+		capability.Availability, capability.Revision = AvailabilityUnavailable, "2"
+		update.ServiceUpserts = []ServiceInstance{service}
+		update.ServiceWithdrawals = []ServiceInstanceID{service.InstanceID}
+		update.CapabilityUpserts = []CapabilityInstance{capability}
+		update.CapabilityWithdrawals = []CapabilityInstanceID{capability.InstanceID}
+		sealPublicationBatch(t, &update)
+		result, _, err := kernel.Apply(update, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := serviceByID(t, result, service.InstanceID); got.Availability != AvailabilityWithdrawn || got.Revision != "2" {
+			t.Fatalf("service mutations did not compose once: %+v", got)
+		}
+		if got := capabilityByID(t, result, capability.InstanceID); got.Availability != AvailabilityWithdrawn || got.Revision != "2" {
+			t.Fatalf("capability mutations did not compose once: %+v", got)
+		}
+		if result.Revisions.Identity != before.Revisions.Identity || result.Revisions.Facts != before.Revisions.Facts || bindingByID(t, result, "binding:a").Revision != "1" || candidateByID(t, result, "candidate:binding:a").Revision != "1" {
+			t.Fatalf("unchanged objects or components changed: before=%+v after=%+v", before.Revisions, result.Revisions)
+		}
+	})
+
+	for _, kind := range []string{"fact", "service", "capability"} {
+		t.Run("covered-fence-with-redundant-"+kind+"-withdrawal", func(t *testing.T) {
+			kernel := newTestPublicationKernel(t, "asset:site")
+			initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+			sealPublicationBatch(t, &initial)
+			if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+				t.Fatal(err)
+			}
+			next := publicationBatch("asset:site", "source:a", "epoch:a", "2", "1", "1")
+			next.GenerationFences = []GenerationFence{publicationFence("source:a", "epoch:a", "1", publicEvidence("b"))}
+			switch kind {
+			case "fact":
+				next.BindingUpserts = []NativeBinding{publicationBinding("asset:site", "source:a", "epoch:a", "binding:new", "2")}
+				next.FactUpserts = []FactCandidate{publicationCandidate("candidate:new", "fact.power", false, "source:a", "epoch:a", "binding:new", "2")}
+				next.FactWithdrawals = []CandidateID{initial.FactUpserts[0].CandidateID}
+			case "service":
+				next.ServiceWithdrawals = []ServiceInstanceID{initial.ServiceUpserts[0].InstanceID}
+			case "capability":
+				next.CapabilityWithdrawals = []CapabilityInstanceID{initial.CapabilityUpserts[0].InstanceID}
+			}
+			sealPublicationBatch(t, &next)
+			result, _, err := kernel.Apply(next, publicationMonotonic)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bindingByID(t, result, "binding:a").Revision != "2" || linkByBinding(t, result, "binding:a").Revision != "2" || serviceByID(t, result, "service:binding:a").Revision != "2" || capabilityByID(t, result, "capability:binding:a").Revision != "2" {
+				t.Fatalf("overlapping transition changed an object more than once: %+v", result)
+			}
+			if kind == "fact" && (!hasCandidate(result, "candidate:new") || hasCandidate(result, initial.FactUpserts[0].CandidateID)) {
+				t.Fatalf("fact upsert and covered lifecycle withdrawal did not compose: %+v", result.Facts)
+			}
+		})
+	}
+
+	t.Run("covered-retirement-with-redundant-withdrawals", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		restart := publicationBatch("asset:site", "source:a", "epoch:new", "1", "1", "1")
+		restart.SourceUpserts = []SourceDescriptor{publicationSource("source:a", "epoch:new")}
+		restart.SourceRetirements = []SourceEpochID{"epoch:a"}
+		restart.FactWithdrawals = []CandidateID{initial.FactUpserts[0].CandidateID}
+		restart.ServiceWithdrawals = []ServiceInstanceID{initial.ServiceUpserts[0].InstanceID}
+		restart.CapabilityWithdrawals = []CapabilityInstanceID{initial.CapabilityUpserts[0].InstanceID}
+		sealPublicationBatch(t, &restart)
+		result, _, err := kernel.Apply(restart, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sourceByEpoch(t, result, "epoch:a").State != SourceRetired || serviceByID(t, result, initial.ServiceUpserts[0].InstanceID).Revision != "2" || capabilityByID(t, result, initial.CapabilityUpserts[0].InstanceID).Revision != "2" {
+			t.Fatalf("retirement withdrawals did not compose with tombstones: %+v", result)
+		}
+	})
+
+	t.Run("unrelated-and-uncovered-withdrawals-reject", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		unrelated := publicationBatch("asset:site", "source:b", "epoch:b", "1", "1", "1")
+		unrelated.SourceUpserts = []SourceDescriptor{publicationSource("source:b", "epoch:b")}
+		unrelated.FactWithdrawals = []CandidateID{initial.FactUpserts[0].CandidateID}
+		sealPublicationBatch(t, &unrelated)
+		assertRejectedUnchanged(t, kernel, unrelated, InvalidValue)
+
+		supersede := publicationBatch("asset:site", "source:a", "epoch:a", "2", "1", "1")
+		supersede.GenerationFences = []GenerationFence{publicationFence("source:a", "epoch:a", "1", publicEvidence("b"))}
+		sealPublicationBatch(t, &supersede)
+		if _, _, err := kernel.Apply(supersede, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		uncovered := publicationBatch("asset:site", "source:a", "epoch:a", "2", "2", "2")
+		uncovered.ServiceWithdrawals = []ServiceInstanceID{initial.ServiceUpserts[0].InstanceID}
+		sealPublicationBatch(t, &uncovered)
+		assertRejectedUnchanged(t, kernel, uncovered, InvalidValue)
+	})
+}
+
+func TestPublicationTransitionMatrixEvidenceAndSnapshotCompleteness(t *testing.T) {
+	t.Run("automatic-basis-union-is-canonical", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		initial.IdentityLinkUpserts[0].Basis = []EvidenceRef{publicEvidence("3")}
+		sealPublicationBatch(t, &initial)
+		if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		next := publicationBatch("asset:site", "source:a", "epoch:a", "2", "1", "1")
+		next.GenerationFences = []GenerationFence{publicationFence("source:a", "epoch:a", "1", publicEvidence("2"), publicEvidence("3"))}
+		sealPublicationBatch(t, &next)
+		result, _, err := kernel.Apply(next, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		basis := linkByBinding(t, result, "binding:a").Basis
+		if len(basis) != 2 || basis[0].Digest != publicEvidence("2").Digest || basis[1].Digest != publicEvidence("3").Digest {
+			t.Fatalf("transition basis is not the canonical union: %+v", basis)
+		}
+	})
+
+	t.Run("automatic-basis-union-does-not-truncate", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		initial.IdentityLinkUpserts[0].Basis = publicationEvidenceRange(1, 32)
+		sealPublicationBatch(t, &initial)
+		if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		next := publicationBatch("asset:site", "source:a", "epoch:a", "2", "1", "1")
+		next.GenerationFences = []GenerationFence{publicationFence("source:a", "epoch:a", "1", publicationEvidenceRange(33, 33)...)}
+		sealPublicationBatch(t, &next)
+		assertRejectedUnchanged(t, kernel, next, BoundsExceeded)
+	})
+
+	t.Run("retained-fence-tombstone-requires-cursor", func(t *testing.T) {
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		next := publicationBatch("asset:site", "source:a", "epoch:a", "2", "1", "1")
+		next.GenerationFences = []GenerationFence{publicationFence("source:a", "epoch:a", "1", publicEvidence("b"))}
+		sealPublicationBatch(t, &next)
+		result, _, err := kernel.Apply(next, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bindingByID(t, result, "binding:a").State != BindingFenced {
+			t.Fatal("test setup did not retain the fenced binding tombstone")
+		}
+		for i, cursor := range result.Cursors {
+			if cursor.DriverGeneration == "1" {
+				result.Cursors = append(result.Cursors[:i], result.Cursors[i+1:]...)
+				break
+			}
+		}
+		recomputeSnapshotID(t, &result)
+		requireID(t, result.Validate(), DanglingReference)
+	})
+}
+
+func TestPublicationTransitionMatrixSharedDAGAndConcurrentReader(t *testing.T) {
+	kernel := newTestPublicationKernel(t, "asset:site")
+	initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+	sealPublicationBatch(t, &initial)
+	if _, _, err := kernel.Apply(initial, publicationMonotonic); err != nil {
+		t.Fatal(err)
+	}
+	batch := publicationBatch("asset:site", "source:a", "epoch:a", "1", "2", "1")
+	root := initial.FactUpserts[0]
+	prior := []FactCandidate{root}
+	path := candidateSourcePaths(root)
+	for layer := 1; layer <= 29; layer++ {
+		var next []FactCandidate
+		for column := 0; column < 2; column++ {
+			candidate := publicationDerivedCandidate(CandidateID(fmt.Sprintf("candidate:layer%02d-%d", layer, column)), DefinitionID(fmt.Sprintf("fact.layer%02d-%d", layer, column)), prior)
+			for i := range candidate.Derivation.Inputs {
+				candidate.Derivation.Inputs[i].SourcePaths = append([]SourcePathRef(nil), path...)
+			}
+			next = append(next, candidate)
+			batch.FactUpserts = append(batch.FactUpserts, candidate)
+		}
+		prior = next
+	}
+	sealPublicationBatch(t, &batch)
+	type applyResult struct {
+		snapshot Snapshot
+		err      error
+	}
+	start := make(chan struct{})
+	applied := make(chan applyResult, 1)
+	read := make(chan Snapshot, 1)
+	go func() {
+		<-start
+		snapshot, _, err := kernel.Apply(batch, publicationMonotonic)
+		applied <- applyResult{snapshot: snapshot, err: err}
+	}()
+	go func() {
+		<-start
+		snapshot, _, _ := kernel.Current()
+		read <- snapshot
+	}()
+	started := time.Now()
+	close(start)
+	var result Snapshot
+	// This is only a runaway/deadlock guard for the bounded regression, not a
+	// product latency requirement.
+	select {
+	case outcome := <-applied:
+		if outcome.err != nil {
+			t.Fatal(outcome.err)
+		}
+		result = outcome.snapshot
+	case <-time.After(30 * time.Second):
+		t.Fatal("bounded shared DAG did not complete")
+	}
+	var observed Snapshot
+	select {
+	case observed = <-read:
+	case <-time.After(30 * time.Second):
+		t.Fatal("concurrent reader did not complete")
+	}
+	if len(result.Facts) != 59 || result.Revisions.Semantic != "2" {
+		t.Fatalf("shared DAG snapshot incomplete: facts=%d revisions=%+v", len(result.Facts), result.Revisions)
+	}
+	if observed.Revisions.Semantic != "1" && observed.Revisions.Semantic != "2" {
+		t.Fatalf("reader saw a mixed semantic revision: %+v", observed.Revisions)
+	}
+	t.Logf("accepted 59-node depth-30 shared DAG with concurrent reader in %s", time.Since(started))
+}
+
+func TestPublicationTransitionMatrixDuplicatePrecedence(t *testing.T) {
+	sourceA, sourceB := publicationSource("source:a", "epoch:a"), publicationSource("source:a", "epoch:b")
+	bindingA, bindingB := publicationBinding("asset:site", "source:a", "epoch:a", "binding:a", "1"), publicationBinding("asset:site", "source:a", "epoch:a", "binding:b", "1")
+	linkA, linkB := publicationLink("asset:site", "binding:a"), publicationLink("asset:site", "binding:b")
+	candidateA, candidateB := publicationCandidate("candidate:a", "fact.a", true, "source:a", "epoch:a", "binding:a", "1"), publicationCandidate("candidate:b", "fact.b", true, "source:a", "epoch:a", "binding:b", "1")
+	serviceA, serviceB := publicationService("asset:site", "service:a", "binding:a", "epoch:a", "1"), publicationService("asset:site", "service:b", "binding:b", "epoch:a", "1")
+	capabilityA, capabilityB := publicationCapability("asset:site", "capability:a", "service:a", "binding:a", "epoch:a", "1"), publicationCapability("asset:site", "capability:b", "service:b", "binding:b", "epoch:a", "1")
+	fenceA, fenceB := publicationFence("source:a", "epoch:a", "1", publicEvidence("1")), publicationFence("source:a", "epoch:a", "2", publicEvidence("2"))
+	cursorA := PublicationCursor{SourceID: "source:a", SourceEpochID: "epoch:a", DriverGeneration: "1", LastSequence: "1", LastBatchDigest: Digest("sha256:" + fmt.Sprintf("%064x", 1)), Fenced: true}
+	cursorB := cursorA
+	cursorB.DriverGeneration = "2"
+	envelopeA := FactEnvelope{AssetID: "asset:site", Key: candidateA.Key, Candidates: []FactCandidate{candidateA}, Conflicts: []Conflict{}, Revision: "1"}
+	envelopeB := FactEnvelope{AssetID: "asset:site", Key: candidateB.Key, Candidates: []FactCandidate{candidateB}, Conflicts: []Conflict{}, Revision: "1"}
+
+	cases := map[string]func() error{
+		"sources": func() error { return orderedUnique([]SourceDescriptor{sourceB, sourceA, sourceB}, compareSource) },
+		"source-retirements": func() error {
+			return orderedUnique([]SourceEpochID{"epoch:b", "epoch:a", "epoch:b"}, func(a, z SourceEpochID) int { return strings.Compare(string(a), string(z)) })
+		},
+		"bindings": func() error {
+			return orderedUnique([]NativeBinding{bindingB, bindingA, bindingB}, func(a, z NativeBinding) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) })
+		},
+		"identity-links": func() error {
+			return orderedUnique([]IdentityLink{linkB, linkA, linkB}, func(a, z IdentityLink) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) })
+		},
+		"fact-upserts": func() error {
+			return orderedUnique([]FactCandidate{candidateB, candidateA, candidateB}, func(a, z FactCandidate) int { return strings.Compare(string(a.CandidateID), string(z.CandidateID)) })
+		},
+		"fact-withdrawals": func() error {
+			return orderedUnique([]CandidateID{"candidate:b", "candidate:a", "candidate:b"}, func(a, z CandidateID) int { return strings.Compare(string(a), string(z)) })
+		},
+		"services": func() error {
+			return orderedUnique([]ServiceInstance{serviceB, serviceA, serviceB}, func(a, z ServiceInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) })
+		},
+		"service-withdrawals": func() error {
+			return orderedUnique([]ServiceInstanceID{"service:b", "service:a", "service:b"}, func(a, z ServiceInstanceID) int { return strings.Compare(string(a), string(z)) })
+		},
+		"capabilities": func() error {
+			return orderedUnique([]CapabilityInstance{capabilityB, capabilityA, capabilityB}, func(a, z CapabilityInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) })
+		},
+		"capability-withdrawals": func() error {
+			return orderedUnique([]CapabilityInstanceID{"capability:b", "capability:a", "capability:b"}, func(a, z CapabilityInstanceID) int { return strings.Compare(string(a), string(z)) })
+		},
+		"fences":         func() error { return orderedUnique([]GenerationFence{fenceB, fenceA, fenceB}, compareFence) },
+		"fact-envelopes": func() error { return orderedUnique([]FactEnvelope{envelopeB, envelopeA, envelopeB}, compareEnvelope) },
+		"cursors":        func() error { return orderedUnique([]PublicationCursor{cursorB, cursorA, cursorB}, compareCursor) },
+	}
+	for name, check := range cases {
+		t.Run(name, func(t *testing.T) { requireID(t, check(), DuplicateKey) })
+	}
+
+	t.Run("duplicate-precedes-order-and-invalid-member", func(t *testing.T) {
+		batch := publicationBatch("asset:site", "source:a", "epoch:a", "1", "1", "0")
+		serviceB.Availability = Availability("invalid")
+		batch.ServiceUpserts = []ServiceInstance{serviceB, serviceA, serviceB}
+		_, err := batch.ComputedDigest()
+		requireID(t, err, DuplicateKey)
+
+		kernel := newTestPublicationKernel(t, "asset:site")
+		initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		snapshot, _, err := kernel.Apply(initial, publicationMonotonic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		batch.Sequence, batch.ExpectedSemanticRevision, batch.BatchDigest = "2", "1", initial.BatchDigest
+		assertRejectedUnchanged(t, kernel, batch, DuplicateKey)
+
+		duplicateBinding := snapshot.Bindings[0]
+		duplicateBinding.BindingID = "binding:b"
+		duplicateBinding.State = BindingState("invalid")
+		snapshot.Bindings = []NativeBinding{duplicateBinding, snapshot.Bindings[0], duplicateBinding}
+		recomputeSnapshotID(t, &snapshot)
+		requireID(t, snapshot.Validate(), DuplicateKey)
+	})
+}
+
 func publicationBatch(asset AssetID, source SourceID, epoch SourceEpochID, generation, sequence, expected Uint64) PublicationBatch {
 	return PublicationBatch{
 		Contract: ContractKernelV1, BatchID: BatchID("batch:" + string(source) + ":" + string(epoch) + ":" + string(generation) + ":" + string(sequence)),
@@ -380,6 +734,20 @@ func publicationBatch(asset AssetID, source SourceID, epoch SourceEpochID, gener
 		FactUpserts: []FactCandidate{}, FactWithdrawals: []CandidateID{}, ServiceUpserts: []ServiceInstance{}, ServiceWithdrawals: []ServiceInstanceID{},
 		CapabilityUpserts: []CapabilityInstance{}, CapabilityWithdrawals: []CapabilityInstanceID{}, GenerationFences: []GenerationFence{},
 	}
+}
+
+func publicationFence(source SourceID, epoch SourceEpochID, generation Uint64, evidence ...EvidenceRef) GenerationFence {
+	return GenerationFence{SourceID: source, SourceEpochID: epoch, DriverGeneration: generation, Reason: "lifecycle.driver_replaced", Evidence: evidence, Revision: "1"}
+}
+
+func publicationEvidenceRange(first, last int) []EvidenceRef {
+	result := make([]EvidenceRef, 0, last-first+1)
+	for value := first; value <= last; value++ {
+		evidence := publicEvidence("1")
+		evidence.Digest = Digest("sha256:" + fmt.Sprintf("%064x", value))
+		result = append(result, evidence)
+	}
+	return result
 }
 
 func completePublicationBatch(asset AssetID, source SourceID, epoch SourceEpochID, binding NativeBindingID, generation, sequence, expected Uint64) PublicationBatch {

@@ -25,6 +25,16 @@ func collectionKeyFields(t reflect.Type) []string {
 		return []string{"candidate_id"}
 	case reflect.TypeOf(Conflict{}):
 		return []string{"conflict_id"}
+	case reflect.TypeOf(SourceDescriptor{}):
+		return []string{"source_id", "source_epoch_id"}
+	case reflect.TypeOf(NativeBinding{}), reflect.TypeOf(IdentityLink{}):
+		return []string{"binding_id"}
+	case reflect.TypeOf(ServiceInstance{}), reflect.TypeOf(CapabilityInstance{}):
+		return []string{"instance_id"}
+	case reflect.TypeOf(GenerationFence{}), reflect.TypeOf(PublicationCursor{}):
+		return []string{"source_id", "source_epoch_id", "driver_generation"}
+	case reflect.TypeOf(FactEnvelope{}):
+		return []string{"key"}
 	}
 	return nil
 }
@@ -71,6 +81,8 @@ func collectionCompare(a, b reflect.Value) int {
 		return compareSourcePath(av, b.Interface().(SourcePathRef))
 	case DefinitionRef:
 		return compareDefinition(av, b.Interface().(DefinitionRef))
+	case FactEnvelope:
+		return compareEnvelope(av, b.Interface().(FactEnvelope))
 	}
 	for _, name := range collectionKeyFields(a.Type()) {
 		field, _ := wireField(a.Type(), name)
@@ -89,6 +101,10 @@ func collectionCompare(a, b reflect.Value) int {
 func collectionKey(v reflect.Value) string {
 	if v.Kind() == reflect.String {
 		return v.String()
+	}
+	if v.Type() == reflect.TypeOf(FactEnvelope{}) {
+		key, _ := factKeyIdentity(v.Interface().(FactEnvelope).Key)
+		return key
 	}
 	var parts []string
 	for _, name := range collectionKeyFields(v.Type()) {
