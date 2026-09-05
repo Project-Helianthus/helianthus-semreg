@@ -785,13 +785,12 @@ func causalTimeErrors(firstPoint, expiresPoint *TimePoint) []error {
 	return errs
 }
 func (c FactCandidate) Validate() error {
-	var errs []error
+	// Presence determines member validation; assertion and origin determine only
+	// relationships. Forbidden data still contributes its own stable errors.
+	errs := c.presentMemberErrors()
 	errs = append(errs, c.CandidateID.Validate(), c.Key.Validate(), c.Quality.Validate(), c.Times.Validate(), c.FreshnessPolicy.Validate(), c.Origin.Validate(), validateEvidenceSet(c.Evidence, 1, 32))
 	if !positive(c.Revision) {
 		errs = append(errs, errID(InvalidIdentifier, "candidate revision"))
-	}
-	if c.Causal != nil {
-		errs = append(errs, c.Causal.Validate())
 	}
 	valueForbidden := c.Quality.Qualification == QualificationUnsupported || c.Quality.Qualification == QualificationRejected || c.Quality.Availability == AvailabilityWithdrawn
 	if valueForbidden && c.Value != nil {
@@ -800,22 +799,12 @@ func (c FactCandidate) Validate() error {
 	if !valueForbidden && c.Value == nil {
 		errs = append(errs, errID(MissingMember, "candidate value"))
 	}
-	if c.Value != nil {
-		errs = append(errs, c.Value.Validate())
-	}
 	if c.Quality.Assertion == AssertionInferred {
 		if c.BindingID != nil || c.SourceEpochID != nil || c.DriverGeneration != nil {
 			errs = append(errs, errID(InvalidValue, "inferred source path"))
 		}
 		if c.Derivation == nil {
 			errs = append(errs, errID(MissingMember, "derivation"))
-		} else {
-			errs = append(errs, c.Derivation.Validate())
-			for _, in := range c.Derivation.Inputs {
-				if in.CandidateID == c.CandidateID {
-					errs = append(errs, errID(DerivationCycle, "self reference"))
-				}
-			}
 		}
 	}
 	if c.Quality.Assertion == AssertionObserved {
@@ -824,11 +813,6 @@ func (c FactCandidate) Validate() error {
 		}
 		if c.BindingID == nil || c.SourceEpochID == nil || c.DriverGeneration == nil {
 			errs = append(errs, errID(MissingMember, "observed source path"))
-		} else {
-			errs = append(errs, c.BindingID.Validate(), c.SourceEpochID.Validate())
-			if !positive(*c.DriverGeneration) {
-				errs = append(errs, errID(InvalidIdentifier, "driver generation"))
-			}
 		}
 	}
 	if c.Origin.Kind == OriginDerived && c.Derivation == nil {
@@ -850,6 +834,34 @@ func (c FactCandidate) Validate() error {
 		errs = append(errs, errID(MissingMember, "projection causal context"))
 	}
 	return bestError(errs...)
+}
+
+func (c FactCandidate) presentMemberErrors() []error {
+	var errs []error
+	if c.Value != nil {
+		errs = append(errs, c.Value.Validate())
+	}
+	if c.Causal != nil {
+		errs = append(errs, c.Causal.Validate())
+	}
+	if c.BindingID != nil {
+		errs = append(errs, c.BindingID.Validate())
+	}
+	if c.SourceEpochID != nil {
+		errs = append(errs, c.SourceEpochID.Validate())
+	}
+	if c.DriverGeneration != nil && !positive(*c.DriverGeneration) {
+		errs = append(errs, errID(InvalidIdentifier, "driver generation"))
+	}
+	if c.Derivation != nil {
+		errs = append(errs, c.Derivation.Validate())
+		for _, in := range c.Derivation.Inputs {
+			if in.CandidateID == c.CandidateID {
+				errs = append(errs, errID(DerivationCycle, "self reference"))
+			}
+		}
+	}
+	return errs
 }
 
 func (p PackRef) Validate() error { return bestError(p.ID.Validate(), p.Version.Validate()) }
