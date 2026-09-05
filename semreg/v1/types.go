@@ -385,6 +385,79 @@ type CapabilityInstance struct {
 	Revision           Uint64               `json:"revision"`
 }
 
+// GenerationFence is the irreversible publication boundary for one driver
+// generation. Fenced objects remain resolvable in snapshots but non-actionable.
+type GenerationFence struct {
+	SourceID         SourceID      `json:"source_id"`
+	SourceEpochID    SourceEpochID `json:"source_epoch_id"`
+	DriverGeneration Uint64        `json:"driver_generation"`
+	Reason           DefinitionID  `json:"reason"`
+	Evidence         []EvidenceRef `json:"evidence"`
+	Revision         Uint64        `json:"revision"`
+}
+
+// PublicationBatch is one complete atomic patch for an asset/source/epoch and
+// generation. Empty collections are required and mean "no change".
+type PublicationBatch struct {
+	Contract                 ContractVersion        `json:"contract"`
+	BatchID                  BatchID                `json:"batch_id"`
+	BatchDigest              Digest                 `json:"batch_digest"`
+	AssetID                  AssetID                `json:"asset_id"`
+	SourceID                 SourceID               `json:"source_id"`
+	SourceEpochID            SourceEpochID          `json:"source_epoch_id"`
+	DriverGeneration         Uint64                 `json:"driver_generation"`
+	Sequence                 Uint64                 `json:"sequence"`
+	ExpectedSemanticRevision Uint64                 `json:"expected_semantic_revision"`
+	ObservedAt               TimePoint              `json:"observed_at"`
+	SourceUpserts            []SourceDescriptor     `json:"source_upserts"`
+	SourceRetirements        []SourceEpochID        `json:"source_retirements"`
+	BindingUpserts           []NativeBinding        `json:"binding_upserts"`
+	IdentityLinkUpserts      []IdentityLink         `json:"identity_link_upserts"`
+	FactUpserts              []FactCandidate        `json:"fact_upserts"`
+	FactWithdrawals          []CandidateID          `json:"fact_withdrawals"`
+	ServiceUpserts           []ServiceInstance      `json:"service_upserts"`
+	ServiceWithdrawals       []ServiceInstanceID    `json:"service_withdrawals"`
+	CapabilityUpserts        []CapabilityInstance   `json:"capability_upserts"`
+	CapabilityWithdrawals    []CapabilityInstanceID `json:"capability_withdrawals"`
+	GenerationFences         []GenerationFence      `json:"generation_fences"`
+}
+
+type RevisionVector struct {
+	Semantic     Uint64 `json:"semantic"`
+	Identity     Uint64 `json:"identity"`
+	Facts        Uint64 `json:"facts"`
+	Services     Uint64 `json:"services"`
+	Capabilities Uint64 `json:"capabilities"`
+}
+
+type PublicationCursor struct {
+	SourceID         SourceID      `json:"source_id"`
+	SourceEpochID    SourceEpochID `json:"source_epoch_id"`
+	DriverGeneration Uint64        `json:"driver_generation"`
+	LastSequence     Uint64        `json:"last_sequence"`
+	LastBatchDigest  Digest        `json:"last_batch_digest"`
+	Fenced           bool          `json:"fenced"`
+}
+
+// Snapshot is the complete immutable semantic state for one asset revision.
+// Callers receive deep copies; CanonicalJSON returns the stable wire value.
+type Snapshot struct {
+	Contract          ContractVersion      `json:"contract"`
+	SnapshotID        SnapshotID           `json:"snapshot_id"`
+	AssetID           AssetID              `json:"asset_id"`
+	Revisions         RevisionVector       `json:"revisions"`
+	EvaluatedAt       TimePoint            `json:"evaluated_at"`
+	EvaluateMonotonic MonotonicPoint       `json:"evaluate_monotonic"`
+	Sources           []SourceDescriptor   `json:"sources"`
+	Bindings          []NativeBinding      `json:"bindings"`
+	IdentityLinks     []IdentityLink       `json:"identity_links"`
+	Facts             []FactEnvelope       `json:"facts"`
+	Services          []ServiceInstance    `json:"services"`
+	Capabilities      []CapabilityInstance `json:"capabilities"`
+	Fences            []GenerationFence    `json:"fences"`
+	Cursors           []PublicationCursor  `json:"cursors"`
+}
+
 type PackValidator interface {
 	Pack() PackRef
 	Definitions() DefinitionIndex

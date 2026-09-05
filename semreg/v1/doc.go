@@ -1,7 +1,7 @@
 // Package semreg implements the protocol-neutral v1 semantic foundation.
 // It deliberately owns no transport, protocol, vendor, gateway, or consumer
-// behavior. Publication, evaluation, operation, and projection runtimes remain
-// separate work.
+// behavior. The BASE publication/snapshot runtime is implemented; evaluation,
+// presentation selection, operations, and projection runtimes remain deferred.
 //
 // Decode is the strict wire entry point. It rejects malformed UTF-8, duplicate
 // or unknown members, null, wrong token types, missing required members, and

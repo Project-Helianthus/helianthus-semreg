@@ -1,0 +1,18 @@
+{
+  "contract": "helianthus.semantic.kernel.publication-fixtures/v1",
+  "documentation_pin": "b16667d719defc7b0fef0400ee3ad387469018ac",
+  "vectors": [
+    {"id":"K-PUB-001","operation":"initial_publication","expect":"complete_snapshot"},
+    {"id":"K-PUB-002","operation":"partial_upsert","expect":"unrelated_state_retained"},
+    {"id":"K-PUB-003","operation":"explicit_withdrawal","expect":"named_candidate_removed"},
+    {"id":"K-PUB-004","operation":"identical_replay","expect":"same_snapshot_and_revision"},
+    {"id":"K-PUB-005","operation":"sequence_or_digest_conflict","expect_error":"sequence_conflict"},
+    {"id":"K-PUB-006","operation":"source_retirement","expect":"resolvable_retired_tombstones"},
+    {"id":"K-PUB-007","operation":"generation_supersession","expect":"fence_and_resolvable_withdrawals"},
+    {"id":"K-PUB-008","operation":"derived_graph_cascade","expect":"transitive_atomic_withdrawal"},
+    {"id":"K-PUB-009","operation":"conflict_reconciliation","expect":"current_exact_conflict_metadata"},
+    {"id":"K-PUB-010","operation":"post_state_limits","expect_error":"bounds_exceeded"},
+    {"id":"K-PUB-011","operation":"dangling_reference","expect_error":"dangling_reference"},
+    {"id":"K-PUB-012","operation":"caller_mutation","expect":"canonical_bytes_unchanged"}
+  ]
+}

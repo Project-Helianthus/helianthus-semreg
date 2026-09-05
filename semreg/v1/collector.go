@@ -25,6 +25,16 @@ func collectionKeyFields(t reflect.Type) []string {
 		return []string{"candidate_id"}
 	case reflect.TypeOf(Conflict{}):
 		return []string{"conflict_id"}
+	case reflect.TypeOf(SourceDescriptor{}):
+		return []string{"source_id", "source_epoch_id"}
+	case reflect.TypeOf(NativeBinding{}), reflect.TypeOf(IdentityLink{}):
+		return []string{"binding_id"}
+	case reflect.TypeOf(ServiceInstance{}), reflect.TypeOf(CapabilityInstance{}):
+		return []string{"instance_id"}
+	case reflect.TypeOf(GenerationFence{}), reflect.TypeOf(PublicationCursor{}):
+		return []string{"source_id", "source_epoch_id", "driver_generation"}
+	case reflect.TypeOf(FactEnvelope{}):
+		return []string{"key"}
 	}
 	return nil
 }
@@ -71,6 +81,8 @@ func collectionCompare(a, b reflect.Value) int {
 		return compareSourcePath(av, b.Interface().(SourcePathRef))
 	case DefinitionRef:
 		return compareDefinition(av, b.Interface().(DefinitionRef))
+	case FactEnvelope:
+		return compareEnvelope(av, b.Interface().(FactEnvelope))
 	}
 	for _, name := range collectionKeyFields(a.Type()) {
 		field, _ := wireField(a.Type(), name)
@@ -89,6 +101,10 @@ func collectionCompare(a, b reflect.Value) int {
 func collectionKey(v reflect.Value) string {
 	if v.Kind() == reflect.String {
 		return v.String()
+	}
+	if v.Type() == reflect.TypeOf(FactEnvelope{}) {
+		key, _ := factKeyIdentity(v.Interface().(FactEnvelope).Key)
+		return key
 	}
 	var parts []string
 	for _, name := range collectionKeyFields(v.Type()) {
@@ -230,6 +246,9 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 }
 
 func enclosingWireErrors(node jsonNode, t reflect.Type) []error {
+	if t == reflect.TypeOf(Snapshot{}) {
+		return []error{snapshotWireCandidateIDs(node)}
+	}
 	if t != reflect.TypeOf(CausalContext{}) || node.kind != 'o' {
 		return nil
 	}
@@ -253,6 +272,36 @@ func enclosingWireErrors(node jsonNode, t reflect.Type) []error {
 		return &value
 	}
 	return causalTimeErrors(point("first_seen_at"), point("expires_at"))
+}
+
+// Candidate identity is global to a snapshot, including when unrelated shape
+// errors prevent binding the whole record. Inspect only supplied valid IDs;
+// space is linear in distinct IDs and diagnostics never materialize pairs.
+func snapshotWireCandidateIDs(node jsonNode) error {
+	facts, ok := nodeMember(node, "facts")
+	if node.kind != 'o' || !ok || facts.kind != 'a' {
+		return nil
+	}
+	seen := make(map[CandidateID]struct{})
+	for _, envelope := range facts.array {
+		candidates, ok := nodeMember(envelope, "candidates")
+		if envelope.kind != 'o' || !ok || candidates.kind != 'a' {
+			continue
+		}
+		for _, candidate := range candidates.array {
+			member, ok := nodeMember(candidate, "candidate_id")
+			value, isString := member.scalar.(string)
+			id := CandidateID(value)
+			if candidate.kind != 'o' || !ok || member.kind != 's' || !isString || id.Validate() != nil {
+				continue
+			}
+			if _, duplicate := seen[id]; duplicate {
+				return errID(DuplicateKey, "snapshot candidate ID")
+			}
+			seen[id] = struct{}{}
+		}
+	}
+	return nil
 }
 
 // Conditional required members remain knowable even when an unrelated field
