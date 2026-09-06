@@ -1,0 +1,406 @@
+{
+  "catalog": {
+    "candidate_mappings": [
+      {
+        "control_route": false,
+        "id": "storage.mapping.growatt.can.v104",
+        "loss": "unknown",
+        "native_owner": "helianthus-docs-canbus",
+        "physical_qualified": false,
+        "qualification": "synthetic_offline_selected_interface_only",
+        "source_refs": [
+          "can_docs",
+          "canbusreg"
+        ],
+        "state": "candidate"
+      },
+      {
+        "control_route": false,
+        "id": "storage.mapping.growatt.rs485.1xsxxp",
+        "loss": "unknown",
+        "native_owner": "helianthus-docs-modbus",
+        "physical_qualified": false,
+        "qualification": "observation_fixture_no_runtime_or_command",
+        "source_refs": [
+          "rs485_docs",
+          "modbusreg"
+        ],
+        "state": "candidate"
+      },
+      {
+        "id": "storage.mapping.eebus",
+        "loss": "unknown",
+        "native_owner": "helianthus-docs-eebus",
+        "qualification": "unresolved",
+        "source_refs": [
+          "eebus_ledger"
+        ],
+        "state": "unknown_pending_std_01"
+      }
+    ],
+    "counter_policy": {
+      "continuity": "native_reset_or_wrap_evidence_required",
+      "decrease": "never_infer_reset_or_wrap"
+    },
+    "definitions": {
+      "dimensions": [
+        "system",
+        "battery",
+        "pack",
+        "module",
+        "cell",
+        "string",
+        "interface"
+      ],
+      "fields": [
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.state.soc",
+          "kind": "quantity",
+          "unit": "unit.percent"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.state.soh",
+          "kind": "quantity",
+          "unit": "unit.percent"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.pack.voltage",
+          "kind": "quantity",
+          "unit": "unit.volt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.pack.current",
+          "kind": "quantity",
+          "unit": "unit.ampere"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.pack.power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.energy.charged",
+          "kind": "quantity",
+          "unit": "unit.kilowatt_hour"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.energy.discharged",
+          "kind": "quantity",
+          "unit": "unit.kilowatt_hour"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.capacity.charge",
+          "kind": "quantity",
+          "unit": "unit.ampere_hour"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.capacity.discharge",
+          "kind": "quantity",
+          "unit": "unit.ampere_hour"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.temperature.pack",
+          "kind": "quantity",
+          "unit": "unit.celsius"
+        },
+        {
+          "dimension": "storage.dimension.cell",
+          "id": "storage.temperature.cell",
+          "kind": "quantity",
+          "unit": "unit.celsius"
+        },
+        {
+          "dimension": "storage.dimension.cell",
+          "id": "storage.cell.voltage_minimum",
+          "kind": "quantity",
+          "unit": "unit.volt"
+        },
+        {
+          "dimension": "storage.dimension.cell",
+          "id": "storage.cell.voltage_maximum",
+          "kind": "quantity",
+          "unit": "unit.volt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.limit.charge_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.limit.discharge_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.operating",
+          "kind": "symbol",
+          "symbols": [
+            "storage.status.operating.active",
+            "storage.status.operating.idle",
+            "storage.status.operating.standby"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.alarm",
+          "kind": "symbol",
+          "symbols": [
+            "storage.status.alarm.clear",
+            "storage.status.alarm.present"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.protection",
+          "kind": "symbol",
+          "symbols": [
+            "storage.status.protection.active",
+            "storage.status.protection.clear"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.warning",
+          "kind": "symbol",
+          "symbols": [
+            "storage.status.warning.clear",
+            "storage.status.warning.present"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.status.interlock",
+          "kind": "symbol",
+          "symbols": [
+            "storage.status.interlock.active",
+            "storage.status.interlock.clear"
+          ]
+        }
+      ],
+      "operations": [
+        "set_charge_limit",
+        "set_discharge_limit"
+      ],
+      "portal": {
+        "operation": "current_admission_only",
+        "read": "all_fields_exactly_once"
+      },
+      "relationships": [
+        "system_battery",
+        "battery_pack",
+        "pack_module",
+        "module_cell",
+        "pack_string",
+        "pack_interface"
+      ]
+    },
+    "domain_catalog": [
+      {
+        "id": "thermal_hvac",
+        "pack": "helianthus.pack.thermal",
+        "state": "accepted"
+      },
+      {
+        "id": "pv_inverter",
+        "pack": "helianthus.pack.pv",
+        "state": "exact_head_review"
+      },
+      {
+        "id": "storage_bms",
+        "pack": "helianthus.pack.storage",
+        "state": "accepted"
+      },
+      {
+        "id": "evse",
+        "pack": "helianthus.pack.evse",
+        "state": "follow_on"
+      },
+      {
+        "id": "infrastructure",
+        "pack": "helianthus.pack.infrastructure",
+        "state": "follow_on"
+      }
+    ],
+    "inputs": [
+      {
+        "id": "semantic_docs",
+        "revision": "346cda9b675a03a7d1a8c886a3467eab84ce8fb2"
+      },
+      {
+        "id": "semreg_projection",
+        "revision": "cc9b324225e945598128eeabe977e7fa0af6dc93"
+      },
+      {
+        "id": "can_docs",
+        "revision": "665a5f22f78c349b5e3063bda158af250a3f44b6"
+      },
+      {
+        "id": "canbusreg",
+        "revision": "8c827ea26ffbad8b50aba2c6ae89028622ba4343"
+      },
+      {
+        "id": "rs485_docs",
+        "revision": "c9d37b7f7cd5ebc6c4125565648a7deb094aaa7a"
+      },
+      {
+        "id": "modbusreg",
+        "revision": "f1e593995576fdfbbc64fd879b47abff8bd2cc0e"
+      },
+      {
+        "id": "eebus_ledger",
+        "revision": "81cd647c834e88c88a3c82ef9fbc5a0194f6b0f1"
+      },
+      {
+        "id": "matter_draft",
+        "revision": "29b4768a513cf566011ab8cd60df1bc495204953"
+      }
+    ],
+    "interlock_fail_closed_states": [
+      "missing",
+      "active",
+      "stale",
+      "unknown",
+      "unqualified",
+      "unpromoted",
+      "degraded",
+      "unavailable",
+      "withdrawn",
+      "conflicting"
+    ],
+    "kernel_contract": "helianthus.semantic.kernel/v1",
+    "lifecycle_axes": [
+      "source_epoch",
+      "driver_generation",
+      "semantic_revision",
+      "capability_qualification",
+      "activation",
+      "generation_fencing",
+      "partial_updates",
+      "stale_unknown_evidence",
+      "last_known_good_retention"
+    ],
+    "loss_dispositions": [
+      "native_enum_bitfield",
+      "precision_range",
+      "cell_module_topology",
+      "signed_direction",
+      "aggregation_reference",
+      "counter_reset_wrap",
+      "unavailable_fields",
+      "conflicting_sources",
+      "vendor_extensions",
+      "unsupported_operations"
+    ],
+    "pack": {
+      "id": "helianthus.pack.storage",
+      "version": "1.1.0"
+    },
+    "publication_withdrawal_policy": {
+      "admission": [
+        "exact_source_epoch",
+        "current_driver_generation",
+        "exact_semantic_revision",
+        "qualified_active_capability"
+      ],
+      "evidence": "stale_unknown_never_promote_or_authorize",
+      "partial_publication": "supplied_valid_only_preserve_permitted_last_known_good",
+      "stale_generation": "reject",
+      "tombstone": "retained_non_actionable",
+      "withdrawal": "explicit_generation_fenced"
+    },
+    "supersession": {
+      "operation_use": "superseded_non_implementable",
+      "reason": "required_interlock_not_machine_identifiable",
+      "superseded_pack_ref": {
+        "id": "helianthus.pack.storage",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "contract": "helianthus.semantic.pack.storage.acceptance/v1",
+  "pack_contract": "helianthus.pack.storage/v1",
+  "vectors": [
+    {
+      "id": "ST-POS-001",
+      "input": {},
+      "polarity": "positive"
+    },
+    {
+      "expect": {
+        "error": "PackRef"
+      },
+      "id": "ST-NEG-001",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "pack.id",
+            "value": "helianthus.pack.pv"
+          }
+        ]
+      },
+      "polarity": "negative"
+    },
+    {
+      "expect": {
+        "error": "mapping"
+      },
+      "id": "ST-NEG-002",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "candidate_mappings.0.physical_qualified",
+            "value": true
+          }
+        ]
+      },
+      "polarity": "negative"
+    },
+    {
+      "expect": {
+        "error": "supersession"
+      },
+      "id": "ST-NEG-003",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "supersession.operation_use",
+            "value": "implemented"
+          }
+        ]
+      },
+      "polarity": "negative"
+    },
+    {
+      "expect": {
+        "error": "field catalog"
+      },
+      "id": "ST-NEG-004",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "definitions.fields.19.symbols.1",
+            "value": "storage.status.interlock.active"
+          }
+        ]
+      },
+      "polarity": "negative"
+    }
+  ]
+}

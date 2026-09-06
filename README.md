@@ -4,6 +4,18 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
+## Storage/BMS capability pack v1.1
+
+`semreg/v1/packs/storage` implements the immutable
+`helianthus.pack.storage@1.1.0` validator from accepted semantic docs revision
+`c20fdef`. It indexes 20 fields, seven services, five capabilities, and two
+charge/discharge limit operation/effect pairs. Each operation requires one
+qualified-current, same-interface, exact known-clear storage interlock
+precondition before the existing operation kernel evaluates authority or any
+dispatch boundary. The pack has no native mapping, route, authority, Portal
+composition, persistence, gateway, consumer, or live-I/O behavior; eeBUS
+remains `unknown_pending_std_01`.
+
 ## EVSE capability pack v1
 
 `semreg/v1/packs/evse` implements the immutable
