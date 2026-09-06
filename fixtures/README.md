@@ -18,8 +18,8 @@ Its source manifest pins both that commit and the exact corrected
 snapshot, evaluation, selection, and named mutation inputs.
 
 Three foundation vector operations remain deferred: K-NEG-014, K-NEG-015, and K-NEG-048.
-Operation and projection runtimes remain separate work; these fixtures do not
-claim INT-05 or full runtime completion.
+Projection and compatibility-alias runtimes remain separate work; these
+fixtures do not claim INT-05 or full runtime completion.
 
 [`v1/publication-vectors.json`](v1/publication-vectors.json) pins deterministic
 publication scenarios to the same accepted documentation revision. The matching
@@ -27,6 +27,22 @@ Go fixtures exercise initial publication, patch retention, withdrawals, replay
 and conflict rejection, source retirement, generation supersession, graph
 cascade, conflict reconciliation, bounds, dangling references and deep-copy
 isolation.
+
+[`v1/operation-vectors.json`](v1/operation-vectors.json) mechanically copies all
+29 vectors whose coverage includes `operation` from the accepted
+`Project-Helianthus/helianthus-docs-semantic@da5ab4415d3bec73f9572aec1c495a6cdcbcba47`
+source. Its manifest pins the complete source-vector SHA-256 and its own tests
+pin the selected fixture bytes and exact vector IDs. The compact executable
+matrix covers exact pack ownership, immutable admission, causal and deadline
+checks, candidate/capability eligibility, route ambiguity, generation guard
+claims, idempotency/retry boundaries, chronology, externally supplied dispatch
+evidence, pack-owned effects and every terminal outcome. INT-06, not semreg,
+owns the native lifecycle lock, current-generation recheck, callback, handle,
+and release.
+
+Projection, compatibility aliases, production capability packs and product or
+gateway integration remain follow-ons. The operation fixture increment does not
+claim INT-05, a software 0.7 release, hardware readiness or physical validation.
 
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must

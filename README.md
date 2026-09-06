@@ -4,7 +4,7 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
-## Implemented v1 foundation, publication, evaluation, and selection
+## Implemented v1 foundation, publication, evaluation, selection, and operations
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
 [`helianthus-docs-semantic` contract at da5ab44](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/da5ab4415d3bec73f9572aec1c495a6cdcbcba47/api/v1).
@@ -25,26 +25,40 @@ It provides:
   from an explicit context, including conservative restart-time uncertainty and
   transitive derivation aging; and
 - `SelectionKernel`, which registers exact presentation-policy ID/version
-  pairs and returns immutable, snapshot/view-bound presentation-only results.
+  pairs and returns immutable, snapshot/view-bound presentation-only results;
+  and
+- `semreg/v1/operation`, which provides the accepted v1 intent, precondition,
+  capability requirement, admitted route, dispatch, acknowledgement, readback,
+  execution-record and outcome shapes; exact operation-pack validation and
+  effect-hook resolution; immutable snapshot admission; exact source epoch,
+  generation, route and capability-revision guard claims for the external
+  native owner; append-only terminal evidence; and intent/outcome idempotency
+  without claiming native replay safety.
 
 The self-contained fixture runners execute the copied K-POS-005 restart-time
 vector plus the exact corrected K-POS-019/K-POS-025 and K-NEG-056 through
 K-NEG-065 inputs from docs issue #6, alongside the foundation and publication
-fixtures. The new subset is pinned to the accepted docs commit and its exact
-source-file SHA-256. Passing these checks does not establish all runtime
-acceptance criteria.
+fixtures. They also pin the 29 operation-tagged acceptance vectors from the
+same accepted docs commit and exercise their authority, time, causal,
+precondition, route, generation, pack-owner, effect, idempotency, dispatch,
+acknowledgement, readback and outcome requirements through a contract-derived
+matrix. The subsets are pinned to the accepted docs commit and exact source-file
+SHA-256. Passing these checks does not establish all runtime acceptance
+criteria.
 
-Operation/projection/admission runtime, capability-pack catalogs/mappings,
-persistence, migrations and integrations remain deferred.
-This increment does not establish INT-05 completion, hardware validation,
-release-level security review or software-release acceptance.
+Projection, compatibility aliases, production capability packs/mappings,
+persistence, migrations and gateway/product integration remain follow-on work.
+This operation increment does not establish INT-05 completion, a software 0.7
+release, hardware readiness, physical validation, release-level security review
+or software-release acceptance.
 
 ## Ownership boundary
 
 The repository's ownership includes protocol-neutral semantic contracts and
 compatibility fixtures. The implementation preserves native evidence,
 alternatives, conflicts and unknown values; operation and projection runtime
-remain future scoped work.
+remain separated from native transport and gateway ownership. Projection and
+compatibility-alias implementation remain future scoped work.
 
 It does not own transport framing or I/O, protocol lifecycle, vendor/profile
 qualification, native decoding or identity, raw evidence capture, gateway
@@ -52,6 +66,11 @@ composition, output bindings, or consumer policy. The semantic packages must
 not import transport, protocol, registry, gateway, vendor, output, or UI
 packages. Public builds and tests must work without sibling or private
 repositories.
+
+INT-06 owns the native lifecycle lock, immediate current-generation and fence
+recheck against the admitted guard claims, native callback, handle, and release
+lifecycle. Semreg neither acquires that lock nor invokes or owns a native
+callback or handle.
 
 ## Compatibility sources
 
