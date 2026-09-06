@@ -225,6 +225,18 @@ type ContractDiscriminator interface {
 	ContractDiscriminator() (member string, expected ContractVersion)
 }
 
+// WireCollectionIdentity declares the independently knowable key fields of a
+// child-package collection element. Decode uses it only when another member
+// prevents whole-record binding, so malformed non-key siblings cannot suppress
+// duplicate or ordering diagnostics for an otherwise complete key.
+//
+// Implementations must validate only the returned key fields. They must not
+// derive an identity from malformed key data or inspect non-key payload.
+type WireCollectionIdentity interface {
+	WireCollectionKeyFields() []string
+	ValidateWireCollectionKey() error
+}
+
 func (v ContractVersion) Validate() error {
 	if !validContract(v) {
 		return errID(InvalidContract, "contract")
@@ -1694,8 +1706,32 @@ func validDiscriminatorMetadata(t reflect.Type, member string, expected Contract
 	if member == "" || expected.Validate() != nil {
 		return false
 	}
-	field, ok := wireField(t, member)
-	if !ok || field.PkgPath != "" || field.Type != reflect.TypeOf(ContractVersion("")) {
+	var field reflect.StructField
+	found := false
+	for index := 0; index < t.NumField(); index++ {
+		candidate := t.Field(index)
+		// Embedded fields use encoding/json promotion rules. Reject them here
+		// rather than accepting a binding whose effective JSON field can become
+		// absent or ambiguous under those rules.
+		if candidate.Anonymous {
+			return false
+		}
+		if candidate.PkgPath != "" {
+			continue
+		}
+		name := strings.Split(candidate.Tag.Get("json"), ",")[0]
+		if name == "" {
+			name = candidate.Name
+		}
+		if name != member {
+			continue
+		}
+		if found {
+			return false
+		}
+		field, found = candidate, true
+	}
+	if !found || field.Type != reflect.TypeOf(ContractVersion("")) {
 		return false
 	}
 	parts := strings.Split(field.Tag.Get("json"), ",")
@@ -1708,6 +1744,28 @@ func validDiscriminatorMetadata(t reflect.Type, member string, expected Contract
 		}
 	}
 	return true
+}
+
+func discriminatorWireErrors(node jsonNode, t reflect.Type) []error {
+	member, expected, document := documentDiscriminator(t)
+	if !document {
+		return nil
+	}
+	if !validDiscriminatorMetadata(t, member, expected) {
+		return []error{errID(InvalidContract, "contract discriminator metadata")}
+	}
+	value, present := nodeMember(node, member)
+	if !present {
+		return nil
+	}
+	if value.kind != 's' {
+		return []error{errID(InvalidContract, member)}
+	}
+	stringValue, ok := value.scalar.(string)
+	if !ok || ContractVersion(stringValue) != expected {
+		return []error{errID(InvalidContract, member)}
+	}
+	return nil
 }
 
 var recordInterface = reflect.TypeOf((*Record)(nil)).Elem()
@@ -1743,6 +1801,7 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	}
 	var errs []error
 	errs = append(errs, conditionalMemberErrors(node, t)...)
+	errs = append(errs, discriminatorWireErrors(node, t)...)
 	errs = append(errs, enclosingWireErrors(node, t)...)
 	switch t.Kind() {
 	case reflect.Struct:

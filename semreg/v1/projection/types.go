@@ -100,6 +100,14 @@ func (ProjectionReport) ContractDiscriminator() (string, semreg.ContractVersion)
 	return "contract", ContractProjectionV1
 }
 
+func (ProjectionManifest) ContractDiscriminator() (string, semreg.ContractVersion) {
+	return "kernel_version", semreg.ContractKernelV1
+}
+
+func (LossDetail) WireCollectionKeyFields() []string {
+	return []string{"kind", "source_items", "description"}
+}
+
 func (CompatibilityAlias) ContractDiscriminator() (string, semreg.ContractVersion) {
 	return "alias_contract", ContractAliasV1
 }

@@ -128,6 +128,29 @@ func (l LossDetail) Validate() error {
 	return ranked(errs...)
 }
 
+// ValidateWireCollectionKey validates exactly the LossDetail members that
+// define collection identity. Reversible is intentionally absent: it does not
+// participate in loss identity and malformed reversible values must not hide a
+// duplicate or ordering diagnostic for the supplied key.
+func (l LossDetail) ValidateWireCollectionKey() error {
+	errs := []error{l.Kind.Validate(), validatePublicText(l.Description)}
+	if l.SourceItems == nil {
+		errs = append(errs, errorf(semreg.MissingMember, "loss source items"))
+	}
+	if len(l.SourceItems) > maxLossSourceItems {
+		errs = append(errs, errorf(semreg.BoundsExceeded, "loss source items"))
+	}
+	for _, item := range l.SourceItems {
+		errs = append(errs, item.Validate())
+	}
+	if duplicate, ordered := orderedDefinitionIDs(l.SourceItems); duplicate {
+		errs = append(errs, errorf(semreg.DuplicateKey, "loss source items"))
+	} else if !ordered {
+		errs = append(errs, errorf(semreg.NoncanonicalOrder, "loss source items"))
+	}
+	return ranked(errs...)
+}
+
 func (d ProjectionDisposition) Validate() error {
 	errs := []error{d.Kind.Validate(), d.ItemID.Validate(), d.Outcome.Validate()}
 	if d.SourceKeys == nil {
@@ -318,8 +341,14 @@ func orderedFactKeys(items []semreg.FactKey) (bool, bool) {
 func orderedLossDetails(items []LossDetail) (bool, bool) {
 	return orderedValid(items, func(item LossDetail) (string, bool) {
 		duplicate, ordered := orderedDefinitionIDs(item.SourceItems)
+		validSourceItems := true
+		for _, source := range item.SourceItems {
+			if source.Validate() != nil {
+				validSourceItems = false
+			}
+		}
 		valid := item.Kind.Validate() == nil && item.SourceItems != nil && len(item.SourceItems) <= maxLossSourceItems &&
-			!duplicate && ordered && validatePublicText(item.Description) == nil
+			validSourceItems && !duplicate && ordered && validatePublicText(item.Description) == nil
 		canonicalSourceItems, err := json.Marshal(item.SourceItems)
 		return string(item.Kind) + "\x00" + string(canonicalSourceItems) + "\x00" + item.Description, valid && err == nil
 	})

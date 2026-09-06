@@ -2,6 +2,7 @@ package semreg
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -115,6 +116,17 @@ func TestCollectorRegression(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestDiscriminatorMetadataRejectsAmbiguousJSONTag(t *testing.T) {
+	contractType := reflect.TypeOf(ContractVersion(""))
+	child := reflect.StructOf([]reflect.StructField{
+		{Name: "First", Type: contractType, Tag: `json:"contract"`},
+		{Name: "Second", Type: contractType, Tag: `json:"contract"`},
+	})
+	if validDiscriminatorMetadata(child, "contract", ContractKernelV1) {
+		t.Fatal("ambiguous JSON discriminator metadata accepted")
+	}
 }
 
 func boolPtr(v bool) *bool { return &v }

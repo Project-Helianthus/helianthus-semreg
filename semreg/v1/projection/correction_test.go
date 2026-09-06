@@ -306,3 +306,64 @@ func TestCorrectionDiscriminatorMetadata(t *testing.T) {
 		t.Fatalf("valid child discriminator control err=%v value=%+v", err, decoded)
 	}
 }
+
+func TestCorrectionChildPartialWireDiagnostics(t *testing.T) {
+	baseLoss := projection.LossDetail{Kind: projection.LossPrecision, SourceItems: []semreg.DefinitionID{"fact.power"}, Description: "Precision reduced."}
+	for _, mode := range []string{"numeric_reason", "numeric_reversible", "missing_reversible"} {
+		t.Run("loss_"+mode, func(t *testing.T) {
+			value := projection.ProjectionDisposition{
+				Kind: projection.ItemFact, ItemID: "fact.power", Outcome: projection.ProjectionTransformed,
+				SourceKeys: []semreg.FactKey{}, Loss: []projection.LossDetail{baseLoss, baseLoss},
+			}
+			raw, err := json.Marshal(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch mode {
+			case "numeric_reason":
+				raw = append(bytes.TrimSuffix(raw, []byte("}")), []byte(`,"reason":9}`)...)
+			case "numeric_reversible":
+				raw = bytes.Replace(raw, []byte(`"reversible":false`), []byte(`"reversible":9`), 1)
+			case "missing_reversible":
+				raw = bytes.Replace(raw, []byte(`,"reversible":false`), nil, 1)
+			}
+			_, err = semreg.Decode[projection.ProjectionDisposition](raw)
+			correctionError(t, err, semreg.DuplicateKey)
+		})
+	}
+
+	for _, mode := range []string{"numeric_mapping_revision", "missing_mapping_revision"} {
+		t.Run("manifest_"+mode, func(t *testing.T) {
+			value := manifest()
+			value.KernelVersion = "different.contract/v1"
+			raw, err := json.Marshal(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if mode == "numeric_mapping_revision" {
+				raw = bytes.Replace(raw, []byte(`"mapping_revision":"1"`), []byte(`"mapping_revision":9`), 1)
+			} else {
+				raw = bytes.Replace(raw, []byte(`,"mapping_revision":"1"`), nil, 1)
+			}
+			_, err = semreg.Decode[projection.ProjectionManifest](raw)
+			correctionError(t, err, semreg.InvalidContract)
+		})
+	}
+}
+
+func TestCorrectionLossKeysRequireValidIdentifiers(t *testing.T) {
+	loss := projection.LossDetail{Kind: projection.LossPrecision, SourceItems: []semreg.DefinitionID{"!invalid"}, Description: "Precision reduced."}
+	value := projection.ProjectionDisposition{
+		Kind: projection.ItemFact, ItemID: "fact.power", Outcome: projection.ProjectionTransformed,
+		SourceKeys: []semreg.FactKey{}, Loss: []projection.LossDetail{loss, loss},
+	}
+	correctionError(t, value.Validate(), semreg.InvalidIdentifier)
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = semreg.Decode[projection.ProjectionDisposition](raw)
+	correctionError(t, err, semreg.InvalidIdentifier)
+	_, err = semreg.CanonicalJSON(value)
+	correctionError(t, err, semreg.InvalidIdentifier)
+}

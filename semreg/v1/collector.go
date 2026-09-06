@@ -208,15 +208,22 @@ func fieldSemanticErrors(parent reflect.Type, name string, node jsonNode, t refl
 }
 
 func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
-	if node.kind != 'a' || (element.Kind() != reflect.String && len(collectionKeyFields(element)) == 0) {
+	fields := collectionKeyFields(element)
+	keyIdentity, childIdentity := wireCollectionIdentity(element)
+	if node.kind != 'a' || (element.Kind() != reflect.String && len(fields) == 0 && !childIdentity) {
 		return nil
 	}
 	seen := make(map[string]struct{})
 	var previous reflect.Value
+	var previousKey string
+	havePreviousKey := false
 	duplicate, descending := false, false
 	for _, child := range node.array {
 		projection := child
-		if fields := collectionKeyFields(element); len(fields) != 0 {
+		if len(fields) != 0 || childIdentity {
+			if childIdentity {
+				fields = keyIdentity.WireCollectionKeyFields()
+			}
 			projection = jsonNode{kind: 'o'}
 			for _, name := range fields {
 				member, present := nodeMember(child, name)
@@ -240,16 +247,26 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 		}
 		raw, _ := json.Marshal(jsonNodeValue(projection))
 		value := reflect.New(element)
-		if json.Unmarshal(raw, value.Interface()) == nil && collectionKeyValid(value.Elem()) {
+		if json.Unmarshal(raw, value.Interface()) == nil && (!childIdentity && collectionKeyValid(value.Elem()) || childIdentity && value.Interface().(WireCollectionIdentity).ValidateWireCollectionKey() == nil) {
 			key := collectionKey(value.Elem())
+			if childIdentity {
+				key = string(raw)
+			}
 			if _, exists := seen[key]; exists {
 				duplicate = true
 			}
 			seen[key] = struct{}{}
-			if previous.IsValid() && collectionCompare(previous, value.Elem()) > 0 {
-				descending = true
+			if childIdentity {
+				if havePreviousKey && strings.Compare(previousKey, key) > 0 {
+					descending = true
+				}
+				previousKey, havePreviousKey = key, true
+			} else {
+				if previous.IsValid() && collectionCompare(previous, value.Elem()) > 0 {
+					descending = true
+				}
+				previous = value.Elem()
 			}
-			previous = value.Elem()
 		}
 	}
 	duplicateClass, ordered := DuplicateKey, true
@@ -267,6 +284,14 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 		errs = append(errs, errID(NoncanonicalOrder, "collection keys"))
 	}
 	return errs
+}
+
+func wireCollectionIdentity(element reflect.Type) (WireCollectionIdentity, bool) {
+	identity, ok := reflect.New(element).Interface().(WireCollectionIdentity)
+	if !ok || len(identity.WireCollectionKeyFields()) == 0 {
+		return nil, false
+	}
+	return identity, true
 }
 
 func enclosingWireErrors(node jsonNode, t reflect.Type) []error {
