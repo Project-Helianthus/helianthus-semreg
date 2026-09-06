@@ -1,0 +1,19 @@
+{
+  "contract":"helianthus.semantic.compatibility.canonical-pv/v1",
+  "dispositions":[
+    {"legacy":"inverter.ac.current.phase_a","target":"projection.pv.ac.current.l1","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.current.phase_b","target":"projection.pv.ac.current.l2","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.current.phase_c","target":"projection.pv.ac.current.l3","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.frequency","target":"pv.ac.frequency","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.power.active","target":"pv.ac.aggregate_active_power","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.voltage.phase_a","target":"projection.pv.ac.voltage.l1","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.voltage.phase_b","target":"projection.pv.ac.voltage.l2","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.voltage.phase_c","target":"projection.pv.ac.voltage.l3","outcome":"exact","loss":"","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.energy_lifetime","target":"pv.energy.generated","outcome":"transformed","loss":"unit: Wh_to_kWh_factor_1000","rollback":"retain_legacy"},
+    {"legacy":"inverter.operating_state","target":"pv.status.operating","outcome":"transformed","loss":"symbol: MPPT_to_generating","rollback":"retain_legacy"},
+    {"legacy":"inverter.temperature.cabinet","target":"pv.temperature.inverter","outcome":"transformed","loss":"provenance: sensor_id_cabinet_to_inverter","rollback":"retain_legacy"},
+    {"legacy":"inverter.ac.power.apparent","target":"legacy.withheld.apparent_power","outcome":"withheld","loss":"unit: no_typed_target","rollback":"select_legacy_output"},
+    {"legacy":"inverter.ac.power.reactive","target":"legacy.withheld.reactive_power","outcome":"withheld","loss":"unit: no_typed_target","rollback":"select_legacy_output"},
+    {"legacy":"inverter.ac.voltage.line_to_line","target":"legacy.withheld.line_to_line","outcome":"withheld","loss":"provenance: electrical_reference_absent","rollback":"select_legacy_output"}
+  ]
+}

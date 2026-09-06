@@ -173,6 +173,16 @@ callback or handle.
 
 ## Compatibility sources
 
+The test-only
+[`canonical-PV v1 comparator`](fixtures/v1/compatibility/canonical-pv-v1/)
+pins the public legacy donor, mapper/test sources, and a one-fact gateway golden
+witness, then compares a separately identified complete mapper witness through
+the real publication, evaluation, PV validation, canonical JSON and projection
+APIs. It accounts for fourteen requested outputs (eight exact, three
+transformed, and three withheld) with explicit loss and rollback treatment.
+It does not add a native mapping, route, authority, persistence, gateway
+composition, consumer behavior, or live-I/O path.
+
 Future migration work must inventory and test its public migration donors
 rather than copying them into this repository as universal semantics.
 Reviewed starting points include:
