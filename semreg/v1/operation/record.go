@@ -1,0 +1,344 @@
+package operation
+
+import (
+	"bytes"
+
+	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+)
+
+// Record validates and appends one immutable terminal record to an admission.
+// Dispatch, acknowledgement, and outcome evidence is supplied by the external
+// native owner and must bind canonically to the admitted intent, revisions, and
+// route. laterSnapshot is required exactly when readback is present; the kernel
+// does not retain or invent a snapshot store.
+func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnapshot *semreg.Snapshot) (ExecutionRecord, error) {
+	recordErr, snapshotErr := validateRecordInputs(record, laterSnapshot)
+	if k == nil || admission == nil {
+		return ExecutionRecord{}, mostSpecific(recordErr, snapshotErr, opError(semreg.InvalidValue, "execution admission"))
+	}
+	k.mu.Lock()
+	owned := k.admissions[record.Intent.IdempotencyKey] == admission
+	k.mu.Unlock()
+	var errs []error
+	errs = append(errs, recordErr, snapshotErr)
+	if !owned {
+		errs = append(errs, opError(semreg.DanglingReference, "execution admission"))
+	}
+
+	admission.mu.Lock()
+	defer admission.mu.Unlock()
+	if admission.record != nil {
+		if recordErr == nil && snapshotErr == nil {
+			canonical, err := semreg.CanonicalJSON(record)
+			if err != nil {
+				return ExecutionRecord{}, err
+			}
+			if owned && bytes.Equal(admission.recordBytes, canonical) {
+				return clone(*admission.record), nil
+			}
+		}
+		errs = append(errs, opError(semreg.SequenceConflict, "idempotent outcome bytes"))
+	}
+	bindingErr := sameRecordAdmission(record, admission)
+	errs = append(errs, bindingErr)
+	if record.Dispatch != nil {
+		errs = append(errs, contextsChronological(admission.admittedContext, record.Dispatch.Started, false))
+	}
+	if record.Acknowledgement != nil && record.Dispatch != nil {
+		errs = append(errs, acknowledgementAfterStart(record.Dispatch.Started.EvaluatedAt, record.Acknowledgement.At))
+	}
+	if record.Readback != nil {
+		if laterSnapshot == nil {
+			errs = append(errs, opError(semreg.DanglingReference, "readback snapshot"))
+		} else if snapshotErr == nil {
+			snapshot := clone(*laterSnapshot)
+			errs = append(errs, k.validateReadback(record, snapshot, owned && bindingErr == nil && recordErr == nil))
+		}
+	}
+	if err := mostSpecific(errs...); err != nil {
+		return ExecutionRecord{}, err
+	}
+	canonical, err := semreg.CanonicalJSON(record)
+	if err != nil {
+		return ExecutionRecord{}, err
+	}
+	stored := clone(record)
+	admission.record = &stored
+	admission.recordBytes = append([]byte(nil), canonical...)
+	return clone(stored), nil
+}
+
+// RecordRejection appends a stable admission rejection without route or
+// dispatch evidence. Reusing the idempotency key with different valid bytes is
+// a sequence_conflict; an identical record is returned byte-for-byte.
+func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence []semreg.EvidenceRef) (ExecutionRecord, error) {
+	// A rejection preserves the structurally valid bytes that were rejected and
+	// the actual stable error. It must not re-run the semantic hook that produced
+	// that error, nor require the intent to pass admission after the fact.
+	record := ExecutionRecord{
+		Contract: ContractOperationV1,
+		Intent:   intent,
+		Outcome:  OutcomeRejected,
+		ErrorID: func() *semreg.ErrorID {
+			value := errorID
+			return &value
+		}(),
+		OutcomeEvidence: evidence,
+	}
+	if record.OutcomeEvidence == nil {
+		record.OutcomeEvidence = []semreg.EvidenceRef{}
+	}
+	recordErr, _ := validateRecordInputs(record, nil)
+	if k == nil {
+		return ExecutionRecord{}, mostSpecific(recordErr, opError(semreg.DefinitionOwnerMissing, "operation kernel"))
+	}
+	if recordErr != nil {
+		return ExecutionRecord{}, recordErr
+	}
+	// Validation must see the original typed evidence because JSON copying can
+	// repair invalid UTF-8. Copy only after every supplied value is known valid.
+	record = clone(record)
+	intent = record.Intent
+	intentBytes, err := semreg.CanonicalJSON(intent)
+	if err != nil {
+		return ExecutionRecord{}, err
+	}
+	recordBytes, err := semreg.CanonicalJSON(record)
+	if err != nil {
+		return ExecutionRecord{}, err
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	if prior, exists := k.admissions[intent.IdempotencyKey]; exists {
+		prior.mu.Lock()
+		defer prior.mu.Unlock()
+		if !bytes.Equal(prior.intentBytes, intentBytes) {
+			return ExecutionRecord{}, opError(semreg.SequenceConflict, "idempotency key")
+		}
+		if prior.record != nil && bytes.Equal(prior.recordBytes, recordBytes) {
+			return clone(*prior.record), nil
+		}
+		return ExecutionRecord{}, opError(semreg.SequenceConflict, "idempotent outcome bytes")
+	}
+	if len(k.admissions) >= k.maxRetainedOperations {
+		return ExecutionRecord{}, opError(semreg.BoundsExceeded, "operation retention capacity")
+	}
+	stored := clone(record)
+	k.admissions[intent.IdempotencyKey] = &Admission{
+		intent:      clone(intent),
+		intentBytes: append([]byte(nil), intentBytes...),
+		record:      &stored,
+		recordBytes: append([]byte(nil), recordBytes...),
+	}
+	return clone(stored), nil
+}
+
+// Collect all independent supplied values before any lossy copy or dependent
+// dispatch. A snapshot is input to this call only when readback names one.
+// Keep errors separate so independent admission diagnostics can still run on
+// the original typed record, while an invalid snapshot never reaches a hook.
+func validateRecordInputs(record ExecutionRecord, snapshot *semreg.Snapshot) (recordErr, snapshotErr error) {
+	recordErr = record.Validate()
+	if record.Readback != nil && snapshot != nil {
+		snapshotErr = snapshot.Validate()
+	}
+	return recordErr, snapshotErr
+}
+
+func acknowledgementAfterStart(start, acknowledgement semreg.TimePoint) error {
+	if start.ClockID != acknowledgement.ClockID {
+		return nil
+	}
+	return wallPointChronological(start, acknowledgement, false)
+}
+
+func wallPointChronological(start, end semreg.TimePoint, strict bool) error {
+	// Same named wall-clock realizations are comparable. Convert through the
+	// UTC helper when applicable; the interval arithmetic is otherwise equal.
+	if start.ClockID == "clock.utc" && end.ClockID == "clock.utc" {
+		return wallChronological(start, end, strict)
+	}
+	startCopy, endCopy := start, end
+	startCopy.ClockID, endCopy.ClockID = "clock.utc", "clock.utc"
+	return wallChronological(startCopy, endCopy, strict)
+}
+
+func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapshot, bound bool) error {
+	errs := []error{k.snapshotPackError(snapshot)}
+	readback := record.Readback
+	if readback == nil || record.Route == nil || record.AdmittedRevision == nil || record.Dispatch == nil {
+		return mostSpecific(append(errs, opError(semreg.InvalidOutcome, "readback context"))...)
+	}
+	if snapshot.AssetID != record.Intent.AssetID {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback asset"))
+	}
+	if snapshot.SnapshotID != readback.SnapshotID || snapshot.Revisions != readback.Revisions {
+		errs = append(errs, opError(semreg.DanglingReference, "exact readback snapshot"))
+	}
+	if compareUint64(readback.Revisions.Semantic, record.AdmittedRevision.Semantic) <= 0 {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback semantic revision"))
+	}
+	if readback.SourceEpochID != record.Route.SourceEpochID {
+		errs = append(errs, opError(semreg.StaleSourceEpoch, "readback route epoch"))
+	}
+	if readback.DriverGeneration != record.Route.DriverGeneration {
+		errs = append(errs, opError(semreg.StaleDriverGeneration, "readback route generation"))
+	}
+	if readback.BindingID != record.Route.BindingID || readback.SourceID != record.Route.SourceID {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback route"))
+	}
+	candidate, envelope, found := candidateByID(snapshot, readback.CandidateID)
+	resolvedCandidate := found && candidate.Revision == readback.CandidateRevision
+	if !resolvedCandidate {
+		errs = append(errs, opError(semreg.DanglingReference, "readback candidate"))
+	} else {
+		if candidate.Quality.Assertion != semreg.AssertionObserved || candidate.BindingID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil {
+			errs = append(errs, opError(semreg.InvalidOutcome, "readback observed candidate"))
+		}
+		if candidate.SourceEpochID != nil && *candidate.SourceEpochID != readback.SourceEpochID {
+			errs = append(errs, opError(semreg.StaleSourceEpoch, "readback candidate epoch"))
+		}
+		if candidate.DriverGeneration != nil && *candidate.DriverGeneration != readback.DriverGeneration {
+			errs = append(errs, opError(semreg.StaleDriverGeneration, "readback candidate generation"))
+		}
+		if candidate.BindingID == nil || *candidate.BindingID != readback.BindingID || candidate.Origin.SourceID == nil || *candidate.Origin.SourceID != readback.SourceID {
+			errs = append(errs, opError(semreg.InvalidOutcome, "readback candidate route"))
+		}
+		if !factKeyEqual(candidate.Key, record.Intent.ExpectedEffect.Fact) {
+			errs = append(errs, opError(semreg.InvalidOutcome, "readback fact"))
+		}
+	}
+	errs = append(errs, snapshotRouteCurrent(snapshot, *record.Route, record.Intent.AssetID))
+	view, err := semreg.EvaluateSnapshot(snapshot, readback.Evaluation)
+	if err != nil {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback evaluation"))
+	}
+	var evaluated *semreg.EvaluatedFact
+	for index := range view.Facts {
+		if view.Facts[index].CandidateID == candidate.CandidateID {
+			evaluated = &view.Facts[index]
+			break
+		}
+	}
+	if resolvedCandidate && (evaluated == nil || evaluated.CandidateRevision != candidate.Revision ||
+		candidate.Quality.Qualification != semreg.QualificationQualified || candidate.Quality.Promotion != semreg.PromotionPromoted ||
+		candidate.Quality.Validity != semreg.ValidityGood || evaluated.Freshness != semreg.FreshnessFresh ||
+		evaluated.EffectiveAvailability != semreg.AvailabilityAvailable || candidateInOpenConflict(envelope, candidate.CandidateID)) {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback eligibility"))
+	}
+	if resolvedCandidate {
+		switch record.Outcome {
+		case OutcomeApplied:
+			if record.Dispatch.Completed == nil {
+				errs = append(errs, opError(semreg.InvalidOutcome, "readback dispatch completion"))
+			} else {
+				errs = append(errs, receiptAfterDispatch(*record.Dispatch.Completed, candidate.Times))
+			}
+		case OutcomeConflict:
+			errs = append(errs, receiptAfterDispatch(record.Dispatch.Started, candidate.Times))
+		}
+	}
+	validator, ok := k.validators[record.Intent.Kind.Pack]
+	if !ok {
+		errs = append(errs, opError(semreg.DefinitionOwnerMissing, "readback operation pack"))
+	} else if bound && mostSpecific(errs...) == nil {
+		// Only an exactly owned admission and safely resolved route/candidate may
+		// cross this boundary. The hook receives detached admitted input bytes.
+		relation, hookErr := func() (ReadbackRelation, error) {
+			validator.mu.Lock()
+			defer validator.mu.Unlock()
+			return validator.hook.EvaluateReadback(clone(record.Intent), clone(candidate))
+		}()
+		if hookErr != nil {
+			errs = append(errs, opError(semreg.InvalidOutcome, "pack readback evaluation"))
+		} else if relation != readback.Relation {
+			errs = append(errs, opError(semreg.InvalidOutcome, "readback relation"))
+		}
+	}
+	return mostSpecific(errs...)
+}
+
+func candidateByID(snapshot semreg.Snapshot, id semreg.CandidateID) (semreg.FactCandidate, semreg.FactEnvelope, bool) {
+	for _, envelope := range snapshot.Facts {
+		for _, candidate := range envelope.Candidates {
+			if candidate.CandidateID == id {
+				return candidate, envelope, true
+			}
+		}
+	}
+	return semreg.FactCandidate{}, semreg.FactEnvelope{}, false
+}
+
+func snapshotRouteCurrent(snapshot semreg.Snapshot, route Route, asset semreg.AssetID) error {
+	var sourceFound, bindingFound, identityFound, identitySeen, serviceFound, capabilityFound bool
+	var errs []error
+	for _, source := range snapshot.Sources {
+		if source.SourceID == route.SourceID && source.SourceEpochID == route.SourceEpochID {
+			sourceFound = source.State == semreg.SourceCurrent
+		}
+	}
+	for _, fence := range snapshot.Fences {
+		if fence.SourceID == route.SourceID && fence.SourceEpochID == route.SourceEpochID && fence.DriverGeneration == route.DriverGeneration {
+			errs = append(errs, opError(semreg.StaleDriverGeneration, "readback fenced route"))
+		}
+	}
+	for _, binding := range snapshot.Bindings {
+		if binding.BindingID == route.BindingID {
+			if binding.SourceEpochID != route.SourceEpochID {
+				errs = append(errs, opError(semreg.StaleSourceEpoch, "readback binding epoch"))
+			}
+			if binding.DriverGeneration != route.DriverGeneration || binding.State == semreg.BindingFenced {
+				errs = append(errs, opError(semreg.StaleDriverGeneration, "readback binding generation"))
+			}
+			bindingFound = binding.AssetID == asset && binding.State == semreg.BindingCurrent && binding.SourceID == route.SourceID
+		}
+	}
+	for _, link := range snapshot.IdentityLinks {
+		if link.BindingID == route.BindingID {
+			identitySeen = true
+			if link.AssetID != asset {
+				errs = append(errs, opError(semreg.InvalidOutcome, "readback identity asset"))
+			} else if link.State != semreg.LinkQualified {
+				errs = append(errs, opError(semreg.IdentityNotQualified, "readback identity link"))
+			} else {
+				identityFound = true
+			}
+		}
+	}
+	for _, service := range snapshot.Services {
+		if service.InstanceID == route.ServiceInstance {
+			serviceFound = service.AssetID == asset && service.BindingID == route.BindingID && service.SourceEpochID == route.SourceEpochID &&
+				service.DriverGeneration == route.DriverGeneration && service.Availability != semreg.AvailabilityWithdrawn
+		}
+	}
+	for _, capability := range snapshot.Capabilities {
+		if capability.InstanceID == route.CapabilityInstance {
+			capabilityFound = capability.AssetID == asset && capability.ServiceInstance == route.ServiceInstance && capability.BindingID == route.BindingID &&
+				capability.SourceEpochID == route.SourceEpochID && capability.DriverGeneration == route.DriverGeneration &&
+				capability.Availability != semreg.AvailabilityWithdrawn
+		}
+	}
+	if !sourceFound {
+		errs = append(errs, opError(semreg.StaleSourceEpoch, "readback source"))
+	}
+	if !identityFound && !identitySeen {
+		errs = append(errs, opError(semreg.IdentityNotQualified, "readback identity link"))
+	}
+	if !bindingFound || !serviceFound || !capabilityFound {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback current route"))
+	}
+	return mostSpecific(errs...)
+}
+
+func receiptAfterDispatch(completed semreg.EvaluationContext, times semreg.Times) error {
+	if completed.EvaluateMonotonic.ClockEpochID == times.ReceiptMonotonic.ClockEpochID {
+		if compareUint64(times.ReceiptMonotonic.Nanoseconds, completed.EvaluateMonotonic.Nanoseconds) <= 0 {
+			return opError(semreg.InvalidOutcome, "readback receipt not post-dispatch")
+		}
+		return nil
+	}
+	if err := wallChronological(completed.EvaluatedAt, times.ReceivedAt, true); err != nil {
+		return opError(semreg.InvalidOutcome, "readback receipt wall order")
+	}
+	return nil
+}
