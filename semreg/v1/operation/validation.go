@@ -386,10 +386,30 @@ func wallChronological(start, end semreg.TimePoint, strict bool) error {
 	return nil
 }
 
-func DecodeIntent(raw []byte) (Intent, error) { return semreg.Decode[Intent](raw) }
+func DecodeIntent(raw []byte) (Intent, error) { return decodeOperationDocument[Intent](raw) }
 
 func DecodeExecutionRecord(raw []byte) (ExecutionRecord, error) {
-	return semreg.Decode[ExecutionRecord](raw)
+	return decodeOperationDocument[ExecutionRecord](raw)
+}
+
+// Operation wrappers own their document discriminator. Keep the root decoder's
+// strict syntax, shape and independent collection diagnostics, including errors
+// in nested evidence metadata, without teaching it about operation types.
+func decodeOperationDocument[T semreg.Record](raw []byte) (T, error) {
+	value, decodeErr := semreg.Decode[T](raw)
+	var object map[string]json.RawMessage
+	var contractErr error
+	if json.Unmarshal(raw, &object) == nil && object != nil {
+		var contract semreg.ContractVersion
+		if json.Unmarshal(object["contract"], &contract) != nil || contract != ContractOperationV1 {
+			contractErr = opError(semreg.InvalidContract, "operation document contract")
+		}
+	}
+	if err := mostSpecific(decodeErr, contractErr); err != nil {
+		var zero T
+		return zero, err
+	}
+	return value, nil
 }
 
 func clone[T any](value T) T {

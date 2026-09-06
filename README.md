@@ -47,6 +47,11 @@ Typed operation inputs are validated before detached copies or hook dispatch,
 so malformed unions and invalid UTF-8 cannot be repaired by serialization or
 installed in retained state. Admission and execution validation collect and
 rank independently knowable failures using the accepted stable precedence.
+Both record entry paths validate supplied evidence before returning an input
+error. Readback hooks require exact binding to the kernel's owned admission
+and a safely resolved current route and candidate. `DecodeIntent` and
+`DecodeExecutionRecord` classify absent or malformed document contracts as
+`invalid_contract`, preserving strict JSON and duplicate-key precedence.
 Readback keeps common exact snapshot, route, generation, eligibility, and
 pack-effect checks for every supported outcome; only `applied` requires strict
 post-completion receipt proof, while `conflict` requires post-dispatch evidence

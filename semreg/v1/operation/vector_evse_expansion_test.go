@@ -194,51 +194,13 @@ func TestAcceptedRouteVectorsUseExactTypedValues(t *testing.T) {
 		t.Run(id, func(t *testing.T) {
 			fixture := newEVSEFixture(t, positive)
 			vector := vectorByID(t, vectors, id)
-			switch id {
-			case "K-NEG-013":
-				var input struct {
-					SourceEpochID    semreg.SourceEpochID `json:"source_epoch_id"`
-					DriverGeneration semreg.Uint64        `json:"driver_generation"`
-				}
-				var prior struct {
-					Fenced  semreg.Uint64 `json:"fenced_driver_generation"`
-					Current semreg.Uint64 `json:"current_driver_generation"`
-				}
-				decodeVectorInput(t, vector.Input, &input)
-				decodeVectorInput(t, vector.PriorState, &prior)
-				if input.SourceEpochID != fixture.intent.ExpectedSourceEpochID || input.DriverGeneration != prior.Fenced || prior.Current != "8" {
-					t.Fatalf("exact generation vector values: input=%+v prior=%+v", input, prior)
-				}
-				fixture.snapshot.Bindings[0].State = semreg.BindingFenced
-				fixture.snapshot.IdentityLinks[0].State = semreg.LinkWithdrawn
-				fixture.snapshot.Services[0].Availability = semreg.AvailabilityWithdrawn
-				fixture.snapshot.Capabilities[0].Availability = semreg.AvailabilityWithdrawn
-				fixture.snapshot.Facts = []semreg.FactEnvelope{}
-				fixture.snapshot.Cursors[0].Fenced = true
-				fixture.snapshot.Fences = []semreg.GenerationFence{{
-					SourceID: fixture.snapshot.Bindings[0].SourceID, SourceEpochID: input.SourceEpochID,
-					DriverGeneration: input.DriverGeneration, Reason: "reason.generation-fenced",
-					Evidence: []semreg.EvidenceRef{evidence(6)}, Revision: "1",
-				}}
-			case "K-NEG-016":
-				var input struct {
-					RequiredCapability semreg.DefinitionID           `json:"required_capability"`
-					EligibleRoutes     []semreg.CapabilityInstanceID `json:"eligible_routes"`
-				}
-				decodeVectorInput(t, vector.Input, &input)
-				if input.RequiredCapability != fixture.intent.RequiredCapability.DefinitionID || len(input.EligibleRoutes) != 2 {
-					t.Fatalf("exact ambiguity vector values: %+v", input)
-				}
-				first := fixture.snapshot.Capabilities[0]
-				first.InstanceID = input.EligibleRoutes[0]
-				second := first
-				second.InstanceID = input.EligibleRoutes[1]
-				fixture.snapshot.Capabilities = []semreg.CapabilityInstance{first, second}
-			}
-			sealCorrectionSnapshot(t, &fixture.snapshot)
+			expandRouteVector(t, vector, &fixture)
 			before, _ := semreg.CanonicalJSON(fixture.snapshot)
-			_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(authorize))
+			admission, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(authorize))
 			errorID(t, err, vector.Expect.ErrorID)
+			if admission != nil {
+				t.Fatal("rejected route vector returned an admission")
+			}
 			after, _ := semreg.CanonicalJSON(fixture.snapshot)
 			if !bytesEqual(before, after) {
 				t.Fatal("exact route vector mutated snapshot")

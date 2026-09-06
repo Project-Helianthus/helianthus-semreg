@@ -289,22 +289,13 @@ func TestAcceptedOperationVectorsExecute(t *testing.T) {
 					expansion.CausalStates = append(expansion.CausalStates, entry)
 				}
 				expansion.Causal, result = &causal, causal
-			case "K-NEG-013":
-				fixture.snapshot.Bindings[0].State = semreg.BindingFenced
-				fixture.snapshot.IdentityLinks[0].State = semreg.LinkWithdrawn
-				fixture.snapshot.Services[0].Availability = semreg.AvailabilityWithdrawn
-				fixture.snapshot.Capabilities[0].Availability = semreg.AvailabilityWithdrawn
-				fixture.snapshot.Facts = []semreg.FactEnvelope{}
-				fixture.snapshot.Cursors[0].Fenced = true
-				fixture.snapshot.Fences = []semreg.GenerationFence{{SourceID: "source:test", SourceEpochID: "epoch:test:1", DriverGeneration: "1", Reason: "reason.fence", Evidence: []semreg.EvidenceRef{evidence(6)}, Revision: "1"}}
-				sealCorrectionSnapshot(t, &fixture.snapshot)
-				admit(operation.AuthorityResolverFunc(authorize))
-			case "K-NEG-016":
-				second := fixture.snapshot.Capabilities[0]
-				second.InstanceID = "capability:limit:02"
-				fixture.snapshot.Capabilities = append([]semreg.CapabilityInstance{second}, fixture.snapshot.Capabilities...)
-				sealCorrectionSnapshot(t, &fixture.snapshot)
-				admit(operation.AuthorityResolverFunc(authorize))
+			case "K-NEG-013", "K-NEG-016":
+				exact := newEVSEFixture(t, vectorByID(t, vectors, "K-POS-012"))
+				expandRouteVector(t, vector, &exact)
+				fixture.kernel, fixture.intent, fixture.snapshot, fixture.current = exact.kernel, exact.intent, exact.snapshot, exact.current
+				if admission := admit(operation.AuthorityResolverFunc(authorize)); admission != nil {
+					t.Fatal("rejected route vector returned an admission")
+				}
 			case "K-NEG-017":
 				var input struct{ Now, Deadline semreg.Int64 }
 				var raw map[string]semreg.Int64

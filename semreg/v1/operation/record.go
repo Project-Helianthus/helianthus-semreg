@@ -12,26 +12,15 @@ import (
 // route. laterSnapshot is required exactly when readback is present; the kernel
 // does not retain or invent a snapshot store.
 func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnapshot *semreg.Snapshot) (ExecutionRecord, error) {
+	recordErr, snapshotErr := validateRecordInputs(record, laterSnapshot)
 	if k == nil || admission == nil {
-		return ExecutionRecord{}, opError(semreg.InvalidValue, "execution admission")
+		return ExecutionRecord{}, mostSpecific(recordErr, snapshotErr, opError(semreg.InvalidValue, "execution admission"))
 	}
-	recordErr := record.Validate()
-	if recordErr != nil && semreg.ErrorIdentifier(recordErr) != semreg.InvalidOutcome {
-		return ExecutionRecord{}, recordErr
-	}
-	var snapshotErr error
-	if record.Readback != nil && laterSnapshot != nil {
-		snapshotErr = laterSnapshot.Validate()
-		if snapshotErr != nil {
-			return ExecutionRecord{}, mostSpecific(recordErr, snapshotErr)
-		}
-	}
-	record = clone(record)
 	k.mu.Lock()
 	owned := k.admissions[record.Intent.IdempotencyKey] == admission
 	k.mu.Unlock()
 	var errs []error
-	errs = append(errs, recordErr)
+	errs = append(errs, recordErr, snapshotErr)
 	if !owned {
 		errs = append(errs, opError(semreg.DanglingReference, "execution admission"))
 	}
@@ -39,7 +28,7 @@ func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnaps
 	admission.mu.Lock()
 	defer admission.mu.Unlock()
 	if admission.record != nil {
-		if recordErr == nil {
+		if recordErr == nil && snapshotErr == nil {
 			canonical, err := semreg.CanonicalJSON(record)
 			if err != nil {
 				return ExecutionRecord{}, err
@@ -50,7 +39,8 @@ func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnaps
 		}
 		errs = append(errs, opError(semreg.SequenceConflict, "idempotent outcome bytes"))
 	}
-	errs = append(errs, sameRecordAdmission(record, admission))
+	bindingErr := sameRecordAdmission(record, admission)
+	errs = append(errs, bindingErr)
 	if record.Dispatch != nil {
 		errs = append(errs, contextsChronological(admission.admittedContext, record.Dispatch.Started, false))
 	}
@@ -60,9 +50,9 @@ func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnaps
 	if record.Readback != nil {
 		if laterSnapshot == nil {
 			errs = append(errs, opError(semreg.DanglingReference, "readback snapshot"))
-		} else {
+		} else if snapshotErr == nil {
 			snapshot := clone(*laterSnapshot)
-			errs = append(errs, k.validateReadback(record, snapshot))
+			errs = append(errs, k.validateReadback(record, snapshot, owned && bindingErr == nil && recordErr == nil))
 		}
 	}
 	if err := mostSpecific(errs...); err != nil {
@@ -82,15 +72,9 @@ func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnaps
 // dispatch evidence. Reusing the idempotency key with different valid bytes is
 // a sequence_conflict; an identical record is returned byte-for-byte.
 func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence []semreg.EvidenceRef) (ExecutionRecord, error) {
-	if k == nil {
-		return ExecutionRecord{}, opError(semreg.DefinitionOwnerMissing, "operation kernel")
-	}
 	// A rejection preserves the structurally valid bytes that were rejected and
 	// the actual stable error. It must not re-run the semantic hook that produced
 	// that error, nor require the intent to pass admission after the fact.
-	if err := mostSpecific(intent.Validate(), errorID.Validate()); err != nil {
-		return ExecutionRecord{}, err
-	}
 	record := ExecutionRecord{
 		Contract: ContractOperationV1,
 		Intent:   intent,
@@ -104,8 +88,12 @@ func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence
 	if record.OutcomeEvidence == nil {
 		record.OutcomeEvidence = []semreg.EvidenceRef{}
 	}
-	if err := record.Validate(); err != nil {
-		return ExecutionRecord{}, err
+	recordErr, _ := validateRecordInputs(record, nil)
+	if k == nil {
+		return ExecutionRecord{}, mostSpecific(recordErr, opError(semreg.DefinitionOwnerMissing, "operation kernel"))
+	}
+	if recordErr != nil {
+		return ExecutionRecord{}, recordErr
 	}
 	// Validation must see the original typed evidence because JSON copying can
 	// repair invalid UTF-8. Copy only after every supplied value is known valid.
@@ -145,6 +133,18 @@ func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence
 	return clone(stored), nil
 }
 
+// Collect all independent supplied values before any lossy copy or dependent
+// dispatch. A snapshot is input to this call only when readback names one.
+// Keep errors separate so independent admission diagnostics can still run on
+// the original typed record, while an invalid snapshot never reaches a hook.
+func validateRecordInputs(record ExecutionRecord, snapshot *semreg.Snapshot) (recordErr, snapshotErr error) {
+	recordErr = record.Validate()
+	if record.Readback != nil && snapshot != nil {
+		snapshotErr = snapshot.Validate()
+	}
+	return recordErr, snapshotErr
+}
+
 func acknowledgementAfterStart(start, acknowledgement semreg.TimePoint) error {
 	if start.ClockID != acknowledgement.ClockID {
 		return nil
@@ -163,13 +163,12 @@ func wallPointChronological(start, end semreg.TimePoint, strict bool) error {
 	return wallChronological(startCopy, endCopy, strict)
 }
 
-func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapshot) error {
+func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapshot, bound bool) error {
+	errs := []error{k.snapshotPackError(snapshot)}
 	readback := record.Readback
 	if readback == nil || record.Route == nil || record.AdmittedRevision == nil || record.Dispatch == nil {
-		return opError(semreg.InvalidOutcome, "readback context")
+		return mostSpecific(append(errs, opError(semreg.InvalidOutcome, "readback context"))...)
 	}
-	var errs []error
-	errs = append(errs, snapshot.Validate(), k.snapshotPackError(snapshot))
 	if snapshot.AssetID != record.Intent.AssetID {
 		errs = append(errs, opError(semreg.InvalidOutcome, "readback asset"))
 	}
@@ -242,10 +241,14 @@ func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapsh
 	validator, ok := k.validators[record.Intent.Kind.Pack]
 	if !ok {
 		errs = append(errs, opError(semreg.DefinitionOwnerMissing, "readback operation pack"))
-	} else if resolvedCandidate {
-		validator.mu.Lock()
-		relation, hookErr := validator.hook.EvaluateReadback(clone(record.Intent), clone(candidate))
-		validator.mu.Unlock()
+	} else if bound && mostSpecific(errs...) == nil {
+		// Only an exactly owned admission and safely resolved route/candidate may
+		// cross this boundary. The hook receives detached admitted input bytes.
+		relation, hookErr := func() (ReadbackRelation, error) {
+			validator.mu.Lock()
+			defer validator.mu.Unlock()
+			return validator.hook.EvaluateReadback(clone(record.Intent), clone(candidate))
+		}()
 		if hookErr != nil {
 			errs = append(errs, opError(semreg.InvalidOutcome, "pack readback evaluation"))
 		} else if relation != readback.Relation {
