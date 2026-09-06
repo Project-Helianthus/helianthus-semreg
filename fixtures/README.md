@@ -3,6 +3,15 @@
 This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
+[`v1/thermal-hvac-pack-vectors.json`](v1/thermal-hvac-pack-vectors.json) is a
+byte-for-byte copy of `api/v1/packs/thermal-hvac-acceptance-vectors.json` from
+`Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
+Its SHA-256 is
+`6fc20eaa6965e2073c38fba943b401e0b10673c16cef97286575dca083431576`.
+The thermal pack tests execute all twelve static catalog vectors. The fixture
+does not create a native mapping, topology instance, Portal implementation,
+route, consumer API, or live authority.
+
 [`v1/infrastructure-pack-vectors.json`](v1/infrastructure-pack-vectors.json)
 is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
