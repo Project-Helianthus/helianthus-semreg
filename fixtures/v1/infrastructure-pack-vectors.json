@@ -1,0 +1,1238 @@
+{
+  "contract": "helianthus.semantic.pack.infrastructure.acceptance/v1",
+  "pack_contract": "helianthus.pack.infrastructure/v1",
+  "catalog": {
+    "pack": {
+      "id": "helianthus.pack.infrastructure",
+      "version": "1.0.0"
+    },
+    "kernel_contract": "helianthus.semantic.kernel/v1",
+    "status": "accepted",
+    "domain_catalog": [
+      {
+        "id": "thermal_hvac",
+        "pack": "helianthus.pack.thermal",
+        "state": "accepted"
+      },
+      {
+        "id": "pv_inverter",
+        "pack": "helianthus.pack.pv",
+        "state": "accepted"
+      },
+      {
+        "id": "storage_bms",
+        "pack": "helianthus.pack.storage",
+        "state": "accepted"
+      },
+      {
+        "id": "evse",
+        "pack": "helianthus.pack.evse",
+        "state": "accepted"
+      },
+      {
+        "id": "infrastructure",
+        "pack": "helianthus.pack.infrastructure",
+        "state": "accepted"
+      }
+    ],
+    "inputs": [
+      {
+        "id": "semantic_docs",
+        "revision": "e22451c8ca3d3f7275635216450f8fb2d216801e"
+      },
+      {
+        "id": "semreg",
+        "revision": "cc9b324225e945598128eeabe977e7fa0af6dc93"
+      },
+      {
+        "id": "ebus_docs",
+        "revision": "5d66c66ef15e6bb2d473a341dae17dc9f9e25e05"
+      },
+      {
+        "id": "modbus_docs",
+        "revision": "7ba9c333539c4381c06584cab0dc86c7e9280767"
+      },
+      {
+        "id": "modbusreg",
+        "revision": "7853d903970a4fdded35abaef01fe30f7e93be6a"
+      },
+      {
+        "id": "eebus_ledger",
+        "revision": "81cd647c834e88c88a3c82ef9fbc5a0194f6b0f1"
+      },
+      {
+        "id": "eebus_m625_donor",
+        "revision": "cedf238e34f879815ba773e9cd76b2b31c2822a3"
+      },
+      {
+        "id": "matter_draft",
+        "revision": "29b4768a513cf566011ab8cd60df1bc495204953"
+      }
+    ],
+    "lifecycle_axes": [
+      "source_epoch",
+      "driver_generation",
+      "semantic_revision",
+      "capability_qualification",
+      "activation",
+      "generation_fencing",
+      "partial_updates",
+      "stale_unknown_evidence",
+      "last_known_good_retention"
+    ],
+    "publication_withdrawal_policy": {
+      "admission": [
+        "exact_source_epoch",
+        "current_driver_generation",
+        "exact_semantic_revision",
+        "qualified_active_capability"
+      ],
+      "stale_generation": "reject",
+      "partial_publication": "supplied_valid_only_preserve_permitted_last_known_good",
+      "withdrawal": "explicit_generation_fenced",
+      "evidence": "stale_unknown_never_promote_or_authorize",
+      "tombstone": "retained_non_actionable"
+    },
+    "counter_policy": {
+      "import_export_energy": "native_reset_or_wrap_evidence_required",
+      "decrease": "never_infer_reset_or_wrap",
+      "projection": "counter_continuity_or_loss_explicit"
+    },
+    "availability_policy": {
+      "effective_availability": "kernel_observation_and_capability_state_only",
+      "native_readiness": "infrastructure.status.readiness",
+      "portal": "consume_kernel_availability_separately"
+    },
+    "loss_dispositions": [
+      "native_enum_bitfield",
+      "precision_range",
+      "phase_grid_feeder_circuit_meter_topology",
+      "direction_reference",
+      "aggregation",
+      "counter_reset_wrap",
+      "unavailable_fields",
+      "conflicting_sources",
+      "vendor_extensions",
+      "unsupported_operations"
+    ],
+    "read_only_operation_boundary": {
+      "operations": "none_without_qualified_native_route_and_action_time_authority",
+      "import_export_limit": "not_published",
+      "breaker_actuation": "not_published",
+      "generic_enable_disable": "not_published",
+      "portal_operations": "not_published"
+    },
+    "definitions": {
+      "fields": [
+        {
+          "id": "infrastructure.ac.voltage",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.voltage",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 3
+            }
+          },
+          "optional": true,
+          "order": 10
+        },
+        {
+          "id": "infrastructure.ac.current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 3
+            }
+          },
+          "optional": true,
+          "order": 20
+        },
+        {
+          "id": "infrastructure.ac.active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": {
+              "coefficient": "-1",
+              "exponent10": 7
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 30
+        },
+        {
+          "id": "infrastructure.ac.reactive_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.reactive_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_reactive",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": {
+              "coefficient": "-1",
+              "exponent10": 7
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 40
+        },
+        {
+          "id": "infrastructure.ac.apparent_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.apparent_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 50
+        },
+        {
+          "id": "infrastructure.ac.frequency",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.frequency",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.hertz",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 3
+            }
+          },
+          "optional": true,
+          "order": 60
+        },
+        {
+          "id": "infrastructure.ac.power_factor",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.power_factor",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ratio",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "-1",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 0
+            }
+          },
+          "optional": true,
+          "order": 70
+        },
+        {
+          "id": "infrastructure.power.import_active",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.power.import_active",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 80
+        },
+        {
+          "id": "infrastructure.power.export_active",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.power.export_active",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 90
+        },
+        {
+          "id": "infrastructure.power.import_reactive",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.power.import_reactive",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_reactive",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 100
+        },
+        {
+          "id": "infrastructure.power.export_reactive",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.power.export_reactive",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_reactive",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 110
+        },
+        {
+          "id": "infrastructure.power.apparent",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.power.apparent",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 120
+        },
+        {
+          "id": "infrastructure.energy.import",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.import",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.kilowatt_hour",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 12
+            }
+          },
+          "optional": true,
+          "order": 140
+        },
+        {
+          "id": "infrastructure.energy.export",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.export",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.kilowatt_hour",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 12
+            }
+          },
+          "optional": true,
+          "order": 150
+        },
+        {
+          "id": "infrastructure.status.connection",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.status.connection",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "symbols": [
+            "infrastructure.status.connection.connected",
+            "infrastructure.status.connection.disconnected"
+          ],
+          "optional": true,
+          "order": 160
+        },
+        {
+          "id": "infrastructure.status.readiness",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.status.readiness",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "symbols": [
+            "infrastructure.status.readiness.not_ready",
+            "infrastructure.status.readiness.ready"
+          ],
+          "optional": true,
+          "order": 170
+        },
+        {
+          "id": "infrastructure.status.breaker",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.status.breaker",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.circuit",
+          "symbols": [
+            "infrastructure.status.breaker.closed",
+            "infrastructure.status.breaker.open"
+          ],
+          "optional": true,
+          "order": 180
+        },
+        {
+          "id": "infrastructure.status.fault",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.status.fault",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.site",
+          "symbols": [
+            "infrastructure.status.fault.clear",
+            "infrastructure.status.fault.present"
+          ],
+          "optional": true,
+          "order": 190
+        },
+        {
+          "id": "infrastructure.status.interlock",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.status.interlock",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.circuit",
+          "symbols": [
+            "infrastructure.status.interlock.active",
+            "infrastructure.status.interlock.clear"
+          ],
+          "optional": true,
+          "order": 200
+        }
+      ],
+      "fact_dimensions": [
+        {
+          "id": "infrastructure.dimension.site",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.site",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 10
+        },
+        {
+          "id": "infrastructure.dimension.grid_connection",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.grid_connection",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 20
+        },
+        {
+          "id": "infrastructure.dimension.feeder",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.feeder",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 30
+        },
+        {
+          "id": "infrastructure.dimension.circuit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.circuit",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 40
+        },
+        {
+          "id": "infrastructure.dimension.phase",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.phase",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 50
+        },
+        {
+          "id": "infrastructure.dimension.meter",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.meter",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 60
+        }
+      ],
+      "services": [
+        {
+          "id": "infrastructure.service.site",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.site",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.site",
+          "order": 10
+        },
+        {
+          "id": "infrastructure.service.grid_connection",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.grid_connection",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.grid_connection",
+          "order": 20
+        },
+        {
+          "id": "infrastructure.service.feeder",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.feeder",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.feeder",
+          "order": 30
+        },
+        {
+          "id": "infrastructure.service.circuit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.circuit",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.circuit",
+          "order": 40
+        },
+        {
+          "id": "infrastructure.service.phase",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.phase",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.phase",
+          "order": 50
+        },
+        {
+          "id": "infrastructure.service.meter",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.meter",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.meter",
+          "order": 60
+        }
+      ],
+      "relationships": [
+        {
+          "id": "infrastructure.relationship.site_grid_connection",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relationship.site_grid_connection",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.site",
+          "to": "infrastructure.dimension.grid_connection",
+          "cardinality": "one_to_many",
+          "order": 10
+        },
+        {
+          "id": "infrastructure.relationship.grid_connection_feeder",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relationship.grid_connection_feeder",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.grid_connection",
+          "to": "infrastructure.dimension.feeder",
+          "cardinality": "one_to_many",
+          "order": 20
+        },
+        {
+          "id": "infrastructure.relationship.feeder_circuit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relationship.feeder_circuit",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.feeder",
+          "to": "infrastructure.dimension.circuit",
+          "cardinality": "one_to_many",
+          "order": 30
+        },
+        {
+          "id": "infrastructure.relationship.circuit_phase",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relationship.circuit_phase",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.circuit",
+          "to": "infrastructure.dimension.phase",
+          "cardinality": "one_to_many",
+          "order": 40
+        },
+        {
+          "id": "infrastructure.relationship.grid_connection_meter",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relationship.grid_connection_meter",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.grid_connection",
+          "to": "infrastructure.dimension.meter",
+          "cardinality": "one_to_many",
+          "order": 50
+        }
+      ],
+      "capabilities": [
+        {
+          "id": "infrastructure.capability.read.site",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.capability.read.site",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.site",
+          "activation": "qualified_current_binding",
+          "order": 10
+        },
+        {
+          "id": "infrastructure.capability.read.grid_connection",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.capability.read.grid_connection",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.grid_connection",
+          "activation": "qualified_current_binding",
+          "order": 20
+        },
+        {
+          "id": "infrastructure.capability.read.feeder",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.capability.read.feeder",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.feeder",
+          "activation": "qualified_current_binding",
+          "order": 30
+        },
+        {
+          "id": "infrastructure.capability.read.circuit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.capability.read.circuit",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.circuit",
+          "activation": "qualified_current_binding",
+          "order": 40
+        },
+        {
+          "id": "infrastructure.capability.read.phase",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.capability.read.phase",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.phase",
+          "activation": "qualified_current_binding",
+          "order": 50
+        },
+        {
+          "id": "infrastructure.capability.read.meter",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.capability.read.meter",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.meter",
+          "activation": "qualified_current_binding",
+          "order": 60
+        }
+      ],
+      "operations": [],
+      "effect_rules": [],
+      "portal_contributions": [
+        {
+          "id": "infrastructure.portal.read.site",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.site",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.site",
+          "fields": [
+            "infrastructure.status.fault"
+          ],
+          "order": 10
+        },
+        {
+          "id": "infrastructure.portal.read.grid_connection",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.grid_connection",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.grid_connection",
+          "fields": [
+            "infrastructure.ac.frequency",
+            "infrastructure.ac.power_factor",
+            "infrastructure.power.apparent",
+            "infrastructure.power.export_active",
+            "infrastructure.power.export_reactive",
+            "infrastructure.power.import_active",
+            "infrastructure.power.import_reactive",
+            "infrastructure.status.connection",
+            "infrastructure.status.readiness"
+          ],
+          "order": 20
+        },
+        {
+          "id": "infrastructure.portal.read.feeder",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.feeder",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.feeder",
+          "fields": [],
+          "order": 30
+        },
+        {
+          "id": "infrastructure.portal.read.circuit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.circuit",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.circuit",
+          "fields": [
+            "infrastructure.status.breaker",
+            "infrastructure.status.interlock"
+          ],
+          "order": 40
+        },
+        {
+          "id": "infrastructure.portal.read.phase",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.phase",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.phase",
+          "fields": [
+            "infrastructure.ac.active_power",
+            "infrastructure.ac.apparent_power",
+            "infrastructure.ac.current",
+            "infrastructure.ac.reactive_power",
+            "infrastructure.ac.voltage"
+          ],
+          "order": 50
+        },
+        {
+          "id": "infrastructure.portal.read.meter",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.meter",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.meter",
+          "fields": [
+            "infrastructure.energy.export",
+            "infrastructure.energy.import"
+          ],
+          "order": 60
+        }
+      ]
+    },
+    "candidate_mappings": [
+      {
+        "id": "infrastructure.mapping.ebus",
+        "native_owner": "helianthus-docs-ebus",
+        "source_refs": [
+          "ebus_docs"
+        ],
+        "state": "unknown_profile_specific",
+        "qualification": "identity_provenance_only",
+        "control_route": "none",
+        "live_authority": false,
+        "loss": "unknown"
+      },
+      {
+        "id": "infrastructure.mapping.modbus",
+        "native_owner": "helianthus-docs-modbus",
+        "source_refs": [
+          "modbus_docs",
+          "modbusreg"
+        ],
+        "state": "unknown_profile_specific",
+        "qualification": "no_profile_selected_no_projection",
+        "control_route": "none",
+        "live_authority": false,
+        "loss": "unknown"
+      },
+      {
+        "id": "infrastructure.mapping.eebus",
+        "native_owner": "helianthus-docs-eebus",
+        "source_refs": [
+          "eebus_ledger",
+          "eebus_m625_donor"
+        ],
+        "state": "unknown_pending_std_01",
+        "qualification": "unresolved",
+        "control_route": "none",
+        "live_authority": false,
+        "loss": "unknown"
+      },
+      {
+        "id": "infrastructure.mapping.matter",
+        "native_owner": "matter_draft",
+        "source_refs": [
+          "matter_draft"
+        ],
+        "state": "candidate_design_input_only",
+        "qualification": "not_conformance",
+        "control_route": "none",
+        "live_authority": false,
+        "loss": "unknown"
+      }
+    ]
+  },
+  "vectors": [
+    {
+      "id": "baseline",
+      "polarity": "positive",
+      "input": {
+        "mutations": []
+      }
+    },
+    {
+      "id": "wrong_pack",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "pack.id",
+            "value": "helianthus.pack.evse"
+          }
+        ]
+      },
+      "expect": {
+        "error": "exact PackRef"
+      }
+    },
+    {
+      "id": "domain_downgrade",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "domain_catalog.3.state",
+            "value": "follow_on"
+          }
+        ]
+      },
+      "expect": {
+        "error": "five-domain catalog"
+      }
+    },
+    {
+      "id": "field_bound_drift",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "definitions.fields.0.bounds.maximum",
+            "value": {
+              "coefficient": "9",
+              "exponent10": 2
+            }
+          }
+        ]
+      },
+      "expect": {
+        "error": "quantity contract"
+      }
+    },
+    {
+      "id": "topology_drift",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "definitions.relationships.2.cardinality",
+            "value": "one_to_one"
+          }
+        ]
+      },
+      "expect": {
+        "error": "relationship association"
+      }
+    },
+    {
+      "id": "operation_published",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "read_only_operation_boundary.breaker_actuation",
+            "value": "published"
+          }
+        ]
+      },
+      "expect": {
+        "error": "read-only operation boundary"
+      }
+    },
+    {
+      "id": "ebus_live",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "candidate_mappings.0.live_authority",
+            "value": true
+          }
+        ]
+      },
+      "expect": {
+        "error": "native mapping boundary"
+      }
+    },
+    {
+      "id": "eebus_conformance",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "candidate_mappings.2.state",
+            "value": "qualified"
+          }
+        ]
+      },
+      "expect": {
+        "error": "native mapping boundary"
+      }
+    },
+    {
+      "id": "matter_conformance",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "candidate_mappings.3.qualification",
+            "value": "conformant"
+          }
+        ]
+      },
+      "expect": {
+        "error": "native mapping boundary"
+      }
+    },
+    {
+      "id": "counter_weakened",
+      "polarity": "negative",
+      "input": {
+        "mutations": [
+          {
+            "op": "set",
+            "path": "counter_policy.decrease",
+            "value": "infer_reset"
+          }
+        ]
+      },
+      "expect": {
+        "error": "counter policy"
+      }
+    }
+  ]
+}

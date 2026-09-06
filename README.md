@@ -4,6 +4,19 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
+## Infrastructure capability pack v1
+
+`semreg/v1/packs/infrastructure` provides the immutable read-only validator for
+`helianthus.pack.infrastructure@1.0.0`, accepted from
+[`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
+It indexes 19 electrical facts, six services, and six read capabilities. It
+checks canonical text dimensions, units, Decimal bounds, and status symbols
+through the existing semantic registry only. It indexes no operations or effect
+rules and exports no native mapping, route, Portal, consumer, topology-instance,
+or control API. The copied machine fixture pins the source contract and static
+relationship/Portal metadata; passing its tests is not a native conformance,
+mapping qualification, live-I/O, or hardware claim.
+
 ## Implemented v1 foundation, publication, evaluation, selection, operations, and projection
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted

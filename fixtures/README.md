@@ -3,6 +3,17 @@
 This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
+[`v1/infrastructure-pack-vectors.json`](v1/infrastructure-pack-vectors.json)
+is a byte-for-byte copy of
+`api/v1/packs/infrastructure-acceptance-vectors.json` from
+`Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
+Its SHA-256 is
+`5ccf84e4727ec27f7234d1cd4a6a72bc1c5fc60dd5aa755f42f3a9a0e5cf5b6e`.
+The infrastructure pack tests pin its source and execute every accepted static
+catalog vector. The fixture is documentation-derived contract metadata only;
+it does not create topology instances, Portal composition, routes, native
+mappings, qualifications, or operations.
+
 [`v1/foundation-vectors.json`](v1/foundation-vectors.json) copies the 30
 foundation-relevant vector entries from the merged semantic v1 contract at
 `Project-Helianthus/helianthus-docs-semantic@b16667d719defc7b0fef0400ee3ad387469018ac`.
