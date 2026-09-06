@@ -81,6 +81,17 @@ and conflict rejection, source retirement, generation supersession, graph
 cascade, conflict reconciliation, bounds, dangling references and deep-copy
 isolation.
 
+[`v1/compatibility/canonical-pv-v1/`](v1/compatibility/canonical-pv-v1/) is the
+test-only canonical-PV v1 migration comparator. Its manifest pins the retained
+`helianthus-ebusreg@738142f` donor and the byte-for-byte one-fact gateway golden
+fixture at `helianthus-ebusgateway@f5cd9c5`, including SHA-256 values. The
+separate synthetic mapper witness is explicitly labeled and pinned to the
+gateway mapper/test sources. The harness executes the SemReg publication,
+evaluation, PV validation, canonical JSON and projection APIs; its fourteen-row
+table accounts for eight exact, three transformed and three withheld outputs
+with loss and legacy-path rollback treatment. It creates no native mapping,
+route, authority, persistence, gateway output, or consumer cutover.
+
 [`v1/operation-vectors.json`](v1/operation-vectors.json) mechanically copies all
 29 vectors whose coverage includes `operation` from the accepted
 `Project-Helianthus/helianthus-docs-semantic@da5ab4415d3bec73f9572aec1c495a6cdcbcba47`
