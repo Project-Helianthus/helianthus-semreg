@@ -109,6 +109,17 @@ func TestServicesCapabilitiesAndConcurrentAccess(t *testing.T) {
 		capability.Qualification = semreg.QualificationCandidate
 		requireID(t, validator.ValidateCapability(capability), semreg.CapabilityNotQualified)
 	}
+	t.Run("stored operation constraint validates full value", func(t *testing.T) {
+		capability := validCapability("thermal.capability.set_temperature")
+		capability.Constraints[0].Value.Quantity.Number = above(mustField("thermal.setpoint.temperature").maximum.decimal())
+		requireID(t, validator.ValidateCapability(capability), semreg.BoundsExceeded)
+	})
+	t.Run("operation argument must admit published constraint", func(t *testing.T) {
+		capability := validCapability("thermal.capability.set_temperature")
+		argument := copyFields(capability.Constraints)
+		argument[0].Value.Quantity.Number = semreg.Decimal{Coefficient: "0"}
+		requireID(t, validator.MatchConstraints(capability, argument), semreg.InvalidValue)
+	})
 	var group sync.WaitGroup
 	failures := make(chan error, 64)
 	key, value := validKey(fields[0]), validValue(fields[0])

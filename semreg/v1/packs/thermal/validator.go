@@ -54,7 +54,7 @@ func (validator) ValidateService(service semreg.ServiceInstance) error {
 	}
 	return nil
 }
-func (validator) ValidateCapability(capability semreg.CapabilityInstance) error {
+func (v validator) ValidateCapability(capability semreg.CapabilityInstance) error {
 	if err := capability.Validate(); err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (validator) ValidateCapability(capability semreg.CapabilityInstance) error 
 	if capability.Availability != semreg.AvailabilityAvailable {
 		return failure(semreg.CapabilityUnavailable, "current binding")
 	}
-	return validateConstraintIDs(capability.Constraints, spec.constraints)
+	return v.validateConstraints(capability.Constraints, spec.constraints)
 }
 func (validator) ValidateField(ref semreg.DefinitionRef, field semreg.TypedField) error {
 	if err := ref.Validate(); err != nil {
@@ -106,6 +106,9 @@ func (v validator) MatchConstraints(capability semreg.CapabilityInstance, fields
 		}
 		if err := v.ValidateField(definition(field.ID), field); err != nil {
 			return err
+		}
+		if !equalValue(field.Value, capability.Constraints[i].Value) {
+			return failure(semreg.InvalidValue, "thermal capability constraint value")
 		}
 	}
 	return nil
@@ -214,7 +217,7 @@ func validateDimensions(values []semreg.Dimension, expected semreg.DefinitionID)
 	}
 	return nil
 }
-func validateConstraintIDs(values []semreg.TypedField, expected []semreg.DefinitionID) error {
+func (v validator) validateConstraints(values []semreg.TypedField, expected []semreg.DefinitionID) error {
 	if values == nil {
 		return failure(semreg.MissingMember, "constraints")
 	}
@@ -224,6 +227,9 @@ func validateConstraintIDs(values []semreg.TypedField, expected []semreg.Definit
 	for i, value := range values {
 		if value.ID != expected[i] {
 			return failure(semreg.InvalidValue, "thermal capability constraint")
+		}
+		if err := v.ValidateField(definition(value.ID), value); err != nil {
+			return err
 		}
 	}
 	return nil

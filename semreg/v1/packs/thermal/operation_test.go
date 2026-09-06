@@ -183,6 +183,30 @@ func TestEveryThermalTerminalOutcomeThroughKernel(t *testing.T) {
 	}
 }
 
+func TestPublishedThermalConstraintsGateOperationAdmission(t *testing.T) {
+	for _, operationID := range []semreg.DefinitionID{"thermal.operation.set_temperature", "thermal.operation.set_mode"} {
+		t.Run(string(operationID)+"/matching", func(t *testing.T) {
+			fixture := newThermalFixture(t, operationID)
+			calls := 0
+			_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error { calls++; return nil }))
+			if err != nil || calls != 1 {
+				t.Fatalf("matching constraint admission: %v authority calls %d", err, calls)
+			}
+		})
+		t.Run(string(operationID)+"/published-but-non-admitting", func(t *testing.T) {
+			fixture := newThermalFixtureWith(t, operationID, func(capability *semreg.CapabilityInstance) {
+				capability.Constraints[0].Value = alternativeValue(capability.Constraints[0].Value)
+			})
+			calls := 0
+			_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error { calls++; return nil }))
+			requireID(t, err, semreg.AmbiguousRoute)
+			if calls != 0 {
+				t.Fatalf("authority called before constraint route rejection: %d", calls)
+			}
+		})
+	}
+}
+
 type thermalRecordHook struct {
 	validator
 	readbackCalls  int
@@ -209,6 +233,10 @@ type thermalFixture struct {
 }
 
 func newThermalFixture(t *testing.T, operationID semreg.DefinitionID) thermalFixture {
+	return newThermalFixtureWith(t, operationID, nil)
+}
+
+func newThermalFixtureWith(t *testing.T, operationID semreg.DefinitionID, mutateCapability func(*semreg.CapabilityInstance)) thermalFixture {
 	t.Helper()
 	hook := &thermalRecordHook{}
 	publication, err := semreg.NewPublicationKernel("asset:1", hook)
@@ -224,6 +252,9 @@ func newThermalFixture(t *testing.T, operationID semreg.DefinitionID) thermalFix
 	capability := capabilities[operations[operationID].capability]
 	service := semreg.ServiceInstance{InstanceID: "service:1", AssetID: "asset:1", Definition: definition(capability.service), BindingID: "binding:1", SourceEpochID: "epoch:1", DriverGeneration: "1", Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "1"}
 	cap := validCapability(operations[operationID].capability)
+	if mutateCapability != nil {
+		mutateCapability(&cap)
+	}
 	batch := semreg.PublicationBatch{Contract: semreg.ContractKernelV1, BatchID: "batch:thermal:1", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", Sequence: "1", ExpectedSemanticRevision: "0", ObservedAt: thermalTime("100"), SourceUpserts: []semreg.SourceDescriptor{{SourceID: "source:1", SourceEpochID: "epoch:1", ProtocolID: "protocol.test", ProfileID: "profile.test", ProfileVersion: "1", RegistryEvidence: evidence(), StartedAt: thermalTime("90"), State: semreg.SourceCurrent, Revision: "1"}}, SourceRetirements: []semreg.SourceEpochID{}, BindingUpserts: []semreg.NativeBinding{{BindingID: "binding:1", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", NativeResource: evidence(), State: semreg.BindingCurrent, Revision: "1"}}, IdentityLinkUpserts: []semreg.IdentityLink{{AssetID: "asset:1", BindingID: "binding:1", State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{evidence()}, Revision: "1"}}, FactUpserts: []semreg.FactCandidate{thermalFact(intent.ExpectedEffect.Fact, intent.ExpectedEffect.Expected, "100", "100", "1")}, FactWithdrawals: []semreg.CandidateID{}, ServiceUpserts: []semreg.ServiceInstance{service}, ServiceWithdrawals: []semreg.ServiceInstanceID{}, CapabilityUpserts: []semreg.CapabilityInstance{cap}, CapabilityWithdrawals: []semreg.CapabilityInstanceID{}, GenerationFences: []semreg.GenerationFence{}}
 	digest, err := batch.ComputedDigest()
 	if err != nil {
