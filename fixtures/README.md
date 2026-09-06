@@ -3,6 +3,17 @@
 This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
+[`v1/evse-pack-vectors.json`](v1/evse-pack-vectors.json) is a byte-for-byte
+copy of `api/v1/packs/evse-acceptance-vectors.json` from
+`Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
+Its SHA-256 is
+`38faa10b8c7893d8fcd3acd04a47ce478eba6bb9a224520adb12d8ac142f8dab`.
+The EVSE pack tests execute all twelve static catalog vectors, including the
+five-domain catalog, topology and Portal metadata, operation safety, Tesla,
+eeBUS, Matter, and counter-policy boundaries. The fixture does not create a
+topology instance, native mapping or sender, route, consumer API, persistence,
+or live authority.
+
 [`v1/thermal-hvac-pack-vectors.json`](v1/thermal-hvac-pack-vectors.json) is a
 byte-for-byte copy of `api/v1/packs/thermal-hvac-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
