@@ -4,6 +4,19 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
+## Thermal/HVAC capability pack v1
+
+`semreg/v1/packs/thermal` implements the immutable
+`helianthus.pack.thermal@1.0.0` validator from
+[`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
+It indexes 13 field contracts, five services, seven capabilities, two bounded
+operation/effect pairs, and static Portal descriptors. It validates semantic
+facts and pack-owned thermal effects through the existing operation kernel; it
+does not implement native mappings, routing, dispatch, Portal composition,
+consumer behavior, persistence, or live I/O. Capability-to-service definition
+pairing remains static metadata because the current PackValidator boundary sees
+only an opaque service-instance ID.
+
 ## Infrastructure capability pack v1
 
 `semreg/v1/packs/infrastructure` provides the immutable read-only validator for
