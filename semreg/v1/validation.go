@@ -1571,6 +1571,10 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		// packages opt in through ContractDiscriminator so this root package does
 		// not depend on a projection, compatibility, transport, or vendor package.
 		discriminatorMember, discriminatorExpected, document := documentDiscriminator(t)
+		discriminatorValid := !document || validDiscriminatorMetadata(t, discriminatorMember, discriminatorExpected)
+		if !discriminatorValid {
+			*errors = append(*errors, errID(InvalidContract, "contract discriminator metadata"))
+		}
 		seen := map[string]bool{}
 		for _, member := range node.object {
 			field, ok := fields[member.key]
@@ -1603,6 +1607,12 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 				}
 				*errors = append(*errors, errID(id, name))
 			}
+		}
+		// Opting into a public document discriminator makes that member
+		// unconditional. A child cannot weaken it with omitempty or name a
+		// phantom field that binding would silently synthesize or discard.
+		if document && !seen[discriminatorMember] {
+			*errors = append(*errors, errID(InvalidContract, discriminatorMember))
 		}
 	case reflect.Slice:
 		if node.kind != 'a' {
@@ -1678,6 +1688,26 @@ func documentDiscriminator(t reflect.Type) (string, ContractVersion, bool) {
 		return member, expected, true
 	}
 	return "", "", false
+}
+
+func validDiscriminatorMetadata(t reflect.Type, member string, expected ContractVersion) bool {
+	if member == "" || expected.Validate() != nil {
+		return false
+	}
+	field, ok := wireField(t, member)
+	if !ok || field.PkgPath != "" || field.Type != reflect.TypeOf(ContractVersion("")) {
+		return false
+	}
+	parts := strings.Split(field.Tag.Get("json"), ",")
+	if len(parts) == 0 || parts[0] != member || parts[0] == "-" {
+		return false
+	}
+	for _, option := range parts[1:] {
+		if option == "omitempty" {
+			return false
+		}
+	}
+	return true
 }
 
 var recordInterface = reflect.TypeOf((*Record)(nil)).Elem()

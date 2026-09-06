@@ -2,6 +2,7 @@ package projection
 
 import (
 	"bytes"
+	"encoding/json"
 	"math/big"
 	"strings"
 	"unicode"
@@ -93,7 +94,7 @@ func (m ProjectionManifest) Validate() error {
 		errs = append(errs, errorf(semreg.MissingMember, "pack versions"))
 	}
 	if len(m.PackVersions) > maxProjectionPacks {
-		return ranked(append(errs, errorf(semreg.BoundsExceeded, "pack versions"))...)
+		errs = append(errs, errorf(semreg.BoundsExceeded, "pack versions"))
 	}
 	for _, pack := range m.PackVersions {
 		errs = append(errs, pack.Validate())
@@ -114,7 +115,7 @@ func (l LossDetail) Validate() error {
 		errs = append(errs, errorf(semreg.MissingMember, "loss source items"))
 	}
 	if len(l.SourceItems) > maxLossSourceItems {
-		return ranked(append(errs, errorf(semreg.BoundsExceeded, "loss source items"))...)
+		errs = append(errs, errorf(semreg.BoundsExceeded, "loss source items"))
 	}
 	for _, item := range l.SourceItems {
 		errs = append(errs, item.Validate())
@@ -136,7 +137,7 @@ func (d ProjectionDisposition) Validate() error {
 		errs = append(errs, errorf(semreg.MissingMember, "projection loss"))
 	}
 	if len(d.SourceKeys) > maxDispositionSourceKeys || len(d.Loss) > maxLossDetails {
-		return ranked(append(errs, errorf(semreg.BoundsExceeded, "projection disposition"))...)
+		errs = append(errs, errorf(semreg.BoundsExceeded, "projection disposition"))
 	}
 	for _, key := range d.SourceKeys {
 		errs = append(errs, key.Validate())
@@ -148,6 +149,11 @@ func (d ProjectionDisposition) Validate() error {
 		errs = append(errs, errorf(semreg.DuplicateKey, "projection source keys"))
 	} else if !ordered {
 		errs = append(errs, errorf(semreg.NoncanonicalOrder, "projection source keys"))
+	}
+	if duplicate, ordered := orderedLossDetails(d.Loss); duplicate {
+		errs = append(errs, errorf(semreg.DuplicateKey, "projection loss"))
+	} else if !ordered {
+		errs = append(errs, errorf(semreg.NoncanonicalOrder, "projection loss"))
 	}
 	if d.Outcome == ProjectionExact && len(d.Loss) != 0 {
 		errs = append(errs, errorf(semreg.ProjectionIncomplete, "exact projection loss"))
@@ -178,7 +184,7 @@ func (r ProjectionReport) Validate() error {
 		errs = append(errs, errorf(semreg.MissingMember, "dispositions"))
 	}
 	if len(r.Requested) > maxProjectionItems || len(r.Dispositions) > maxProjectionItems {
-		return ranked(append(errs, errorf(semreg.BoundsExceeded, "projection items"))...)
+		errs = append(errs, errorf(semreg.BoundsExceeded, "projection items"))
 	}
 	for _, requested := range r.Requested {
 		errs = append(errs, requested.Validate())
@@ -214,7 +220,7 @@ func (a CompatibilityAlias) Validate() error {
 		errs = append(errs, errorf(semreg.MissingMember, "alias evidence"))
 	}
 	if len(a.Evidence) > 32 {
-		return ranked(append(errs, errorf(semreg.BoundsExceeded, "alias evidence"))...)
+		errs = append(errs, errorf(semreg.BoundsExceeded, "alias evidence"))
 	}
 	for _, evidence := range a.Evidence {
 		errs = append(errs, evidence.Validate())
@@ -244,7 +250,7 @@ func validatePublicText(value string) error {
 		return errorf(semreg.InvalidValue, "loss description")
 	}
 	for _, runeValue := range value {
-		if unicode.IsControl(runeValue) && runeValue != '\t' && runeValue != '\n' && runeValue != '\r' {
+		if unicode.IsControl(runeValue) {
 			return errorf(semreg.InvalidValue, "loss description")
 		}
 	}
@@ -255,68 +261,90 @@ func orderedPacks(items []semreg.PackRef) (bool, bool) {
 	if len(items) < 2 {
 		return false, true
 	}
-	ordered := true
+	ordered, duplicate := true, false
 	seen := make(map[string]struct{}, len(items))
-	previous := items[0]
-	seen[string(previous.ID)+"\x00"+string(previous.Version)] = struct{}{}
-	for _, item := range items[1:] {
+	var previous semreg.PackRef
+	havePrevious := false
+	for _, item := range items {
+		if item.Validate() != nil {
+			continue
+		}
 		key := string(item.ID) + "\x00" + string(item.Version)
 		if _, exists := seen[key]; exists {
-			return true, ordered
+			duplicate = true
 		}
 		seen[key] = struct{}{}
-		comparison := strings.Compare(string(previous.ID), string(item.ID))
-		if comparison == 0 {
-			comparison = compareSemver(previous.Version, item.Version)
+		if havePrevious {
+			comparison := strings.Compare(string(previous.ID), string(item.ID))
+			if comparison == 0 {
+				comparison = compareSemver(previous.Version, item.Version)
+			}
+			if comparison > 0 {
+				ordered = false
+			}
 		}
-		if comparison > 0 {
-			ordered = false
-		}
-		previous = item
+		previous, havePrevious = item, true
 	}
-	return false, ordered
+	return duplicate, ordered
 }
 func orderedDefinitionIDs(items []semreg.DefinitionID) (bool, bool) {
-	return ordered(items, func(item semreg.DefinitionID) string { return string(item) })
+	return orderedValid(items, func(item semreg.DefinitionID) (string, bool) {
+		return string(item), item.Validate() == nil
+	})
 }
 func orderedRequested(items []RequestedItem) (bool, bool) {
-	return ordered(items, func(item RequestedItem) string { return string(item.Kind) + "\x00" + string(item.ItemID) })
+	return orderedValid(items, func(item RequestedItem) (string, bool) {
+		return string(item.Kind) + "\x00" + string(item.ItemID), item.Kind.Validate() == nil && item.ItemID.Validate() == nil
+	})
 }
 func orderedDispositions(items []ProjectionDisposition) (bool, bool) {
-	return ordered(items, func(item ProjectionDisposition) string { return string(item.Kind) + "\x00" + string(item.ItemID) })
+	return orderedValid(items, func(item ProjectionDisposition) (string, bool) {
+		return string(item.Kind) + "\x00" + string(item.ItemID), item.Kind.Validate() == nil && item.ItemID.Validate() == nil
+	})
 }
 func orderedEvidence(items []semreg.EvidenceRef) (bool, bool) {
-	return ordered(items, func(item semreg.EvidenceRef) string {
-		return string(item.Owner) + "\x00" + string(item.Kind) + "\x00" + string(item.Contract) + "\x00" + string(item.Digest)
+	return orderedValid(items, func(item semreg.EvidenceRef) (string, bool) {
+		key := string(item.Owner) + "\x00" + string(item.Kind) + "\x00" + string(item.Contract) + "\x00" + string(item.Digest)
+		valid := item.Owner.Validate() == nil && item.Kind.Validate() == nil && item.Contract.Validate() == nil && item.Digest.Validate() == nil
+		return key, valid
 	})
 }
 func orderedFactKeys(items []semreg.FactKey) (bool, bool) {
-	return ordered(items, func(item semreg.FactKey) string {
-		bytes, err := semreg.CanonicalJSON(item)
-		if err != nil {
-			return "\xff" + string(item.PackID) + "\x00" + string(item.PackVersion) + "\x00" + string(item.FactID)
-		}
-		return string(bytes)
+	return orderedValid(items, func(item semreg.FactKey) (string, bool) {
+		canonical, err := semreg.CanonicalJSON(item)
+		return string(canonical), err == nil
 	})
 }
-func ordered[T any](items []T, key func(T) string) (duplicate bool, ordered bool) {
+func orderedLossDetails(items []LossDetail) (bool, bool) {
+	return orderedValid(items, func(item LossDetail) (string, bool) {
+		duplicate, ordered := orderedDefinitionIDs(item.SourceItems)
+		valid := item.Kind.Validate() == nil && item.SourceItems != nil && len(item.SourceItems) <= maxLossSourceItems &&
+			!duplicate && ordered && validatePublicText(item.Description) == nil
+		canonicalSourceItems, err := json.Marshal(item.SourceItems)
+		return string(item.Kind) + "\x00" + string(canonicalSourceItems) + "\x00" + item.Description, valid && err == nil
+	})
+}
+func orderedValid[T any](items []T, key func(T) (string, bool)) (duplicate bool, ordered bool) {
 	ordered = true
 	if len(items) < 2 {
 		return false, true
 	}
-	previous := key(items[0])
+	var previous string
+	havePrevious := false
 	seen := make(map[string]struct{}, len(items))
-	seen[previous] = struct{}{}
-	for _, item := range items[1:] {
-		current := key(item)
+	for _, item := range items {
+		current, valid := key(item)
+		if !valid {
+			continue
+		}
 		if _, exists := seen[current]; exists {
 			duplicate = true
 		}
 		seen[current] = struct{}{}
-		if bytes.Compare([]byte(previous), []byte(current)) > 0 {
+		if havePrevious && bytes.Compare([]byte(previous), []byte(current)) > 0 {
 			ordered = false
 		}
-		previous = current
+		previous, havePrevious = current, true
 	}
 	return duplicate, ordered
 }

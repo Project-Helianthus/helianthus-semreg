@@ -17,6 +17,10 @@ func collectionKeyFields(t reflect.Type) []string {
 		return []string{"source_id", "source_epoch_id", "driver_generation", "binding_id"}
 	case reflect.TypeOf(DefinitionRef{}):
 		return []string{"id", "version"}
+	case reflect.TypeOf(PackRef{}):
+		return []string{"id", "version"}
+	case reflect.TypeOf(FactKey{}):
+		return []string{"pack_id", "pack_version", "fact_id", "dimensions"}
 	case reflect.TypeOf(Symbol{}):
 		return []string{"namespace", "token"}
 	case reflect.TypeOf(Dimension{}), reflect.TypeOf(TypedField{}):
@@ -50,6 +54,9 @@ func wireField(t reflect.Type, name string) (reflect.StructField, bool) {
 }
 
 func collectionKeyValid(v reflect.Value) bool {
+	if v.Type() == reflect.TypeOf(FactKey{}) {
+		return v.Interface().(FactKey).Validate() == nil
+	}
 	fields := collectionKeyFields(v.Type())
 	if len(fields) == 0 {
 		if record, ok := v.Interface().(Record); ok {
@@ -81,6 +88,19 @@ func collectionCompare(a, b reflect.Value) int {
 		return compareSourcePath(av, b.Interface().(SourcePathRef))
 	case DefinitionRef:
 		return compareDefinition(av, b.Interface().(DefinitionRef))
+	case PackRef:
+		bv := b.Interface().(PackRef)
+		if cmp := strings.Compare(string(av.ID), string(bv.ID)); cmp != 0 {
+			return cmp
+		}
+		if cmp, ok := compareSemver(av.Version, bv.Version); ok {
+			return cmp
+		}
+		return strings.Compare(string(av.Version), string(bv.Version))
+	case FactKey:
+		ak, _ := factKeyIdentity(av)
+		bk, _ := factKeyIdentity(b.Interface().(FactKey))
+		return strings.Compare(ak, bk)
 	case FactEnvelope:
 		return compareEnvelope(av, b.Interface().(FactEnvelope))
 	}
@@ -104,6 +124,10 @@ func collectionKey(v reflect.Value) string {
 	}
 	if v.Type() == reflect.TypeOf(FactEnvelope{}) {
 		key, _ := factKeyIdentity(v.Interface().(FactEnvelope).Key)
+		return key
+	}
+	if v.Type() == reflect.TypeOf(FactKey{}) {
+		key, _ := factKeyIdentity(v.Interface().(FactKey))
 		return key
 	}
 	var parts []string
