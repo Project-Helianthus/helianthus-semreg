@@ -46,11 +46,17 @@ func collectionKeyFields(t reflect.Type) []string {
 func wireField(t reflect.Type, name string) (reflect.StructField, bool) {
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		if strings.Split(f.Tag.Get("json"), ",")[0] == name {
+		fieldName, bindable := effectiveJSONFieldName(f)
+		if bindable && fieldName == name {
 			return f, true
 		}
 	}
 	return reflect.StructField{}, false
+}
+
+func uniqueWireField(t reflect.Type, name string) (reflect.StructField, bool) {
+	field, found := uniqueEffectiveJSONFields(t)[name]
+	return field, found
 }
 
 func collectionKeyValid(v reflect.Value) bool {
@@ -300,14 +306,14 @@ func wireCollectionIdentity(element reflect.Type) ([]string, bool) {
 	}
 	seen := make(map[string]struct{}, len(fields))
 	for _, name := range fields {
-		if name == "" {
+		if name == "" || !validJSONTagName(name) {
 			return nil, false
 		}
 		if _, duplicate := seen[name]; duplicate {
 			return nil, false
 		}
 		seen[name] = struct{}{}
-		field, found := wireField(element, name)
+		field, found := uniqueWireField(element, name)
 		if !found || field.PkgPath != "" || field.Anonymous {
 			return nil, false
 		}

@@ -352,11 +352,19 @@ func TestCorrectionChildPartialWireDiagnostics(t *testing.T) {
 }
 
 func TestCorrectionMissingManifestKernelRemainsMissingMember(t *testing.T) {
-	raw := []byte(`{"target_id":"target:test","target_version":"v1","pack_versions":[],"mapping_revision":"1"}`)
-	decoded, err := semreg.Decode[projection.ProjectionManifest](raw)
-	correctionError(t, err, semreg.MissingMember)
-	if !reflect.DeepEqual(decoded, projection.ProjectionManifest{}) {
-		t.Fatalf("rejected manifest returned partial result: %+v", decoded)
+	for _, tc := range []struct {
+		raw  []byte
+		want semreg.ErrorID
+	}{
+		{[]byte(`{"target_id":"target:test","target_version":"v1","pack_versions":[],"mapping_revision":"1"}`), semreg.MissingMember},
+		{[]byte(`{"kernel_version":null,"target_id":"target:test","target_version":"v1","pack_versions":[],"mapping_revision":"1"}`), semreg.MissingMember},
+		{[]byte(`{"kernel_version":9,"target_id":"target:test","target_version":"v1","pack_versions":[],"mapping_revision":"1"}`), semreg.InvalidContract},
+	} {
+		decoded, err := semreg.Decode[projection.ProjectionManifest](tc.raw)
+		correctionError(t, err, tc.want)
+		if !reflect.DeepEqual(decoded, projection.ProjectionManifest{}) {
+			t.Fatalf("rejected manifest returned partial result: %+v", decoded)
+		}
 	}
 }
 

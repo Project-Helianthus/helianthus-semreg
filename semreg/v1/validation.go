@@ -1563,17 +1563,8 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 			t        reflect.Type
 			optional bool
 		}{}
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			tag := field.Tag.Get("json")
-			if tag == "-" {
-				continue
-			}
-			parts := strings.Split(tag, ",")
-			name := parts[0]
-			if name == "" {
-				name = field.Name
-			}
+		for name, field := range uniqueEffectiveJSONFields(t) {
+			parts := strings.Split(field.Tag.Get("json"), ",")
 			optional := false
 			for _, part := range parts[1:] {
 				if part == "omitempty" {
@@ -1726,11 +1717,8 @@ func validDiscriminatorMetadata(t reflect.Type, member string, expected Contract
 		if candidate.PkgPath != "" {
 			continue
 		}
-		name := strings.Split(candidate.Tag.Get("json"), ",")[0]
-		if name == "" {
-			name = candidate.Name
-		}
-		if name != member {
+		name, bindable := effectiveJSONFieldName(candidate)
+		if !bindable || name != member {
 			continue
 		}
 		if found {
@@ -1742,7 +1730,7 @@ func validDiscriminatorMetadata(t reflect.Type, member string, expected Contract
 		return false
 	}
 	parts := strings.Split(field.Tag.Get("json"), ",")
-	if len(parts) == 0 || parts[0] != member || parts[0] == "-" || !validJSONTagName(parts[0]) {
+	if len(parts) == 0 || parts[0] != member || field.Tag.Get("json") == "-" || !validJSONTagName(parts[0]) {
 		return false
 	}
 	for _, option := range parts[1:] {
@@ -1766,6 +1754,43 @@ func validJSONTagName(name string) bool {
 		}
 	}
 	return true
+}
+
+func effectiveJSONFieldName(field reflect.StructField) (string, bool) {
+	if field.PkgPath != "" {
+		return "", false
+	}
+	tag := field.Tag.Get("json")
+	if tag == "-" {
+		return "", false
+	}
+	name := strings.Split(tag, ",")[0]
+	if name == "" || !validJSONTagName(name) {
+		name = field.Name
+	}
+	return name, true
+}
+
+func uniqueEffectiveJSONFields(t reflect.Type) map[string]reflect.StructField {
+	fields := make(map[string]reflect.StructField, t.NumField())
+	ambiguous := make(map[string]struct{})
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		name, bindable := effectiveJSONFieldName(field)
+		if !bindable {
+			continue
+		}
+		if _, rejected := ambiguous[name]; rejected {
+			continue
+		}
+		if _, found := fields[name]; found {
+			delete(fields, name)
+			ambiguous[name] = struct{}{}
+			continue
+		}
+		fields[name] = field
+	}
+	return fields
 }
 
 func discriminatorWireErrors(node jsonNode, t reflect.Type) []error {
@@ -1800,6 +1825,9 @@ func fixedContractWireErrors(node jsonNode, t reflect.Type) []error {
 	}
 	value, present := nodeMember(node, member)
 	if !present {
+		return nil
+	}
+	if value.kind == 'n' {
 		return nil
 	}
 	stringValue, ok := value.scalar.(string)
@@ -1848,12 +1876,8 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	switch t.Kind() {
 	case reflect.Struct:
 		fields := map[string]reflect.Type{}
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			name := strings.Split(field.Tag.Get("json"), ",")[0]
-			if name != "" && name != "-" {
-				fields[name] = field.Type
-			}
+		for name, field := range uniqueEffectiveJSONFields(t) {
+			fields[name] = field.Type
 		}
 		for _, member := range node.object {
 			if fieldType, ok := fields[member.key]; ok {
