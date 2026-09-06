@@ -217,6 +217,14 @@ func duplicateAndOrder[T any](items []T, compare func(T, T) int) (bool, bool) {
 
 type Record interface{ Validate() error }
 
+// ContractDiscriminator identifies the required contract-bearing member for a
+// public document implemented by a versioned child package. It lets Decode
+// retain its strict, pre-binding discriminator validation without creating an
+// import from the protocol-neutral root package to a child package.
+type ContractDiscriminator interface {
+	ContractDiscriminator() (member string, expected ContractVersion)
+}
+
 func (v ContractVersion) Validate() error {
 	if !validContract(v) {
 		return errID(InvalidContract, "contract")
@@ -1559,8 +1567,10 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 			}{field.Type, optional}
 		}
 		// Only public document records own a contract discriminator. A decoded
-		// EvidenceRef still treats contract as ordinary required metadata.
-		document := t == reflect.TypeOf(PublicationBatch{}) || t == reflect.TypeOf(Snapshot{}) || t == reflect.TypeOf(EvaluationView{}) || t == reflect.TypeOf(Selection{})
+		// EvidenceRef still treats contract as ordinary required metadata. Child
+		// packages opt in through ContractDiscriminator so this root package does
+		// not depend on a projection, compatibility, transport, or vendor package.
+		discriminatorMember, discriminatorExpected, document := documentDiscriminator(t)
 		seen := map[string]bool{}
 		for _, member := range node.object {
 			field, ok := fields[member.key]
@@ -1569,16 +1579,10 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 				continue
 			}
 			seen[member.key] = true
-			if document && member.key == "contract" {
+			if document && member.key == discriminatorMember {
 				value, ok := member.value.scalar.(string)
-				expected := ContractKernelV1
-				if t == reflect.TypeOf(EvaluationView{}) {
-					expected = ContractEvaluationV1
-				} else if t == reflect.TypeOf(Selection{}) {
-					expected = ContractSelectionV1
-				}
-				if member.value.kind != 's' || !ok || ContractVersion(value) != expected {
-					*errors = append(*errors, errID(InvalidContract, "contract"))
+				if member.value.kind != 's' || !ok || ContractVersion(value) != discriminatorExpected {
+					*errors = append(*errors, errID(InvalidContract, discriminatorMember))
 				}
 				continue
 			}
@@ -1594,7 +1598,7 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		for name, field := range fields {
 			if !field.optional && !seen[name] {
 				id := MissingMember
-				if document && name == "contract" {
+				if document && name == discriminatorMember {
 					id = InvalidContract
 				}
 				*errors = append(*errors, errID(id, name))
@@ -1654,6 +1658,26 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 	default:
 		*errors = append(*errors, errID(InvalidValue, "unsupported wire type"))
 	}
+}
+
+func documentDiscriminator(t reflect.Type) (string, ContractVersion, bool) {
+	switch t {
+	case reflect.TypeOf(PublicationBatch{}), reflect.TypeOf(Snapshot{}):
+		return "contract", ContractKernelV1, true
+	case reflect.TypeOf(EvaluationView{}):
+		return "contract", ContractEvaluationV1, true
+	case reflect.TypeOf(Selection{}):
+		return "contract", ContractSelectionV1, true
+	}
+	if reflect.PointerTo(t).Implements(reflect.TypeOf((*ContractDiscriminator)(nil)).Elem()) {
+		member, expected := reflect.New(t).Interface().(ContractDiscriminator).ContractDiscriminator()
+		return member, expected, true
+	}
+	if t.Implements(reflect.TypeOf((*ContractDiscriminator)(nil)).Elem()) {
+		member, expected := reflect.Zero(t).Interface().(ContractDiscriminator).ContractDiscriminator()
+		return member, expected, true
+	}
+	return "", "", false
 }
 
 var recordInterface = reflect.TypeOf((*Record)(nil)).Elem()

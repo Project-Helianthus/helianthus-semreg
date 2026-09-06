@@ -18,8 +18,13 @@ Its source manifest pins both that commit and the exact corrected
 snapshot, evaluation, selection, and named mutation inputs.
 
 Three foundation vector operations remain deferred: K-NEG-014, K-NEG-015, and K-NEG-048.
-Projection and compatibility-alias runtimes remain separate work; these
-fixtures do not claim INT-05 or full runtime completion.
+[`v1/projection-compatibility-vectors.json`](v1/projection-compatibility-vectors.json)
+copies exactly K-POS-016, K-POS-017, K-NEG-024, K-NEG-025, and K-NEG-037 from
+the accepted semantic v1 source, with immutable source commit, path, SHA-256,
+selection, and count metadata. The projection package runs each through its
+public report or alias boundary with exact accept/reject assertions. It covers
+the protocol-neutral base records only; it does not claim a mapping, native
+route, or INT-05 completion.
 
 [`v1/publication-vectors.json`](v1/publication-vectors.json) pins deterministic
 publication scenarios to the same accepted documentation revision. The matching
@@ -53,9 +58,10 @@ records. Its selection and compatibility-alias admission methods only reject
 those presentation inputs with their accepted stable errors; they do not add
 selection, alias, or native-routing authority.
 
-Projection, compatibility aliases, production capability packs and product or
-gateway integration remain follow-ons. The operation fixture increment does not
-claim INT-05, a software 0.7 release, hardware readiness or physical validation.
+Production capability packs, normative Matter/eeBUS/native mappings, Portal,
+gateway/consumer integration, persistence, INT-06 lifecycle ownership, full
+INT-05, software 0.7, security review, hardware readiness, and physical
+validation remain separate work.
 
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must

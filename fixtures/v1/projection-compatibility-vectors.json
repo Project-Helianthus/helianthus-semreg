@@ -1,0 +1,198 @@
+{
+  "contract": "helianthus.semantic.kernel.acceptance/v1",
+  "source": {
+    "repository": "Project-Helianthus/helianthus-docs-semantic",
+    "commit": "da5ab4415d3bec73f9572aec1c495a6cdcbcba47",
+    "path": "api/v1/acceptance-vectors.json",
+    "sha256": "51a177ce08e478cd9b003c213813abcf6e969ce1dc4cff4b276f7a2d480344f8",
+    "selection": "K-POS-016,K-POS-017,K-NEG-024,K-NEG-025,K-NEG-037",
+    "count": 5
+  },
+  "vectors": [
+    {
+      "id": "K-POS-016",
+      "polarity": "positive",
+      "record_type": "ProjectionReport",
+      "operation": "project",
+      "coverage": [
+        "projection",
+        "lineage"
+      ],
+      "input": {
+        "requested": [
+          {
+            "kind": "capability",
+            "item_id": "helianthus.storage.power_limit"
+          },
+          {
+            "kind": "fact",
+            "item_id": "helianthus.pv.active_power"
+          },
+          {
+            "kind": "operation",
+            "item_id": "helianthus.storage.power_limit"
+          }
+        ],
+        "dispositions": [
+          {
+            "kind": "capability",
+            "item_id": "helianthus.storage.power_limit",
+            "outcome": "exact",
+            "source_keys": [],
+            "loss": []
+          },
+          {
+            "kind": "fact",
+            "item_id": "helianthus.pv.active_power",
+            "outcome": "transformed",
+            "source_keys": [
+              "pv-power-key"
+            ],
+            "loss": [
+              {
+                "kind": "precision",
+                "reversible": false
+              }
+            ]
+          },
+          {
+            "kind": "operation",
+            "item_id": "helianthus.storage.power_limit",
+            "outcome": "withheld",
+            "source_keys": [],
+            "loss": [],
+            "reason": "policy.operation_withheld"
+          }
+        ],
+        "snapshot_revision": "12",
+        "causal_preserved": true
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "one_disposition_per_kind_and_item_id",
+          "equal_item_ids_remain_distinct_across_kinds",
+          "precision_loss_visible",
+          "snapshot_revision_preserved"
+        ]
+      },
+      "criterion": "Each requested (kind,item_id) tuple is accounted independently, including equal IDs under capability and operation."
+    },
+    {
+      "id": "K-POS-017",
+      "polarity": "positive",
+      "record_type": "CompatibilityAlias",
+      "operation": "validate",
+      "coverage": [
+        "compatibility",
+        "identity"
+      ],
+      "input": {
+        "alias_contract": "helianthus.semantic.alias/v1",
+        "legacy_id": "Service:/HeatGenerator:1",
+        "asset_id": "asset:heat-pump:01",
+        "valid_from": "1.0.0",
+        "routable": false,
+        "evidence_count": 1
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "legacy_read_identity_preserved",
+          "alias_cannot_route"
+        ]
+      },
+      "criterion": "A versioned legacy ID remains readable while operation routing stays bound to native capability instances."
+    },
+    {
+      "id": "K-NEG-024",
+      "polarity": "negative",
+      "record_type": "ProjectionReport",
+      "operation": "project",
+      "coverage": [
+        "projection"
+      ],
+      "input": {
+        "requested": [
+          {
+            "kind": "capability",
+            "item_id": "helianthus.storage.power_limit"
+          },
+          {
+            "kind": "operation",
+            "item_id": "helianthus.storage.power_limit"
+          }
+        ],
+        "dispositions": [
+          {
+            "kind": "capability",
+            "item_id": "helianthus.storage.power_limit",
+            "outcome": "exact"
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "projection_incomplete",
+        "state_unchanged": true
+      },
+      "criterion": "Equal item IDs under different kinds still require two exact tuple dispositions."
+    },
+    {
+      "id": "K-NEG-025",
+      "polarity": "negative",
+      "record_type": "CompatibilityAlias",
+      "operation": "admit",
+      "coverage": [
+        "compatibility",
+        "identity",
+        "operation"
+      ],
+      "input": {
+        "legacy_id": "Service:/HeatGenerator:1",
+        "routable": true,
+        "requested_action": "select_binding"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "alias_not_routable",
+        "state_unchanged": true
+      },
+      "criterion": "A legacy public identity cannot become a native endpoint or route."
+    },
+    {
+      "id": "K-NEG-037",
+      "polarity": "negative",
+      "record_type": "ProjectionReport",
+      "operation": "project",
+      "coverage": [
+        "projection"
+      ],
+      "input": {
+        "requested": [
+          {
+            "kind": "capability",
+            "item_id": "helianthus.storage.power_limit"
+          },
+          {
+            "kind": "operation",
+            "item_id": "helianthus.storage.power_limit"
+          }
+        ],
+        "dispositions": [
+          {
+            "kind": "capability",
+            "item_id": "helianthus.storage.power_limit",
+            "outcome": "exact"
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "projection_incomplete",
+        "state_unchanged": true
+      },
+      "criterion": "A capability disposition cannot also account for the equal operation item ID."
+    }
+  ]
+}

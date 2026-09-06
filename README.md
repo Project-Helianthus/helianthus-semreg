@@ -4,7 +4,7 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
-## Implemented v1 foundation, publication, evaluation, selection, and operations
+## Implemented v1 foundation, publication, evaluation, selection, operations, and projection
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
 [`helianthus-docs-semantic` contract at da5ab44](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/da5ab4415d3bec73f9572aec1c495a6cdcbcba47/api/v1).
@@ -35,6 +35,12 @@ It provides:
   native owner; append-only terminal evidence; and intent/outcome idempotency
   with configurable bounded, fail-closed in-memory retention without claiming
   durable native replay safety.
+- `semreg/v1/projection`, which provides the accepted v1 projection manifest,
+  requested-item, loss, disposition, snapshot/revision-bound report, and
+  compatibility-alias records. `Project` is a pure detached report constructor:
+  it validates complete tuple accounting and explicit loss/reason semantics but
+  creates no semantic facts, capabilities, authority, intents, bindings, or
+  routes. Compatibility aliases remain non-routable.
 
 `NewKernelWithOptions` selects the bounded in-memory idempotency capacity;
 `RecordRejection` retains structurally valid rejected intent bytes without
@@ -74,9 +80,10 @@ harness. The subsets are pinned to the accepted docs commit and exact source-fil
 SHA-256. Passing these checks does not establish all runtime acceptance
 criteria.
 
-Projection, compatibility aliases, production capability packs/mappings,
-persistence, migrations and gateway/product integration remain follow-on work.
-This operation increment does not establish INT-05 completion, a software 0.7
+Production capability packs and mappings, normative Matter/eeBUS/native
+dispositions, Portal/gateway/consumer composition, persistence and migrations
+remain follow-on work. This base projection/compatibility increment does not
+establish INT-06 lifecycle ownership, full INT-05 completion, a software 0.7
 release, hardware readiness, physical validation, release-level security review
 or software-release acceptance.
 
@@ -85,8 +92,7 @@ or software-release acceptance.
 The repository's ownership includes protocol-neutral semantic contracts and
 compatibility fixtures. The implementation preserves native evidence,
 alternatives, conflicts and unknown values; operation and projection runtime
-remain separated from native transport and gateway ownership. Projection and
-compatibility-alias implementation remain future scoped work.
+remain separated from native transport and gateway ownership.
 
 It does not own transport framing or I/O, protocol lifecycle, vendor/profile
 qualification, native decoding or identity, raw evidence capture, gateway
