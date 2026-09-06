@@ -3,6 +3,16 @@
 This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
+[`v1/storage-bms-pack-vectors.json`](v1/storage-bms-pack-vectors.json) and
+[`v1/storage-bms-contract-tables.json`](v1/storage-bms-contract-tables.json)
+are byte-for-byte copies from accepted
+`helianthus-docs-semantic@c20fdef000fe95df95fca60c55d651a0614c4efd` for
+`helianthus.pack.storage@1.1.0`; their SHA-256 values are respectively
+`f78906f336973c5fbe44bbf40d9ad9715c043b3c6421cf2d7ec0a5ce68f79146` and
+`3bde31cbc59ff3e2ea19408f3bfb09210837e7df20a692593e5c261bc48b032f`.
+They define semantic evidence only and do not create native qualification,
+mapping, a route, authority, or live operation.
+
 [`v1/evse-pack-vectors.json`](v1/evse-pack-vectors.json) is a byte-for-byte
 copy of `api/v1/packs/evse-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.

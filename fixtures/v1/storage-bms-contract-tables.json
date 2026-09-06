@@ -1,0 +1,916 @@
+{
+  "capabilities": [
+    {
+      "field_ids": [
+        "storage.state.soc",
+        "storage.state.soh",
+        "storage.pack.voltage",
+        "storage.pack.current",
+        "storage.pack.power",
+        "storage.energy.charged",
+        "storage.energy.discharged",
+        "storage.capacity.charge",
+        "storage.capacity.discharge",
+        "storage.temperature.pack",
+        "storage.status.operating",
+        "storage.status.alarm",
+        "storage.status.protection",
+        "storage.status.warning"
+      ],
+      "id": "storage.capability.read.pack",
+      "operation": null,
+      "order": 10,
+      "service": "storage.service.pack"
+    },
+    {
+      "field_ids": [
+        "storage.temperature.cell",
+        "storage.cell.voltage_minimum",
+        "storage.cell.voltage_maximum"
+      ],
+      "id": "storage.capability.read.cell",
+      "operation": null,
+      "order": 20,
+      "service": "storage.service.cell"
+    },
+    {
+      "binding": "qualified_current_semantic_evidence",
+      "field_ids": [
+        "storage.limit.charge_power",
+        "storage.limit.discharge_power",
+        "storage.status.interlock"
+      ],
+      "id": "storage.capability.read.interface",
+      "operation": null,
+      "order": 30,
+      "service": "storage.service.interface"
+    },
+    {
+      "field_ids": [
+        "storage.limit.charge_power"
+      ],
+      "id": "storage.capability.set_charge_limit",
+      "operation": "storage.operation.set_charge_limit",
+      "order": 40,
+      "service": "storage.service.interface"
+    },
+    {
+      "field_ids": [
+        "storage.limit.discharge_power"
+      ],
+      "id": "storage.capability.set_discharge_limit",
+      "operation": "storage.operation.set_discharge_limit",
+      "order": 50,
+      "service": "storage.service.interface"
+    }
+  ],
+  "contract": "helianthus.pack.storage.tables/v1",
+  "definition_index": {
+    "capabilities": [
+      {
+        "id": "storage.capability.read.cell",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.capability.read.interface",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.capability.read.pack",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.capability.set_charge_limit",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.capability.set_discharge_limit",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      }
+    ],
+    "effect_rules": [
+      {
+        "id": "storage.effect.set_charge_limit",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.effect.set_discharge_limit",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      }
+    ],
+    "fields": [
+      {
+        "id": "storage.capacity.charge",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.capacity.discharge",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.cell.voltage_maximum",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.cell.voltage_minimum",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.energy.charged",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.energy.discharged",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.limit.charge_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.limit.discharge_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.pack.current",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.pack.power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.pack.voltage",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.state.soc",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.state.soh",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.status.alarm",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.status.interlock",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.status.operating",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.status.protection",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.status.warning",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.temperature.cell",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.temperature.pack",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      }
+    ],
+    "operations": [
+      {
+        "id": "storage.operation.set_charge_limit",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.operation.set_discharge_limit",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      }
+    ],
+    "pack": {
+      "id": "helianthus.pack.storage",
+      "version": "1.1.0"
+    },
+    "services": [
+      {
+        "id": "storage.service.battery",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.service.cell",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.service.interface",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.service.module",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.service.pack",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.service.string",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.service.system",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      }
+    ]
+  },
+  "effects": [
+    {
+      "comparator": "equal",
+      "fact_key_dimensions": [
+        "storage.dimension.interface"
+      ],
+      "field": "storage.limit.charge_power",
+      "id": "storage.effect.set_charge_limit",
+      "operation": "storage.operation.set_charge_limit",
+      "order": 10
+    },
+    {
+      "comparator": "equal",
+      "fact_key_dimensions": [
+        "storage.dimension.interface"
+      ],
+      "field": "storage.limit.discharge_power",
+      "id": "storage.effect.set_discharge_limit",
+      "operation": "storage.operation.set_discharge_limit",
+      "order": 20
+    }
+  ],
+  "field_specs": [
+    {
+      "bounds": {
+        "maximum": {
+          "coefficient": "1",
+          "exponent10": 2
+        },
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.state.soc",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.percent"
+    },
+    {
+      "bounds": {
+        "maximum": {
+          "coefficient": "1",
+          "exponent10": 2
+        },
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.state.soh",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.percent"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.pack.voltage",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.volt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.pack.current",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.ampere"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.pack.power",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.watt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.energy.charged",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.kilowatt_hour"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.energy.discharged",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.kilowatt_hour"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.capacity.charge",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.ampere_hour"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.capacity.discharge",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.ampere_hour"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.temperature.pack",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.celsius"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.cell",
+      "id": "storage.temperature.cell",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.celsius"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.cell",
+      "id": "storage.cell.voltage_minimum",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.volt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.cell",
+      "id": "storage.cell.voltage_maximum",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.volt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.interface",
+      "id": "storage.limit.charge_power",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.watt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.interface",
+      "id": "storage.limit.discharge_power",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.watt"
+    },
+    {
+      "dimension": "storage.dimension.pack",
+      "id": "storage.status.operating",
+      "kind": "symbol",
+      "optional": true,
+      "symbols": [
+        "storage.status.operating.active",
+        "storage.status.operating.idle",
+        "storage.status.operating.standby"
+      ]
+    },
+    {
+      "dimension": "storage.dimension.pack",
+      "id": "storage.status.alarm",
+      "kind": "symbol",
+      "optional": true,
+      "symbols": [
+        "storage.status.alarm.clear",
+        "storage.status.alarm.present"
+      ]
+    },
+    {
+      "dimension": "storage.dimension.pack",
+      "id": "storage.status.protection",
+      "kind": "symbol",
+      "optional": true,
+      "symbols": [
+        "storage.status.protection.active",
+        "storage.status.protection.clear"
+      ]
+    },
+    {
+      "dimension": "storage.dimension.pack",
+      "id": "storage.status.warning",
+      "kind": "symbol",
+      "optional": true,
+      "symbols": [
+        "storage.status.warning.clear",
+        "storage.status.warning.present"
+      ]
+    },
+    {
+      "dimension": "storage.dimension.interface",
+      "id": "storage.status.interlock",
+      "kind": "symbol",
+      "optional": true,
+      "symbols": [
+        "storage.status.interlock.active",
+        "storage.status.interlock.clear"
+      ]
+    }
+  ],
+  "interlock_fail_closed_states": [
+    "missing",
+    "active",
+    "stale",
+    "unknown",
+    "unqualified",
+    "unpromoted",
+    "degraded",
+    "unavailable",
+    "withdrawn",
+    "conflicting"
+  ],
+  "operations": [
+    {
+      "acknowledgement": "native_acknowledgement",
+      "canonical_interlock_predicate": {
+        "cardinality": "exactly_one",
+        "definition": {
+          "id": "storage.status.interlock",
+          "pack": {
+            "id": "helianthus.pack.storage",
+            "version": "1.1.0"
+          },
+          "version": "1.1.0"
+        },
+        "expected_value": {
+          "kind": "symbol",
+          "symbol": {
+            "known": true,
+            "namespace": "storage.status.interlock",
+            "token": "clear"
+          }
+        },
+        "fact_key_dimensions": [
+          "storage.dimension.interface"
+        ],
+        "operator": "equal"
+      },
+      "capability": "storage.capability.set_charge_limit",
+      "dispatch": "admitted_exact_native_route",
+      "effect": "storage.effect.set_charge_limit",
+      "id": "storage.operation.set_charge_limit",
+      "input": "storage.limit.charge_power",
+      "order": 10,
+      "preconditions": [
+        "current_generation",
+        "qualified_active_capability",
+        "exact_route",
+        "authority_admitted",
+        "canonical_interlock_predicate"
+      ],
+      "readback": "current_generation_exact_effect",
+      "retry": "forbidden_after_possible_side_effect_or_indeterminate",
+      "terminal_outcomes": [
+        "rejected",
+        "failed_no_contact",
+        "acknowledged_unverified",
+        "applied",
+        "no_effect",
+        "conflict",
+        "indeterminate"
+      ]
+    },
+    {
+      "acknowledgement": "native_acknowledgement",
+      "canonical_interlock_predicate": {
+        "cardinality": "exactly_one",
+        "definition": {
+          "id": "storage.status.interlock",
+          "pack": {
+            "id": "helianthus.pack.storage",
+            "version": "1.1.0"
+          },
+          "version": "1.1.0"
+        },
+        "expected_value": {
+          "kind": "symbol",
+          "symbol": {
+            "known": true,
+            "namespace": "storage.status.interlock",
+            "token": "clear"
+          }
+        },
+        "fact_key_dimensions": [
+          "storage.dimension.interface"
+        ],
+        "operator": "equal"
+      },
+      "capability": "storage.capability.set_discharge_limit",
+      "dispatch": "admitted_exact_native_route",
+      "effect": "storage.effect.set_discharge_limit",
+      "id": "storage.operation.set_discharge_limit",
+      "input": "storage.limit.discharge_power",
+      "order": 20,
+      "preconditions": [
+        "current_generation",
+        "qualified_active_capability",
+        "exact_route",
+        "authority_admitted",
+        "canonical_interlock_predicate"
+      ],
+      "readback": "current_generation_exact_effect",
+      "retry": "forbidden_after_possible_side_effect_or_indeterminate",
+      "terminal_outcomes": [
+        "rejected",
+        "failed_no_contact",
+        "acknowledged_unverified",
+        "applied",
+        "no_effect",
+        "conflict",
+        "indeterminate"
+      ]
+    }
+  ],
+  "portal_contributions": [
+    {
+      "capability": "storage.capability.read.pack",
+      "fields": [
+        "storage.state.soc",
+        "storage.state.soh",
+        "storage.pack.voltage",
+        "storage.pack.current",
+        "storage.pack.power",
+        "storage.energy.charged",
+        "storage.energy.discharged",
+        "storage.capacity.charge",
+        "storage.capacity.discharge",
+        "storage.temperature.pack",
+        "storage.status.operating",
+        "storage.status.alarm",
+        "storage.status.protection",
+        "storage.status.warning"
+      ],
+      "id": "storage.portal.read.pack",
+      "order": 10,
+      "service": "storage.service.pack"
+    },
+    {
+      "capability": "storage.capability.read.cell",
+      "fields": [
+        "storage.temperature.cell",
+        "storage.cell.voltage_minimum",
+        "storage.cell.voltage_maximum"
+      ],
+      "id": "storage.portal.read.cell",
+      "order": 20,
+      "service": "storage.service.cell"
+    },
+    {
+      "capability": "storage.capability.read.interface",
+      "fields": [
+        "storage.limit.charge_power",
+        "storage.limit.discharge_power",
+        "storage.status.interlock"
+      ],
+      "id": "storage.portal.read.interface",
+      "order": 30,
+      "service": "storage.service.interface"
+    },
+    {
+      "admission": "current_generation_and_admitted_authority_only",
+      "capability": "storage.capability.set_charge_limit",
+      "id": "storage.portal.operation.charge",
+      "operation": "storage.operation.set_charge_limit",
+      "order": 40,
+      "service": "storage.service.interface"
+    },
+    {
+      "admission": "current_generation_and_admitted_authority_only",
+      "capability": "storage.capability.set_discharge_limit",
+      "id": "storage.portal.operation.discharge",
+      "operation": "storage.operation.set_discharge_limit",
+      "order": 50,
+      "service": "storage.service.interface"
+    }
+  ],
+  "relationships": [
+    {
+      "cardinality": "one_to_many",
+      "id": "storage.relationship.system_battery",
+      "order": 10,
+      "source": "storage.service.system",
+      "target": "storage.service.battery"
+    },
+    {
+      "cardinality": "one_to_many",
+      "id": "storage.relationship.battery_pack",
+      "order": 20,
+      "source": "storage.service.battery",
+      "target": "storage.service.pack"
+    },
+    {
+      "cardinality": "one_to_many",
+      "id": "storage.relationship.pack_module",
+      "order": 30,
+      "source": "storage.service.pack",
+      "target": "storage.service.module"
+    },
+    {
+      "cardinality": "one_to_many",
+      "id": "storage.relationship.module_cell",
+      "order": 40,
+      "source": "storage.service.module",
+      "target": "storage.service.cell"
+    },
+    {
+      "cardinality": "one_to_many",
+      "id": "storage.relationship.pack_string",
+      "order": 50,
+      "source": "storage.service.pack",
+      "target": "storage.service.string"
+    },
+    {
+      "cardinality": "one_to_many",
+      "id": "storage.relationship.pack_interface",
+      "order": 60,
+      "source": "storage.service.pack",
+      "target": "storage.service.interface"
+    }
+  ],
+  "services": [
+    {
+      "dimension": "storage.dimension.system",
+      "id": "storage.service.system",
+      "order": 10
+    },
+    {
+      "dimension": "storage.dimension.battery",
+      "id": "storage.service.battery",
+      "order": 20
+    },
+    {
+      "dimension": "storage.dimension.pack",
+      "id": "storage.service.pack",
+      "order": 30
+    },
+    {
+      "dimension": "storage.dimension.module",
+      "id": "storage.service.module",
+      "order": 40
+    },
+    {
+      "dimension": "storage.dimension.cell",
+      "id": "storage.service.cell",
+      "order": 50
+    },
+    {
+      "dimension": "storage.dimension.string",
+      "id": "storage.service.string",
+      "order": 60
+    },
+    {
+      "dimension": "storage.dimension.interface",
+      "id": "storage.service.interface",
+      "order": 70
+    }
+  ],
+  "supersession": {
+    "operation_use": "superseded_non_implementable",
+    "reason": "required_interlock_not_machine_identifiable",
+    "superseded_pack_ref": {
+      "id": "helianthus.pack.storage",
+      "version": "1.0.0"
+    }
+  }
+}
