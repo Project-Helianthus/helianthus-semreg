@@ -4,6 +4,24 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
+## EVSE capability pack v1
+
+`semreg/v1/packs/evse` implements the immutable
+`helianthus.pack.evse@1.0.0` validator from
+[`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
+It indexes 15 field contracts, six static dimensions, five services, six
+capabilities, one allocated-current operation/effect pair, five static
+relationships, and six Portal descriptors. It validates exact qualified,
+available capability constraints and exact allocated-current argument matching
+through the existing operation kernel; it does not implement topology
+instances, native mappings, Tesla sending or routes, eeBUS qualification,
+Matter conformance, Portal composition, consumer behavior, persistence, or
+live I/O. Tesla remains a no-sender/no-route/no-live-authority candidate,
+eeBUS remains `unknown_pending_std_01`, and Matter is input-only. Native
+counter reset/wrap evidence, lifecycle and loss semantics remain outside this
+pack. Capability-to-service instance pairing remains static metadata because
+the current `PackValidator` boundary sees only an opaque service-instance ID.
+
 ## Thermal/HVAC capability pack v1
 
 `semreg/v1/packs/thermal` implements the immutable

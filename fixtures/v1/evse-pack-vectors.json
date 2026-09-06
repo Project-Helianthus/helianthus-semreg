@@ -1,0 +1,112 @@
+{
+  "contract": "helianthus.semantic.pack.evse.acceptance/v1",
+  "pack_contract": "helianthus.pack.evse/v1",
+  "catalog": {
+    "pack": {"id": "helianthus.pack.evse", "version": "1.0.0"},
+    "kernel_contract": "helianthus.semantic.kernel/v1",
+    "status": "accepted",
+    "domain_catalog": [
+      {"id":"thermal_hvac","pack":"helianthus.pack.thermal","state":"accepted"},
+      {"id":"pv_inverter","pack":"helianthus.pack.pv","state":"accepted"},
+      {"id":"storage_bms","pack":"helianthus.pack.storage","state":"accepted"},
+      {"id":"evse","pack":"helianthus.pack.evse","state":"accepted"},
+      {"id":"infrastructure","pack":"helianthus.pack.infrastructure","state":"follow_on"}
+    ],
+    "inputs": [
+      {"id":"semantic_docs","revision":"f81f04b026ccfc0bb4107c5a361e7bee146a166a"},
+      {"id":"semreg","revision":"cc9b324225e945598128eeabe977e7fa0af6dc93"},
+      {"id":"tesla_docs_modbus","revision":"d16ff91ff808803fa31c67a6a10eb2a4faa70937"},
+      {"id":"tesla_modbusreg","revision":"75e4e3988a7682068c02d8ac24f737b7f24a029f"},
+      {"id":"eebus_ledger","revision":"81cd647c834e88c88a3c82ef9fbc5a0194f6b0f1"},
+      {"id":"eebus_m625_donor","revision":"cedf238e34f879815ba773e9cd76b2b31c2822a3"},
+      {"id":"matter_draft","revision":"29b4768a513cf566011ab8cd60df1bc495204953"}
+    ],
+    "lifecycle_axes":["source_epoch","driver_generation","semantic_revision","capability_qualification","activation","generation_fencing","partial_updates","stale_unknown_evidence","last_known_good_retention"],
+    "publication_withdrawal_policy":{"admission":["exact_source_epoch","current_driver_generation","exact_semantic_revision","qualified_active_capability"],"stale_generation":"reject","partial_publication":"supplied_valid_only_preserve_permitted_last_known_good","withdrawal":"explicit_generation_fenced","evidence":"stale_unknown_never_promote_or_authorize","tombstone":"retained_non_actionable"},
+    "counter_policy":{"session_and_lifetime_energy":"native_reset_or_wrap_evidence_required","decrease":"never_infer_reset_or_wrap","projection":"counter_continuity_or_loss_explicit"},
+    "availability_policy":{"effective_availability":"kernel_observation_and_capability_state_only","native_readiness":"evse.status.readiness","portal":"consume_kernel_availability_separately"},
+    "loss_dispositions":["native_enum_bitfield","precision_range","connector_phase_session_meter_topology","direction_reference","counter_reset_wrap","unavailable_fields","conflicting_sources","vendor_extensions","unsupported_operations"],
+    "definitions": {
+      "fields": [
+        {"id":"evse.ac.voltage","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.ac.voltage","version":"1.0.0"},"kind":"quantity","unit":"unit.volt","dimension":"evse.dimension.phase","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":10},
+        {"id":"evse.ac.current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.ac.current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"evse.dimension.phase","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":20},
+        {"id":"evse.ac.active_power","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.ac.active_power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"evse.dimension.phase","bounds":{"minimum":{"coefficient":"-1","exponent10":7},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":30},
+        {"id":"evse.ac.frequency","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.ac.frequency","version":"1.0.0"},"kind":"quantity","unit":"unit.hertz","dimension":"evse.dimension.evse","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":40},
+        {"id":"evse.energy.session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.energy.session","version":"1.0.0"},"kind":"quantity","unit":"unit.kilowatt_hour","dimension":"evse.dimension.session","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":12}},"optional":true,"order":50},
+        {"id":"evse.energy.lifetime","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.energy.lifetime","version":"1.0.0"},"kind":"quantity","unit":"unit.kilowatt_hour","dimension":"evse.dimension.meter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":12}},"optional":true,"order":60},
+        {"id":"evse.limit.advertised_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.limit.advertised_current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"evse.dimension.connector","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":70},
+        {"id":"evse.limit.configured_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.limit.configured_current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"evse.dimension.evse","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":80},
+        {"id":"evse.limit.allocated_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.limit.allocated_current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"evse.dimension.connector","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":90},
+        {"id":"evse.limit.actual_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.limit.actual_current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"evse.dimension.connector","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":100},
+        {"id":"evse.status.connection","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.status.connection","version":"1.0.0"},"kind":"symbol","dimension":"evse.dimension.connector","symbols":["evse.status.connection.connected","evse.status.connection.disconnected"],"optional":true,"order":110},
+        {"id":"evse.status.charging","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.status.charging","version":"1.0.0"},"kind":"symbol","dimension":"evse.dimension.connector","symbols":["evse.status.charging.charging","evse.status.charging.complete","evse.status.charging.idle"],"optional":true,"order":120},
+        {"id":"evse.status.readiness","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.status.readiness","version":"1.0.0"},"kind":"symbol","dimension":"evse.dimension.evse","symbols":["evse.status.readiness.not_ready","evse.status.readiness.ready"],"optional":true,"order":130},
+        {"id":"evse.status.fault","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.status.fault","version":"1.0.0"},"kind":"symbol","dimension":"evse.dimension.evse","symbols":["evse.status.fault.clear","evse.status.fault.present"],"optional":true,"order":140},
+        {"id":"evse.status.interlock","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.status.interlock","version":"1.0.0"},"kind":"symbol","dimension":"evse.dimension.connector","symbols":["evse.status.interlock.active","evse.status.interlock.clear"],"optional":true,"order":150}
+      ],
+      "fact_dimensions":[
+        {"id":"evse.dimension.asset","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.dimension.asset","version":"1.0.0"},"value_kind":"text","order":10},
+        {"id":"evse.dimension.evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.dimension.evse","version":"1.0.0"},"value_kind":"text","order":20},
+        {"id":"evse.dimension.connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.dimension.connector","version":"1.0.0"},"value_kind":"text","order":30},
+        {"id":"evse.dimension.phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.dimension.phase","version":"1.0.0"},"value_kind":"text","order":40},
+        {"id":"evse.dimension.session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.dimension.session","version":"1.0.0"},"value_kind":"text","order":50},
+        {"id":"evse.dimension.meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.dimension.meter","version":"1.0.0"},"value_kind":"text","order":60}
+      ],
+      "services":[
+        {"id":"evse.service.evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.evse","version":"1.0.0"},"fact_key_dimension":"evse.dimension.evse","order":10},
+        {"id":"evse.service.connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.connector","version":"1.0.0"},"fact_key_dimension":"evse.dimension.connector","order":20},
+        {"id":"evse.service.phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.phase","version":"1.0.0"},"fact_key_dimension":"evse.dimension.phase","order":30},
+        {"id":"evse.service.session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.session","version":"1.0.0"},"fact_key_dimension":"evse.dimension.session","order":40},
+        {"id":"evse.service.meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.meter","version":"1.0.0"},"fact_key_dimension":"evse.dimension.meter","order":50}
+      ],
+      "relationships":[
+        {"id":"evse.relationship.asset_evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.asset_evse","version":"1.0.0"},"from":"evse.dimension.asset","to":"evse.dimension.evse","cardinality":"one_to_many","order":10},
+        {"id":"evse.relationship.evse_connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.evse_connector","version":"1.0.0"},"from":"evse.dimension.evse","to":"evse.dimension.connector","cardinality":"one_to_many","order":20},
+        {"id":"evse.relationship.connector_phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.connector_phase","version":"1.0.0"},"from":"evse.dimension.connector","to":"evse.dimension.phase","cardinality":"one_to_many","order":30},
+        {"id":"evse.relationship.connector_session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.connector_session","version":"1.0.0"},"from":"evse.dimension.connector","to":"evse.dimension.session","cardinality":"one_to_many_over_time","order":40},
+        {"id":"evse.relationship.evse_meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.evse_meter","version":"1.0.0"},"from":"evse.dimension.evse","to":"evse.dimension.meter","cardinality":"one_to_many","order":50}
+      ],
+      "capabilities":[
+        {"id":"evse.capability.read.evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.read.evse","version":"1.0.0"},"service":"evse.service.evse","activation":"qualified_current_binding","order":10},
+        {"id":"evse.capability.read.connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.read.connector","version":"1.0.0"},"service":"evse.service.connector","activation":"qualified_current_binding","order":20},
+        {"id":"evse.capability.read.phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.read.phase","version":"1.0.0"},"service":"evse.service.phase","activation":"qualified_current_binding","order":30},
+        {"id":"evse.capability.read.session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.read.session","version":"1.0.0"},"service":"evse.service.session","activation":"qualified_current_binding","order":40},
+        {"id":"evse.capability.read.meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.read.meter","version":"1.0.0"},"service":"evse.service.meter","activation":"qualified_current_binding","order":50},
+        {"id":"evse.capability.set_allocated_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.set_allocated_current","version":"1.0.0"},"service":"evse.service.connector","constraints":["evse.limit.allocated_current"],"activation":"qualified_current_binding","order":60}
+      ],
+      "operations":[
+        {"id":"evse.operation.set_allocated_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.operation.set_allocated_current","version":"1.0.0"},"capability":"evse.capability.set_allocated_current","arguments":["evse.limit.allocated_current"],"argument_constraints":["evse.limit.allocated_current"],"effect_rule":"evse.effect.set_allocated_current","preconditions":["current_source_epoch","current_driver_generation","current_semantic_revision","qualified_active_capability","exact_route","authority_admitted"],"stages":["admission","dispatch","acknowledgement","readback","terminal_outcome"],"terminal_outcomes":["rejected","failed_no_contact","acknowledged_unverified","applied","no_effect","conflict","indeterminate"],"readback":"current_generation_exact_effect","retry":"forbidden_after_indeterminate","order":10}
+      ],
+      "effect_rules":[
+        {"id":"evse.effect.set_allocated_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.effect.set_allocated_current","version":"1.0.0"},"operation":"evse.operation.set_allocated_current","fact":"evse.limit.allocated_current","operator":"equal","order":10}
+      ],
+      "portal_contributions":[
+        {"id":"evse.portal.read.evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.portal.read.evse","version":"1.0.0"},"kind":"read","service":"evse.service.evse","fields":["evse.ac.frequency","evse.limit.configured_current","evse.status.fault","evse.status.readiness"],"order":10},
+        {"id":"evse.portal.read.connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.portal.read.connector","version":"1.0.0"},"kind":"read","service":"evse.service.connector","fields":["evse.limit.actual_current","evse.limit.advertised_current","evse.limit.allocated_current","evse.status.charging","evse.status.connection","evse.status.interlock"],"order":20},
+        {"id":"evse.portal.read.phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.portal.read.phase","version":"1.0.0"},"kind":"read","service":"evse.service.phase","fields":["evse.ac.active_power","evse.ac.current","evse.ac.voltage"],"order":30},
+        {"id":"evse.portal.read.session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.portal.read.session","version":"1.0.0"},"kind":"read","service":"evse.service.session","fields":["evse.energy.session"],"order":40},
+        {"id":"evse.portal.read.meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.portal.read.meter","version":"1.0.0"},"kind":"read","service":"evse.service.meter","fields":["evse.energy.lifetime"],"order":50},
+        {"id":"evse.portal.operation.set_allocated_current","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.portal.operation.set_allocated_current","version":"1.0.0"},"kind":"operation","operation":"evse.operation.set_allocated_current","admission":"current_only","order":60}
+      ]
+    },
+    "candidate_mappings":[
+      {"id":"evse.mapping.tesla.legacy_fbe0_fde0","native_owner":"helianthus-docs-modbus","source_refs":["tesla_docs_modbus","tesla_modbusreg"],"state":"candidate","qualification":"offline_family_compatible_only","provenance":["legacy_fbe0","legacy_fde0"],"allocated_current":"native_candidate","actual_current":"native_candidate_separate","relative_or_unknown_state":"native_only_no_absolute_allocation","sender":"none","control_route":"none","live_authority":false,"loss":"unknown"},
+      {"id":"evse.mapping.eebus","native_owner":"helianthus-docs-eebus","source_refs":["eebus_ledger","eebus_m625_donor"],"state":"unknown_pending_std_01","qualification":"unresolved","loss":"unknown"},
+      {"id":"evse.mapping.matter","native_owner":"matter_draft","source_refs":["matter_draft"],"state":"candidate_design_input_only","qualification":"not_conformance","loss":"unknown"}
+    ]
+  },
+  "vectors":[
+    {"id":"baseline","polarity":"positive","input":{"mutations":[]}},
+    {"id":"wrong_pack","polarity":"negative","input":{"mutations":[{"op":"set","path":"pack.id","value":"helianthus.pack.pv"}]},"expect":{"error":"exact PackRef"}},
+    {"id":"storage_downgrade","polarity":"negative","input":{"mutations":[{"op":"set","path":"domain_catalog.2.state","value":"follow_on"}]},"expect":{"error":"five-domain catalog"}},
+    {"id":"bound_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.fields.0.bounds.maximum","value":{"coefficient":"9","exponent10":2}}]},"expect":{"error":"quantity contract"}},
+    {"id":"topology_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.relationships.1.cardinality","value":"one_to_one"}]},"expect":{"error":"relationship association"}},
+    {"id":"operation_authority_weakened","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.operations.0.preconditions","value":["qualified_active_capability"]}]},"expect":{"error":"operation safety"}},
+    {"id":"portal_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.portal_contributions.5.admission","value":"always"}]},"expect":{"error":"Portal operation"}},
+    {"id":"tesla_live_authority","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.0.live_authority","value":true}]},"expect":{"error":"native mapping boundary"}},
+    {"id":"tesla_sender","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.0.sender","value":"native"}]},"expect":{"error":"native mapping boundary"}},
+    {"id":"eebus_normative","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.1.state","value":"qualified"}]},"expect":{"error":"native mapping boundary"}},
+    {"id":"matter_conformance","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.2.qualification","value":"conformant"}]},"expect":{"error":"native mapping boundary"}},
+    {"id":"counter_policy_weakened","polarity":"negative","input":{"mutations":[{"op":"set","path":"counter_policy.decrease","value":"infer_reset"}]},"expect":{"error":"counter policy"}}
+  ]
+}
