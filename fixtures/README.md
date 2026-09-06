@@ -32,13 +32,23 @@ isolation.
 29 vectors whose coverage includes `operation` from the accepted
 `Project-Helianthus/helianthus-docs-semantic@da5ab4415d3bec73f9572aec1c495a6cdcbcba47`
 source. Its manifest pins the complete source-vector SHA-256 and its own tests
-pin the selected fixture bytes and exact vector IDs. The compact executable
-matrix covers exact pack ownership, immutable admission, causal and deadline
-checks, candidate/capability eligibility, route ambiguity, generation guard
-claims, idempotency/retry boundaries, chronology, externally supplied dispatch
+pin the selected fixture bytes and exact vector IDs. A strict loader rejects
+duplicate JSON members and runs one named subtest for every selected vector,
+asserting the exact stable result/error, rejection immutability, and a visible
+typed-expansion digest. Exact typed EVSE admission/readback and precondition
+expansions supplement the common harness. The matrix covers exact pack
+ownership, immutable admission, causal and deadline checks,
+candidate/capability eligibility, route ambiguity, generation guard claims,
+bounded idempotency/retry retention, chronology, externally supplied dispatch
 evidence, pack-owned effects and every terminal outcome. INT-06, not semreg,
 owns the native lifecycle lock, current-generation recheck, callback, handle,
 and release.
+
+The operation package exposes `NewKernelWithOptions` for the fail-closed
+retention bound and `RecordRejection` for stable structurally valid rejected
+records. Its selection and compatibility-alias admission methods only reject
+those presentation inputs with their accepted stable errors; they do not add
+selection, alias, or native-routing authority.
 
 Projection, compatibility aliases, production capability packs and product or
 gateway integration remain follow-ons. The operation fixture increment does not

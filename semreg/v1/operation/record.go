@@ -41,6 +41,11 @@ func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnaps
 	if err := sameRecordAdmission(record, admission); err != nil {
 		return ExecutionRecord{}, err
 	}
+	if record.Dispatch != nil {
+		if err := contextsChronological(admission.admittedContext, record.Dispatch.Started, false); err != nil {
+			return ExecutionRecord{}, err
+		}
+	}
 	if record.Acknowledgement != nil && record.Dispatch != nil {
 		if err := acknowledgementAfterStart(record.Dispatch.Started.EvaluatedAt, record.Acknowledgement.At); err != nil {
 			return ExecutionRecord{}, err
@@ -69,7 +74,10 @@ func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence
 		return ExecutionRecord{}, opError(semreg.DefinitionOwnerMissing, "operation kernel")
 	}
 	intent = clone(intent)
-	if err := mostSpecific(k.ValidateIntent(intent), errorID.Validate()); err != nil {
+	// A rejection preserves the structurally valid bytes that were rejected and
+	// the actual stable error. It must not re-run the semantic hook that produced
+	// that error, nor require the intent to pass admission after the fact.
+	if err := mostSpecific(intent.Validate(), errorID.Validate()); err != nil {
 		return ExecutionRecord{}, err
 	}
 	record := ExecutionRecord{
@@ -109,6 +117,9 @@ func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence
 		}
 		return ExecutionRecord{}, opError(semreg.SequenceConflict, "idempotent outcome bytes")
 	}
+	if len(k.admissions) >= k.maxRetainedOperations {
+		return ExecutionRecord{}, opError(semreg.BoundsExceeded, "operation retention capacity")
+	}
 	stored := clone(record)
 	k.admissions[intent.IdempotencyKey] = &Admission{
 		intent:      clone(intent),
@@ -144,6 +155,9 @@ func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapsh
 	}
 	var errs []error
 	errs = append(errs, snapshot.Validate())
+	if snapshot.AssetID != record.Intent.AssetID {
+		errs = append(errs, opError(semreg.InvalidOutcome, "readback asset"))
+	}
 	if snapshot.SnapshotID != readback.SnapshotID || snapshot.Revisions != readback.Revisions {
 		errs = append(errs, opError(semreg.DanglingReference, "exact readback snapshot"))
 	}
@@ -182,7 +196,7 @@ func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapsh
 	if !factKeyEqual(candidate.Key, record.Intent.ExpectedEffect.Fact) {
 		return opError(semreg.InvalidOutcome, "readback fact")
 	}
-	if err := snapshotRouteCurrent(snapshot, *record.Route); err != nil {
+	if err := snapshotRouteCurrent(snapshot, *record.Route, record.Intent.AssetID); err != nil {
 		return err
 	}
 	view, err := semreg.EvaluateSnapshot(snapshot, readback.Evaluation)
@@ -235,8 +249,8 @@ func candidateByID(snapshot semreg.Snapshot, id semreg.CandidateID) (semreg.Fact
 	return semreg.FactCandidate{}, semreg.FactEnvelope{}, false
 }
 
-func snapshotRouteCurrent(snapshot semreg.Snapshot, route Route) error {
-	var sourceFound, bindingFound, serviceFound, capabilityFound bool
+func snapshotRouteCurrent(snapshot semreg.Snapshot, route Route, asset semreg.AssetID) error {
+	var sourceFound, bindingFound, identityFound, serviceFound, capabilityFound bool
 	for _, source := range snapshot.Sources {
 		if source.SourceID == route.SourceID && source.SourceEpochID == route.SourceEpochID {
 			sourceFound = source.State == semreg.SourceCurrent
@@ -255,24 +269,32 @@ func snapshotRouteCurrent(snapshot semreg.Snapshot, route Route) error {
 			if binding.DriverGeneration != route.DriverGeneration || binding.State == semreg.BindingFenced {
 				return opError(semreg.StaleDriverGeneration, "readback binding generation")
 			}
-			bindingFound = binding.State == semreg.BindingCurrent && binding.SourceID == route.SourceID
+			bindingFound = binding.AssetID == asset && binding.State == semreg.BindingCurrent && binding.SourceID == route.SourceID
+		}
+	}
+	for _, link := range snapshot.IdentityLinks {
+		if link.BindingID == route.BindingID {
+			identityFound = link.AssetID == asset && link.State == semreg.LinkQualified
 		}
 	}
 	for _, service := range snapshot.Services {
 		if service.InstanceID == route.ServiceInstance {
-			serviceFound = service.BindingID == route.BindingID && service.SourceEpochID == route.SourceEpochID &&
+			serviceFound = service.AssetID == asset && service.BindingID == route.BindingID && service.SourceEpochID == route.SourceEpochID &&
 				service.DriverGeneration == route.DriverGeneration && service.Availability != semreg.AvailabilityWithdrawn
 		}
 	}
 	for _, capability := range snapshot.Capabilities {
 		if capability.InstanceID == route.CapabilityInstance {
-			capabilityFound = capability.ServiceInstance == route.ServiceInstance && capability.BindingID == route.BindingID &&
+			capabilityFound = capability.AssetID == asset && capability.ServiceInstance == route.ServiceInstance && capability.BindingID == route.BindingID &&
 				capability.SourceEpochID == route.SourceEpochID && capability.DriverGeneration == route.DriverGeneration &&
 				capability.Availability != semreg.AvailabilityWithdrawn
 		}
 	}
 	if !sourceFound {
 		return opError(semreg.StaleSourceEpoch, "readback source")
+	}
+	if !identityFound {
+		return opError(semreg.IdentityNotQualified, "readback identity link")
 	}
 	if !bindingFound || !serviceFound || !capabilityFound {
 		return opError(semreg.InvalidOutcome, "readback current route")

@@ -31,11 +31,28 @@ type lockedOperationValidator struct {
 // Kernel owns immutable operation-pack registration and bounded idempotency
 // records. It owns no snapshot lifecycle or native handle.
 type Kernel struct {
-	registry   *semreg.Registry
-	validators map[semreg.PackRef]*lockedOperationValidator
+	registry              *semreg.Registry
+	validators            map[semreg.PackRef]*lockedOperationValidator
+	maxRetainedOperations int
 
 	mu         sync.Mutex
 	admissions map[semreg.IdempotencyKey]*Admission
+}
+
+const (
+	// DefaultMaxRetainedOperations bounds replay-safe in-memory history for the
+	// convenience constructor. Callers with a measured workload can select a
+	// different fail-closed bound through NewKernelWithOptions.
+	DefaultMaxRetainedOperations = 1024
+	MaxRetainedOperations        = 65536
+)
+
+// KernelOptions controls the bounded semantic idempotency history. The kernel
+// never evicts retained keys: reaching the configured limit fails closed with
+// bounds_exceeded, while retained identical replays and changed-byte conflicts
+// remain available. Durable native replay ownership remains external.
+type KernelOptions struct {
+	MaxRetainedOperations int
 }
 
 // GuardClaims is immutable semantic data for the external native owner to
@@ -62,6 +79,7 @@ type Admission struct {
 	intent           Intent
 	intentBytes      []byte
 	admittedAt       semreg.TimePoint
+	admittedContext  semreg.EvaluationContext
 	admittedRevision semreg.RevisionVector
 	route            Route
 	hasRoute         bool
@@ -70,14 +88,24 @@ type Admission struct {
 }
 
 func NewKernel(validators ...semreg.PackValidator) (*Kernel, error) {
+	return NewKernelWithOptions(KernelOptions{MaxRetainedOperations: DefaultMaxRetainedOperations}, validators...)
+}
+
+// NewKernelWithOptions constructs a kernel with an explicit replay-safe
+// retention bound. A non-positive or excessively large bound is rejected.
+func NewKernelWithOptions(options KernelOptions, validators ...semreg.PackValidator) (*Kernel, error) {
+	if options.MaxRetainedOperations <= 0 || options.MaxRetainedOperations > MaxRetainedOperations {
+		return nil, opError(semreg.BoundsExceeded, "operation retention capacity")
+	}
 	registry, err := semreg.NewRegistry(validators...)
 	if err != nil {
 		return nil, err
 	}
 	kernel := &Kernel{
-		registry:   registry,
-		validators: make(map[semreg.PackRef]*lockedOperationValidator),
-		admissions: make(map[semreg.IdempotencyKey]*Admission),
+		registry:              registry,
+		validators:            make(map[semreg.PackRef]*lockedOperationValidator),
+		maxRetainedOperations: options.MaxRetainedOperations,
+		admissions:            make(map[semreg.IdempotencyKey]*Admission),
 	}
 	for _, validator := range validators {
 		if isNilInterface(validator) {
@@ -120,12 +148,31 @@ func (k *Kernel) ValidateIntent(intent Intent) error {
 	if packErr == nil {
 		index := packValidator.Definitions()
 		for _, argument := range intent.Arguments {
-			found := false
+			var exact *semreg.DefinitionRef
+			ambiguous := false
 			for _, field := range index.Fields {
-				found = found || field.ID == argument.ID
+				if field.ID == argument.ID && field.Pack == intent.Kind.Pack {
+					if exact != nil {
+						ambiguous = true
+						break
+					}
+					copy := field
+					exact = &copy
+				}
 			}
-			if !found {
+			if ambiguous {
+				errs = append(errs, opError(semreg.DefinitionOwnerConflict, "operation argument field"))
+				continue
+			}
+			if exact == nil {
 				errs = append(errs, opError(semreg.DefinitionOwnerMissing, "operation argument field"))
+				continue
+			}
+			if operationValidator != nil {
+				operationValidator.mu.Lock()
+				fieldErr := k.registry.ValidateField(*exact, clone(argument))
+				operationValidator.mu.Unlock()
+				errs = append(errs, fieldErr)
 			}
 		}
 	}
@@ -177,20 +224,23 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 		return nil, opError(semreg.DefinitionOwnerMissing, "operation kernel")
 	}
 	intent = clone(intent)
-	if err := k.ValidateIntent(intent); err != nil {
-		return nil, err
-	}
-	intentBytes, err := semreg.CanonicalJSON(intent)
-	if err != nil {
-		return nil, err
-	}
-	if prior, err := k.lookupIdempotency(intent.IdempotencyKey, intentBytes); prior != nil || err != nil {
-		return prior, err
+	intentErr := k.ValidateIntent(intent)
+	var intentBytes []byte
+	if intentErr == nil {
+		var err error
+		intentBytes, err = semreg.CanonicalJSON(intent)
+		if err != nil {
+			return nil, err
+		}
+		if prior, err := k.lookupIdempotency(intent.IdempotencyKey, intentBytes); prior != nil || err != nil {
+			return prior, err
+		}
 	}
 
 	snapshot = clone(snapshot)
 	current = clone(current)
 	var errs []error
+	errs = append(errs, intentErr)
 	errs = append(errs, snapshot.Validate(), current.Validate())
 	errs = append(errs, k.snapshotPackError(snapshot))
 	if snapshot.AssetID != intent.AssetID {
@@ -209,25 +259,26 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	if evaluationErr == nil {
 		errs = append(errs, k.preconditionError(snapshot, view, intent.Preconditions))
 	}
-	routes, routeErr := k.routes(snapshot, intent)
+	routes, routeErr := k.routes(snapshot, intent, intentErr == nil)
 	errs = append(errs, routeErr)
+	if len(routes) == 1 && routeErr == nil {
+		if isNilInterface(authority) {
+			errs = append(errs, opError(semreg.AuthorityMissing, "authority resolver"))
+		} else if err := authority.Authorize(clone(intent), clone(routes[0]), clone(current)); err != nil {
+			errs = append(errs, opError(semreg.AuthorityMissing, "authority resolution"))
+		}
+	}
 	if err := mostSpecific(errs...); err != nil {
 		return nil, err
 	}
 	if len(routes) != 1 {
 		return nil, opError(semreg.AmbiguousRoute, "eligible route count")
 	}
-	if isNilInterface(authority) {
-		return nil, opError(semreg.AuthorityMissing, "authority resolver")
-	}
-	if err := authority.Authorize(clone(intent), clone(routes[0]), clone(current)); err != nil {
-		return nil, opError(semreg.AuthorityMissing, "authority resolution")
-	}
-
 	admission := &Admission{
 		intent:           clone(intent),
 		intentBytes:      append([]byte(nil), intentBytes...),
 		admittedAt:       current.EvaluatedAt,
+		admittedContext:  clone(current),
 		admittedRevision: snapshot.Revisions,
 		route:            clone(routes[0]),
 		hasRoute:         true,
@@ -239,6 +290,9 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 			return prior, nil
 		}
 		return nil, opError(semreg.SequenceConflict, "idempotency key")
+	}
+	if len(k.admissions) >= k.maxRetainedOperations {
+		return nil, opError(semreg.BoundsExceeded, "operation retention capacity")
 	}
 	k.admissions[intent.IdempotencyKey] = admission
 	return admission, nil
@@ -392,12 +446,16 @@ func candidateInOpenConflict(envelope semreg.FactEnvelope, id semreg.CandidateID
 	return false
 }
 
-func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent) ([]Route, error) {
+func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent, invokeConstraintHook bool) ([]Route, error) {
 	bindings := make(map[semreg.NativeBindingID]semreg.NativeBinding, len(snapshot.Bindings))
+	links := make(map[semreg.NativeBindingID]semreg.IdentityLink, len(snapshot.IdentityLinks))
 	sources := make(map[[2]string]semreg.SourceDescriptor, len(snapshot.Sources))
 	services := make(map[semreg.ServiceInstanceID]semreg.ServiceInstance, len(snapshot.Services))
 	for _, binding := range snapshot.Bindings {
 		bindings[binding.BindingID] = binding
+	}
+	for _, link := range snapshot.IdentityLinks {
+		links[link.BindingID] = link
 	}
 	for _, source := range snapshot.Sources {
 		sources[[2]string{string(source.SourceID), string(source.SourceEpochID)}] = source
@@ -407,8 +465,8 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent) ([]Route, error
 	}
 
 	var routes []Route
-	var sawDefinition, sawQualification, sawAvailability bool
-	var lifecycleErrors []error
+	var sawDefinition bool
+	var candidateErrors []error
 	for _, capability := range snapshot.Capabilities {
 		if capability.AssetID != intent.AssetID || capability.Definition.Pack != intent.RequiredCapability.Pack ||
 			capability.Definition.ID != intent.RequiredCapability.DefinitionID {
@@ -416,61 +474,69 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent) ([]Route, error
 		}
 		matches, rangeErr := intent.RequiredCapability.Versions.Matches(capability.Definition.Version)
 		if rangeErr != nil {
-			lifecycleErrors = append(lifecycleErrors, rangeErr)
+			candidateErrors = append(candidateErrors, rangeErr)
 			continue
 		}
 		if !matches || intent.RequiredCapability.InstanceID != nil && capability.InstanceID != *intent.RequiredCapability.InstanceID {
 			continue
 		}
 		sawDefinition = true
+		var errs []error
 		if capability.Revision != intent.ExpectedCapabilityInstanceRevision {
-			lifecycleErrors = append(lifecycleErrors, opError(semreg.RevisionConflict, "capability instance revision"))
-			continue
+			errs = append(errs, opError(semreg.RevisionConflict, "capability instance revision"))
 		}
 		binding, bindingOK := bindings[capability.BindingID]
 		service, serviceOK := services[capability.ServiceInstance]
 		if !bindingOK || !serviceOK {
-			lifecycleErrors = append(lifecycleErrors, opError(semreg.DanglingReference, "operation route"))
+			candidateErrors = append(candidateErrors, append(errs, opError(semreg.DanglingReference, "operation route"))...)
 			continue
 		}
-		if binding.SourceEpochID != intent.ExpectedSourceEpochID || capability.SourceEpochID != intent.ExpectedSourceEpochID {
-			lifecycleErrors = append(lifecycleErrors, opError(semreg.StaleSourceEpoch, "operation route"))
-			continue
+		link, linkOK := links[capability.BindingID]
+		if !linkOK || link.AssetID != intent.AssetID || link.State != semreg.LinkQualified {
+			errs = append(errs, opError(semreg.IdentityNotQualified, "operation identity link"))
 		}
-		if binding.DriverGeneration != intent.ExpectedDriverGeneration || capability.DriverGeneration != intent.ExpectedDriverGeneration {
-			lifecycleErrors = append(lifecycleErrors, opError(semreg.StaleDriverGeneration, "operation route"))
-			continue
+		if binding.AssetID != intent.AssetID || service.AssetID != intent.AssetID || service.BindingID != capability.BindingID {
+			errs = append(errs, opError(semreg.IdentityNotQualified, "operation asset binding"))
+		}
+		if binding.SourceEpochID != intent.ExpectedSourceEpochID || capability.SourceEpochID != intent.ExpectedSourceEpochID || service.SourceEpochID != intent.ExpectedSourceEpochID {
+			errs = append(errs, opError(semreg.StaleSourceEpoch, "operation route"))
+		}
+		if binding.DriverGeneration != intent.ExpectedDriverGeneration || capability.DriverGeneration != intent.ExpectedDriverGeneration || service.DriverGeneration != intent.ExpectedDriverGeneration {
+			errs = append(errs, opError(semreg.StaleDriverGeneration, "operation route"))
 		}
 		source, sourceOK := sources[[2]string{string(binding.SourceID), string(binding.SourceEpochID)}]
 		if !sourceOK || source.State != semreg.SourceCurrent {
-			lifecycleErrors = append(lifecycleErrors, opError(semreg.StaleSourceEpoch, "operation source"))
-			continue
+			errs = append(errs, opError(semreg.StaleSourceEpoch, "operation source"))
 		}
 		if binding.State != semreg.BindingCurrent {
 			if binding.State == semreg.BindingFenced {
-				lifecycleErrors = append(lifecycleErrors, opError(semreg.StaleDriverGeneration, "operation binding"))
+				errs = append(errs, opError(semreg.StaleDriverGeneration, "operation binding"))
 			} else {
-				lifecycleErrors = append(lifecycleErrors, opError(semreg.StaleSourceEpoch, "operation binding"))
+				errs = append(errs, opError(semreg.StaleSourceEpoch, "operation binding"))
 			}
-			continue
 		}
 		if capability.Qualification != semreg.QualificationQualified || service.Qualification != semreg.QualificationQualified {
-			sawQualification = true
-			continue
+			errs = append(errs, opError(semreg.CapabilityNotQualified, "operation capability"))
 		}
 		degraded := capability.Availability == semreg.AvailabilityDegraded || service.Availability == semreg.AvailabilityDegraded
 		unavailable := capability.Availability == semreg.AvailabilityUnavailable || capability.Availability == semreg.AvailabilityWithdrawn ||
 			service.Availability == semreg.AvailabilityUnavailable || service.Availability == semreg.AvailabilityWithdrawn
 		if unavailable || degraded && !intent.RequiredCapability.AllowDegraded {
-			sawAvailability = true
-			continue
+			errs = append(errs, opError(semreg.CapabilityUnavailable, "operation capability"))
 		}
 		validator, definitionErr := k.registry.Definition(semreg.DefinitionCapability, capability.Definition)
 		if definitionErr != nil {
-			lifecycleErrors = append(lifecycleErrors, definitionErr)
-			continue
+			errs = append(errs, definitionErr)
 		}
-		if err := validator.MatchConstraints(clone(capability), clone(intent.Arguments)); err != nil {
+		if definitionErr == nil {
+			if !invokeConstraintHook {
+				errs = append(errs, opError(semreg.AmbiguousRoute, "constraints not safely evaluable"))
+			} else if err := validator.MatchConstraints(clone(capability), clone(intent.Arguments)); err != nil {
+				errs = append(errs, opError(semreg.AmbiguousRoute, "capability constraints"))
+			}
+		}
+		if err := mostSpecific(errs...); err != nil {
+			candidateErrors = append(candidateErrors, errs...)
 			continue
 		}
 		routes = append(routes, Route{
@@ -482,26 +548,45 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent) ([]Route, error
 			DriverGeneration:   capability.DriverGeneration,
 		})
 	}
-	if err := mostSpecific(lifecycleErrors...); err != nil {
-		return nil, err
+	sort.Slice(routes, func(i, j int) bool { return routes[i].CapabilityInstance < routes[j].CapabilityInstance })
+	if len(routes) > 1 {
+		return nil, opError(semreg.AmbiguousRoute, "eligible route count")
 	}
 	if len(routes) == 0 {
-		if sawQualification {
-			return nil, opError(semreg.CapabilityNotQualified, "operation capability")
-		}
-		if sawAvailability {
-			return nil, opError(semreg.CapabilityUnavailable, "operation capability")
+		if err := mostSpecific(candidateErrors...); err != nil {
+			return nil, err
 		}
 		if sawDefinition {
 			return nil, opError(semreg.AmbiguousRoute, "capability constraints")
 		}
 		return nil, opError(semreg.AmbiguousRoute, "eligible route count")
 	}
-	sort.Slice(routes, func(i, j int) bool { return routes[i].CapabilityInstance < routes[j].CapabilityInstance })
-	if len(routes) != 1 {
-		return nil, opError(semreg.AmbiguousRoute, "eligible route count")
-	}
 	return routes, nil
+}
+
+// AdmitSelectionRoute is the public fail-closed boundary for callers that try
+// to turn a presentation-only Selection into operation routing authority.
+func (k *Kernel) AdmitSelectionRoute(selection semreg.Selection) (*Admission, error) {
+	if k == nil {
+		return nil, opError(semreg.DefinitionOwnerMissing, "operation kernel")
+	}
+	if err := selection.Validate(); err != nil {
+		return nil, err
+	}
+	return nil, opError(semreg.RouteSelectionForbidden, "presentation selection route")
+}
+
+// AdmitAliasRoute is the public fail-closed boundary for attempts to use a
+// compatibility alias as a native endpoint or operation route. Alias storage
+// and evaluation remain outside the operation package.
+func (k *Kernel) AdmitAliasRoute(legacyID semreg.OpaqueID) (*Admission, error) {
+	if k == nil {
+		return nil, opError(semreg.DefinitionOwnerMissing, "operation kernel")
+	}
+	if err := legacyID.Validate(); err != nil {
+		return nil, err
+	}
+	return nil, opError(semreg.AliasNotRoutable, "compatibility alias route")
 }
 
 func (a *Admission) Intent() Intent {

@@ -1,9 +1,12 @@
 package operation_test
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -26,6 +29,9 @@ func TestExactOperationVectorPinAndDisposition(t *testing.T) {
 	sum := sha256.Sum256(raw)
 	if got := hex.EncodeToString(sum[:]); got != operationFixtureSHA256 {
 		t.Fatalf("operation fixture bytes: got %s want %s", got, operationFixtureSHA256)
+	}
+	if err := rejectDuplicateJSONKeys(raw); err != nil {
+		t.Fatal(err)
 	}
 	var document struct {
 		Contract string `json:"contract"`
@@ -79,4 +85,75 @@ func TestExactOperationVectorPinAndDisposition(t *testing.T) {
 			t.Fatalf("operation vector IDs: got %v want %v", actual, expected)
 		}
 	}
+}
+
+func TestOperationVectorLoaderRejectsDuplicateKeys(t *testing.T) {
+	raw := []byte(`{"contract":"helianthus.semantic.kernel.acceptance/v1","contract":"helianthus.semantic.kernel.acceptance/v1"}`)
+	if err := rejectDuplicateJSONKeys(raw); err == nil {
+		t.Fatal("duplicate-key vector document accepted")
+	}
+}
+
+func rejectDuplicateJSONKeys(raw []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := consumeJSONValue(decoder); err != nil {
+		return err
+	}
+	if _, err := decoder.Token(); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("trailing vector JSON")
+		}
+		return err
+	}
+	return nil
+}
+
+func consumeJSONValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delimiter, composite := token.(json.Delim)
+	if !composite {
+		return nil
+	}
+	switch delimiter {
+	case '{':
+		seen := make(map[string]struct{})
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			if err != nil {
+				return err
+			}
+			key, ok := keyToken.(string)
+			if !ok {
+				return fmt.Errorf("non-string vector object key")
+			}
+			if _, duplicate := seen[key]; duplicate {
+				return fmt.Errorf("duplicate vector object key %q", key)
+			}
+			seen[key] = struct{}{}
+			if err := consumeJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		end, err := decoder.Token()
+		if err != nil || end != json.Delim('}') {
+			return fmt.Errorf("vector object end: %v", err)
+		}
+	case '[':
+		for decoder.More() {
+			if err := consumeJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		end, err := decoder.Token()
+		if err != nil || end != json.Delim(']') {
+			return fmt.Errorf("vector array end: %v", err)
+		}
+	default:
+		return fmt.Errorf("unexpected vector delimiter %q", delimiter)
+	}
+	return nil
 }

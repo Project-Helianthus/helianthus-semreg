@@ -70,6 +70,7 @@ func compareUint64(left, right semreg.Uint64) int {
 
 func requiredEvidence(evidence []semreg.EvidenceRef, detail string) error {
 	var errs []error
+	seen := make(map[string]struct{}, len(evidence))
 	if evidence == nil {
 		errs = append(errs, opError(semreg.MissingMember, detail))
 	}
@@ -81,12 +82,15 @@ func requiredEvidence(evidence []semreg.EvidenceRef, detail string) error {
 	}
 	for _, item := range evidence {
 		errs = append(errs, item.Validate())
+		key := string(item.Owner) + "\x00" + string(item.Kind) + "\x00" + string(item.Contract) + "\x00" + string(item.Digest)
+		if _, duplicate := seen[key]; duplicate {
+			errs = append(errs, opError(semreg.DuplicateKey, detail))
+		}
+		seen[key] = struct{}{}
 	}
 	for index := 1; index < len(evidence); index++ {
 		cmp := compareEvidence(evidence[index-1], evidence[index])
-		if cmp == 0 {
-			errs = append(errs, opError(semreg.DuplicateKey, detail))
-		} else if cmp > 0 {
+		if cmp > 0 {
 			errs = append(errs, opError(semreg.NoncanonicalOrder, detail))
 		}
 	}
@@ -160,13 +164,18 @@ func (i Intent) Validate() error {
 	if len(i.Arguments) > 64 {
 		errs = append(errs, opError(semreg.BoundsExceeded, "intent arguments"))
 	}
+	seenArguments := make(map[semreg.DefinitionID]struct{}, len(i.Arguments))
 	for index, field := range i.Arguments {
 		errs = append(errs, field.Validate())
+		if field.ID.Validate() == nil {
+			if _, duplicate := seenArguments[field.ID]; duplicate {
+				errs = append(errs, opError(semreg.DuplicateKey, "intent arguments"))
+			}
+			seenArguments[field.ID] = struct{}{}
+		}
 		if index > 0 {
 			cmp := strings.Compare(string(i.Arguments[index-1].ID), string(field.ID))
-			if cmp == 0 {
-				errs = append(errs, opError(semreg.DuplicateKey, "intent arguments"))
-			} else if cmp > 0 {
+			if cmp > 0 {
 				errs = append(errs, opError(semreg.NoncanonicalOrder, "intent arguments"))
 			}
 		}
@@ -177,20 +186,25 @@ func (i Intent) Validate() error {
 	if len(i.Preconditions) > 64 {
 		errs = append(errs, opError(semreg.BoundsExceeded, "intent preconditions"))
 	}
-	var prior []byte
+	var prior *Precondition
+	seenPreconditions := make(map[string]struct{}, len(i.Preconditions))
 	for index, precondition := range i.Preconditions {
 		errs = append(errs, precondition.Validate())
 		key, err := preconditionSortKey(precondition)
 		errs = append(errs, err)
-		if index > 0 && err == nil {
-			cmp := bytes.Compare(prior, key)
-			if cmp == 0 {
+		if err == nil {
+			if _, duplicate := seenPreconditions[string(key)]; duplicate {
 				errs = append(errs, opError(semreg.DuplicateKey, "intent preconditions"))
-			} else if cmp > 0 {
+			}
+			seenPreconditions[string(key)] = struct{}{}
+		}
+		if index > 0 && err == nil && prior != nil {
+			if comparePrecondition(*prior, precondition) > 0 {
 				errs = append(errs, opError(semreg.NoncanonicalOrder, "intent preconditions"))
 			}
 		}
-		prior = key
+		copy := precondition
+		prior = &copy
 	}
 	return mostSpecific(errs...)
 }
@@ -201,6 +215,20 @@ func preconditionSortKey(p Precondition) ([]byte, error) {
 		return nil, err
 	}
 	return []byte(string(fact) + "\x00" + string(p.CandidateID) + "\x00" + string(p.CandidateRevision)), nil
+}
+
+func comparePrecondition(left, right Precondition) int {
+	leftFact, leftErr := semreg.CanonicalJSON(left.Fact)
+	rightFact, rightErr := semreg.CanonicalJSON(right.Fact)
+	if leftErr == nil && rightErr == nil {
+		if cmp := bytes.Compare(leftFact, rightFact); cmp != 0 {
+			return cmp
+		}
+	}
+	if cmp := strings.Compare(string(left.CandidateID), string(right.CandidateID)); cmp != 0 {
+		return cmp
+	}
+	return compareUint64(left.CandidateRevision, right.CandidateRevision)
 }
 
 func (r Route) Validate() error {
@@ -302,21 +330,21 @@ func (r ExecutionRecord) outcomeCombinationError() error {
 			return opError(semreg.InvalidOutcome, "failed-no-contact evidence")
 		}
 	case OutcomeAcknowledgedUnverified:
-		if r.Dispatch.Delivery != DeliverySent || r.Acknowledgement == nil ||
+		if r.Dispatch.Delivery != DeliverySent || !r.Dispatch.PossibleSideEffect || r.Acknowledgement == nil ||
 			(r.Acknowledgement.State != AckAccepted && r.Acknowledgement.State != AckProvisional) ||
 			(r.Readback != nil && r.Readback.Relation != ReadbackInconclusive) {
 			return opError(semreg.InvalidOutcome, "acknowledged-unverified evidence")
 		}
 	case OutcomeApplied:
-		if r.Dispatch.Delivery != DeliverySent || r.Dispatch.Completed == nil || r.Readback == nil || r.Readback.Relation != ReadbackConfirms {
+		if r.Dispatch.Delivery != DeliverySent || !r.Dispatch.PossibleSideEffect || r.Dispatch.Completed == nil || r.Readback == nil || r.Readback.Relation != ReadbackConfirms {
 			return opError(semreg.InvalidOutcome, "applied evidence")
 		}
 	case OutcomeNoEffect:
-		if r.Dispatch.Delivery == DeliveryNotSent || !r.Dispatch.PossibleSideEffect || (r.Readback != nil && r.Readback.Relation == ReadbackConfirms) {
+		if r.Dispatch.Delivery != DeliverySent || (r.Readback != nil && r.Readback.Relation == ReadbackConfirms) {
 			return opError(semreg.InvalidOutcome, "no-effect evidence")
 		}
 	case OutcomeConflict:
-		if r.Dispatch.Delivery == DeliveryNotSent || !r.Dispatch.PossibleSideEffect || r.Readback == nil || r.Readback.Relation != ReadbackContradicts {
+		if r.Dispatch.Delivery != DeliverySent || !r.Dispatch.PossibleSideEffect || r.Readback == nil || r.Readback.Relation != ReadbackContradicts {
 			return opError(semreg.InvalidOutcome, "conflict evidence")
 		}
 	case OutcomeIndeterminate:

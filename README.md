@@ -33,16 +33,27 @@ It provides:
   effect-hook resolution; immutable snapshot admission; exact source epoch,
   generation, route and capability-revision guard claims for the external
   native owner; append-only terminal evidence; and intent/outcome idempotency
-  without claiming native replay safety.
+  with configurable bounded, fail-closed in-memory retention without claiming
+  durable native replay safety.
+
+`NewKernelWithOptions` selects the bounded in-memory idempotency capacity;
+`RecordRejection` retains structurally valid rejected intent bytes without
+re-running a pack hook that already rejected them. `AdmitSelectionRoute` and
+`AdmitAliasRoute` are explicit fail-closed public boundaries for the two
+accepted negative operation cases. They do not implement selection routing,
+alias storage, or native dispatch.
 
 The self-contained fixture runners execute the copied K-POS-005 restart-time
 vector plus the exact corrected K-POS-019/K-POS-025 and K-NEG-056 through
 K-NEG-065 inputs from docs issue #6, alongside the foundation and publication
-fixtures. They also pin the 29 operation-tagged acceptance vectors from the
-same accepted docs commit and exercise their authority, time, causal,
+fixtures. They also pin and execute all 29 operation-tagged acceptance vectors
+from the same accepted docs commit using a duplicate-key-rejecting loader,
+exact stable result/error assertions, immutable rejection checks, and visible
+typed-expansion digests. The executable cases exercise authority, time, causal,
 precondition, route, generation, pack-owner, effect, idempotency, dispatch,
 acknowledgement, readback and outcome requirements through a contract-derived
-matrix. The subsets are pinned to the accepted docs commit and exact source-file
+matrix. Exact typed EVSE and precondition expansions supplement the common
+harness. The subsets are pinned to the accepted docs commit and exact source-file
 SHA-256. Passing these checks does not establish all runtime acceptance
 criteria.
 
