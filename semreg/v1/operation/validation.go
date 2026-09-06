@@ -71,6 +71,7 @@ func compareUint64(left, right semreg.Uint64) int {
 func requiredEvidence(evidence []semreg.EvidenceRef, detail string) error {
 	var errs []error
 	seen := make(map[string]struct{}, len(evidence))
+	var prior *semreg.EvidenceRef
 	if evidence == nil {
 		errs = append(errs, opError(semreg.MissingMember, detail))
 	}
@@ -82,19 +83,27 @@ func requiredEvidence(evidence []semreg.EvidenceRef, detail string) error {
 	}
 	for _, item := range evidence {
 		errs = append(errs, item.Validate())
-		key := string(item.Owner) + "\x00" + string(item.Kind) + "\x00" + string(item.Contract) + "\x00" + string(item.Digest)
-		if _, duplicate := seen[key]; duplicate {
-			errs = append(errs, opError(semreg.DuplicateKey, detail))
-		}
-		seen[key] = struct{}{}
-	}
-	for index := 1; index < len(evidence); index++ {
-		cmp := compareEvidence(evidence[index-1], evidence[index])
-		if cmp > 0 {
-			errs = append(errs, opError(semreg.NoncanonicalOrder, detail))
+		if evidenceCollectionKeyValid(item) {
+			key := string(item.Owner) + "\x00" + string(item.Kind) + "\x00" + string(item.Contract) + "\x00" + string(item.Digest)
+			if _, duplicate := seen[key]; duplicate {
+				errs = append(errs, opError(semreg.DuplicateKey, detail))
+			}
+			seen[key] = struct{}{}
+			if prior != nil && compareEvidence(*prior, item) > 0 {
+				errs = append(errs, opError(semreg.NoncanonicalOrder, detail))
+			}
+			copy := item
+			prior = &copy
 		}
 	}
 	return mostSpecific(errs...)
+}
+
+// Evidence collection identity is exactly these four projected fields. Access
+// and redaction remain independently validated non-key metadata.
+func evidenceCollectionKeyValid(evidence semreg.EvidenceRef) bool {
+	return evidence.Owner.Validate() == nil && evidence.Kind.Validate() == nil &&
+		evidence.Contract.Validate() == nil && evidence.Digest.Validate() == nil
 }
 
 func optionalEvidence(evidence []semreg.EvidenceRef, detail string) error {
@@ -188,33 +197,33 @@ func (i Intent) Validate() error {
 	}
 	var prior *Precondition
 	seenPreconditions := make(map[string]struct{}, len(i.Preconditions))
-	for index, precondition := range i.Preconditions {
+	for _, precondition := range i.Preconditions {
 		errs = append(errs, precondition.Validate())
-		key, err := preconditionSortKey(precondition)
-		errs = append(errs, err)
-		if err == nil {
+		key, valid := preconditionCollectionKey(precondition)
+		if valid {
 			if _, duplicate := seenPreconditions[string(key)]; duplicate {
 				errs = append(errs, opError(semreg.DuplicateKey, "intent preconditions"))
 			}
 			seenPreconditions[string(key)] = struct{}{}
-		}
-		if index > 0 && err == nil && prior != nil {
-			if comparePrecondition(*prior, precondition) > 0 {
+			if prior != nil && comparePrecondition(*prior, precondition) > 0 {
 				errs = append(errs, opError(semreg.NoncanonicalOrder, "intent preconditions"))
 			}
+			copy := precondition
+			prior = &copy
 		}
-		copy := precondition
-		prior = &copy
 	}
 	return mostSpecific(errs...)
 }
 
-func preconditionSortKey(p Precondition) ([]byte, error) {
+func preconditionCollectionKey(p Precondition) ([]byte, bool) {
+	if p.Fact.Validate() != nil || p.CandidateID.Validate() != nil || !positive(p.CandidateRevision) {
+		return nil, false
+	}
 	fact, err := semreg.CanonicalJSON(p.Fact)
 	if err != nil {
-		return nil, err
+		return nil, false
 	}
-	return []byte(string(fact) + "\x00" + string(p.CandidateID) + "\x00" + string(p.CandidateRevision)), nil
+	return []byte(string(fact) + "\x00" + string(p.CandidateID) + "\x00" + string(p.CandidateRevision)), true
 }
 
 func comparePrecondition(left, right Precondition) int {
@@ -386,16 +395,18 @@ func wallChronological(start, end semreg.TimePoint, strict bool) error {
 	return nil
 }
 
-func DecodeIntent(raw []byte) (Intent, error) { return decodeOperationDocument[Intent](raw) }
+func DecodeIntent(raw []byte) (Intent, error) {
+	return decodeOperationDocument[Intent](raw, operationPreconditionWireError(raw, false))
+}
 
 func DecodeExecutionRecord(raw []byte) (ExecutionRecord, error) {
-	return decodeOperationDocument[ExecutionRecord](raw)
+	return decodeOperationDocument[ExecutionRecord](raw, operationPreconditionWireError(raw, true))
 }
 
 // Operation wrappers own their document discriminator. Keep the root decoder's
 // strict syntax, shape and independent collection diagnostics, including errors
 // in nested evidence metadata, without teaching it about operation types.
-func decodeOperationDocument[T semreg.Record](raw []byte) (T, error) {
+func decodeOperationDocument[T semreg.Record](raw []byte, collectionErr error) (T, error) {
 	value, decodeErr := semreg.Decode[T](raw)
 	var object map[string]json.RawMessage
 	var contractErr error
@@ -405,11 +416,83 @@ func decodeOperationDocument[T semreg.Record](raw []byte) (T, error) {
 			contractErr = opError(semreg.InvalidContract, "operation document contract")
 		}
 	}
-	if err := mostSpecific(decodeErr, contractErr); err != nil {
+	if err := mostSpecific(decodeErr, contractErr, collectionErr); err != nil {
 		var zero T
 		return zero, err
 	}
 	return value, nil
+}
+
+// The semantic root cannot import this operation package, so operation owns
+// partial wire collection for its precondition tuple. Only fully valid key
+// components participate; malformed non-key members do not hide a valid key.
+func operationPreconditionWireError(raw []byte, nested bool) error {
+	var document map[string]json.RawMessage
+	if json.Unmarshal(raw, &document) != nil || document == nil {
+		return nil
+	}
+	intentRaw := json.RawMessage(raw)
+	if nested {
+		var present bool
+		intentRaw, present = document["intent"]
+		if !present {
+			return nil
+		}
+	}
+	var intent map[string]json.RawMessage
+	if json.Unmarshal(intentRaw, &intent) != nil || intent == nil {
+		return nil
+	}
+	preconditionsRaw, present := intent["preconditions"]
+	if !present {
+		return nil
+	}
+	var preconditions []json.RawMessage
+	if json.Unmarshal(preconditionsRaw, &preconditions) != nil {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(preconditions))
+	var prior *Precondition
+	var errs []error
+	for _, rawPrecondition := range preconditions {
+		precondition, valid := wirePreconditionCollectionKey(rawPrecondition)
+		if !valid {
+			continue
+		}
+		key, _ := preconditionCollectionKey(precondition)
+		if _, duplicate := seen[string(key)]; duplicate {
+			errs = append(errs, opError(semreg.DuplicateKey, "intent preconditions"))
+		}
+		seen[string(key)] = struct{}{}
+		if prior != nil && comparePrecondition(*prior, precondition) > 0 {
+			errs = append(errs, opError(semreg.NoncanonicalOrder, "intent preconditions"))
+		}
+		copy := precondition
+		prior = &copy
+	}
+	return mostSpecific(errs...)
+}
+
+func wirePreconditionCollectionKey(raw json.RawMessage) (Precondition, bool) {
+	var members map[string]json.RawMessage
+	if json.Unmarshal(raw, &members) != nil || members == nil {
+		return Precondition{}, false
+	}
+	factRaw, factPresent := members["fact"]
+	candidateRaw, candidatePresent := members["candidate_id"]
+	revisionRaw, revisionPresent := members["candidate_revision"]
+	if !factPresent || !candidatePresent || !revisionPresent {
+		return Precondition{}, false
+	}
+	fact, factErr := semreg.Decode[semreg.FactKey](factRaw)
+	candidate, candidateErr := semreg.Decode[semreg.CandidateID](candidateRaw)
+	revision, revisionErr := semreg.Decode[semreg.Uint64](revisionRaw)
+	precondition := Precondition{Fact: fact, CandidateID: candidate, CandidateRevision: revision}
+	if factErr != nil || candidateErr != nil || revisionErr != nil {
+		return Precondition{}, false
+	}
+	_, valid := preconditionCollectionKey(precondition)
+	return precondition, valid
 }
 
 func clone[T any](value T) T {
