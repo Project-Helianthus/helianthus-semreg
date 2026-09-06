@@ -1,0 +1,127 @@
+{
+  "contract": "helianthus.semantic.pack.pv.acceptance/v1",
+  "pack_contract": "helianthus.pack.pv/v1",
+  "catalog": {
+    "pack": {"id": "helianthus.pack.pv", "version": "1.0.0"},
+    "kernel_contract": "helianthus.semantic.kernel/v1",
+    "status": "accepted",
+    "domain_catalog": [
+      {"id": "thermal_hvac", "pack": "helianthus.pack.thermal", "state": "accepted"},
+      {"id": "pv_inverter", "pack": "helianthus.pack.pv", "state": "accepted"},
+      {"id": "storage_bms", "pack": "helianthus.pack.storage", "state": "accepted"},
+      {"id": "evse", "pack": "helianthus.pack.evse", "state": "follow_on"},
+      {"id": "infrastructure", "pack": "helianthus.pack.infrastructure", "state": "follow_on"}
+    ],
+    "inputs": [
+      {"id": "semantic_docs", "revision": "346cda9b675a03a7d1a8c886a3467eab84ce8fb2"},
+      {"id": "semreg", "revision": "cc9b324225e945598128eeabe977e7fa0af6dc93"},
+      {"id": "growatt_docs_modbus", "revision": "7ba9c333539c4381c06584cab0dc86c7e9280767"},
+      {"id": "growatt_modbusreg", "revision": "7853d903970a4fdded35abaef01fe30f7e93be6a"},
+      {"id": "fronius_docs_modbus", "revision": "f0292b6dee164b78c2ec06849e214839f55abd18"},
+      {"id": "fronius_modbusreg", "revision": "1e2cea375f415847fb70cb8a181cdd1285543eca"},
+      {"id": "eebus_ledger", "revision": "81cd647c834e88c88a3c82ef9fbc5a0194f6b0f1"},
+      {"id": "eebus_m625_donor", "revision": "cedf238e34f879815ba773e9cd76b2b31c2822a3"},
+      {"id": "matter_draft", "revision": "29b4768a513cf566011ab8cd60df1bc495204953"}
+    ],
+    "lifecycle_axes": ["source_epoch", "driver_generation", "semantic_revision", "capability_qualification", "activation", "generation_fencing", "partial_updates", "stale_unknown_evidence", "last_known_good_retention"],
+    "publication_withdrawal_policy": {"admission": ["exact_source_epoch", "current_driver_generation", "exact_semantic_revision", "qualified_active_capability"], "stale_generation": "reject", "partial_publication": "supplied_valid_only_preserve_permitted_last_known_good", "withdrawal": "explicit_generation_fenced", "evidence": "stale_unknown_never_promote_or_authorize", "tombstone": "retained_non_actionable"},
+    "counter_policy": {"generated_energy": "native_reset_or_wrap_evidence_required", "decrease": "never_infer_reset_or_wrap", "projection": "counter_continuity_or_loss_explicit"},
+    "availability_policy": {"effective_availability": "kernel_observation_and_capability_state_only", "native_operating_readiness": "pv.status.operating", "portal": "consume_kernel_availability_separately"},
+    "loss_dispositions": ["native_enum", "precision_range", "signed_direction", "per_string_input_phase_topology", "counter_reset_wrap", "curtailment_reason", "vendor_extensions", "unavailable_fields", "conflicting_sources", "unsupported_operations"],
+    "definitions": {
+      "fields": [
+        {"id":"pv.dc.voltage","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dc.voltage","version":"1.0.0"},"kind":"quantity","unit":"unit.volt","dimension":"pv.dimension.input","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"2","exponent10":3}},"optional":true,"order":10},
+        {"id":"pv.dc.current","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dc.current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"pv.dimension.input","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"2","exponent10":3}},"optional":true,"order":20},
+        {"id":"pv.dc.power","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dc.power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"pv.dimension.input","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":30},
+        {"id":"pv.ac.voltage","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.voltage","version":"1.0.0"},"kind":"quantity","unit":"unit.volt","dimension":"pv.dimension.phase","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":40},
+        {"id":"pv.ac.current","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"pv.dimension.phase","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"2","exponent10":3}},"optional":true,"order":50},
+        {"id":"pv.ac.active_power","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.active_power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"pv.dimension.phase","bounds":{"minimum":{"coefficient":"-1","exponent10":7},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":60},
+        {"id":"pv.ac.frequency","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.frequency","version":"1.0.0"},"kind":"quantity","unit":"unit.hertz","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":70},
+        {"id":"pv.ac.power_factor","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.power_factor","version":"1.0.0"},"kind":"quantity","unit":"unit.ratio","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"-1","exponent10":0},"maximum":{"coefficient":"1","exponent10":0}},"optional":true,"order":80},
+        {"id":"pv.energy.generated","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.energy.generated","version":"1.0.0"},"kind":"quantity","unit":"unit.kilowatt_hour","dimension":"pv.dimension.system","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":12}},"optional":true,"order":90},
+        {"id":"pv.temperature.inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.temperature.inverter","version":"1.0.0"},"kind":"quantity","unit":"unit.celsius","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"-5","exponent10":1},"maximum":{"coefficient":"2","exponent10":2}},"optional":true,"order":100},
+        {"id":"pv.limit.active_power","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.limit.active_power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":110},
+        {"id":"pv.limit.export_power","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.limit.export_power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"pv.dimension.system","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":120},
+        {"id":"pv.status.operating","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.status.operating","version":"1.0.0"},"kind":"symbol","dimension":"pv.dimension.inverter","symbols":["pv.status.operating.generating","pv.status.operating.idle","pv.status.operating.standby"],"optional":true,"order":130},
+        {"id":"pv.status.derating","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.status.derating","version":"1.0.0"},"kind":"symbol","dimension":"pv.dimension.inverter","symbols":["pv.status.derating.active","pv.status.derating.clear"],"optional":true,"order":140},
+        {"id":"pv.status.fault","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.status.fault","version":"1.0.0"},"kind":"symbol","dimension":"pv.dimension.inverter","symbols":["pv.status.fault.clear","pv.status.fault.present"],"optional":true,"order":150},
+        {"id":"pv.dc.aggregate_voltage","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dc.aggregate_voltage","version":"1.0.0"},"kind":"quantity","unit":"unit.volt","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"2","exponent10":3}},"optional":true,"order":170},
+        {"id":"pv.dc.aggregate_current","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dc.aggregate_current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"2","exponent10":3}},"optional":true,"order":180},
+        {"id":"pv.dc.aggregate_power","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dc.aggregate_power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":190},
+        {"id":"pv.ac.aggregate_voltage","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.aggregate_voltage","version":"1.0.0"},"kind":"quantity","unit":"unit.volt","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"1","exponent10":3}},"optional":true,"order":200},
+        {"id":"pv.ac.aggregate_current","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.aggregate_current","version":"1.0.0"},"kind":"quantity","unit":"unit.ampere","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"0","exponent10":0},"maximum":{"coefficient":"2","exponent10":3}},"optional":true,"order":210},
+        {"id":"pv.ac.aggregate_active_power","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.ac.aggregate_active_power","version":"1.0.0"},"kind":"quantity","unit":"unit.watt","dimension":"pv.dimension.inverter","bounds":{"minimum":{"coefficient":"-1","exponent10":7},"maximum":{"coefficient":"1","exponent10":7}},"optional":true,"order":220}
+      ],
+      "fact_dimensions": [
+        {"id":"pv.dimension.system","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dimension.system","version":"1.0.0"},"value_kind":"text","order":10},
+        {"id":"pv.dimension.inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dimension.inverter","version":"1.0.0"},"value_kind":"text","order":20},
+        {"id":"pv.dimension.array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dimension.array","version":"1.0.0"},"value_kind":"text","order":30},
+        {"id":"pv.dimension.string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dimension.string","version":"1.0.0"},"value_kind":"text","order":40},
+        {"id":"pv.dimension.input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dimension.input","version":"1.0.0"},"value_kind":"text","order":50},
+        {"id":"pv.dimension.phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.dimension.phase","version":"1.0.0"},"value_kind":"text","order":60}
+      ],
+      "services": [
+        {"id":"pv.service.system","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.system","version":"1.0.0"},"fact_key_dimension":"pv.dimension.system","order":10},
+        {"id":"pv.service.inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.inverter","version":"1.0.0"},"fact_key_dimension":"pv.dimension.inverter","order":20},
+        {"id":"pv.service.array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.array","version":"1.0.0"},"fact_key_dimension":"pv.dimension.array","order":30},
+        {"id":"pv.service.string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.string","version":"1.0.0"},"fact_key_dimension":"pv.dimension.string","order":40},
+        {"id":"pv.service.input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.input","version":"1.0.0"},"fact_key_dimension":"pv.dimension.input","order":50},
+        {"id":"pv.service.phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.phase","version":"1.0.0"},"fact_key_dimension":"pv.dimension.phase","order":60}
+      ],
+      "relationships": [
+        {"id":"pv.relationship.system_inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.system_inverter","version":"1.0.0"},"from":"pv.dimension.system","to":"pv.dimension.inverter","order":10},
+        {"id":"pv.relationship.inverter_array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.inverter_array","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.array","order":20},
+        {"id":"pv.relationship.array_string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.array_string","version":"1.0.0"},"from":"pv.dimension.array","to":"pv.dimension.string","order":30},
+        {"id":"pv.relationship.inverter_input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.inverter_input","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.input","order":40},
+        {"id":"pv.relationship.inverter_phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.inverter_phase","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.phase","order":50}
+      ],
+      "capabilities": [
+        {"id":"pv.capability.read.system","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.system","version":"1.0.0"},"service":"pv.service.system","activation":"qualified_current_binding","order":10},
+        {"id":"pv.capability.read.inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.inverter","version":"1.0.0"},"service":"pv.service.inverter","activation":"qualified_current_binding","order":20},
+        {"id":"pv.capability.read.array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.array","version":"1.0.0"},"service":"pv.service.array","activation":"qualified_current_binding","order":30},
+        {"id":"pv.capability.read.string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.string","version":"1.0.0"},"service":"pv.service.string","activation":"qualified_current_binding","order":40},
+        {"id":"pv.capability.read.input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.input","version":"1.0.0"},"service":"pv.service.input","activation":"qualified_current_binding","order":50},
+        {"id":"pv.capability.read.phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.phase","version":"1.0.0"},"service":"pv.service.phase","activation":"qualified_current_binding","order":60},
+        {"id":"pv.capability.set_active_power_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.set_active_power_limit","version":"1.0.0"},"service":"pv.service.inverter","activation":"qualified_current_binding","constraints":["pv.limit.active_power"],"order":70},
+        {"id":"pv.capability.set_export_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.set_export_limit","version":"1.0.0"},"service":"pv.service.system","activation":"qualified_current_binding","constraints":["pv.limit.export_power"],"order":80}
+      ],
+      "operations": [
+        {"id":"pv.operation.set_active_power_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.operation.set_active_power_limit","version":"1.0.0"},"capability":"pv.capability.set_active_power_limit","arguments":["pv.limit.active_power"],"argument_constraints":["pv.limit.active_power"],"effect_rule":"pv.effect.set_active_power_limit","preconditions":["current_generation","qualified_active_capability","exact_route","authority_admitted"],"stages":["admission","dispatch","acknowledgement","readback","terminal_outcome"],"terminal_outcomes":["rejected","failed_no_contact","acknowledged_unverified","applied","no_effect","conflict","indeterminate"],"readback":"current_generation_exact_effect","retry":"forbidden_after_indeterminate","order":10},
+        {"id":"pv.operation.set_export_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.operation.set_export_limit","version":"1.0.0"},"capability":"pv.capability.set_export_limit","arguments":["pv.limit.export_power"],"argument_constraints":["pv.limit.export_power"],"effect_rule":"pv.effect.set_export_limit","preconditions":["current_generation","qualified_active_capability","exact_route","authority_admitted"],"stages":["admission","dispatch","acknowledgement","readback","terminal_outcome"],"terminal_outcomes":["rejected","failed_no_contact","acknowledged_unverified","applied","no_effect","conflict","indeterminate"],"readback":"current_generation_exact_effect","retry":"forbidden_after_indeterminate","order":20}
+      ],
+      "effect_rules": [
+        {"id":"pv.effect.set_active_power_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.effect.set_active_power_limit","version":"1.0.0"},"operation":"pv.operation.set_active_power_limit","fact":"pv.limit.active_power","operator":"equal","order":10},
+        {"id":"pv.effect.set_export_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.effect.set_export_limit","version":"1.0.0"},"operation":"pv.operation.set_export_limit","fact":"pv.limit.export_power","operator":"equal","order":20}
+      ],
+      "portal_contributions": [
+        {"id":"pv.portal.read.system","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.read.system","version":"1.0.0"},"kind":"read","service":"pv.service.system","fields":["pv.energy.generated","pv.limit.export_power"],"order":10},
+        {"id":"pv.portal.read.inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.read.inverter","version":"1.0.0"},"kind":"read","service":"pv.service.inverter","fields":["pv.ac.aggregate_active_power","pv.ac.aggregate_current","pv.ac.aggregate_voltage","pv.ac.frequency","pv.ac.power_factor","pv.dc.aggregate_current","pv.dc.aggregate_power","pv.dc.aggregate_voltage","pv.limit.active_power","pv.status.derating","pv.status.fault","pv.status.operating","pv.temperature.inverter"],"order":20},
+        {"id":"pv.portal.read.input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.read.input","version":"1.0.0"},"kind":"read","service":"pv.service.input","fields":["pv.dc.current","pv.dc.power","pv.dc.voltage"],"order":30},
+        {"id":"pv.portal.read.phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.read.phase","version":"1.0.0"},"kind":"read","service":"pv.service.phase","fields":["pv.ac.active_power","pv.ac.current","pv.ac.voltage"],"order":40},
+        {"id":"pv.portal.read.array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.read.array","version":"1.0.0"},"kind":"read","service":"pv.service.array","fields":[],"order":50},
+        {"id":"pv.portal.read.string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.read.string","version":"1.0.0"},"kind":"read","service":"pv.service.string","fields":[],"order":60},
+        {"id":"pv.portal.operation.set_active_power_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.operation.set_active_power_limit","version":"1.0.0"},"kind":"operation","operation":"pv.operation.set_active_power_limit","admission":"current_only","order":70},
+        {"id":"pv.portal.operation.set_export_limit","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.portal.operation.set_export_limit","version":"1.0.0"},"kind":"operation","operation":"pv.operation.set_export_limit","admission":"current_only","order":80}
+      ]
+    },
+    "candidate_mappings": [
+      {"id":"pv.mapping.growatt.protocol_ii","native_owner":"helianthus-docs-modbus","source_refs":["growatt_docs_modbus","growatt_modbusreg"],"state":"candidate","qualification":"blocked_docs_modbus_143_modbusreg_196","applicability":"tl3_x_offsets_59_124_unresolved","loss":"unknown"},
+      {"id":"pv.mapping.fronius.readiness","native_owner":"helianthus-docs-modbus","source_refs":["fronius_docs_modbus","fronius_modbusreg"],"state":"candidate","qualification":"offline_candidate_live_qualified_false","live_qualified":false,"write_authority":false,"loss":"unknown"},
+      {"id":"pv.mapping.eebus","native_owner":"helianthus-docs-eebus","source_refs":["eebus_ledger","eebus_m625_donor"],"state":"unknown_pending_std_01","qualification":"unresolved","loss":"unknown"}
+    ]
+  },
+  "vectors": [
+    {"id":"PV-POS-001","polarity":"positive","input":{}},
+    {"id":"PV-NEG-001","polarity":"negative","input":{"mutations":[{"op":"set","path":"pack.id","value":"helianthus.pack.thermal"}]},"expect":{"error":"exact PackRef"}},
+    {"id":"PV-NEG-002","polarity":"negative","input":{"mutations":[{"op":"remove_id","path":"domain_catalog","id":"infrastructure"}]},"expect":{"error":"five-domain catalog"}},
+    {"id":"PV-NEG-003","polarity":"negative","input":{"mutations":[{"op":"delete","path":"definitions.fields.0.ref"}]},"expect":{"error":"DefinitionRef owner/version"}},
+    {"id":"PV-NEG-004","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.fields.0.unit","value":"volt"}]},"expect":{"error":"invalid unit ID"}},
+    {"id":"PV-NEG-005","polarity":"negative","input":{"mutations":[{"op":"remove_id","path":"definitions.relationships","id":"pv.relationship.inverter_phase"}]},"expect":{"error":"relationships catalog"}},
+    {"id":"PV-NEG-006","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.0.state","value":"qualified"}]},"expect":{"error":"native mapping boundary"}},
+    {"id":"PV-NEG-007","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.2.state","value":"candidate"}]},"expect":{"error":"native mapping boundary"}},
+    {"id":"PV-NEG-008","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.operations.0.preconditions.3","value":"optional_authority"}]},"expect":{"error":"operation lacks admission/readback"}},
+    {"id":"PV-NEG-009","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.operations.0.id","value":"pv.operation.enable"},{"op":"set","path":"definitions.operations.0.ref.id","value":"pv.operation.enable"}]},"expect":{"error":"operations catalog"}},
+    {"id":"PV-NEG-010","polarity":"negative","input":{"mutations":[{"op":"delete","path":"counter_policy"}]},"expect":{"error":"counter policy"}},
+    {"id":"PV-NEG-011","polarity":"negative","input":{"mutations":[{"op":"remove_id","path":"definitions.portal_contributions.1.fields","id":"pv.status.fault"}]},"expect":{"error":"Portal read association"}}
+  ]
+}

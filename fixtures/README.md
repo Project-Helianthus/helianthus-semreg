@@ -3,6 +3,13 @@
 This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
+[`v1/pv-inverter-pack-vectors.json`](v1/pv-inverter-pack-vectors.json) is the
+byte-for-byte PV/inverter acceptance fixture from
+`helianthus-docs-semantic@c20fdef000fe95df95fca60c55d651a0614c4efd`; its
+SHA-256 is `7ed698087047207597a103218e3b5e4f2efa55765e7cc4e31c3cf5b6a882b2fd`.
+It defines static semantic evidence only and does not create a native mapping,
+route, authority, or live operation.
+
 [`v1/storage-bms-pack-vectors.json`](v1/storage-bms-pack-vectors.json) and
 [`v1/storage-bms-contract-tables.json`](v1/storage-bms-contract-tables.json)
 are byte-for-byte copies from accepted

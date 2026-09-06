@@ -16,6 +16,15 @@ dispatch boundary. The pack has no native mapping, route, authority, Portal
 composition, persistence, gateway, consumer, or live-I/O behavior; eeBUS
 remains `unknown_pending_std_01`.
 
+## PV/inverter capability pack v1
+
+`semreg/v1/packs/pv` implements the immutable
+`helianthus.pack.pv@1.0.0` validator from accepted semantic documentation. It
+indexes 21 fields, six services, eight capabilities, and the active-power and
+export limit operation/effect pairs. It preserves the fixture's native mapping
+and live-authority exclusions and adds no transport, gateway, persistence, or
+live-I/O behavior.
+
 ## EVSE capability pack v1
 
 `semreg/v1/packs/evse` implements the immutable
