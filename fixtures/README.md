@@ -36,7 +36,10 @@ pin the selected fixture bytes and exact vector IDs. A strict loader rejects
 duplicate JSON members and runs one named subtest for every selected vector,
 asserting the exact stable result/error, rejection immutability, and a visible
 typed-expansion digest. Exact typed EVSE admission/readback and precondition
-expansions supplement the common harness. The matrix covers exact pack
+expansions supplement the common harness, including revision-1-to-2 readback,
+retained revision-1 evidence across an unrelated service change, replacement
+generation 8, evaluated stale state, complete cross-pack fact ownership, the
+60-second causal lifetime, and explicit ingress/egress entries. The matrix covers exact pack
 ownership, immutable admission, causal and deadline checks,
 candidate/capability eligibility, route ambiguity, generation guard claims,
 bounded idempotency/retry retention, chronology, externally supplied dispatch

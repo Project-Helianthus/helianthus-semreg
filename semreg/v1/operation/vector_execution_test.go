@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
+	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,12 +32,30 @@ type operationVector struct {
 }
 
 type vectorExpansion struct {
-	Intent    *operation.Intent
-	Snapshot  *semreg.Snapshot
-	Current   *semreg.EvaluationContext
-	Record    *operation.ExecutionRecord
-	Causal    *semreg.CausalContext
-	Selection *semreg.Selection
+	Intent          *operation.Intent
+	Snapshot        *semreg.Snapshot
+	Current         *semreg.EvaluationContext
+	Record          *operation.ExecutionRecord
+	Causal          *semreg.CausalContext
+	CausalStates    []causalStateExpansion
+	PriorProjection *priorProjectionExpansion
+	Selection       *semreg.Selection
+}
+
+type priorProjectionExpansion struct {
+	Value         semreg.Value
+	CorrelationID semreg.CorrelationID
+}
+
+type causalStateExpansion struct {
+	Event       string
+	Receiver    semreg.TargetID
+	Incoming    []semreg.TargetID
+	IncomingHop uint16
+	Accepted    []semreg.TargetID
+	AcceptedHop uint16
+	Emitted     []semreg.TargetID
+	EmittedHop  uint16
 }
 
 type vectorIndexPack struct {
@@ -137,13 +156,18 @@ func TestAcceptedOperationVectorsExecute(t *testing.T) {
 					got, result, expansion.Record = err, stored, &record
 				}
 			case "K-POS-014":
-				admission := admit(operation.AuthorityResolverFunc(authorize))
+				exact := newEVSEFixture(t, vectorByID(t, vectors, "K-POS-012"))
+				stateBefore, err = semreg.CanonicalJSON(exact.snapshot)
+				if err != nil {
+					t.Fatal(err)
+				}
+				admission, admitErr := exact.kernel.Admit(exact.snapshot, exact.current, exact.intent, operation.AuthorityResolverFunc(authorize))
+				got = admitErr
 				if got == nil {
-					snapshot := applyReadback(t, fixture, true, "220", "220")
-					record := admittedRecord(admission)
-					record.Outcome, record.Dispatch, record.Readback = operation.OutcomeApplied, dispatch(operation.DeliverySent, true), readback(snapshot, operation.ReadbackConfirms)
-					stored, err := fixture.kernel.Record(admission, record, &snapshot)
-					got, result, expansion.Record, expansion.Snapshot = err, stored, &record, &snapshot
+					record, later := expandEVSEExecution(t, vector, admission, exact.snapshot)
+					stored, recordErr := exact.kernel.Record(admission, record, &later)
+					got, result = recordErr, stored
+					expansion.Intent, expansion.Snapshot, expansion.Current, expansion.Record = &exact.intent, &later, &exact.current, &record
 				}
 			case "K-POS-015":
 				var input struct {
@@ -175,6 +199,17 @@ func TestAcceptedOperationVectorsExecute(t *testing.T) {
 				fixture.intent.Causal.HopCount = input.HopCount
 				fixture.intent.Causal.MaxHops = input.MaxHops
 				fixture.intent.Causal.Path = input.Path
+				first, ok := new(big.Int).SetString(string(fixture.intent.Causal.FirstSeenAt.UnixNanoseconds), 10)
+				lifetime, lifetimeOK := new(big.Int).SetString(string(input.LifetimeNS), 10)
+				if !ok || !lifetimeOK {
+					t.Fatal("exact causal lifetime")
+				}
+				fixture.intent.Causal.ExpiresAt = timePoint(new(big.Int).Add(first, lifetime).String())
+				priorProjection := priorProjectionExpansion{Value: fixture.intent.ExpectedEffect.Expected, CorrelationID: prior.CorrelationID}
+				if !reflectValuesEqual(priorProjection.Value, fixture.intent.ExpectedEffect.Expected) || priorProjection.CorrelationID == fixture.intent.Causal.CorrelationID {
+					t.Fatal("exact earlier projection state")
+				}
+				expansion.PriorProjection = &priorProjection
 				admit(operation.AuthorityResolverFunc(authorize))
 			case "K-POS-022":
 				var input struct {
@@ -217,8 +252,12 @@ func TestAcceptedOperationVectorsExecute(t *testing.T) {
 					States       []struct {
 						Event       string            `json:"event"`
 						Receiver    semreg.TargetID   `json:"receiver"`
+						Incoming    []semreg.TargetID `json:"incoming_path"`
+						IncomingHop uint16            `json:"incoming_hop_count"`
 						Accepted    []semreg.TargetID `json:"accepted_path"`
 						AcceptedHop uint16            `json:"accepted_hop_count"`
+						Emitted     []semreg.TargetID `json:"emitted_path"`
+						EmittedHop  uint16            `json:"emitted_hop_count"`
 					} `json:"states"`
 				}
 				decodeVectorInput(t, vector.Input, &input)
@@ -228,13 +267,26 @@ func TestAcceptedOperationVectorsExecute(t *testing.T) {
 				causal := fixture.intent.Causal
 				causal.MaxHops = input.MaxHops
 				for _, state := range input.States {
+					entry := causalStateExpansion{Event: state.Event, Receiver: state.Receiver}
 					if state.Receiver == "" {
+						emitted := causal
+						if !bytes.Equal(mustJSON(t, emitted.Path), mustJSON(t, state.Emitted)) || emitted.HopCount != state.EmittedHop {
+							t.Fatalf("%s emitted expansion: path=%v hop=%d", state.Event, emitted.Path, emitted.HopCount)
+						}
+						entry.Emitted, entry.EmittedHop = append([]semreg.TargetID(nil), emitted.Path...), emitted.HopCount
+						expansion.CausalStates = append(expansion.CausalStates, entry)
 						continue
 					}
+					if !bytes.Equal(mustJSON(t, causal.Path), mustJSON(t, state.Incoming)) || causal.HopCount != state.IncomingHop {
+						t.Fatalf("%s incoming expansion: path=%v hop=%d", state.Event, causal.Path, causal.HopCount)
+					}
+					entry.Incoming, entry.IncomingHop = append([]semreg.TargetID(nil), causal.Path...), causal.HopCount
 					causal, got = operation.EnterCausal(causal, state.Receiver, timePoint("150"))
 					if got != nil || !bytes.Equal(mustJSON(t, causal.Path), mustJSON(t, state.Accepted)) || causal.HopCount != state.AcceptedHop {
 						t.Fatalf("%s expansion: path=%v err=%v", state.Event, causal.Path, got)
 					}
+					entry.Accepted, entry.AcceptedHop = append([]semreg.TargetID(nil), causal.Path...), causal.HopCount
+					expansion.CausalStates = append(expansion.CausalStates, entry)
 				}
 				expansion.Causal, result = &causal, causal
 			case "K-NEG-013":
@@ -347,27 +399,25 @@ func TestAcceptedOperationVectorsExecute(t *testing.T) {
 					got, expansion.Record = record.Validate(), &record
 				}
 			case "K-NEG-036", "K-NEG-041", "K-NEG-045", "K-NEG-046":
-				admission := admit(operation.AuthorityResolverFunc(authorize))
+				exact := newEVSEFixture(t, vectorByID(t, vectors, "K-POS-012"))
+				fixture.snapshot = exact.snapshot
+				stateBefore, err = semreg.CanonicalJSON(exact.snapshot)
+				if err != nil {
+					t.Fatal(err)
+				}
+				admission, admitErr := exact.kernel.Admit(exact.snapshot, exact.current, exact.intent, operation.AuthorityResolverFunc(authorize))
+				got = admitErr
 				if got == nil {
-					wall, ticks := "220", "220"
-					if vector.ID == "K-NEG-045" {
-						wall, ticks = "190", "190"
+					record, later := expandEVSEExecution(t, vector, admission, exact.snapshot)
+					laterBefore := mustJSON(t, later)
+					_, got = exact.kernel.Record(admission, record, &later)
+					if !bytes.Equal(laterBefore, mustJSON(t, later)) {
+						t.Fatal("exact readback snapshot mutated on rejection")
 					}
-					snapshot := applyReadback(t, fixture, true, wall, ticks)
-					record := admittedRecord(admission)
-					record.Outcome, record.Dispatch, record.Readback = operation.OutcomeApplied, dispatch(operation.DeliverySent, true), readback(snapshot, operation.ReadbackConfirms)
-					switch vector.ID {
-					case "K-NEG-036":
-						record.Readback.DriverGeneration = "2"
-					case "K-NEG-041":
-						record.Readback.CandidateID = "candidate:interlock"
-						record.Readback.CandidateRevision = "1"
-					case "K-NEG-046":
-						record.Readback.Evaluation.EvaluateMonotonic.ClockEpochID = "clock-epoch:restart"
-						record.Readback.Evaluation.EvaluatedAt.UncertaintyNS = "11"
+					if _, recorded := admission.Recorded(); recorded {
+						t.Fatal("rejected exact execution installed state")
 					}
-					_, got = fixture.kernel.Record(admission, record, &snapshot)
-					expansion.Record, expansion.Snapshot = &record, &snapshot
+					expansion.Intent, expansion.Snapshot, expansion.Current, expansion.Record = &exact.intent, &later, &exact.current, &record
 				}
 			case "K-NEG-038":
 				fixture.current = context("1100", "1100")
@@ -555,4 +605,10 @@ func mustJSON(t *testing.T, value any) []byte {
 		t.Fatal(err)
 	}
 	return raw
+}
+
+func reflectValuesEqual(left, right semreg.Value) bool {
+	leftJSON, leftErr := semreg.CanonicalJSON(left)
+	rightJSON, rightErr := semreg.CanonicalJSON(right)
+	return leftErr == nil && rightErr == nil && bytes.Equal(leftJSON, rightJSON)
 }

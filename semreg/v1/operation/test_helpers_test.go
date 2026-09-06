@@ -220,6 +220,9 @@ func mustAdmit(t *testing.T, fixture operationFixture) *operation.Admission {
 
 func errorID(t *testing.T, err error, want semreg.ErrorID) {
 	t.Helper()
+	if err == nil {
+		t.Fatalf("error id: got nil want %q", want)
+	}
 	if got := semreg.ErrorIdentifier(err); got != want {
 		t.Fatalf("error id: got %q want %q (%v)", got, want, err)
 	}

@@ -43,13 +43,25 @@ re-running a pack hook that already rejected them. `AdmitSelectionRoute` and
 accepted negative operation cases. They do not implement selection routing,
 alias storage, or native dispatch.
 
+Typed operation inputs are validated before detached copies or hook dispatch,
+so malformed unions and invalid UTF-8 cannot be repaired by serialization or
+installed in retained state. Admission and execution validation collect and
+rank independently knowable failures using the accepted stable precedence.
+Readback keeps common exact snapshot, route, generation, eligibility, and
+pack-effect checks for every supported outcome; only `applied` requires strict
+post-completion receipt proof, while `conflict` requires post-dispatch evidence
+and `acknowledged_unverified` may retain same-route inconclusive evidence.
+
 The self-contained fixture runners execute the copied K-POS-005 restart-time
 vector plus the exact corrected K-POS-019/K-POS-025 and K-NEG-056 through
 K-NEG-065 inputs from docs issue #6, alongside the foundation and publication
 fixtures. They also pin and execute all 29 operation-tagged acceptance vectors
 from the same accepted docs commit using a duplicate-key-rejecting loader,
 exact stable result/error assertions, immutable rejection checks, and visible
-typed-expansion digests. The executable cases exercise authority, time, causal,
+typed-expansion digests. The typed expansions preserve admitted-to-readback
+candidate revisions, replacement generations, effective stale state, complete
+fact-owner registration, causal lifetimes, and receiver ingress/sender egress
+transitions. The executable cases exercise authority, time, causal,
 precondition, route, generation, pack-owner, effect, idempotency, dispatch,
 acknowledgement, readback and outcome requirements through a contract-derived
 matrix. Exact typed EVSE and precondition expansions supplement the common

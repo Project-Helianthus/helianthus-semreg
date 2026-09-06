@@ -404,7 +404,12 @@ func isNilInterface(value any) bool {
 		return true
 	}
 	rv := reflect.ValueOf(value)
-	return rv.Kind() == reflect.Ptr && rv.IsNil()
+	switch rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return rv.IsNil()
+	default:
+		return false
+	}
 }
 
 func factKeyEqual(left, right semreg.FactKey) bool {

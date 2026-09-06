@@ -35,6 +35,30 @@ type evseVectorPack struct {
 	index  semreg.DefinitionIndex
 }
 
+type vectorFactPack struct{ pack semreg.PackRef }
+
+func (p *vectorFactPack) Pack() semreg.PackRef { return p.pack }
+func (p *vectorFactPack) Definitions() semreg.DefinitionIndex {
+	return semreg.DefinitionIndex{Pack: p.pack, Fields: []semreg.DefinitionRef{}, Services: []semreg.DefinitionRef{}, Capabilities: []semreg.DefinitionRef{}, Operations: []semreg.DefinitionRef{}, EffectRules: []semreg.DefinitionRef{}}
+}
+func (p *vectorFactPack) ValidateFact(key semreg.FactKey, value *semreg.Value) error {
+	if key.PackID != p.pack.ID || key.PackVersion != p.pack.Version || value == nil {
+		return errors.New("unknown vector fact")
+	}
+	return value.Validate()
+}
+func (p *vectorFactPack) ValidateService(semreg.ServiceInstance) error       { return nil }
+func (p *vectorFactPack) ValidateCapability(semreg.CapabilityInstance) error { return nil }
+func (p *vectorFactPack) ValidateField(_ semreg.DefinitionRef, field semreg.TypedField) error {
+	return field.Validate()
+}
+func (p *vectorFactPack) MatchConstraints(semreg.CapabilityInstance, []semreg.TypedField) error {
+	return nil
+}
+func (p *vectorFactPack) EvaluatePredicate(semreg.FactCandidate, semreg.PredicateOp, semreg.Value) (bool, error) {
+	return false, errors.New("no vector predicate")
+}
+
 func (p *evseVectorPack) Pack() semreg.PackRef                { return p.index.Pack }
 func (p *evseVectorPack) Definitions() semreg.DefinitionIndex { return p.index }
 func (p *evseVectorPack) ValidateFact(key semreg.FactKey, value *semreg.Value) error {
@@ -81,11 +105,12 @@ func (p *evseVectorPack) EvaluateReadback(intent operation.Intent, candidate sem
 }
 
 type evseFixture struct {
-	kernel   *operation.Kernel
-	pack     *evseVectorPack
-	intent   operation.Intent
-	snapshot semreg.Snapshot
-	current  semreg.EvaluationContext
+	kernel     *operation.Kernel
+	pack       *evseVectorPack
+	electrical *vectorFactPack
+	intent     operation.Intent
+	snapshot   semreg.Snapshot
+	current    semreg.EvaluationContext
 }
 
 func TestAcceptedEVSEVectorsUseExactTypedValues(t *testing.T) {
@@ -116,6 +141,24 @@ func TestAcceptedEVSEVectorsUseExactTypedValues(t *testing.T) {
 				t.Fatal(err)
 			}
 			record, later := expandEVSEExecution(t, vector, admission, fixture.snapshot)
+			admittedCandidate, admittedFound := vectorCandidateByID(fixture.snapshot, record.Readback.CandidateID)
+			laterCandidate, laterFound := vectorCandidateByID(later, record.Readback.CandidateID)
+			switch id {
+			case "K-POS-014":
+				if !admittedFound || !laterFound || admittedCandidate.Revision != "1" || laterCandidate.Revision != "2" {
+					t.Fatalf("exact readback revision transition: admitted=%+v later=%+v", admittedCandidate, laterCandidate)
+				}
+			case "K-NEG-036":
+				if !laterFound || laterCandidate.DriverGeneration == nil || *laterCandidate.DriverGeneration != "8" {
+					t.Fatalf("exact replacement generation: %+v", laterCandidate)
+				}
+			case "K-NEG-045":
+				admittedBytes, _ := semreg.CanonicalJSON(admittedCandidate)
+				laterBytes, _ := semreg.CanonicalJSON(laterCandidate)
+				if !admittedFound || !laterFound || !bytesEqual(admittedBytes, laterBytes) || len(later.Services) != len(fixture.snapshot.Services)+1 {
+					t.Fatal("exact retained candidate/unrelated-service transition")
+				}
+			}
 			before, _ := semreg.CanonicalJSON(later)
 			stored, got := fixture.kernel.Record(admission, record, &later)
 			if vector.Expect.Result == "accept" {
@@ -245,7 +288,9 @@ func TestAcceptedPreconditionVectorsUseExactTypedValues(t *testing.T) {
 				decodeVectorInput(t, vector.PriorState, &prior)
 				candidate := exactEVSECandidate(fixture.snapshot, input.CandidateID, fixture.intent.Preconditions[0].Fact, boolValue(true), input.Revision)
 				candidate.Times.ReceivedAt = vectorTime(prior.Receipt, "0")
-				candidate.Times.ReceiptMonotonic.Nanoseconds = "100"
+				candidate.Times.ReceiptMonotonic.Nanoseconds = "100000000000"
+				candidate.Times.EvaluatedAt = candidate.Times.ReceivedAt
+				candidate.Times.EvaluateMonotonic = candidate.Times.ReceiptMonotonic
 				candidate.FreshnessPolicy.FreshForNS = prior.FreshFor
 				candidate.FreshnessPolicy.RetainForNS = "120000000000"
 				fixture.snapshot.Revisions.Semantic = prior.Semantic
@@ -359,7 +404,8 @@ func newEVSEFixture(t *testing.T, vector operationVector) evseFixture {
 		Pack: input.Kind.Pack, Fields: []semreg.DefinitionRef{vectorField}, Services: []semreg.DefinitionRef{serviceRef},
 		Capabilities: []semreg.DefinitionRef{capRef}, Operations: []semreg.DefinitionRef{input.Kind}, EffectRules: []semreg.DefinitionRef{input.ExpectedEffect.Rule},
 	}}
-	kernel, err := operation.NewKernel(pack)
+	electrical := &vectorFactPack{pack: semreg.PackRef{ID: "helianthus.pack.electrical", Version: "1.0.0"}}
+	kernel, err := operation.NewKernel(pack, electrical)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,6 +414,12 @@ func newEVSEFixture(t *testing.T, vector operationVector) evseFixture {
 	candidate := vectorCandidate(input.Preconditions[0].CandidateID, input.Preconditions[0].Fact, input.Preconditions[0].Expected,
 		input.Preconditions[0].CandidateRevision, bindingID, sourceID, input.ExpectedSourceEpochID, input.ExpectedDriverGeneration,
 		vectorTime("149000000000", "1000"), semreg.MonotonicPoint{ClockEpochID: "clock-epoch:boot-1", Nanoseconds: "800"})
+	readbackScenario := acceptedResolvedCandidate(t, vectorByID(t, loadOperationVectors(t), "K-NEG-045"))
+	admittedReadback := vectorCandidate(readbackScenario.CandidateID, readbackScenario.Fact, readbackScenario.Value,
+		readbackScenario.CandidateRevision, bindingID, sourceID, input.ExpectedSourceEpochID, input.ExpectedDriverGeneration,
+		readbackScenario.Times.ReceivedAt, readbackScenario.Times.ReceiptMonotonic)
+	admittedReadback.Quality.Assertion, admittedReadback.Quality.Qualification, admittedReadback.Quality.Promotion = readbackScenario.Assertion, readbackScenario.Qualification, readbackScenario.Promotion
+	admittedReadback.Quality.Validity, admittedReadback.Quality.Availability, admittedReadback.Quality.Freshness = readbackScenario.Validity, semreg.AvailabilityAvailable, semreg.FreshnessFresh
 	snapshot := semreg.Snapshot{
 		Contract: semreg.ContractKernelV1, AssetID: input.AssetID,
 		Revisions:   semreg.RevisionVector{Semantic: input.ExpectedSemanticRevision, Identity: "2", Facts: "8", Services: "3", Capabilities: input.ExpectedCapabilityRevision},
@@ -375,13 +427,21 @@ func newEVSEFixture(t *testing.T, vector operationVector) evseFixture {
 		Sources:       []semreg.SourceDescriptor{{SourceID: sourceID, SourceEpochID: input.ExpectedSourceEpochID, ProtocolID: "protocol.evse", ProfileID: "profile.evse", ProfileVersion: "1", RegistryEvidence: evidence(1), StartedAt: vectorTime("100000000000", "1000"), State: semreg.SourceCurrent, Revision: "1"}},
 		Bindings:      []semreg.NativeBinding{{BindingID: bindingID, AssetID: input.AssetID, SourceID: sourceID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, NativeResource: evidence(2), State: semreg.BindingCurrent, Revision: "1"}},
 		IdentityLinks: []semreg.IdentityLink{{AssetID: input.AssetID, BindingID: bindingID, State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{evidence(3)}, Revision: "1"}},
-		Facts:         []semreg.FactEnvelope{{AssetID: input.AssetID, Key: candidate.Key, Candidates: []semreg.FactCandidate{candidate}, Conflicts: []semreg.Conflict{}, Revision: "8"}},
-		Services:      []semreg.ServiceInstance{{InstanceID: "service:evse:control:01", AssetID: input.AssetID, Definition: serviceRef, BindingID: bindingID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "3"}},
-		Capabilities:  []semreg.CapabilityInstance{{InstanceID: "capability:limit:01", AssetID: input.AssetID, ServiceInstance: "service:evse:control:01", Definition: capRef, BindingID: bindingID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Constraints: []semreg.TypedField{}, ActivationEvidence: []semreg.EvidenceRef{evidence(4)}, Revision: input.ExpectedCapabilityInstanceRevision}},
-		Fences:        []semreg.GenerationFence{}, Cursors: []semreg.PublicationCursor{{SourceID: sourceID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, LastSequence: "1", LastBatchDigest: semreg.Digest("sha256:" + repeatHex(6)), Fenced: false}},
+		Facts: []semreg.FactEnvelope{
+			{AssetID: input.AssetID, Key: candidate.Key, Candidates: []semreg.FactCandidate{candidate}, Conflicts: []semreg.Conflict{}, Revision: "8"},
+			{AssetID: input.AssetID, Key: admittedReadback.Key, Candidates: []semreg.FactCandidate{admittedReadback}, Conflicts: []semreg.Conflict{}, Revision: "8"},
+		},
+		Services:     []semreg.ServiceInstance{{InstanceID: "service:evse:control:01", AssetID: input.AssetID, Definition: serviceRef, BindingID: bindingID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "3"}},
+		Capabilities: []semreg.CapabilityInstance{{InstanceID: "capability:limit:01", AssetID: input.AssetID, ServiceInstance: "service:evse:control:01", Definition: capRef, BindingID: bindingID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Constraints: []semreg.TypedField{}, ActivationEvidence: []semreg.EvidenceRef{evidence(4)}, Revision: input.ExpectedCapabilityInstanceRevision}},
+		Fences:       []semreg.GenerationFence{}, Cursors: []semreg.PublicationCursor{{SourceID: sourceID, SourceEpochID: input.ExpectedSourceEpochID, DriverGeneration: input.ExpectedDriverGeneration, LastSequence: "1", LastBatchDigest: semreg.Digest("sha256:" + repeatHex(6)), Fenced: false}},
 	}
+	sort.Slice(snapshot.Facts, func(i, j int) bool {
+		left, _ := semreg.CanonicalJSON(snapshot.Facts[i].Key)
+		right, _ := semreg.CanonicalJSON(snapshot.Facts[j].Key)
+		return string(left) < string(right)
+	})
 	sealCorrectionSnapshot(t, &snapshot)
-	return evseFixture{kernel: kernel, pack: pack, intent: intent, snapshot: snapshot, current: semreg.EvaluationContext{EvaluatedAt: vectorTime("150000000000", "1000"), EvaluateMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock-epoch:boot-1", Nanoseconds: "850"}}}
+	return evseFixture{kernel: kernel, pack: pack, electrical: electrical, intent: intent, snapshot: snapshot, current: semreg.EvaluationContext{EvaluatedAt: vectorTime("150000000000", "1000"), EvaluateMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock-epoch:boot-1", Nanoseconds: "850"}}}
 }
 
 type dispatchScenario struct {
@@ -471,14 +531,67 @@ func expandEVSEExecution(t *testing.T, vector operationVector, admission *operat
 	}
 	candidate := vectorCandidate(input.ResolvedCandidate.CandidateID, input.ResolvedCandidate.Fact, input.ResolvedCandidate.Value,
 		input.ResolvedCandidate.CandidateRevision, input.Readback.BindingID, input.Readback.SourceID, input.Readback.SourceEpochID,
-		base.Capabilities[0].DriverGeneration, input.ResolvedCandidate.Times.ReceivedAt, input.ResolvedCandidate.Times.ReceiptMonotonic)
+		input.Readback.DriverGeneration, input.ResolvedCandidate.Times.ReceivedAt, input.ResolvedCandidate.Times.ReceiptMonotonic)
 	candidate.Quality.Assertion, candidate.Quality.Qualification, candidate.Quality.Promotion = input.ResolvedCandidate.Assertion, input.ResolvedCandidate.Qualification, input.ResolvedCandidate.Promotion
 	candidate.Quality.Validity, candidate.Quality.Availability, candidate.Quality.Freshness = input.ResolvedCandidate.Validity, input.ResolvedCandidate.Availability, input.ResolvedCandidate.StoredFreshness
 	candidate.FreshnessPolicy = *input.ResolvedCandidate.FreshnessPolicy
-	later := base
+	baseJSON, err := semreg.CanonicalJSON(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	later, err := semreg.Decode[semreg.Snapshot](baseJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
 	later.Revisions = input.Readback.Revisions
 	later.EvaluatedAt, later.EvaluateMonotonic = input.ResolvedCandidate.Times.ReceivedAt, input.ResolvedCandidate.Times.ReceiptMonotonic
-	later.Facts = append(later.Facts, semreg.FactEnvelope{AssetID: later.AssetID, Key: candidate.Key, Candidates: []semreg.FactCandidate{candidate}, Conflicts: []semreg.Conflict{}, Revision: input.Readback.Revisions.Facts})
+	if vector.ID == "K-NEG-045" {
+		if input.AdmittedCandidateRevision != candidate.Revision {
+			t.Fatal("retained readback revision differs from admitted revision")
+		}
+		later.Services = append(later.Services, semreg.ServiceInstance{
+			InstanceID: "service:evse:unrelated:01", AssetID: later.AssetID, Definition: later.Services[0].Definition,
+			BindingID: later.Bindings[0].BindingID, SourceEpochID: later.Bindings[0].SourceEpochID,
+			DriverGeneration: later.Bindings[0].DriverGeneration, Qualification: semreg.QualificationQualified,
+			Availability: semreg.AvailabilityAvailable, Revision: "1",
+		})
+		sort.Slice(later.Services, func(i, j int) bool { return later.Services[i].InstanceID < later.Services[j].InstanceID })
+	} else {
+		replaced := false
+		for envelopeIndex := range later.Facts {
+			for candidateIndex := range later.Facts[envelopeIndex].Candidates {
+				if later.Facts[envelopeIndex].Candidates[candidateIndex].CandidateID == candidate.CandidateID {
+					later.Facts[envelopeIndex].Candidates[candidateIndex] = candidate
+					later.Facts[envelopeIndex].Revision = input.Readback.Revisions.Facts
+					replaced = true
+				}
+			}
+		}
+		if !replaced {
+			later.Facts = append(later.Facts, semreg.FactEnvelope{AssetID: later.AssetID, Key: candidate.Key, Candidates: []semreg.FactCandidate{candidate}, Conflicts: []semreg.Conflict{}, Revision: input.Readback.Revisions.Facts})
+		}
+	}
+	if vector.ID == "K-NEG-036" {
+		for index := range later.Bindings {
+			later.Bindings[index].DriverGeneration = input.Readback.DriverGeneration
+		}
+		for index := range later.Services {
+			later.Services[index].DriverGeneration = input.Readback.DriverGeneration
+		}
+		for index := range later.Capabilities {
+			later.Capabilities[index].DriverGeneration = input.Readback.DriverGeneration
+		}
+		for index := range later.Cursors {
+			later.Cursors[index].DriverGeneration = input.Readback.DriverGeneration
+		}
+		facts := later.Facts[:0]
+		for _, envelope := range later.Facts {
+			if factKeyEqualForVector(envelope.Key, candidate.Key) {
+				facts = append(facts, envelope)
+			}
+		}
+		later.Facts = facts
+	}
 	sort.Slice(later.Facts, func(i, j int) bool {
 		left, _ := semreg.CanonicalJSON(later.Facts[i].Key)
 		right, _ := semreg.CanonicalJSON(later.Facts[j].Key)
@@ -543,3 +656,20 @@ func vectorTime(ns semreg.Int64, uncertainty semreg.Uint64) semreg.TimePoint {
 }
 
 func bytesEqual(left, right []byte) bool { return reflect.DeepEqual(left, right) }
+
+func factKeyEqualForVector(left, right semreg.FactKey) bool {
+	leftJSON, _ := semreg.CanonicalJSON(left)
+	rightJSON, _ := semreg.CanonicalJSON(right)
+	return bytesEqual(leftJSON, rightJSON)
+}
+
+func vectorCandidateByID(snapshot semreg.Snapshot, id semreg.CandidateID) (semreg.FactCandidate, bool) {
+	for _, envelope := range snapshot.Facts {
+		for _, candidate := range envelope.Candidates {
+			if candidate.CandidateID == id {
+				return candidate, true
+			}
+		}
+	}
+	return semreg.FactCandidate{}, false
+}

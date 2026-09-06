@@ -127,13 +127,22 @@ func NewKernelWithOptions(options KernelOptions, validators ...semreg.PackValida
 // ValidateIntent performs all state-independent validation and exact pack
 // dispatch, including pack-owned expected-effect derivation.
 func (k *Kernel) ValidateIntent(intent Intent) error {
+	validation, _ := k.validateIntent(intent)
+	return validation
+}
+
+// validateIntent separates typed structural safety from the final ranked
+// admission result. Causal-domain rejections remain safe to inspect and do not
+// suppress independent owner, field, effect, or authority diagnostics.
+func (k *Kernel) validateIntent(intent Intent) (error, bool) {
 	if k == nil || k.registry == nil {
-		return opError(semreg.DefinitionOwnerMissing, "operation kernel")
+		return opError(semreg.DefinitionOwnerMissing, "operation kernel"), false
+	}
+	typedErr := intent.Validate()
+	if !intentSafeForHooks(typedErr) {
+		return typedErr, false
 	}
 	intent = clone(intent)
-	if err := intent.Validate(); err != nil {
-		return err
-	}
 	var errs []error
 	_, operationOwnerErr := k.registry.Definition(semreg.DefinitionOperation, intent.Kind)
 	_, effectOwnerErr := k.registry.Definition(semreg.DefinitionEffectRule, intent.ExpectedEffect.Rule)
@@ -145,6 +154,7 @@ func (k *Kernel) ValidateIntent(intent Intent) error {
 	}
 	packValidator, packErr := k.registry.Validator(intent.Kind.Pack)
 	errs = append(errs, packErr)
+	constraintsSafe := packErr == nil
 	if packErr == nil {
 		index := packValidator.Definitions()
 		for _, argument := range intent.Arguments {
@@ -162,10 +172,12 @@ func (k *Kernel) ValidateIntent(intent Intent) error {
 			}
 			if ambiguous {
 				errs = append(errs, opError(semreg.DefinitionOwnerConflict, "operation argument field"))
+				constraintsSafe = false
 				continue
 			}
 			if exact == nil {
 				errs = append(errs, opError(semreg.DefinitionOwnerMissing, "operation argument field"))
+				constraintsSafe = false
 				continue
 			}
 			if operationValidator != nil {
@@ -173,6 +185,9 @@ func (k *Kernel) ValidateIntent(intent Intent) error {
 				fieldErr := k.registry.ValidateField(*exact, clone(argument))
 				operationValidator.mu.Unlock()
 				errs = append(errs, fieldErr)
+				if fieldErr != nil {
+					constraintsSafe = false
+				}
 			}
 		}
 	}
@@ -194,15 +209,27 @@ func (k *Kernel) ValidateIntent(intent Intent) error {
 		errs = append(errs, k.registry.ValidateFact(precondition.Fact, &precondition.Expected))
 	}
 	if errorBeforeHook := mostSpecific(errs...); errorBeforeHook != nil {
-		return errorBeforeHook
+		return mostSpecific(typedErr, errorBeforeHook), constraintsSafe
 	}
 	operationValidator.mu.Lock()
 	hookErr := operationValidator.hook.ValidateIntent(clone(intent))
 	operationValidator.mu.Unlock()
 	if hookErr != nil {
-		return stableHookError(hookErr, "operation intent")
+		errs = append(errs, stableHookError(hookErr, "operation intent"))
 	}
-	return nil
+	return mostSpecific(append([]error{typedErr}, errs...)...), constraintsSafe
+}
+
+func intentSafeForHooks(err error) bool {
+	if err == nil {
+		return true
+	}
+	switch semreg.ErrorIdentifier(err) {
+	case semreg.CausalBudgetExceeded, semreg.EchoSuppressed:
+		return true
+	default:
+		return false
+	}
 }
 
 func stableHookError(err error, detail string) error {
@@ -223,8 +250,13 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	if k == nil {
 		return nil, opError(semreg.DefinitionOwnerMissing, "operation kernel")
 	}
+	typedIntentErr := intent.Validate()
+	snapshotErr, currentErr := snapshot.Validate(), current.Validate()
+	intentErr, constraintsSafe := k.validateIntent(intent)
+	if !intentSafeForHooks(typedIntentErr) || snapshotErr != nil || currentErr != nil {
+		return nil, mostSpecific(intentErr, snapshotErr, currentErr)
+	}
 	intent = clone(intent)
-	intentErr := k.ValidateIntent(intent)
 	var intentBytes []byte
 	if intentErr == nil {
 		var err error
@@ -241,7 +273,6 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	current = clone(current)
 	var errs []error
 	errs = append(errs, intentErr)
-	errs = append(errs, snapshot.Validate(), current.Validate())
 	errs = append(errs, k.snapshotPackError(snapshot))
 	if snapshot.AssetID != intent.AssetID {
 		errs = append(errs, opError(semreg.RevisionConflict, "intent asset snapshot"))
@@ -259,12 +290,12 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	if evaluationErr == nil {
 		errs = append(errs, k.preconditionError(snapshot, view, intent.Preconditions))
 	}
-	routes, routeErr := k.routes(snapshot, intent, intentErr == nil)
+	routes, routeErr := k.routes(snapshot, intent, constraintsSafe)
 	errs = append(errs, routeErr)
-	if len(routes) == 1 && routeErr == nil {
-		if isNilInterface(authority) {
-			errs = append(errs, opError(semreg.AuthorityMissing, "authority resolver"))
-		} else if err := authority.Authorize(clone(intent), clone(routes[0]), clone(current)); err != nil {
+	if isNilInterface(authority) {
+		errs = append(errs, opError(semreg.AuthorityMissing, "authority resolver"))
+	} else if len(routes) == 1 && routeErr == nil && intentSafeForHooks(intentErr) {
+		if err := authority.Authorize(clone(intent), clone(routes[0]), clone(current)); err != nil {
 			errs = append(errs, opError(semreg.AuthorityMissing, "authority resolution"))
 		}
 	}
@@ -466,6 +497,7 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent, invokeConstrain
 
 	var routes []Route
 	var sawDefinition bool
+	var skippedConstraints bool
 	var candidateErrors []error
 	for _, capability := range snapshot.Capabilities {
 		if capability.AssetID != intent.AssetID || capability.Definition.Pack != intent.RequiredCapability.Pack ||
@@ -530,7 +562,7 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent, invokeConstrain
 		}
 		if definitionErr == nil {
 			if !invokeConstraintHook {
-				errs = append(errs, opError(semreg.AmbiguousRoute, "constraints not safely evaluable"))
+				skippedConstraints = true
 			} else if err := validator.MatchConstraints(clone(capability), clone(intent.Arguments)); err != nil {
 				errs = append(errs, opError(semreg.AmbiguousRoute, "capability constraints"))
 			}
@@ -539,14 +571,16 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent, invokeConstrain
 			candidateErrors = append(candidateErrors, errs...)
 			continue
 		}
-		routes = append(routes, Route{
-			CapabilityInstance: capability.InstanceID,
-			ServiceInstance:    capability.ServiceInstance,
-			BindingID:          capability.BindingID,
-			SourceID:           binding.SourceID,
-			SourceEpochID:      capability.SourceEpochID,
-			DriverGeneration:   capability.DriverGeneration,
-		})
+		if invokeConstraintHook {
+			routes = append(routes, Route{
+				CapabilityInstance: capability.InstanceID,
+				ServiceInstance:    capability.ServiceInstance,
+				BindingID:          capability.BindingID,
+				SourceID:           binding.SourceID,
+				SourceEpochID:      capability.SourceEpochID,
+				DriverGeneration:   capability.DriverGeneration,
+			})
+		}
 	}
 	sort.Slice(routes, func(i, j int) bool { return routes[i].CapabilityInstance < routes[j].CapabilityInstance })
 	if len(routes) > 1 {
@@ -555,6 +589,9 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent, invokeConstrain
 	if len(routes) == 0 {
 		if err := mostSpecific(candidateErrors...); err != nil {
 			return nil, err
+		}
+		if skippedConstraints {
+			return nil, nil
 		}
 		if sawDefinition {
 			return nil, opError(semreg.AmbiguousRoute, "capability constraints")
