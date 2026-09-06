@@ -209,7 +209,10 @@ func fieldSemanticErrors(parent reflect.Type, name string, node jsonNode, t refl
 
 func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 	fields := collectionKeyFields(element)
-	keyIdentity, childIdentity := wireCollectionIdentity(element)
+	childFields, childIdentity := wireCollectionIdentity(element)
+	if childIdentity {
+		fields = childFields
+	}
 	if node.kind != 'a' || (element.Kind() != reflect.String && len(fields) == 0 && !childIdentity) {
 		return nil
 	}
@@ -221,9 +224,6 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 	for _, child := range node.array {
 		projection := child
 		if len(fields) != 0 || childIdentity {
-			if childIdentity {
-				fields = keyIdentity.WireCollectionKeyFields()
-			}
 			projection = jsonNode{kind: 'o'}
 			for _, name := range fields {
 				member, present := nodeMember(child, name)
@@ -286,12 +286,33 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 	return errs
 }
 
-func wireCollectionIdentity(element reflect.Type) (WireCollectionIdentity, bool) {
-	identity, ok := reflect.New(element).Interface().(WireCollectionIdentity)
-	if !ok || len(identity.WireCollectionKeyFields()) == 0 {
+func wireCollectionIdentity(element reflect.Type) ([]string, bool) {
+	if element.Kind() != reflect.Struct {
 		return nil, false
 	}
-	return identity, true
+	identity, ok := reflect.New(element).Interface().(WireCollectionIdentity)
+	if !ok {
+		return nil, false
+	}
+	fields := identity.WireCollectionKeyFields()
+	if len(fields) == 0 {
+		return nil, false
+	}
+	seen := make(map[string]struct{}, len(fields))
+	for _, name := range fields {
+		if name == "" {
+			return nil, false
+		}
+		if _, duplicate := seen[name]; duplicate {
+			return nil, false
+		}
+		seen[name] = struct{}{}
+		field, found := wireField(element, name)
+		if !found || field.PkgPath != "" || field.Anonymous {
+			return nil, false
+		}
+	}
+	return fields, true
 }
 
 func enclosingWireErrors(node jsonNode, t reflect.Type) []error {

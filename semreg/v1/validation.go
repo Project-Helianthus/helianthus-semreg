@@ -225,6 +225,13 @@ type ContractDiscriminator interface {
 	ContractDiscriminator() (member string, expected ContractVersion)
 }
 
+// WireFixedContract declares a required child-package member whose supplied
+// value must equal an exact contract version. Unlike ContractDiscriminator,
+// absence remains the ordinary MissingMember error for a nested record.
+type WireFixedContract interface {
+	WireFixedContract() (member string, expected ContractVersion)
+}
+
 // WireCollectionIdentity declares the independently knowable key fields of a
 // child-package collection element. Decode uses it only when another member
 // prevents whole-record binding, so malformed non-key siblings cannot suppress
@@ -1703,7 +1710,7 @@ func documentDiscriminator(t reflect.Type) (string, ContractVersion, bool) {
 }
 
 func validDiscriminatorMetadata(t reflect.Type, member string, expected ContractVersion) bool {
-	if member == "" || expected.Validate() != nil {
+	if t.Kind() != reflect.Struct || member == "" || expected.Validate() != nil {
 		return false
 	}
 	var field reflect.StructField
@@ -1735,11 +1742,26 @@ func validDiscriminatorMetadata(t reflect.Type, member string, expected Contract
 		return false
 	}
 	parts := strings.Split(field.Tag.Get("json"), ",")
-	if len(parts) == 0 || parts[0] != member || parts[0] == "-" {
+	if len(parts) == 0 || parts[0] != member || parts[0] == "-" || !validJSONTagName(parts[0]) {
 		return false
 	}
 	for _, option := range parts[1:] {
 		if option == "omitempty" {
+			return false
+		}
+	}
+	return true
+}
+
+func validJSONTagName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, char := range name {
+		switch {
+		case strings.ContainsRune("!#$%&()*+-./:;<=>?@[]^_{|}~ ", char):
+		case unicode.IsLetter(char), unicode.IsDigit(char):
+		default:
 			return false
 		}
 	}
@@ -1763,6 +1785,25 @@ func discriminatorWireErrors(node jsonNode, t reflect.Type) []error {
 	}
 	stringValue, ok := value.scalar.(string)
 	if !ok || ContractVersion(stringValue) != expected {
+		return []error{errID(InvalidContract, member)}
+	}
+	return nil
+}
+
+func fixedContractWireErrors(node jsonNode, t reflect.Type) []error {
+	if t.Kind() != reflect.Struct || !reflect.PointerTo(t).Implements(reflect.TypeOf((*WireFixedContract)(nil)).Elem()) {
+		return nil
+	}
+	member, expected := reflect.New(t).Interface().(WireFixedContract).WireFixedContract()
+	if !validDiscriminatorMetadata(t, member, expected) {
+		return []error{errID(InvalidContract, "fixed contract metadata")}
+	}
+	value, present := nodeMember(node, member)
+	if !present {
+		return nil
+	}
+	stringValue, ok := value.scalar.(string)
+	if value.kind != 's' || !ok || ContractVersion(stringValue) != expected {
 		return []error{errID(InvalidContract, member)}
 	}
 	return nil
@@ -1802,6 +1843,7 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	var errs []error
 	errs = append(errs, conditionalMemberErrors(node, t)...)
 	errs = append(errs, discriminatorWireErrors(node, t)...)
+	errs = append(errs, fixedContractWireErrors(node, t)...)
 	errs = append(errs, enclosingWireErrors(node, t)...)
 	switch t.Kind() {
 	case reflect.Struct:

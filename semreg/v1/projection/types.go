@@ -100,7 +100,7 @@ func (ProjectionReport) ContractDiscriminator() (string, semreg.ContractVersion)
 	return "contract", ContractProjectionV1
 }
 
-func (ProjectionManifest) ContractDiscriminator() (string, semreg.ContractVersion) {
+func (ProjectionManifest) WireFixedContract() (string, semreg.ContractVersion) {
 	return "kernel_version", semreg.ContractKernelV1
 }
 

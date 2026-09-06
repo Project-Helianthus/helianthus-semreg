@@ -127,6 +127,63 @@ func TestDiscriminatorMetadataRejectsAmbiguousJSONTag(t *testing.T) {
 	if validDiscriminatorMetadata(child, "contract", ContractKernelV1) {
 		t.Fatal("ambiguous JSON discriminator metadata accepted")
 	}
+	invalidTag := reflect.StructOf([]reflect.StructField{
+		{Name: "Contract", Type: contractType, Tag: `json:"con\\tract"`},
+	})
+	if validDiscriminatorMetadata(invalidTag, `con\tract`, ContractKernelV1) {
+		t.Fatal("invalid JSON discriminator tag accepted")
+	}
+}
+
+type phantomCollectionIdentity struct {
+	ID DefinitionID `json:"id"`
+}
+
+func (phantomCollectionIdentity) Validate() error                   { return nil }
+func (phantomCollectionIdentity) WireCollectionKeyFields() []string { return []string{"absent"} }
+func (phantomCollectionIdentity) ValidateWireCollectionKey() error  { return nil }
+
+type phantomCollectionContainer struct {
+	Items    []phantomCollectionIdentity `json:"items"`
+	Required bool                        `json:"required"`
+}
+
+func (phantomCollectionContainer) Validate() error { return nil }
+
+type scalarCollectionIdentity string
+
+func (scalarCollectionIdentity) WireCollectionKeyFields() []string { return []string{"id"} }
+func (scalarCollectionIdentity) ValidateWireCollectionKey() error  { return nil }
+
+type scalarCollectionContainer struct {
+	Items    []scalarCollectionIdentity `json:"items"`
+	Required bool                       `json:"required"`
+}
+
+func (scalarCollectionContainer) Validate() error { return nil }
+
+func TestCollectionIdentityMetadataRejectsInvalidShapesWithoutPanic(t *testing.T) {
+	for name, decode := range map[string]func() error{
+		"phantom field": func() error {
+			_, err := Decode[phantomCollectionContainer]([]byte(`{"items":[{"id":"fact.test"}]}`))
+			return err
+		},
+		"non-struct element": func() error {
+			_, err := Decode[scalarCollectionContainer]([]byte(`{"items":["fact.test"]}`))
+			return err
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					t.Fatalf("Decode panicked on invalid collection identity metadata: %v", recovered)
+				}
+			}()
+			if err := decode(); err == nil {
+				t.Fatal("invalid collection identity metadata accepted")
+			}
+		})
+	}
 }
 
 func boolPtr(v bool) *bool { return &v }

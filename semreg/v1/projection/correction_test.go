@@ -351,6 +351,15 @@ func TestCorrectionChildPartialWireDiagnostics(t *testing.T) {
 	}
 }
 
+func TestCorrectionMissingManifestKernelRemainsMissingMember(t *testing.T) {
+	raw := []byte(`{"target_id":"target:test","target_version":"v1","pack_versions":[],"mapping_revision":"1"}`)
+	decoded, err := semreg.Decode[projection.ProjectionManifest](raw)
+	correctionError(t, err, semreg.MissingMember)
+	if !reflect.DeepEqual(decoded, projection.ProjectionManifest{}) {
+		t.Fatalf("rejected manifest returned partial result: %+v", decoded)
+	}
+}
+
 func TestCorrectionLossKeysRequireValidIdentifiers(t *testing.T) {
 	loss := projection.LossDetail{Kind: projection.LossPrecision, SourceItems: []semreg.DefinitionID{"!invalid"}, Description: "Precision reduced."}
 	value := projection.ProjectionDisposition{
