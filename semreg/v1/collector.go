@@ -44,14 +44,8 @@ func collectionKeyFields(t reflect.Type) []string {
 }
 
 func wireField(t reflect.Type, name string) (reflect.StructField, bool) {
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		fieldName, bindable := effectiveJSONFieldName(f)
-		if bindable && fieldName == name {
-			return f, true
-		}
-	}
-	return reflect.StructField{}, false
+	field, found := effectiveJSONFields(t)[name]
+	return field, found
 }
 
 func uniqueWireField(t reflect.Type, name string) (reflect.StructField, bool) {

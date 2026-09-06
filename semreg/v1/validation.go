@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -1563,18 +1564,11 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 			t        reflect.Type
 			optional bool
 		}{}
-		for name, field := range uniqueEffectiveJSONFields(t) {
-			parts := strings.Split(field.Tag.Get("json"), ",")
-			optional := false
-			for _, part := range parts[1:] {
-				if part == "omitempty" {
-					optional = true
-				}
-			}
+		for name, field := range effectiveJSONFields(t) {
 			fields[name] = struct {
 				t        reflect.Type
 				optional bool
-			}{field.Type, optional}
+			}{field.Type, jsonFieldOptional(field)}
 		}
 		// Only public document records own a contract discriminator. A decoded
 		// EvidenceRef still treats contract as ordinary required metadata. Child
@@ -1704,29 +1698,14 @@ func validDiscriminatorMetadata(t reflect.Type, member string, expected Contract
 	if t.Kind() != reflect.Struct || member == "" || expected.Validate() != nil {
 		return false
 	}
-	var field reflect.StructField
-	found := false
-	for index := 0; index < t.NumField(); index++ {
-		candidate := t.Field(index)
-		// Embedded fields use encoding/json promotion rules. Reject them here
-		// rather than accepting a binding whose effective JSON field can become
-		// absent or ambiguous under those rules.
-		if candidate.Anonymous {
-			return false
-		}
-		if candidate.PkgPath != "" {
-			continue
-		}
-		name, bindable := effectiveJSONFieldName(candidate)
-		if !bindable || name != member {
-			continue
-		}
-		if found {
-			return false
-		}
-		field, found = candidate, true
-	}
+	field, found := effectiveJSONFields(t)[member]
 	if !found || field.Type != reflect.TypeOf(ContractVersion("")) {
+		return false
+	}
+	// Contract metadata remains a direct, explicitly tagged member. The shared
+	// resolver determines which direct candidate actually binds before this
+	// narrower metadata contract is applied.
+	if len(field.Index) != 1 || field.Anonymous {
 		return false
 	}
 	parts := strings.Split(field.Tag.Get("json"), ",")
@@ -1756,41 +1735,145 @@ func validJSONTagName(name string) bool {
 	return true
 }
 
-func effectiveJSONFieldName(field reflect.StructField) (string, bool) {
-	if field.PkgPath != "" {
-		return "", false
+// effectiveJSONFields mirrors encoding/json's effective-field selection for
+// the strict decoder. It deliberately caches only immutable metadata: callers
+// must treat the returned map and StructField indexes as read-only.
+type jsonFieldMetadata struct {
+	fields map[string]reflect.StructField
+}
+
+type jsonFieldCandidate struct {
+	field  reflect.StructField
+	name   string
+	tagged bool
+}
+
+type jsonFieldScan struct {
+	t     reflect.Type
+	index []int
+}
+
+var jsonFieldMetadataCache sync.Map // map[reflect.Type]*jsonFieldMetadata
+
+func effectiveJSONFields(t reflect.Type) map[string]reflect.StructField {
+	return cachedJSONFieldMetadata(t).fields
+}
+
+func cachedJSONFieldMetadata(t reflect.Type) *jsonFieldMetadata {
+	if cached, ok := jsonFieldMetadataCache.Load(t); ok {
+		return cached.(*jsonFieldMetadata)
 	}
-	tag := field.Tag.Get("json")
-	if tag == "-" {
-		return "", false
+	metadata := buildJSONFieldMetadata(t)
+	actual, _ := jsonFieldMetadataCache.LoadOrStore(t, metadata)
+	return actual.(*jsonFieldMetadata)
+}
+
+func buildJSONFieldMetadata(t reflect.Type) *jsonFieldMetadata {
+	metadata := &jsonFieldMetadata{fields: map[string]reflect.StructField{}}
+	if t.Kind() != reflect.Struct {
+		return metadata
 	}
-	name := strings.Split(tag, ",")[0]
-	if name == "" || !validJSONTagName(name) {
-		name = field.Name
+	current := []jsonFieldScan{}
+	next := []jsonFieldScan{{t: t}}
+	visited := map[reflect.Type]bool{}
+	var count, nextCount map[reflect.Type]int
+	var candidates []jsonFieldCandidate
+	for len(next) != 0 {
+		current, next = next, current[:0]
+		count, nextCount = nextCount, map[reflect.Type]int{}
+		for _, parent := range current {
+			if visited[parent.t] {
+				continue
+			}
+			visited[parent.t] = true
+			for i := 0; i < parent.t.NumField(); i++ {
+				field := parent.t.Field(i)
+				if field.Anonymous {
+					embedded := field.Type
+					if embedded.Kind() == reflect.Pointer {
+						embedded = embedded.Elem()
+					}
+					if field.PkgPath != "" && embedded.Kind() != reflect.Struct {
+						continue
+					}
+				} else if field.PkgPath != "" {
+					continue
+				}
+				tag := field.Tag.Get("json")
+				if tag == "-" {
+					continue
+				}
+				name := strings.Split(tag, ",")[0]
+				if !validJSONTagName(name) {
+					name = ""
+				}
+				index := append(append([]int(nil), parent.index...), i)
+				field.Index = index
+				wireType := field.Type
+				if wireType.Name() == "" && wireType.Kind() == reflect.Pointer {
+					wireType = wireType.Elem()
+				}
+				if name != "" || !field.Anonymous || wireType.Kind() != reflect.Struct {
+					if name == "" {
+						name = field.Name
+					}
+					candidate := jsonFieldCandidate{field: field, name: name, tagged: strings.Split(tag, ",")[0] != "" && validJSONTagName(strings.Split(tag, ",")[0])}
+					candidates = append(candidates, candidate)
+					if count[parent.t] > 1 {
+						candidates = append(candidates, candidate)
+					}
+					continue
+				}
+				nextCount[wireType]++
+				if nextCount[wireType] == 1 {
+					next = append(next, jsonFieldScan{t: wireType, index: index})
+				}
+			}
+		}
 	}
-	return name, true
+	sort.Slice(candidates, func(i, j int) bool {
+		left, right := candidates[i], candidates[j]
+		if left.name != right.name {
+			return left.name < right.name
+		}
+		if len(left.field.Index) != len(right.field.Index) {
+			return len(left.field.Index) < len(right.field.Index)
+		}
+		if left.tagged != right.tagged {
+			return left.tagged
+		}
+		for index := range left.field.Index {
+			if left.field.Index[index] != right.field.Index[index] {
+				return left.field.Index[index] < right.field.Index[index]
+			}
+		}
+		return false
+	})
+	for start := 0; start < len(candidates); {
+		end := start + 1
+		for end < len(candidates) && candidates[end].name == candidates[start].name {
+			end++
+		}
+		winner := candidates[start]
+		if end == start+1 || len(winner.field.Index) != len(candidates[start+1].field.Index) || winner.tagged != candidates[start+1].tagged {
+			metadata.fields[winner.name] = winner.field
+		}
+		start = end
+	}
+	return metadata
+}
+
+func jsonFieldOptional(field reflect.StructField) bool {
+	for _, option := range strings.Split(field.Tag.Get("json"), ",")[1:] {
+		if option == "omitempty" {
+			return true
+		}
+	}
+	return false
 }
 
 func uniqueEffectiveJSONFields(t reflect.Type) map[string]reflect.StructField {
-	fields := make(map[string]reflect.StructField, t.NumField())
-	ambiguous := make(map[string]struct{})
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		name, bindable := effectiveJSONFieldName(field)
-		if !bindable {
-			continue
-		}
-		if _, rejected := ambiguous[name]; rejected {
-			continue
-		}
-		if _, found := fields[name]; found {
-			delete(fields, name)
-			ambiguous[name] = struct{}{}
-			continue
-		}
-		fields[name] = field
-	}
-	return fields
+	return effectiveJSONFields(t)
 }
 
 func discriminatorWireErrors(node jsonNode, t reflect.Type) []error {
@@ -1876,7 +1959,7 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	switch t.Kind() {
 	case reflect.Struct:
 		fields := map[string]reflect.Type{}
-		for name, field := range uniqueEffectiveJSONFields(t) {
+		for name, field := range effectiveJSONFields(t) {
 			fields[name] = field.Type
 		}
 		for _, member := range node.object {
