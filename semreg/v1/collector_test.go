@@ -2,6 +2,7 @@ package semreg
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -115,6 +116,185 @@ func TestCollectorRegression(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestDiscriminatorMetadataRejectsAmbiguousJSONTag(t *testing.T) {
+	contractType := reflect.TypeOf(ContractVersion(""))
+	child := reflect.StructOf([]reflect.StructField{
+		{Name: "First", Type: contractType, Tag: `json:"contract"`},
+		{Name: "Second", Type: contractType, Tag: `json:"contract"`},
+	})
+	if validDiscriminatorMetadata(child, "contract", ContractKernelV1) {
+		t.Fatal("ambiguous JSON discriminator metadata accepted")
+	}
+	invalidTag := reflect.StructOf([]reflect.StructField{
+		{Name: "Contract", Type: contractType, Tag: `json:"con\\tract"`},
+	})
+	if validDiscriminatorMetadata(invalidTag, `con\tract`, ContractKernelV1) {
+		t.Fatal("invalid JSON discriminator tag accepted")
+	}
+	ignoredTag := reflect.StructOf([]reflect.StructField{
+		{Name: "Contract", Type: contractType, Tag: `json:"-"`},
+	})
+	if validDiscriminatorMetadata(ignoredTag, "-", ContractKernelV1) {
+		t.Fatal("ignored JSON discriminator tag accepted")
+	}
+	explicitDashTag := reflect.StructOf([]reflect.StructField{
+		{Name: "Contract", Type: contractType, Tag: `json:"-,"`},
+	})
+	if !validDiscriminatorMetadata(explicitDashTag, "-", ContractKernelV1) {
+		t.Fatal("explicit dash JSON discriminator binding rejected")
+	}
+}
+
+type phantomCollectionIdentity struct {
+	ID DefinitionID `json:"id"`
+}
+
+func (phantomCollectionIdentity) Validate() error                   { return nil }
+func (phantomCollectionIdentity) WireCollectionKeyFields() []string { return []string{"absent"} }
+func (phantomCollectionIdentity) ValidateWireCollectionKey() error  { return nil }
+
+type phantomCollectionContainer struct {
+	Items    []phantomCollectionIdentity `json:"items"`
+	Required bool                        `json:"required"`
+}
+
+func (phantomCollectionContainer) Validate() error { return nil }
+
+type scalarCollectionIdentity string
+
+func (scalarCollectionIdentity) WireCollectionKeyFields() []string { return []string{"id"} }
+func (scalarCollectionIdentity) ValidateWireCollectionKey() error  { return nil }
+
+type scalarCollectionContainer struct {
+	Items    []scalarCollectionIdentity `json:"items"`
+	Required bool                       `json:"required"`
+}
+
+func (scalarCollectionContainer) Validate() error { return nil }
+
+type ignoredCollectionIdentity struct {
+	ID DefinitionID `json:"-"`
+}
+
+func (ignoredCollectionIdentity) Validate() error { return nil }
+func (ignoredCollectionIdentity) WireCollectionKeyFields() []string {
+	return []string{"-"}
+}
+func (ignoredCollectionIdentity) ValidateWireCollectionKey() error { return nil }
+
+type ignoredCollectionContainer struct {
+	Items    []ignoredCollectionIdentity `json:"items"`
+	Required bool                        `json:"required"`
+}
+
+func (ignoredCollectionContainer) Validate() error { return nil }
+
+type explicitDashCollectionIdentity struct {
+	ID DefinitionID `json:"-,"`
+}
+
+func (explicitDashCollectionIdentity) Validate() error { return nil }
+func (explicitDashCollectionIdentity) WireCollectionKeyFields() []string {
+	return []string{"-"}
+}
+func (explicitDashCollectionIdentity) ValidateWireCollectionKey() error { return nil }
+
+type explicitDashCollectionContainer struct {
+	Items    []explicitDashCollectionIdentity `json:"items"`
+	Required bool                             `json:"required"`
+}
+
+func (explicitDashCollectionContainer) Validate() error { return nil }
+
+type ignoredThenExplicitDashCollectionIdentity struct {
+	Ignored int          `json:"-"`
+	ID      DefinitionID `json:"-,"`
+}
+
+func (ignoredThenExplicitDashCollectionIdentity) Validate() error { return nil }
+func (ignoredThenExplicitDashCollectionIdentity) WireCollectionKeyFields() []string {
+	return []string{"-"}
+}
+func (ignoredThenExplicitDashCollectionIdentity) ValidateWireCollectionKey() error { return nil }
+
+type ignoredThenExplicitDashCollectionContainer struct {
+	Items    []ignoredThenExplicitDashCollectionIdentity `json:"items"`
+	Required bool                                        `json:"required"`
+}
+
+func (ignoredThenExplicitDashCollectionContainer) Validate() error { return nil }
+
+type ignoredThenExplicitDashDiscriminator struct {
+	Ignored  int             `json:"-"`
+	Contract ContractVersion `json:"-,"`
+	Required bool            `json:"required"`
+}
+
+func (ignoredThenExplicitDashDiscriminator) Validate() error { return nil }
+func (*ignoredThenExplicitDashDiscriminator) ContractDiscriminator() (string, ContractVersion) {
+	return "-", ContractKernelV1
+}
+
+type ignoredThenExplicitDashFixedContract struct {
+	Ignored  int             `json:"-"`
+	Contract ContractVersion `json:"-,"`
+	Required bool            `json:"required"`
+}
+
+func (ignoredThenExplicitDashFixedContract) Validate() error { return nil }
+func (*ignoredThenExplicitDashFixedContract) WireFixedContract() (string, ContractVersion) {
+	return "-", ContractKernelV1
+}
+
+func TestCollectionIdentityMetadataRejectsInvalidShapesWithoutPanic(t *testing.T) {
+	for name, decode := range map[string]func() error{
+		"phantom field": func() error {
+			_, err := Decode[phantomCollectionContainer]([]byte(`{"items":[{"id":"fact.test"}]}`))
+			return err
+		},
+		"non-struct element": func() error {
+			_, err := Decode[scalarCollectionContainer]([]byte(`{"items":["fact.test"]}`))
+			return err
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					t.Fatalf("Decode panicked on invalid collection identity metadata: %v", recovered)
+				}
+			}()
+			if err := decode(); err == nil {
+				t.Fatal("invalid collection identity metadata accepted")
+			}
+		})
+	}
+	ambiguous := reflect.StructOf([]reflect.StructField{
+		{Name: "First", Type: reflect.TypeOf(DefinitionID("")), Tag: `json:"id"`},
+		{Name: "Second", Type: reflect.TypeOf(DefinitionID("")), Tag: `json:"id"`},
+	})
+	if _, found := uniqueWireField(ambiguous, "id"); found {
+		t.Fatal("ambiguous effective JSON field accepted as collection identity")
+	}
+	ambiguousDash := reflect.StructOf([]reflect.StructField{
+		{Name: "Ignored", Type: reflect.TypeOf(0), Tag: `json:"-"`},
+		{Name: "First", Type: reflect.TypeOf([]DefinitionID{}), Tag: `json:"-,"`},
+		{Name: "Second", Type: reflect.TypeOf(DefinitionID("")), Tag: `json:"-,"`},
+	})
+	if _, found := uniqueEffectiveJSONFields(ambiguousDash)["-"]; found {
+		t.Fatal("ambiguous literal-dash JSON field accepted for traversal")
+	}
+	_, err := Decode[ignoredCollectionContainer]([]byte(`{"items":[{"-":"fact.test"},{"-":"fact.test"}]}`))
+	requireID(t, err, MissingMember)
+	_, err = Decode[explicitDashCollectionContainer]([]byte(`{"items":[{"-":"fact.test"},{"-":"fact.test"}]}`))
+	requireID(t, err, DuplicateKey)
+	_, err = Decode[ignoredThenExplicitDashCollectionContainer]([]byte(`{"items":[{"-":"fact.test"},{"-":"fact.test"}]}`))
+	requireID(t, err, DuplicateKey)
+	_, err = Decode[ignoredThenExplicitDashDiscriminator]([]byte(`{"-":"helianthus.semantic.kernel/v1"}`))
+	requireID(t, err, MissingMember)
+	_, err = Decode[ignoredThenExplicitDashFixedContract]([]byte(`{"-":"helianthus.semantic.kernel/v1"}`))
+	requireID(t, err, MissingMember)
 }
 
 func boolPtr(v bool) *bool { return &v }

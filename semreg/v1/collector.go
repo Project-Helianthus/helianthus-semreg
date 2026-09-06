@@ -17,6 +17,10 @@ func collectionKeyFields(t reflect.Type) []string {
 		return []string{"source_id", "source_epoch_id", "driver_generation", "binding_id"}
 	case reflect.TypeOf(DefinitionRef{}):
 		return []string{"id", "version"}
+	case reflect.TypeOf(PackRef{}):
+		return []string{"id", "version"}
+	case reflect.TypeOf(FactKey{}):
+		return []string{"pack_id", "pack_version", "fact_id", "dimensions"}
 	case reflect.TypeOf(Symbol{}):
 		return []string{"namespace", "token"}
 	case reflect.TypeOf(Dimension{}), reflect.TypeOf(TypedField{}):
@@ -40,16 +44,19 @@ func collectionKeyFields(t reflect.Type) []string {
 }
 
 func wireField(t reflect.Type, name string) (reflect.StructField, bool) {
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if strings.Split(f.Tag.Get("json"), ",")[0] == name {
-			return f, true
-		}
-	}
-	return reflect.StructField{}, false
+	field, found := effectiveJSONFields(t)[name]
+	return field, found
+}
+
+func uniqueWireField(t reflect.Type, name string) (reflect.StructField, bool) {
+	field, found := uniqueEffectiveJSONFields(t)[name]
+	return field, found
 }
 
 func collectionKeyValid(v reflect.Value) bool {
+	if v.Type() == reflect.TypeOf(FactKey{}) {
+		return v.Interface().(FactKey).Validate() == nil
+	}
 	fields := collectionKeyFields(v.Type())
 	if len(fields) == 0 {
 		if record, ok := v.Interface().(Record); ok {
@@ -81,6 +88,19 @@ func collectionCompare(a, b reflect.Value) int {
 		return compareSourcePath(av, b.Interface().(SourcePathRef))
 	case DefinitionRef:
 		return compareDefinition(av, b.Interface().(DefinitionRef))
+	case PackRef:
+		bv := b.Interface().(PackRef)
+		if cmp := strings.Compare(string(av.ID), string(bv.ID)); cmp != 0 {
+			return cmp
+		}
+		if cmp, ok := compareSemver(av.Version, bv.Version); ok {
+			return cmp
+		}
+		return strings.Compare(string(av.Version), string(bv.Version))
+	case FactKey:
+		ak, _ := factKeyIdentity(av)
+		bk, _ := factKeyIdentity(b.Interface().(FactKey))
+		return strings.Compare(ak, bk)
 	case FactEnvelope:
 		return compareEnvelope(av, b.Interface().(FactEnvelope))
 	}
@@ -104,6 +124,10 @@ func collectionKey(v reflect.Value) string {
 	}
 	if v.Type() == reflect.TypeOf(FactEnvelope{}) {
 		key, _ := factKeyIdentity(v.Interface().(FactEnvelope).Key)
+		return key
+	}
+	if v.Type() == reflect.TypeOf(FactKey{}) {
+		key, _ := factKeyIdentity(v.Interface().(FactKey))
 		return key
 	}
 	var parts []string
@@ -184,15 +208,22 @@ func fieldSemanticErrors(parent reflect.Type, name string, node jsonNode, t refl
 }
 
 func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
-	if node.kind != 'a' || (element.Kind() != reflect.String && len(collectionKeyFields(element)) == 0) {
+	fields := collectionKeyFields(element)
+	childFields, childIdentity := wireCollectionIdentity(element)
+	if childIdentity {
+		fields = childFields
+	}
+	if node.kind != 'a' || (element.Kind() != reflect.String && len(fields) == 0 && !childIdentity) {
 		return nil
 	}
 	seen := make(map[string]struct{})
 	var previous reflect.Value
+	var previousKey string
+	havePreviousKey := false
 	duplicate, descending := false, false
 	for _, child := range node.array {
 		projection := child
-		if fields := collectionKeyFields(element); len(fields) != 0 {
+		if len(fields) != 0 || childIdentity {
 			projection = jsonNode{kind: 'o'}
 			for _, name := range fields {
 				member, present := nodeMember(child, name)
@@ -216,16 +247,26 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 		}
 		raw, _ := json.Marshal(jsonNodeValue(projection))
 		value := reflect.New(element)
-		if json.Unmarshal(raw, value.Interface()) == nil && collectionKeyValid(value.Elem()) {
+		if json.Unmarshal(raw, value.Interface()) == nil && (!childIdentity && collectionKeyValid(value.Elem()) || childIdentity && value.Interface().(WireCollectionIdentity).ValidateWireCollectionKey() == nil) {
 			key := collectionKey(value.Elem())
+			if childIdentity {
+				key = string(raw)
+			}
 			if _, exists := seen[key]; exists {
 				duplicate = true
 			}
 			seen[key] = struct{}{}
-			if previous.IsValid() && collectionCompare(previous, value.Elem()) > 0 {
-				descending = true
+			if childIdentity {
+				if havePreviousKey && strings.Compare(previousKey, key) > 0 {
+					descending = true
+				}
+				previousKey, havePreviousKey = key, true
+			} else {
+				if previous.IsValid() && collectionCompare(previous, value.Elem()) > 0 {
+					descending = true
+				}
+				previous = value.Elem()
 			}
-			previous = value.Elem()
 		}
 	}
 	duplicateClass, ordered := DuplicateKey, true
@@ -243,6 +284,35 @@ func wireCollectionErrors(node jsonNode, element reflect.Type) []error {
 		errs = append(errs, errID(NoncanonicalOrder, "collection keys"))
 	}
 	return errs
+}
+
+func wireCollectionIdentity(element reflect.Type) ([]string, bool) {
+	if element.Kind() != reflect.Struct {
+		return nil, false
+	}
+	identity, ok := reflect.New(element).Interface().(WireCollectionIdentity)
+	if !ok {
+		return nil, false
+	}
+	fields := identity.WireCollectionKeyFields()
+	if len(fields) == 0 {
+		return nil, false
+	}
+	seen := make(map[string]struct{}, len(fields))
+	for _, name := range fields {
+		if name == "" || !validJSONTagName(name) {
+			return nil, false
+		}
+		if _, duplicate := seen[name]; duplicate {
+			return nil, false
+		}
+		seen[name] = struct{}{}
+		field, found := uniqueWireField(element, name)
+		if !found || field.PkgPath != "" || field.Anonymous {
+			return nil, false
+		}
+	}
+	return fields, true
 }
 
 func enclosingWireErrors(node jsonNode, t reflect.Type) []error {

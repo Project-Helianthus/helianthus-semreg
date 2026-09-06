@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -216,6 +217,33 @@ func duplicateAndOrder[T any](items []T, compare func(T, T) int) (bool, bool) {
 }
 
 type Record interface{ Validate() error }
+
+// ContractDiscriminator identifies the required contract-bearing member for a
+// public document implemented by a versioned child package. It lets Decode
+// retain its strict, pre-binding discriminator validation without creating an
+// import from the protocol-neutral root package to a child package.
+type ContractDiscriminator interface {
+	ContractDiscriminator() (member string, expected ContractVersion)
+}
+
+// WireFixedContract declares a required child-package member whose supplied
+// value must equal an exact contract version. Unlike ContractDiscriminator,
+// absence remains the ordinary MissingMember error for a nested record.
+type WireFixedContract interface {
+	WireFixedContract() (member string, expected ContractVersion)
+}
+
+// WireCollectionIdentity declares the independently knowable key fields of a
+// child-package collection element. Decode uses it only when another member
+// prevents whole-record binding, so malformed non-key siblings cannot suppress
+// duplicate or ordering diagnostics for an otherwise complete key.
+//
+// Implementations must validate only the returned key fields. They must not
+// derive an identity from malformed key data or inspect non-key payload.
+type WireCollectionIdentity interface {
+	WireCollectionKeyFields() []string
+	ValidateWireCollectionKey() error
+}
 
 func (v ContractVersion) Validate() error {
 	if !validContract(v) {
@@ -1536,31 +1564,21 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 			t        reflect.Type
 			optional bool
 		}{}
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			tag := field.Tag.Get("json")
-			if tag == "-" {
-				continue
-			}
-			parts := strings.Split(tag, ",")
-			name := parts[0]
-			if name == "" {
-				name = field.Name
-			}
-			optional := false
-			for _, part := range parts[1:] {
-				if part == "omitempty" {
-					optional = true
-				}
-			}
+		for name, field := range effectiveJSONFields(t) {
 			fields[name] = struct {
 				t        reflect.Type
 				optional bool
-			}{field.Type, optional}
+			}{field.Type, jsonFieldOptional(field)}
 		}
 		// Only public document records own a contract discriminator. A decoded
-		// EvidenceRef still treats contract as ordinary required metadata.
-		document := t == reflect.TypeOf(PublicationBatch{}) || t == reflect.TypeOf(Snapshot{}) || t == reflect.TypeOf(EvaluationView{}) || t == reflect.TypeOf(Selection{})
+		// EvidenceRef still treats contract as ordinary required metadata. Child
+		// packages opt in through ContractDiscriminator so this root package does
+		// not depend on a projection, compatibility, transport, or vendor package.
+		discriminatorMember, discriminatorExpected, document := documentDiscriminator(t)
+		discriminatorValid := !document || validDiscriminatorMetadata(t, discriminatorMember, discriminatorExpected)
+		if !discriminatorValid {
+			*errors = append(*errors, errID(InvalidContract, "contract discriminator metadata"))
+		}
 		seen := map[string]bool{}
 		for _, member := range node.object {
 			field, ok := fields[member.key]
@@ -1569,16 +1587,10 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 				continue
 			}
 			seen[member.key] = true
-			if document && member.key == "contract" {
+			if document && member.key == discriminatorMember {
 				value, ok := member.value.scalar.(string)
-				expected := ContractKernelV1
-				if t == reflect.TypeOf(EvaluationView{}) {
-					expected = ContractEvaluationV1
-				} else if t == reflect.TypeOf(Selection{}) {
-					expected = ContractSelectionV1
-				}
-				if member.value.kind != 's' || !ok || ContractVersion(value) != expected {
-					*errors = append(*errors, errID(InvalidContract, "contract"))
+				if member.value.kind != 's' || !ok || ContractVersion(value) != discriminatorExpected {
+					*errors = append(*errors, errID(InvalidContract, discriminatorMember))
 				}
 				continue
 			}
@@ -1594,11 +1606,17 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		for name, field := range fields {
 			if !field.optional && !seen[name] {
 				id := MissingMember
-				if document && name == "contract" {
+				if document && name == discriminatorMember {
 					id = InvalidContract
 				}
 				*errors = append(*errors, errID(id, name))
 			}
+		}
+		// Opting into a public document discriminator makes that member
+		// unconditional. A child cannot weaken it with omitempty or name a
+		// phantom field that binding would silently synthesize or discard.
+		if document && !seen[discriminatorMember] {
+			*errors = append(*errors, errID(InvalidContract, discriminatorMember))
 		}
 	case reflect.Slice:
 		if node.kind != 'a' {
@@ -1656,6 +1674,252 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 	}
 }
 
+func documentDiscriminator(t reflect.Type) (string, ContractVersion, bool) {
+	switch t {
+	case reflect.TypeOf(PublicationBatch{}), reflect.TypeOf(Snapshot{}):
+		return "contract", ContractKernelV1, true
+	case reflect.TypeOf(EvaluationView{}):
+		return "contract", ContractEvaluationV1, true
+	case reflect.TypeOf(Selection{}):
+		return "contract", ContractSelectionV1, true
+	}
+	if reflect.PointerTo(t).Implements(reflect.TypeOf((*ContractDiscriminator)(nil)).Elem()) {
+		member, expected := reflect.New(t).Interface().(ContractDiscriminator).ContractDiscriminator()
+		return member, expected, true
+	}
+	if t.Implements(reflect.TypeOf((*ContractDiscriminator)(nil)).Elem()) {
+		member, expected := reflect.Zero(t).Interface().(ContractDiscriminator).ContractDiscriminator()
+		return member, expected, true
+	}
+	return "", "", false
+}
+
+func validDiscriminatorMetadata(t reflect.Type, member string, expected ContractVersion) bool {
+	if t.Kind() != reflect.Struct || member == "" || expected.Validate() != nil {
+		return false
+	}
+	field, found := effectiveJSONFields(t)[member]
+	if !found || field.Type != reflect.TypeOf(ContractVersion("")) {
+		return false
+	}
+	// Contract metadata remains a direct, explicitly tagged member. The shared
+	// resolver determines which direct candidate actually binds before this
+	// narrower metadata contract is applied.
+	if len(field.Index) != 1 || field.Anonymous {
+		return false
+	}
+	parts := strings.Split(field.Tag.Get("json"), ",")
+	if len(parts) == 0 || parts[0] != member || field.Tag.Get("json") == "-" || !validJSONTagName(parts[0]) {
+		return false
+	}
+	for _, option := range parts[1:] {
+		if option == "omitempty" {
+			return false
+		}
+	}
+	return true
+}
+
+func validJSONTagName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, char := range name {
+		switch {
+		case strings.ContainsRune("!#$%&()*+-./:;<=>?@[]^_{|}~ ", char):
+		case unicode.IsLetter(char), unicode.IsDigit(char):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// effectiveJSONFields mirrors encoding/json's effective-field selection for
+// the strict decoder. It deliberately caches only immutable metadata: callers
+// must treat the returned map and StructField indexes as read-only.
+type jsonFieldMetadata struct {
+	fields map[string]reflect.StructField
+}
+
+type jsonFieldCandidate struct {
+	field  reflect.StructField
+	name   string
+	tagged bool
+}
+
+type jsonFieldScan struct {
+	t     reflect.Type
+	index []int
+}
+
+var jsonFieldMetadataCache sync.Map // map[reflect.Type]*jsonFieldMetadata
+
+func effectiveJSONFields(t reflect.Type) map[string]reflect.StructField {
+	return cachedJSONFieldMetadata(t).fields
+}
+
+func cachedJSONFieldMetadata(t reflect.Type) *jsonFieldMetadata {
+	if cached, ok := jsonFieldMetadataCache.Load(t); ok {
+		return cached.(*jsonFieldMetadata)
+	}
+	metadata := buildJSONFieldMetadata(t)
+	actual, _ := jsonFieldMetadataCache.LoadOrStore(t, metadata)
+	return actual.(*jsonFieldMetadata)
+}
+
+func buildJSONFieldMetadata(t reflect.Type) *jsonFieldMetadata {
+	metadata := &jsonFieldMetadata{fields: map[string]reflect.StructField{}}
+	if t.Kind() != reflect.Struct {
+		return metadata
+	}
+	current := []jsonFieldScan{}
+	next := []jsonFieldScan{{t: t}}
+	visited := map[reflect.Type]bool{}
+	var count, nextCount map[reflect.Type]int
+	var candidates []jsonFieldCandidate
+	for len(next) != 0 {
+		current, next = next, current[:0]
+		count, nextCount = nextCount, map[reflect.Type]int{}
+		for _, parent := range current {
+			if visited[parent.t] {
+				continue
+			}
+			visited[parent.t] = true
+			for i := 0; i < parent.t.NumField(); i++ {
+				field := parent.t.Field(i)
+				if field.Anonymous {
+					embedded := field.Type
+					if embedded.Kind() == reflect.Pointer {
+						embedded = embedded.Elem()
+					}
+					if field.PkgPath != "" && embedded.Kind() != reflect.Struct {
+						continue
+					}
+				} else if field.PkgPath != "" {
+					continue
+				}
+				tag := field.Tag.Get("json")
+				if tag == "-" {
+					continue
+				}
+				name := strings.Split(tag, ",")[0]
+				if !validJSONTagName(name) {
+					name = ""
+				}
+				index := append(append([]int(nil), parent.index...), i)
+				field.Index = index
+				wireType := field.Type
+				if wireType.Name() == "" && wireType.Kind() == reflect.Pointer {
+					wireType = wireType.Elem()
+				}
+				if name != "" || !field.Anonymous || wireType.Kind() != reflect.Struct {
+					if name == "" {
+						name = field.Name
+					}
+					candidate := jsonFieldCandidate{field: field, name: name, tagged: strings.Split(tag, ",")[0] != "" && validJSONTagName(strings.Split(tag, ",")[0])}
+					candidates = append(candidates, candidate)
+					if count[parent.t] > 1 {
+						candidates = append(candidates, candidate)
+					}
+					continue
+				}
+				nextCount[wireType]++
+				if nextCount[wireType] == 1 {
+					next = append(next, jsonFieldScan{t: wireType, index: index})
+				}
+			}
+		}
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		left, right := candidates[i], candidates[j]
+		if left.name != right.name {
+			return left.name < right.name
+		}
+		if len(left.field.Index) != len(right.field.Index) {
+			return len(left.field.Index) < len(right.field.Index)
+		}
+		if left.tagged != right.tagged {
+			return left.tagged
+		}
+		for index := range left.field.Index {
+			if left.field.Index[index] != right.field.Index[index] {
+				return left.field.Index[index] < right.field.Index[index]
+			}
+		}
+		return false
+	})
+	for start := 0; start < len(candidates); {
+		end := start + 1
+		for end < len(candidates) && candidates[end].name == candidates[start].name {
+			end++
+		}
+		winner := candidates[start]
+		if end == start+1 || len(winner.field.Index) != len(candidates[start+1].field.Index) || winner.tagged != candidates[start+1].tagged {
+			metadata.fields[winner.name] = winner.field
+		}
+		start = end
+	}
+	return metadata
+}
+
+func jsonFieldOptional(field reflect.StructField) bool {
+	for _, option := range strings.Split(field.Tag.Get("json"), ",")[1:] {
+		if option == "omitempty" {
+			return true
+		}
+	}
+	return false
+}
+
+func uniqueEffectiveJSONFields(t reflect.Type) map[string]reflect.StructField {
+	return effectiveJSONFields(t)
+}
+
+func discriminatorWireErrors(node jsonNode, t reflect.Type) []error {
+	member, expected, document := documentDiscriminator(t)
+	if !document {
+		return nil
+	}
+	if !validDiscriminatorMetadata(t, member, expected) {
+		return []error{errID(InvalidContract, "contract discriminator metadata")}
+	}
+	value, present := nodeMember(node, member)
+	if !present {
+		return nil
+	}
+	if value.kind != 's' {
+		return []error{errID(InvalidContract, member)}
+	}
+	stringValue, ok := value.scalar.(string)
+	if !ok || ContractVersion(stringValue) != expected {
+		return []error{errID(InvalidContract, member)}
+	}
+	return nil
+}
+
+func fixedContractWireErrors(node jsonNode, t reflect.Type) []error {
+	if t.Kind() != reflect.Struct || !reflect.PointerTo(t).Implements(reflect.TypeOf((*WireFixedContract)(nil)).Elem()) {
+		return nil
+	}
+	member, expected := reflect.New(t).Interface().(WireFixedContract).WireFixedContract()
+	if !validDiscriminatorMetadata(t, member, expected) {
+		return []error{errID(InvalidContract, "fixed contract metadata")}
+	}
+	value, present := nodeMember(node, member)
+	if !present {
+		return nil
+	}
+	if value.kind == 'n' {
+		return nil
+	}
+	stringValue, ok := value.scalar.(string)
+	if value.kind != 's' || !ok || ContractVersion(stringValue) != expected {
+		return []error{errID(InvalidContract, member)}
+	}
+	return nil
+}
+
 var recordInterface = reflect.TypeOf((*Record)(nil)).Elem()
 
 func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
@@ -1689,16 +1953,14 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 	}
 	var errs []error
 	errs = append(errs, conditionalMemberErrors(node, t)...)
+	errs = append(errs, discriminatorWireErrors(node, t)...)
+	errs = append(errs, fixedContractWireErrors(node, t)...)
 	errs = append(errs, enclosingWireErrors(node, t)...)
 	switch t.Kind() {
 	case reflect.Struct:
 		fields := map[string]reflect.Type{}
-		for i := 0; i < t.NumField(); i++ {
-			field := t.Field(i)
-			name := strings.Split(field.Tag.Get("json"), ",")[0]
-			if name != "" && name != "-" {
-				fields[name] = field.Type
-			}
+		for name, field := range effectiveJSONFields(t) {
+			fields[name] = field.Type
 		}
 		for _, member := range node.object {
 			if fieldType, ok := fields[member.key]; ok {
