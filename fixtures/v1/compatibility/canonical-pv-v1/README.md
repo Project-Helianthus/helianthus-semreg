@@ -15,6 +15,13 @@ complete mapper witness with explicit counter/time/replay cases.
 eight exact, three transformed, and three deliberately withheld. Every
 non-exact row names its loss and legacy-path rollback treatment.
 
+The fourteen identities are frozen in the `producer_requested_output_witness`
+of `manifest.json`, alongside the public gateway producer and exercised-test
+pins. Its withheld rows are
+`inverter.ac.current.total`, `inverter.events.1`, and `inverter.events.2`.
+Aggregate current is deliberately not synthesized; both event meanings remain
+unknown. Each loss fails closed to `select_legacy_output`.
+
 Reset, including an evidenced non-decreasing reset, and rollover vectors carry
 their exact public evidence digest and required donor inputs. The comparator
 mirrors the pinned donor validation,

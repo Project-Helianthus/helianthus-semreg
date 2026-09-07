@@ -89,7 +89,9 @@ separate synthetic mapper witness is explicitly labeled and pinned to the
 gateway mapper/test sources. The harness executes the SemReg publication,
 evaluation, PV validation, canonical JSON and projection APIs; its fourteen-row
 table accounts for eight exact, three transformed and three withheld outputs
-with loss and legacy-path rollback treatment. It creates no native mapping,
+with loss and legacy-path rollback treatment. The pinned producer witness
+freezes the three withheld native IDs as aggregate current plus events 1 and 2;
+it does not synthesize aggregate current or event semantics. It creates no native mapping,
 route, authority, persistence, gateway output, or consumer cutover.
 
 [`v1/operation-vectors.json`](v1/operation-vectors.json) mechanically copies all

@@ -12,8 +12,8 @@
     {"legacy":"inverter.ac.energy_lifetime","target":"pv.energy.generated","outcome":"transformed","loss":"unit: Wh_to_kWh_factor_1000","rollback":"retain_legacy"},
     {"legacy":"inverter.operating_state","target":"pv.status.operating","outcome":"transformed","loss":"symbol: MPPT_to_generating","rollback":"retain_legacy"},
     {"legacy":"inverter.temperature.cabinet","target":"pv.temperature.inverter","outcome":"transformed","loss":"provenance: sensor_id_cabinet_to_inverter","rollback":"retain_legacy"},
-    {"legacy":"inverter.ac.power.apparent","target":"legacy.withheld.apparent_power","outcome":"withheld","loss":"unit: no_typed_target","rollback":"select_legacy_output"},
-    {"legacy":"inverter.ac.power.reactive","target":"legacy.withheld.reactive_power","outcome":"withheld","loss":"unit: no_typed_target","rollback":"select_legacy_output"},
-    {"legacy":"inverter.ac.voltage.line_to_line","target":"legacy.withheld.line_to_line","outcome":"withheld","loss":"provenance: electrical_reference_absent","rollback":"select_legacy_output"}
+    {"legacy":"inverter.ac.current.total","target":"legacy.withheld.aggregate_current","outcome":"withheld","loss":"topology: aggregate_current_not_synthesized","rollback":"select_legacy_output"},
+    {"legacy":"inverter.events.1","target":"legacy.withheld.event_1","outcome":"withheld","loss":"semantics: event_meaning_unknown","rollback":"select_legacy_output"},
+    {"legacy":"inverter.events.2","target":"legacy.withheld.event_2","outcome":"withheld","loss":"semantics: event_meaning_unknown","rollback":"select_legacy_output"}
   ]
 }
