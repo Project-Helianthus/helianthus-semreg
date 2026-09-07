@@ -81,6 +81,15 @@ and conflict rejection, source retirement, generation supersession, graph
 cascade, conflict reconciliation, bounds, dangling references and deep-copy
 isolation.
 
+[`v1/kernel-fork-acceptance.json`](v1/kernel-fork-acceptance.json) is a
+byte-for-byte copy of `api/v1/kernel-fork-acceptance.json` from accepted
+`Project-Helianthus/helianthus-docs-semantic@a435dba83f227c3d0ae83ca13611388132efd2e5`.
+Its SHA-256 is
+`65aaf62ac1ca00350c8b0283ae1c06cfd2ef4d09b618d27c689ac66946b19155`.
+The matching Go tests execute all seven fork scenarios against detached,
+in-memory kernel state only; the fixture creates no persistence, lifecycle,
+gateway, transport, or live operation.
+
 [`v1/compatibility/canonical-pv-v1/`](v1/compatibility/canonical-pv-v1/) is the
 test-only canonical-PV v1 migration comparator. Its manifest pins the retained
 `helianthus-ebusreg@738142f` donor and the byte-for-byte one-fact gateway golden

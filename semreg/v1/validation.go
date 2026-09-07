@@ -1061,6 +1061,9 @@ type frozenValidator struct {
 	hook   PackValidator
 	index  DefinitionIndex
 	owners map[definitionKey]PackRef
+	// mutex is a pointer so registry value copies, including a fork-shared
+	// registry, serialize calls into the same external hook instance.
+	mutex *sync.Mutex
 }
 
 func (v frozenValidator) owns(kind DefinitionKind, ref DefinitionRef) error {
@@ -1087,6 +1090,8 @@ func (v frozenValidator) ValidateFact(k FactKey, value *Value) error {
 		detached := copyHookValue(*value)
 		value = &detached
 	}
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 	return v.hook.ValidateFact(copyHookKey(k), value)
 }
 func (v frozenValidator) ValidateService(s ServiceInstance) error {
@@ -1097,6 +1102,8 @@ func (v frozenValidator) ValidateService(s ServiceInstance) error {
 		return err
 	}
 	// ServiceInstance contains only scalar/value fields.
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 	return v.hook.ValidateService(s)
 }
 func (v frozenValidator) ValidateCapability(c CapabilityInstance) error {
@@ -1106,6 +1113,8 @@ func (v frozenValidator) ValidateCapability(c CapabilityInstance) error {
 	if err := v.owns(DefinitionCapability, c.Definition); err != nil {
 		return err
 	}
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 	return v.hook.ValidateCapability(copyHookCapability(c))
 }
 func (v frozenValidator) ValidateField(r DefinitionRef, f TypedField) error {
@@ -1118,6 +1127,8 @@ func (v frozenValidator) ValidateField(r DefinitionRef, f TypedField) error {
 	if err := v.owns(DefinitionField, r); err != nil {
 		return err
 	}
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 	return v.hook.ValidateField(r, copyHookField(f))
 }
 func (v frozenValidator) MatchConstraints(c CapabilityInstance, f []TypedField) error {
@@ -1127,6 +1138,8 @@ func (v frozenValidator) MatchConstraints(c CapabilityInstance, f []TypedField) 
 	if err := v.owns(DefinitionCapability, c.Definition); err != nil {
 		return err
 	}
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 	return v.hook.MatchConstraints(copyHookCapability(c), copyHookFields(f))
 }
 func (v frozenValidator) EvaluatePredicate(c FactCandidate, p PredicateOp, value Value) (bool, error) {
@@ -1136,6 +1149,8 @@ func (v frozenValidator) EvaluatePredicate(c FactCandidate, p PredicateOp, value
 	if (PackRef{ID: c.Key.PackID, Version: c.Key.PackVersion}) != v.Pack() {
 		return false, errID(DefinitionOwnerMissing, "fact pack")
 	}
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 	return v.hook.EvaluatePredicate(copyHookCandidate(c), p, copyHookValue(value))
 }
 func cloneRefs(in []DefinitionRef) []DefinitionRef {
@@ -1173,7 +1188,7 @@ func NewRegistry(validators ...PackValidator) (*Registry, error) {
 			errs = append(errs, errID(DefinitionOwnerConflict, "duplicate pack"))
 			continue
 		}
-		frozen := frozenValidator{hook: hook, index: index, owners: r.owners}
+		frozen := frozenValidator{hook: hook, index: index, owners: r.owners, mutex: &sync.Mutex{}}
 		r.validators[pack] = frozen
 		r.indexes[pack] = index
 		groups := []struct {

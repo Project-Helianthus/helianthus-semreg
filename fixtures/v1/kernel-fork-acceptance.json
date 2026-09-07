@@ -1,0 +1,16 @@
+{
+  "contract": "helianthus.semantic.kernel.fork.acceptance/v1",
+  "kernel_contract": "helianthus.semantic.kernel/v1",
+  "signature": "func (k *PublicationKernel) Fork() (*PublicationKernel, error)",
+  "nil_receiver": {"object": "nil", "error_id": "invalid_value", "subject": "publication kernel"},
+  "non_goals": ["restore", "import", "checkpoint", "persistence", "serialization", "gateway", "lifecycle_replacement"],
+  "scenarios": [
+    {"id": "KF-POS-001", "polarity": "positive", "setup": "accepted_sequence_32", "operation": "fork", "expect": ["point_in_time", "current_and_canonical_byte_identical"]},
+    {"id": "KF-POS-002", "polarity": "positive", "setup": "fork_of_accepted_sequence_32", "operation": "apply_sequence_33_to_fork", "expect": ["source_byte_identical", "fork_advances_once", "same_source_epoch_generation"]},
+    {"id": "KF-NEG-001", "polarity": "negative", "setup": "fork_of_accepted_sequence_32", "operation": "apply_malformed_or_conflicting_batch_to_fork", "expect": ["reject", "source_and_fork_byte_identical"]},
+    {"id": "KF-POS-003", "polarity": "positive", "setup": "fork_of_accepted_tuple", "operation": "replay_accepted_tuple_independently", "expect": ["equal_detached_result_bytes", "no_revision_advance"]},
+    {"id": "KF-POS-004", "polarity": "positive", "setup": "empty_kernel_with_registered_pack_validator", "operation": "fork_then_first_publication", "expect": ["same_definition_accept_reject_behavior", "empty_current_preserved"]},
+    {"id": "KF-NEG-002", "polarity": "negative", "setup": "source_and_fork_with_current", "operation": "mutate_all_current_and_fork_return_values", "expect": ["no_attached_state_change"]},
+    {"id": "KF-POS-005", "polarity": "positive", "setup": "concurrent_current_fork_apply", "operation": "race", "expect": ["complete_committed_point_only", "no_mixed_state"]}
+  ]
+}
