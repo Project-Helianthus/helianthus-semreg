@@ -2,6 +2,28 @@
   "contract": "helianthus.semantic.compatibility.canonical-pv/v1",
   "status": "test_only_non_runtime",
   "gateway_golden_role": "byte_exact_single_fact_gateway_output",
+  "producer_requested_output_witness": {
+    "repository": "Project-Helianthus/helianthus-ebusgateway",
+    "commit": "f5cd9c51c60bdf422e8fc1b5690fbde52a393be3",
+    "producer_path": "internal/modbusadapter/canonical_pv.go",
+    "exercise_path": "internal/modbusadapter/canonical_pv_red_test.go",
+    "requested_native_ids": [
+      "inverter.ac.current.phase_a",
+      "inverter.ac.current.phase_b",
+      "inverter.ac.current.phase_c",
+      "inverter.ac.current.total",
+      "inverter.ac.energy_lifetime",
+      "inverter.ac.frequency",
+      "inverter.ac.power.active",
+      "inverter.ac.voltage.phase_a",
+      "inverter.ac.voltage.phase_b",
+      "inverter.ac.voltage.phase_c",
+      "inverter.events.1",
+      "inverter.events.2",
+      "inverter.operating_state",
+      "inverter.temperature.cabinet"
+    ]
+  },
   "semantic_base": "4da23038359364966c264d0b2dc405507bcb7493",
   "sources": [
     {"repository":"Project-Helianthus/helianthus-ebusreg","commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96","path":"pv/catalog.go","blob_sha1":"9a67cecd26f4f8c1d2322606d9945f06b4d53574","sha256":"2a1c3d3309b791e7497319f1ffdc75e5ed884b134551172979e0e3c83d688579"},

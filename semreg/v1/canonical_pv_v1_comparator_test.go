@@ -115,9 +115,16 @@ type canonicalPVDispositionDocument struct {
 }
 
 type canonicalPVManifest struct {
-	Status            string `json:"status"`
-	GatewayGoldenRole string `json:"gateway_golden_role"`
-	Sources           []struct {
+	Status                         string `json:"status"`
+	GatewayGoldenRole              string `json:"gateway_golden_role"`
+	ProducerRequestedOutputWitness struct {
+		Repository         string   `json:"repository"`
+		Commit             string   `json:"commit"`
+		ProducerPath       string   `json:"producer_path"`
+		ExercisePath       string   `json:"exercise_path"`
+		RequestedNativeIDs []string `json:"requested_native_ids"`
+	} `json:"producer_requested_output_witness"`
+	Sources []struct {
 		Repository string `json:"repository"`
 		Commit     string `json:"commit"`
 		Path       string `json:"path"`
@@ -234,7 +241,136 @@ func canonicalPVMapperFields() map[string]bool {
 		"inverter.ac.voltage.phase_a": true, "inverter.ac.voltage.phase_b": true, "inverter.ac.voltage.phase_c": true,
 		"inverter.ac.power.active": true, "inverter.ac.frequency": true, "inverter.ac.energy_lifetime": true,
 		"inverter.temperature.cabinet": true, "inverter.operating_state": true,
-		"inverter.ac.power.apparent": true, "inverter.ac.power.reactive": true, "inverter.ac.voltage.line_to_line": true,
+		"inverter.ac.current.total": true, "inverter.events.1": true, "inverter.events.2": true,
+	}
+}
+
+// canonicalPVProducerRequestedIDs freezes the complete native requested-output
+// witness emitted by the mapper pinned in manifest.json. SemReg deliberately
+// does not import the gateway: the self-contained compatibility fixture keeps
+// the pinned public witness available to this test instead.
+var canonicalPVProducerRequestedIDs = map[string]struct{}{
+	"inverter.ac.current.phase_a": {}, "inverter.ac.current.phase_b": {}, "inverter.ac.current.phase_c": {},
+	"inverter.ac.current.total": {}, "inverter.ac.frequency": {}, "inverter.ac.power.active": {},
+	"inverter.ac.voltage.phase_a": {}, "inverter.ac.voltage.phase_b": {}, "inverter.ac.voltage.phase_c": {},
+	"inverter.ac.energy_lifetime": {}, "inverter.events.1": {}, "inverter.events.2": {},
+	"inverter.operating_state": {}, "inverter.temperature.cabinet": {},
+}
+
+type canonicalPVWithheldWitness struct {
+	Target   string
+	Loss     string
+	Rollback string
+}
+
+var canonicalPVWithheldProducerWitness = map[string]canonicalPVWithheldWitness{
+	"inverter.ac.current.total": {Target: "legacy.withheld.aggregate_current", Loss: "topology: aggregate_current_not_synthesized", Rollback: "select_legacy_output"},
+	"inverter.events.1":         {Target: "legacy.withheld.event_1", Loss: "semantics: event_meaning_unknown", Rollback: "select_legacy_output"},
+	"inverter.events.2":         {Target: "legacy.withheld.event_2", Loss: "semantics: event_meaning_unknown", Rollback: "select_legacy_output"},
+}
+
+func canonicalPVMatchesProducerRequestedWitness(rows []canonicalPVDispositionFixture) bool {
+	ids := make([]string, 0, len(canonicalPVProducerRequestedIDs))
+	for id := range canonicalPVProducerRequestedIDs {
+		ids = append(ids, id)
+	}
+	return canonicalPVMatchesRequestedIDSet(rows, ids)
+}
+
+func canonicalPVMatchesRequestedIDSet(rows []canonicalPVDispositionFixture, ids []string) bool {
+	if len(rows) != len(ids) {
+		return false
+	}
+	expected := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		if _, duplicate := expected[id]; duplicate {
+			return false
+		}
+		expected[id] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(rows))
+	for _, row := range rows {
+		if _, wanted := expected[row.Legacy]; !wanted {
+			return false
+		}
+		if _, duplicate := seen[row.Legacy]; duplicate {
+			return false
+		}
+		seen[row.Legacy] = struct{}{}
+	}
+	return len(seen) == len(expected)
+}
+
+func canonicalPVMatchesPinnedProducerRequestedIDs(ids []string) bool {
+	if len(ids) != len(canonicalPVProducerRequestedIDs) {
+		return false
+	}
+	seen := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		if _, wanted := canonicalPVProducerRequestedIDs[id]; !wanted {
+			return false
+		}
+		if _, duplicate := seen[id]; duplicate {
+			return false
+		}
+		seen[id] = struct{}{}
+	}
+	return len(seen) == len(canonicalPVProducerRequestedIDs)
+}
+
+func canonicalPVMatchesWithheldProducerPolicy(rows []canonicalPVDispositionFixture) bool {
+	seen := make(map[string]struct{}, len(canonicalPVWithheldProducerWitness))
+	for _, row := range rows {
+		witness, withheld := canonicalPVWithheldProducerWitness[row.Legacy]
+		if !withheld {
+			continue
+		}
+		if row.Outcome != string(projection.ProjectionWithheld) || row.Target != witness.Target || row.Loss != witness.Loss || row.Rollback != witness.Rollback {
+			return false
+		}
+		seen[row.Legacy] = struct{}{}
+	}
+	return len(seen) == len(canonicalPVWithheldProducerWitness)
+}
+
+func TestCanonicalPVDispositionFrozenProducerWitness(t *testing.T) {
+	rows := loadCanonicalPVDispositions(t)
+	if !canonicalPVMatchesProducerRequestedWitness(rows) {
+		t.Fatal("dispositions do not exactly cover the pinned gateway producer requested-output witness")
+	}
+	if !canonicalPVMatchesWithheldProducerPolicy(rows) {
+		t.Fatal("withheld producer outputs do not preserve their fail-closed loss and rollback treatment")
+	}
+
+	clone := func() []canonicalPVDispositionFixture { return append([]canonicalPVDispositionFixture(nil), rows...) }
+	mutations := []struct {
+		name string
+		rows []canonicalPVDispositionFixture
+	}{
+		{name: "old_synthetic_substitution", rows: func() []canonicalPVDispositionFixture {
+			mutated := clone()
+			mutated[11].Legacy = "inverter.ac.power.apparent"
+			return mutated
+		}()},
+		{name: "missing_identity", rows: rows[:len(rows)-1]},
+		{name: "duplicate_identity", rows: func() []canonicalPVDispositionFixture {
+			mutated := clone()
+			mutated[11].Legacy = mutated[0].Legacy
+			return mutated
+		}()},
+		{name: "extra_identity", rows: append(clone(), canonicalPVDispositionFixture{Legacy: "inverter.ac.power.apparent"})},
+	}
+	for _, mutation := range mutations {
+		t.Run(mutation.name, func(t *testing.T) {
+			if canonicalPVMatchesProducerRequestedWitness(mutation.rows) {
+				t.Fatal("producer witness accepted a changed requested-output identity set")
+			}
+		})
+	}
+	policyMutation := clone()
+	policyMutation[11].Outcome = string(projection.ProjectionExact)
+	if canonicalPVMatchesWithheldProducerPolicy(policyMutation) {
+		t.Fatal("withheld producer policy accepted a synthesized aggregate current")
 	}
 }
 
@@ -393,6 +529,13 @@ func TestCanonicalPVV1ComparatorFixturesArePinned(t *testing.T) {
 	var pinned canonicalPVManifest
 	if err := json.Unmarshal(manifest, &pinned); err != nil || pinned.Status != "test_only_non_runtime" || pinned.GatewayGoldenRole != "byte_exact_single_fact_gateway_output" || len(pinned.Sources) != 6 {
 		t.Fatalf("invalid comparator donor manifest: err=%v manifest=%+v", err, pinned)
+	}
+	witness := pinned.ProducerRequestedOutputWitness
+	if witness.Repository != "Project-Helianthus/helianthus-ebusgateway" || witness.Commit != "f5cd9c51c60bdf422e8fc1b5690fbde52a393be3" || witness.ProducerPath != "internal/modbusadapter/canonical_pv.go" || witness.ExercisePath != "internal/modbusadapter/canonical_pv_red_test.go" || !canonicalPVMatchesPinnedProducerRequestedIDs(witness.RequestedNativeIDs) {
+		t.Fatalf("invalid pinned gateway requested-output witness: %+v", witness)
+	}
+	if !canonicalPVMatchesRequestedIDSet(loadCanonicalPVDispositions(t), witness.RequestedNativeIDs) {
+		t.Fatal("dispositions do not exactly match the pinned gateway requested-output witness")
 	}
 	wantGateway := map[string]string{
 		"internal/modbusadapter/canonical_pv.go":          "4171468c974468a82b645077f2b54359213d4841/608aa647e22e63009a9e52bf427d3e14dcdd685aa5286af85fbf462e1a3688fd",
