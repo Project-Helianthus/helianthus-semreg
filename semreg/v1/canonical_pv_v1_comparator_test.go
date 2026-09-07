@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -32,6 +33,13 @@ type canonicalPVFactFixture struct {
 	LegacyUnit        string `json:"legacy_unit"`
 	LegacyCoefficient string `json:"legacy_coefficient"`
 	LegacyScale       int32  `json:"legacy_scale"`
+	FreshnessPolicy   struct {
+		ID                   string `json:"id"`
+		Version              string `json:"version"`
+		FreshForNS           string `json:"fresh_for_ns"`
+		RetainForNS          string `json:"retain_for_ns"`
+		MaxWallUncertaintyNS string `json:"max_wall_uncertainty_ns"`
+	} `json:"freshness_policy"`
 }
 
 func canonicalPVPublicationBatch(asset AssetID, source SourceID, epoch SourceEpochID, generation, sequence, expected Uint64) PublicationBatch {
@@ -155,7 +163,82 @@ func loadCanonicalPVFixture(t *testing.T) canonicalPVFixture {
 	if fixture.CorpusKind != "synthetic_complete_mapper_witness" || len(fixture.Facts) != 11 || len(fixture.Counters) != 6 || len(fixture.CounterNegatives) != 3 || fixture.Clock.FreshForNS != "30000000000" || fixture.Clock.RetainForNS != "300000000000" {
 		t.Fatalf("unexpected canonical PV fixture: facts=%d counters=%d negatives=%d clock=%+v", len(fixture.Facts), len(fixture.Counters), len(fixture.CounterNegatives), fixture.Clock)
 	}
+	if err := canonicalPVLifecycleError(fixture.Facts); err != nil {
+		t.Fatal(err)
+	}
 	return fixture
+}
+
+func canonicalPVLifecycleError(facts []canonicalPVFactFixture) error {
+	wantPolicies := map[string]struct{ id, fresh, retain string }{
+		"inverter.ac.current.phase_a": {"pv.telemetry.fast.v1", "30000000000", "300000000000"}, "inverter.ac.current.phase_b": {"pv.telemetry.fast.v1", "30000000000", "300000000000"}, "inverter.ac.current.phase_c": {"pv.telemetry.fast.v1", "30000000000", "300000000000"},
+		"inverter.ac.voltage.phase_a": {"pv.telemetry.fast.v1", "30000000000", "300000000000"}, "inverter.ac.voltage.phase_b": {"pv.telemetry.fast.v1", "30000000000", "300000000000"}, "inverter.ac.voltage.phase_c": {"pv.telemetry.fast.v1", "30000000000", "300000000000"},
+		"inverter.ac.power.active": {"pv.telemetry.fast.v1", "30000000000", "300000000000"}, "inverter.ac.frequency": {"pv.telemetry.fast.v1", "30000000000", "300000000000"}, "inverter.temperature.cabinet": {"pv.telemetry.fast.v1", "30000000000", "300000000000"},
+		"inverter.ac.energy_lifetime": {"pv.accumulator.v1", "900000000000", "86400000000000"},
+		"inverter.operating_state":    {"pv.status.v1", "60000000000", "600000000000"},
+	}
+	if len(facts) != 11 {
+		return fmt.Errorf("lifecycle rows=%d", len(facts))
+	}
+	policies, seen := map[string]int{}, map[string]bool{}
+	for _, fact := range facts {
+		if fact.Legacy == "" || seen[fact.Legacy] {
+			return fmt.Errorf("duplicate or missing lifecycle row %q", fact.Legacy)
+		}
+		seen[fact.Legacy] = true
+		policy := fact.FreshnessPolicy
+		want, known := wantPolicies[fact.Legacy]
+		if !known {
+			return fmt.Errorf("unknown lifecycle legacy %q", fact.Legacy)
+		}
+		if policy.ID != want.id || policy.Version != "1.0.0" || policy.FreshForNS != want.fresh || policy.RetainForNS != want.retain || policy.MaxWallUncertaintyNS != "0" {
+			return fmt.Errorf("invalid fixture lifecycle policy for %s", fact.Legacy)
+		}
+		policies[policy.ID]++
+	}
+	if policies["pv.telemetry.fast.v1"] != 9 || policies["pv.accumulator.v1"] != 1 || policies["pv.status.v1"] != 1 || len(policies) != 3 {
+		return fmt.Errorf("fixture lifecycle policy counts=%v", policies)
+	}
+	return nil
+}
+
+func TestCanonicalPVLifecycleMutationControls(t *testing.T) {
+	fixture := loadCanonicalPVFixture(t)
+	clone := func() []canonicalPVFactFixture { return append([]canonicalPVFactFixture(nil), fixture.Facts...) }
+	mutations := []struct {
+		name  string
+		facts []canonicalPVFactFixture
+	}{
+		{"id", func() []canonicalPVFactFixture { f := clone(); f[0].FreshnessPolicy.ID = "bad"; return f }()},
+		{"version", func() []canonicalPVFactFixture { f := clone(); f[0].FreshnessPolicy.Version = "2"; return f }()},
+		{"fresh", func() []canonicalPVFactFixture { f := clone(); f[0].FreshnessPolicy.FreshForNS = "1"; return f }()},
+		{"retain", func() []canonicalPVFactFixture { f := clone(); f[0].FreshnessPolicy.RetainForNS = "1"; return f }()},
+		{"wall", func() []canonicalPVFactFixture {
+			f := clone()
+			f[0].FreshnessPolicy.MaxWallUncertaintyNS = "1"
+			return f
+		}()},
+		{"missing", clone()[:10]},
+		{"duplicate", func() []canonicalPVFactFixture { f := clone(); f[1].Legacy = f[0].Legacy; return f }()},
+		{"extra", append(clone(), canonicalPVFactFixture{Legacy: "extra"})},
+		{"telemetry_identity_substitution", func() []canonicalPVFactFixture {
+			f := clone()
+			f[0].Legacy = "inverter.ac.current.phase_total"
+			return f
+		}()},
+		{"cross_row", func() []canonicalPVFactFixture {
+			f := clone()
+			f[2].FreshnessPolicy, f[4].FreshnessPolicy = f[4].FreshnessPolicy, f[2].FreshnessPolicy
+			return f
+		}()},
+	}
+	for _, mutation := range mutations {
+		t.Run(mutation.name, func(t *testing.T) {
+			if canonicalPVLifecycleError(mutation.facts) == nil {
+				t.Fatal("mutation accepted")
+			}
+		})
+	}
 }
 
 func loadCanonicalPVDispositions(t *testing.T) []canonicalPVDispositionFixture {
@@ -194,7 +277,7 @@ func canonicalPVCandidate(f canonicalPVFactFixture, index int, source SourceID, 
 		Value:           &value,
 		Quality:         Quality{Assertion: AssertionObserved, Qualification: QualificationCandidate, Promotion: PromotionUnpromoted, Validity: ValidityGood, Availability: AvailabilityAvailable, Freshness: FreshnessFresh, Reasons: []DefinitionID{}},
 		Times:           Times{ReceivedAt: canonicalPVTime(fixture.Clock.ReceiptNS), ReceiptMonotonic: MonotonicPoint{ClockEpochID: "clock-epoch:canonical-pv", Nanoseconds: Uint64(fixture.Clock.ReceiptNS)}, EvaluatedAt: canonicalPVTime(fixture.Clock.ReceiptNS), EvaluateMonotonic: MonotonicPoint{ClockEpochID: "clock-epoch:canonical-pv", Nanoseconds: Uint64(fixture.Clock.ReceiptNS)}},
-		FreshnessPolicy: FreshnessPolicy{PolicyID: "pv.telemetry.fast", Version: "1.0.0", FreshForNS: Uint64(fixture.Clock.FreshForNS), RetainForNS: Uint64(fixture.Clock.RetainForNS), MaxWallUncertaintyNS: "0"},
+		FreshnessPolicy: FreshnessPolicy{PolicyID: PolicyID(f.FreshnessPolicy.ID), Version: SemanticVersion(f.FreshnessPolicy.Version), FreshForNS: Uint64(f.FreshnessPolicy.FreshForNS), RetainForNS: Uint64(f.FreshnessPolicy.RetainForNS), MaxWallUncertaintyNS: Uint64(f.FreshnessPolicy.MaxWallUncertaintyNS)},
 		BindingID:       &binding, SourceEpochID: &epoch, DriverGeneration: &generation,
 		Origin:   OriginRef{OriginID: OriginID("origin:canonical-pv:" + string(rune('a'+index))), Kind: OriginNativeObservation, SourceID: &source, SourceEpochID: &epoch, BindingID: &binding, Evidence: []EvidenceRef{canonicalPVEvidence(fixture.Provenance.ObservationDigest)}},
 		Evidence: []EvidenceRef{canonicalPVEvidence(fixture.Provenance.EvidenceDigest)}, Revision: "1",
@@ -527,7 +610,7 @@ func TestCanonicalPVV1ComparatorFixturesArePinned(t *testing.T) {
 		t.Fatal(err)
 	}
 	var pinned canonicalPVManifest
-	if err := json.Unmarshal(manifest, &pinned); err != nil || pinned.Status != "test_only_non_runtime" || pinned.GatewayGoldenRole != "byte_exact_single_fact_gateway_output" || len(pinned.Sources) != 6 {
+	if err := json.Unmarshal(manifest, &pinned); err != nil || pinned.Status != "test_only_non_runtime" || pinned.GatewayGoldenRole != "byte_exact_single_fact_gateway_output" || len(pinned.Sources) != 7 {
 		t.Fatalf("invalid comparator donor manifest: err=%v manifest=%+v", err, pinned)
 	}
 	witness := pinned.ProducerRequestedOutputWitness
@@ -548,6 +631,9 @@ func TestCanonicalPVV1ComparatorFixturesArePinned(t *testing.T) {
 	}
 	if len(wantGateway) != 0 {
 		t.Fatal("missing immutable donor provenance or test-only boundary")
+	}
+	if pinned.Sources[6].Repository != "Project-Helianthus/helianthus-ebusreg" || pinned.Sources[6].Commit != "e24532a50caa00c113751b98b88239e045d731e8" || pinned.Sources[6].Path != "pv/lifecycle.go" || pinned.Sources[6].BlobSHA1 != "422c2437754b182a7e8590f038d62bd74f4c316e" || pinned.Sources[6].SHA256 != "fa85199a7641a9a9a79b548a5f7e8c01e3afa6043f85a84ad3c3b3e9dd0f1630" {
+		t.Fatal("missing immutable lifecycle donor")
 	}
 }
 
@@ -579,16 +665,45 @@ func TestCanonicalPVV1ComparatorPipelineAndAccounting(t *testing.T) {
 		t.Fatalf("snapshot canonical bytes are not decodable: %v", err)
 	}
 
-	for _, check := range []struct {
-		name, ns, freshness string
-	}{{"fresh", "100", "fresh"}, {"stale", "30000000100", "stale"}, {"expired", "300000000100", "expired"}} {
+	for _, check := range []struct{ name, ns string }{{"fresh", "100"}, {"telemetry_stale", "30000000100"}, {"telemetry_expired", "300000000100"}, {"status_stale", "60000000100"}, {"status_expired", "600000000100"}, {"accumulator_stale", "900000000100"}, {"accumulator_expired", "86400000000100"}} {
 		view, err := EvaluateSnapshot(snapshot, EvaluationContext{EvaluatedAt: canonicalPVTime(check.ns), EvaluateMonotonic: MonotonicPoint{ClockEpochID: "clock-epoch:canonical-pv", Nanoseconds: Uint64(check.ns)}})
 		if err != nil || len(view.Facts) != 11 {
 			t.Fatalf("%s evaluation failed: %v", check.name, err)
 		}
 		for _, fact := range view.Facts {
-			if string(fact.Freshness) != check.freshness {
-				t.Fatalf("%s freshness=%s for %s", check.name, fact.Freshness, fact.CandidateID)
+			want := FreshnessFresh
+			if check.ns == "30000000100" && fact.CandidateID != "candidate:canonical-pv:c" && fact.CandidateID != "candidate:canonical-pv:e" {
+				want = FreshnessStale
+			}
+			if check.ns == "300000000100" && fact.CandidateID != "candidate:canonical-pv:c" {
+				want = FreshnessExpired
+			}
+			if check.ns == "300000000100" && fact.CandidateID == "candidate:canonical-pv:e" {
+				want = FreshnessStale
+			}
+			if check.ns == "60000000100" && fact.CandidateID == "candidate:canonical-pv:e" {
+				want = FreshnessStale
+			}
+			if check.ns == "600000000100" && fact.CandidateID == "candidate:canonical-pv:e" {
+				want = FreshnessExpired
+			}
+			if check.ns == "900000000100" && fact.CandidateID == "candidate:canonical-pv:c" {
+				want = FreshnessStale
+			}
+			if check.ns == "86400000000100" && fact.CandidateID == "candidate:canonical-pv:c" {
+				want = FreshnessExpired
+			}
+			if check.ns == "60000000100" && fact.CandidateID != "candidate:canonical-pv:c" && fact.CandidateID != "candidate:canonical-pv:e" {
+				want = FreshnessStale
+			}
+			if (check.ns == "600000000100" || check.ns == "900000000100" || check.ns == "86400000000100") && fact.CandidateID != "candidate:canonical-pv:c" && fact.CandidateID != "candidate:canonical-pv:e" {
+				want = FreshnessExpired
+			}
+			if (check.ns == "900000000100" || check.ns == "86400000000100") && fact.CandidateID == "candidate:canonical-pv:e" {
+				want = FreshnessExpired
+			}
+			if fact.Freshness != want {
+				t.Fatalf("%s freshness=%s want=%s for %s", check.name, fact.Freshness, want, fact.CandidateID)
 			}
 		}
 	}
