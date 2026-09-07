@@ -270,6 +270,36 @@ func (k *PublicationKernel) Current() (Snapshot, []byte, bool) {
 	return cloneSnapshot(*k.current), append([]byte(nil), k.canonical...), true
 }
 
+// Fork returns an independent in-memory publication point. The registry is
+// immutable after NewPublicationKernel freezes its validators and definition
+// indexes, so it is deliberately shared; all state that Apply can replace or
+// mutate is detached while the source read lock holds one committed instant.
+func (k *PublicationKernel) Fork() (*PublicationKernel, error) {
+	if k == nil {
+		return nil, errID(InvalidValue, "publication kernel")
+	}
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+
+	fork := &PublicationKernel{
+		asset:    k.asset,
+		registry: k.registry,
+		replays:  make(map[cursorKey]publicationResult, len(k.replays)),
+	}
+	if k.current != nil {
+		current := cloneSnapshot(*k.current)
+		fork.current = &current
+	}
+	fork.canonical = append([]byte(nil), k.canonical...)
+	for key, result := range k.replays {
+		fork.replays[key] = publicationResult{
+			snapshot:  cloneSnapshot(result.snapshot),
+			canonical: append([]byte(nil), result.canonical...),
+		}
+	}
+	return fork, nil
+}
+
 func cloneSnapshot(snapshot Snapshot) Snapshot {
 	raw, _ := json.Marshal(snapshot)
 	var clone Snapshot
