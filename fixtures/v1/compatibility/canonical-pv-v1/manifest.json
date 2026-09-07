@@ -1,13 +1,13 @@
 {
-  "contract": "helianthus.semantic.compatibility.canonical-pv/v1",
-  "status": "test_only_non_runtime",
-  "gateway_golden_role": "byte_exact_single_fact_gateway_output",
-  "producer_requested_output_witness": {
-    "repository": "Project-Helianthus/helianthus-ebusgateway",
-    "commit": "f5cd9c51c60bdf422e8fc1b5690fbde52a393be3",
-    "producer_path": "internal/modbusadapter/canonical_pv.go",
-    "exercise_path": "internal/modbusadapter/canonical_pv_red_test.go",
-    "requested_native_ids": [
+  "contract":"helianthus.semantic.compatibility.canonical-pv/v1",
+  "status":"test_only_non_runtime",
+  "gateway_golden_role":"byte_exact_single_fact_gateway_output",
+  "producer_requested_output_witness":{
+    "repository":"Project-Helianthus/helianthus-ebusgateway",
+    "commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3",
+    "producer_path":"internal/modbusadapter/canonical_pv.go",
+    "exercise_path":"internal/modbusadapter/canonical_pv_red_test.go",
+    "requested_native_ids":[
       "inverter.ac.current.phase_a",
       "inverter.ac.current.phase_b",
       "inverter.ac.current.phase_c",
@@ -24,13 +24,56 @@
       "inverter.temperature.cabinet"
     ]
   },
-  "semantic_base": "4da23038359364966c264d0b2dc405507bcb7493",
-  "sources": [
-    {"repository":"Project-Helianthus/helianthus-ebusreg","commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96","path":"pv/catalog.go","blob_sha1":"9a67cecd26f4f8c1d2322606d9945f06b4d53574","sha256":"2a1c3d3309b791e7497319f1ffdc75e5ed884b134551172979e0e3c83d688579"},
-    {"repository":"Project-Helianthus/helianthus-ebusreg","commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96","path":"pv/types.go","blob_sha1":"3fb407a99e0e2fb680387a40679ed88c57081a64","sha256":"17c6b9499a46ea512e1fb5abf3b5daceae67e0f5eeca185b7f93514563efea42"},
-    {"repository":"Project-Helianthus/helianthus-ebusreg","commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96","path":"pv/counter.go","blob_sha1":"2a9874e77579de6b8346edbea733f016ce386767","sha256":"08831625b679f0f690bf79db7604d7a2d993ccafc51cc35fd516b0b81c3a56a4"},
-    {"repository":"Project-Helianthus/helianthus-ebusgateway","commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3","path":"internal/modbusadapter/canonical_pv.go","blob_sha1":"4171468c974468a82b645077f2b54359213d4841","sha256":"608aa647e22e63009a9e52bf427d3e14dcdd685aa5286af85fbf462e1a3688fd"},
-    {"repository":"Project-Helianthus/helianthus-ebusgateway","commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3","path":"internal/modbusadapter/canonical_pv_red_test.go","blob_sha1":"53c364b9c4a6dc94f4fa7e32b06567753303cde3","sha256":"35217729237360b8fb7ea1a3764409e420ea9f35aa39a78a099cffc563dbbfcb"},
-    {"repository":"Project-Helianthus/helianthus-ebusgateway","commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3","path":"mcp/testdata/modbus_v1_canonical_pv.golden.json","blob_sha1":"777866983e1898a5ea7017ca0b6a2de01308edf8","sha256":"731127d1caa09d2a293e543e53b885eb59e328d3b9e87987189786846ec805fa"}
+  "semantic_base":"4da23038359364966c264d0b2dc405507bcb7493",
+  "sources":[
+    {
+      "repository":"Project-Helianthus/helianthus-ebusreg",
+      "commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96",
+      "path":"pv/catalog.go",
+      "blob_sha1":"9a67cecd26f4f8c1d2322606d9945f06b4d53574",
+      "sha256":"2a1c3d3309b791e7497319f1ffdc75e5ed884b134551172979e0e3c83d688579"
+    },
+    {
+      "repository":"Project-Helianthus/helianthus-ebusreg",
+      "commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96",
+      "path":"pv/types.go",
+      "blob_sha1":"3fb407a99e0e2fb680387a40679ed88c57081a64",
+      "sha256":"17c6b9499a46ea512e1fb5abf3b5daceae67e0f5eeca185b7f93514563efea42"
+    },
+    {
+      "repository":"Project-Helianthus/helianthus-ebusreg",
+      "commit":"738142f97519b3d5566f6d75d9c3975d7ffe2e96",
+      "path":"pv/counter.go",
+      "blob_sha1":"2a9874e77579de6b8346edbea733f016ce386767",
+      "sha256":"08831625b679f0f690bf79db7604d7a2d993ccafc51cc35fd516b0b81c3a56a4"
+    },
+    {
+      "repository":"Project-Helianthus/helianthus-ebusgateway",
+      "commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3",
+      "path":"internal/modbusadapter/canonical_pv.go",
+      "blob_sha1":"4171468c974468a82b645077f2b54359213d4841",
+      "sha256":"608aa647e22e63009a9e52bf427d3e14dcdd685aa5286af85fbf462e1a3688fd"
+    },
+    {
+      "repository":"Project-Helianthus/helianthus-ebusgateway",
+      "commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3",
+      "path":"internal/modbusadapter/canonical_pv_red_test.go",
+      "blob_sha1":"53c364b9c4a6dc94f4fa7e32b06567753303cde3",
+      "sha256":"35217729237360b8fb7ea1a3764409e420ea9f35aa39a78a099cffc563dbbfcb"
+    },
+    {
+      "repository":"Project-Helianthus/helianthus-ebusgateway",
+      "commit":"f5cd9c51c60bdf422e8fc1b5690fbde52a393be3",
+      "path":"mcp/testdata/modbus_v1_canonical_pv.golden.json",
+      "blob_sha1":"777866983e1898a5ea7017ca0b6a2de01308edf8",
+      "sha256":"731127d1caa09d2a293e543e53b885eb59e328d3b9e87987189786846ec805fa"
+    },
+    {
+      "repository":"Project-Helianthus/helianthus-ebusreg",
+      "commit":"e24532a50caa00c113751b98b88239e045d731e8",
+      "path":"pv/lifecycle.go",
+      "blob_sha1":"422c2437754b182a7e8590f038d62bd74f4c316e",
+      "sha256":"fa85199a7641a9a9a79b548a5f7e8c01e3afa6043f85a84ad3c3b3e9dd0f1630"
+    }
   ]
 }
