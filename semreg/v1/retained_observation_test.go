@@ -104,6 +104,29 @@ func TestRetainedObservationSourceEpochRetirement(t *testing.T) {
 	}
 }
 
+func TestRetainedObservationFenceThenRetirementPreservesRemoval(t *testing.T) {
+	k := newTestPublicationKernel(t, "asset:sequential")
+	initial := completePublicationBatch("asset:sequential", "source:sequential", "epoch:one", "binding:one", "1", "1", "0")
+	sealPublicationBatch(t, &initial)
+	if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+		t.Fatal(err)
+	}
+	fence := publicationBatch("asset:sequential", "source:sequential", "epoch:one", "2", "1", "1")
+	fence.GenerationFences = []GenerationFence{publicationFence("source:sequential", "epoch:one", "1", publicEvidence("9"))}
+	sealPublicationBatch(t, &fence)
+	if _, _, err := k.Apply(fence, publicationMonotonic); err != nil {
+		t.Fatal(err)
+	}
+	retire := publicationBatch("asset:sequential", "source:sequential", "epoch:two", "1", "1", "2")
+	retire.SourceUpserts = []SourceDescriptor{publicationSource("source:sequential", "epoch:two")}
+	retire.SourceRetirements = []SourceEpochID{"epoch:one"}
+	sealPublicationBatch(t, &retire)
+	s, _, err := k.Apply(retire, publicationMonotonic)
+	if err != nil || len(s.Retained) != 1 || s.Retained[0].Removal != RetainedRemovalGenerationFence || s.Retained[0].Candidate.BindingID == nil || bindingByID(t, s, *s.Retained[0].Candidate.BindingID).State != BindingRetired {
+		t.Fatalf("sequential retention: %v %+v", err, s.Retained)
+	}
+}
+
 func TestRetainedObservationStableCandidateIDHistoryAndOrdering(t *testing.T) {
 	kernel := newTestPublicationKernel(t, "asset:retained-history")
 	initial := completePublicationBatch("asset:retained-history", "source:retained-history", "epoch:retained-history", "binding:one", "1", "1", "0")

@@ -1862,11 +1862,17 @@ func (s Snapshot) Validate() error {
 			continue
 		}
 		binding, exists := bindings[*candidate.BindingID]
-		if !exists || binding.State == BindingCurrent || binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration || (record.Removal == RetainedRemovalGenerationFence && binding.State != BindingFenced) || (record.Removal == RetainedRemovalSourceRetirement && binding.State != BindingRetired) {
+		if !exists || binding.State == BindingCurrent || binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration || (record.Removal == RetainedRemovalGenerationFence && binding.State != BindingFenced && binding.State != BindingRetired) || (record.Removal == RetainedRemovalSourceRetirement && binding.State != BindingRetired) {
 			errs = append(errs, errID(DanglingReference, "retained observation binding"))
 		}
 		if record.Removal == RetainedRemovalGenerationFence && !containsFence(s.Fences, binding.SourceID, binding.SourceEpochID, binding.DriverGeneration) {
 			errs = append(errs, errID(DanglingReference, "retained observation fence"))
+		}
+		if record.Removal == RetainedRemovalGenerationFence && binding.State == BindingRetired {
+			source, ok := sources[sourceKey{binding.SourceID, binding.SourceEpochID}]
+			if !ok || source.State != SourceRetired {
+				errs = append(errs, errID(DanglingReference, "retained observation retired source"))
+			}
 		}
 		if record.Removal == RetainedRemovalSourceRetirement {
 			source, ok := sources[sourceKey{binding.SourceID, binding.SourceEpochID}]
