@@ -42,6 +42,21 @@ func TestPublicationKernelForkFixture(t *testing.T) {
 	}
 }
 
+func TestPublicationKernelForkNilReceiver(t *testing.T) {
+	var kernel *PublicationKernel
+	fork, err := kernel.Fork()
+	if fork != nil {
+		t.Fatalf("nil receiver fork = %p, want nil", fork)
+	}
+	if ErrorIdentifier(err) != InvalidValue {
+		t.Fatalf("nil receiver fork error = %v (%s), want %s", err, ErrorIdentifier(err), InvalidValue)
+	}
+	diagnostic, ok := err.(*Error)
+	if !ok || diagnostic.Detail != "publication kernel" {
+		t.Fatalf("nil receiver fork diagnostic = %#v, want subject %q", err, "publication kernel")
+	}
+}
+
 func TestPublicationKernelForkKFPos001002003(t *testing.T) {
 	source, initial := publicationKernelAtSequence32(t)
 	before, beforeRaw, ok := source.Current()
