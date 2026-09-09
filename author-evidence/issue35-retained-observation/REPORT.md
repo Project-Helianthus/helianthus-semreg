@@ -13,14 +13,15 @@ native lifecycle state continue normally. Evaluation exposes only unexpired
 retained observations, while selection and operation admission consume current
 facts only; a retained precondition is rejected as `precondition_failed`.
 
-Every retained record has a digest-bound `retention_id` derived from its exact
-immutable observation. This permits repeated lifecycle transitions and a
+Retained identity and canonical order are the six-axis tuple `(candidate_id,
+candidate_revision, JCS(key), binding_id, source_epoch_id,
+driver_generation)` from the exact immutable observation. This permits repeated lifecycle transitions and a
 current replacement to reuse a stable candidate ID without rebinding, losing,
 or making historical records operation-eligible. An explicit withdrawal removes
 matching retained records only after source/lifecycle ownership validation.
-`CurrentAt` performs deadline expiry from caller-supplied time even during a
-publication gap, resealing an updated snapshot and leaving ordinary `Current`
-as a detached read of that latest committed state.
+`CurrentAt` evaluates caller-supplied time during a publication gap without
+mutation: it returns unchanged snapshot bytes plus an evaluated view that omits
+expired retained entries.
 
 Retained state is not a gateway cache, parallel store, rebinding mechanism, or
 route/authority fallback.
