@@ -271,59 +271,25 @@ func (k *PublicationKernel) Current() (Snapshot, []byte, bool) {
 	return cloneSnapshot(*k.current), append([]byte(nil), k.canonical...), true
 }
 
-// CurrentAt returns the current snapshot after applying only deadline-driven
-// retained-observation expiry at the supplied explicit time. Expiry is a
-// semantic state transition: it advances fact and semantic revisions and
-// reseals the canonical snapshot, but it never changes sources, bindings,
-// current facts, services, capabilities, fences, or publication cursors.
-func (k *PublicationKernel) CurrentAt(context EvaluationContext) (Snapshot, []byte, bool, error) {
+// CurrentAt is the public current/readback surface. It pairs an immutable audit
+// snapshot with its explicit-time evaluation; it never publishes, reseals, or
+// mutates retention state.
+func (k *PublicationKernel) CurrentAt(context EvaluationContext) (Snapshot, EvaluationView, []byte, bool, error) {
 	if k == nil {
-		return Snapshot{}, nil, false, errID(InvalidValue, "publication kernel")
+		return Snapshot{}, EvaluationView{}, nil, false, errID(InvalidValue, "publication kernel")
 	}
-	k.mu.Lock()
-	defer k.mu.Unlock()
+	k.mu.RLock()
+	defer k.mu.RUnlock()
 	if k.current == nil {
-		return Snapshot{}, nil, false, nil
+		return Snapshot{}, EvaluationView{}, nil, false, nil
 	}
-	if err := bestError(context.Validate(), contextNotEarlierThanSnapshot(*k.current, context)); err != nil {
-		return Snapshot{}, nil, false, err
+	snapshot := cloneSnapshot(*k.current)
+	canonical := append([]byte(nil), k.canonical...)
+	view, err := EvaluateSnapshot(snapshot, context)
+	if err != nil {
+		return Snapshot{}, EvaluationView{}, nil, false, err
 	}
-	working := cloneSnapshot(*k.current)
-	retained := make([]RetainedObservationRecord, 0, len(working.Retained))
-	for _, record := range working.Retained {
-		freshness, err := evaluateFreshness(record.Candidate.Times, record.Candidate.FreshnessPolicy, context)
-		if err != nil {
-			return Snapshot{}, nil, false, err
-		}
-		if freshness != FreshnessExpired {
-			retained = append(retained, record)
-		}
-	}
-	if len(retained) != len(working.Retained) {
-		if len(retained) == 0 {
-			working.Retained = nil
-		} else {
-			working.Retained = retained
-		}
-		working.Revisions.Semantic = increment(working.Revisions.Semantic)
-		working.Revisions.Facts = increment(working.Revisions.Facts)
-		working.EvaluatedAt, working.EvaluateMonotonic = context.EvaluatedAt, context.EvaluateMonotonic
-		working.SnapshotID = "snapshot:pending"
-		id, err := working.computedID()
-		if err != nil {
-			return Snapshot{}, nil, false, err
-		}
-		working.SnapshotID = id
-		if err := working.Validate(); err != nil {
-			return Snapshot{}, nil, false, err
-		}
-		canonical, err := CanonicalJSON(working)
-		if err != nil {
-			return Snapshot{}, nil, false, err
-		}
-		k.current, k.canonical = &working, canonical
-	}
-	return cloneSnapshot(*k.current), append([]byte(nil), k.canonical...), true, nil
+	return snapshot, view, canonical, true, nil
 }
 
 // Fork returns an independent in-memory publication point. The registry is

@@ -72,15 +72,13 @@ func TestRetainedObservationGenerationFenceLifecycle(t *testing.T) {
 	sealPublicationBatch(t, &bad)
 	assertRejectedUnchanged(t, kernel, bad, InvalidValue)
 
-	expired, _, _, err := kernel.CurrentAt(EvaluationContext{EvaluatedAt: TimePoint{UnixNanoseconds: "1120", ClockID: "clock.utc", UncertaintyNS: "0"}, EvaluateMonotonic: MonotonicPoint{ClockEpochID: "clock-epoch:retained", Nanoseconds: "220"}})
+	before, beforeBytes, _ := kernel.Current()
+	expired, view, raw, _, err := kernel.CurrentAt(EvaluationContext{EvaluatedAt: TimePoint{UnixNanoseconds: "1120", ClockID: "clock.utc", UncertaintyNS: "0"}, EvaluateMonotonic: MonotonicPoint{ClockEpochID: "clock-epoch:retained", Nanoseconds: "220"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(expired.Retained) != 0 {
-		t.Fatalf("retained observation survived its original retention deadline: %+v", expired.Retained)
-	}
-	if current, _, ok := kernel.Current(); !ok || len(current.Retained) != 0 {
-		t.Fatalf("Current still exposed expired retained state after explicit-time readback: %+v", current.Retained)
+	if len(view.Retained) != 0 || !reflect.DeepEqual(expired, before) || !bytes.Equal(raw, beforeBytes) {
+		t.Fatalf("current/readback expiry mutated snapshot or exposed retained state: %+v", view)
 	}
 }
 
