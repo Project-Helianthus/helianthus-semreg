@@ -750,6 +750,17 @@ func (f EvaluatedFact) Validate() error {
 	return bestError(errs...)
 }
 
+func (f EvaluatedRetainedObservation) Validate() error {
+	return bestError(EvaluatedFact{CandidateID: f.CandidateID, CandidateRevision: f.CandidateRevision, Freshness: f.Freshness, EffectiveAvailability: f.EffectiveAvailability}.Validate(), retainedObservationStateError(f.State))
+}
+
+func retainedObservationStateError(state RetainedObservationState) error {
+	if state != RetainedObservation {
+		return errID(InvalidEnum, "retained observation state")
+	}
+	return nil
+}
+
 func (v EvaluationView) Validate() error {
 	return v.validateStructure(true)
 }
@@ -902,6 +913,10 @@ func (c FactCandidate) Validate() error {
 		errs = append(errs, errID(MissingMember, "projection causal context"))
 	}
 	return bestError(errs...)
+}
+
+func (r RetainedObservationRecord) Validate() error {
+	return bestError(retainedObservationStateError(r.State), r.Observation.Validate())
 }
 
 func (c FactCandidate) presentMemberErrors() []error {

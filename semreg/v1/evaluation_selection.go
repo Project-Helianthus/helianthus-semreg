@@ -30,7 +30,7 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	if v.Facts == nil {
 		errs = append(errs, errID(MissingMember, "evaluation facts"))
 	}
-	if len(v.Facts) > maxDerivationNodes {
+	if len(v.Facts) > maxDerivationNodes || len(v.Retained) > maxDerivationNodes {
 		errs = append(errs, errID(BoundsExceeded, "evaluation facts"))
 	}
 	dup, ordered := duplicateAndOrder(v.Facts, func(a, b EvaluatedFact) int {
@@ -39,11 +39,23 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	for _, fact := range v.Facts {
 		errs = append(errs, fact.Validate())
 	}
+	retainedDup, retainedOrdered := duplicateAndOrder(v.Retained, func(a, b EvaluatedRetainedObservation) int {
+		return strings.Compare(string(a.CandidateID), string(b.CandidateID))
+	})
+	for _, record := range v.Retained {
+		errs = append(errs, record.Validate())
+	}
 	if dup {
 		errs = append(errs, errID(DuplicateKey, "evaluated candidate"))
 	}
 	if !ordered {
 		errs = append(errs, errID(NoncanonicalOrder, "evaluated candidates"))
+	}
+	if retainedDup {
+		errs = append(errs, errID(DuplicateKey, "evaluated retained observation"))
+	}
+	if !retainedOrdered {
+		errs = append(errs, errID(NoncanonicalOrder, "evaluated retained observations"))
 	}
 	structure := bestError(errs...)
 	if !requireDigest {
@@ -159,7 +171,17 @@ func EvaluateSnapshot(snapshot Snapshot, context EvaluationContext) (EvaluationV
 		}
 		facts = append(facts, fact)
 	}
-	view := EvaluationView{Contract: ContractEvaluationV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, Context: context, Facts: facts}
+	retained := make([]EvaluatedRetainedObservation, 0, len(snapshot.Retained))
+	for _, record := range snapshot.Retained {
+		freshness, err := evaluateFreshness(record.Observation.Times, record.Observation.FreshnessPolicy, context)
+		if err != nil {
+			return EvaluationView{}, err
+		}
+		if freshness != FreshnessExpired {
+			retained = append(retained, EvaluatedRetainedObservation{CandidateID: record.Observation.CandidateID, CandidateRevision: record.Observation.Revision, State: record.State, Freshness: freshness, EffectiveAvailability: effectiveAvailability(record.Observation.Quality.Availability, freshness)})
+		}
+	}
+	view := EvaluationView{Contract: ContractEvaluationV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, Context: context, Facts: facts, Retained: retained}
 	digest, err := view.EvaluationDigestValue()
 	if err != nil {
 		return EvaluationView{}, err

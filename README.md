@@ -86,6 +86,13 @@ It provides:
   atomically and returns deep-copied immutable `Snapshot` values and bytes with
   exact revision, replay, lifecycle-fence, dependency-cascade and conflict
   behavior;
+- explicit retained observations, which preserve an immutable original native
+  observation after its exact binding is fenced or source epoch retired. They
+  retain the original value, times, evidence, source path and freshness policy
+  only until that policy's original deadline; evaluation exposes them as
+  `retained_observations`, while current facts, lifecycle and routes continue
+  independently. Retained observations are read-only historical state and are
+  never selection or operation authority;
 - pure `EvaluateSnapshot`, which creates a complete, digest-bound time view
   from an explicit context, including conservative restart-time uncertainty and
   transitive derivation aging; and

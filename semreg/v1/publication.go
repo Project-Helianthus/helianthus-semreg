@@ -413,7 +413,7 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	if k.current != nil {
 		working = cloneSnapshot(*k.current)
 	}
-	changed, err := k.applyTo(&working, batch)
+	changed, err := k.applyTo(&working, batch, publicationMonotonic)
 	check(err)
 	working.Contract = ContractKernelV1
 	working.AssetID = k.asset
@@ -634,7 +634,7 @@ func cursorMap(snapshot *Snapshot) map[cursorKey]PublicationCursor {
 	return result
 }
 
-func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) (componentChanges, error) {
+func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch, publicationMonotonic MonotonicPoint) (componentChanges, error) {
 	// All maps are detached diagnostic post-state. Collect independent failures
 	// through every operation; only Apply may commit after final validation.
 	var failure error
@@ -649,6 +649,7 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	cursors := cursorMap(snapshot)
 	candidates := make(map[CandidateID]FactCandidate)
 	originalCandidates := make(map[CandidateID]FactCandidate)
+	retained := make(map[CandidateID]RetainedObservationRecord, len(snapshot.Retained))
 	for _, source := range snapshot.Sources {
 		sources[sourceKey{source.SourceID, source.SourceEpochID}] = source
 	}
@@ -675,6 +676,9 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 			candidates[candidate.CandidateID] = candidate
 			originalCandidates[candidate.CandidateID] = candidate
 		}
+	}
+	for _, record := range snapshot.Retained {
+		retained[record.Observation.CandidateID] = record
 	}
 
 	retirements := make(map[SourceEpochID]struct{}, len(batch.SourceRetirements))
@@ -988,6 +992,37 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	if err := closeCandidateGraph(candidates, upsertedCandidates, bindings); err != nil {
 		check(err)
 	}
+	// Graph closure removes observations whose exact source path is no longer
+	// current. Preserve only those original observations as explicit retained
+	// state, with no rebinding or mutation of their evidence, values, times, or
+	// policy. Expired records are dropped at their original retention deadline.
+	explicitWithdrawals := make(map[CandidateID]struct{}, len(batch.FactWithdrawals))
+	for _, id := range batch.FactWithdrawals {
+		explicitWithdrawals[id] = struct{}{}
+	}
+	for id, candidate := range originalCandidates {
+		if _, withdrawn := explicitWithdrawals[id]; withdrawn {
+			continue
+		}
+		if _, current := candidates[id]; current || candidate.Quality.Assertion != AssertionObserved {
+			continue
+		}
+		binding, exists := bindings[*candidate.BindingID]
+		if !exists || binding.State == BindingCurrent {
+			continue
+		}
+		retained[id] = RetainedObservationRecord{State: RetainedObservation, Observation: candidate}
+	}
+	for id, record := range retained {
+		freshness, retainedErr := evaluateFreshness(record.Observation.Times, record.Observation.FreshnessPolicy, EvaluationContext{EvaluatedAt: batch.ObservedAt, EvaluateMonotonic: publicationMonotonic})
+		if retainedErr != nil {
+			check(retainedErr)
+			continue
+		}
+		if freshness == FreshnessExpired {
+			delete(retained, id)
+		}
+	}
 	factEnvelopes, err := rebuildEnvelopes(snapshot.Facts, snapshot.AssetID, candidates)
 	if err != nil {
 		check(err)
@@ -1008,6 +1043,13 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 	snapshot.Bindings = sortedMapValues(bindings, func(a, z NativeBinding) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) })
 	snapshot.IdentityLinks = sortedMapValues(links, func(a, z IdentityLink) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) })
 	snapshot.Facts = factEnvelopes
+	if len(retained) == 0 {
+		snapshot.Retained = nil
+	} else {
+		snapshot.Retained = sortedMapValues(retained, func(a, z RetainedObservationRecord) int {
+			return strings.Compare(string(a.Observation.CandidateID), string(z.Observation.CandidateID))
+		})
+	}
 	snapshot.Services = sortedMapValues(services, func(a, z ServiceInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) })
 	snapshot.Capabilities = sortedMapValues(capabilities, func(a, z CapabilityInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) })
 	snapshot.Fences = sortedMapValues(fences, compareFence)
@@ -1015,7 +1057,7 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 
 	changed := componentChanges{
 		identity:     !reflect.DeepEqual(before.Sources, snapshot.Sources) || !reflect.DeepEqual(before.Bindings, snapshot.Bindings) || !reflect.DeepEqual(before.IdentityLinks, snapshot.IdentityLinks) || !reflect.DeepEqual(before.Fences, snapshot.Fences),
-		facts:        !reflect.DeepEqual(before.Facts, snapshot.Facts),
+		facts:        !reflect.DeepEqual(before.Facts, snapshot.Facts) || !reflect.DeepEqual(before.Retained, snapshot.Retained),
 		services:     !reflect.DeepEqual(before.Services, snapshot.Services),
 		capabilities: !reflect.DeepEqual(before.Capabilities, snapshot.Capabilities),
 	}
@@ -1030,7 +1072,7 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch) 
 func (s Snapshot) publicationContentErrors() error {
 	var failure error
 	check := func(err error) { failure = bestError(failure, err) }
-	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || len(s.IdentityLinks) > maxSnapshotIdentity || len(s.Facts) > maxSnapshotEnvelopes || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
+	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || len(s.IdentityLinks) > maxSnapshotIdentity || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotEnvelopes || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
 		check(errID(BoundsExceeded, "snapshot collection"))
 	}
 	currentSources := make(map[SourceID]int)
@@ -1051,6 +1093,9 @@ func (s Snapshot) publicationContentErrors() error {
 	}
 	for _, fact := range s.Facts {
 		check(fact.Validate())
+	}
+	for _, record := range s.Retained {
+		check(record.Validate())
 	}
 	services := make(map[ServiceInstanceID]ServiceInstance, len(s.Services))
 	for _, service := range s.Services {
@@ -1592,7 +1637,7 @@ func (s Snapshot) Validate() error {
 			errs = append(errs, errID(MissingMember, "snapshot collection"))
 		}
 	}
-	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || len(s.IdentityLinks) > maxSnapshotIdentity || len(s.Facts) > maxSnapshotEnvelopes || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
+	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || len(s.IdentityLinks) > maxSnapshotIdentity || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotEnvelopes || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
 		errs = append(errs, errID(BoundsExceeded, "snapshot collection"))
 	}
 	errs = append(errs,
@@ -1600,6 +1645,9 @@ func (s Snapshot) Validate() error {
 		orderedUnique(s.Bindings, func(a, z NativeBinding) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) }),
 		orderedUnique(s.IdentityLinks, func(a, z IdentityLink) int { return strings.Compare(string(a.BindingID), string(z.BindingID)) }),
 		orderedUnique(s.Facts, compareEnvelope),
+		orderedUnique(s.Retained, func(a, z RetainedObservationRecord) int {
+			return strings.Compare(string(a.Observation.CandidateID), string(z.Observation.CandidateID))
+		}),
 		orderedUnique(s.Services, func(a, z ServiceInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) }),
 		orderedUnique(s.Capabilities, func(a, z CapabilityInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) }),
 		orderedUnique(s.Fences, compareFence), orderedUnique(s.Cursors, compareCursor),
@@ -1739,6 +1787,21 @@ func (s Snapshot) Validate() error {
 				errs = append(errs, errID(DuplicateKey, "candidate id"))
 			}
 			candidates[candidate.CandidateID] = candidate
+		}
+	}
+	for _, record := range s.Retained {
+		errs = append(errs, record.Validate())
+		candidate := record.Observation
+		if _, exists := candidates[candidate.CandidateID]; exists {
+			errs = append(errs, errID(DuplicateKey, "retained/current candidate id"))
+		}
+		if candidate.Quality.Assertion != AssertionObserved || candidate.BindingID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil || candidate.Origin.SourceID == nil {
+			errs = append(errs, errID(InvalidValue, "retained observation path"))
+			continue
+		}
+		binding, exists := bindings[*candidate.BindingID]
+		if !exists || binding.State == BindingCurrent || binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration {
+			errs = append(errs, errID(DanglingReference, "retained observation binding"))
 		}
 	}
 	if len(candidates) > maxDerivationNodes {

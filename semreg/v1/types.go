@@ -333,6 +333,19 @@ type FactEnvelope struct {
 	Revision   Uint64          `json:"revision"`
 }
 
+// RetainedObservation preserves one immutable, formerly current observation
+// after its source path has been fenced or retired. It is historical/read-only
+// state: it never re-enters Facts, is not a replacement binding, and cannot
+// satisfy operation authority.
+type RetainedObservationState string
+
+const RetainedObservation RetainedObservationState = "retained"
+
+type RetainedObservationRecord struct {
+	State       RetainedObservationState `json:"state"`
+	Observation FactCandidate            `json:"observation"`
+}
+
 type PackRef struct {
 	ID      DefinitionID    `json:"id"`
 	Version SemanticVersion `json:"version"`
@@ -449,20 +462,21 @@ type PublicationCursor struct {
 // Snapshot is the complete immutable semantic state for one asset revision.
 // Callers receive deep copies; CanonicalJSON returns the stable wire value.
 type Snapshot struct {
-	Contract          ContractVersion      `json:"contract"`
-	SnapshotID        SnapshotID           `json:"snapshot_id"`
-	AssetID           AssetID              `json:"asset_id"`
-	Revisions         RevisionVector       `json:"revisions"`
-	EvaluatedAt       TimePoint            `json:"evaluated_at"`
-	EvaluateMonotonic MonotonicPoint       `json:"evaluate_monotonic"`
-	Sources           []SourceDescriptor   `json:"sources"`
-	Bindings          []NativeBinding      `json:"bindings"`
-	IdentityLinks     []IdentityLink       `json:"identity_links"`
-	Facts             []FactEnvelope       `json:"facts"`
-	Services          []ServiceInstance    `json:"services"`
-	Capabilities      []CapabilityInstance `json:"capabilities"`
-	Fences            []GenerationFence    `json:"fences"`
-	Cursors           []PublicationCursor  `json:"cursors"`
+	Contract          ContractVersion             `json:"contract"`
+	SnapshotID        SnapshotID                  `json:"snapshot_id"`
+	AssetID           AssetID                     `json:"asset_id"`
+	Revisions         RevisionVector              `json:"revisions"`
+	EvaluatedAt       TimePoint                   `json:"evaluated_at"`
+	EvaluateMonotonic MonotonicPoint              `json:"evaluate_monotonic"`
+	Sources           []SourceDescriptor          `json:"sources"`
+	Bindings          []NativeBinding             `json:"bindings"`
+	IdentityLinks     []IdentityLink              `json:"identity_links"`
+	Facts             []FactEnvelope              `json:"facts"`
+	Retained          []RetainedObservationRecord `json:"retained_observations,omitempty"`
+	Services          []ServiceInstance           `json:"services"`
+	Capabilities      []CapabilityInstance        `json:"capabilities"`
+	Fences            []GenerationFence           `json:"fences"`
+	Cursors           []PublicationCursor         `json:"cursors"`
 }
 
 // EvaluationContext is supplied by the caller. Evaluation never obtains time
@@ -479,15 +493,28 @@ type EvaluatedFact struct {
 	EffectiveAvailability Availability `json:"effective_availability"`
 }
 
+// EvaluatedRetainedObservation exposes the original freshness lifetime for a
+// historical observation. Retained state is deliberately separate from the
+// current Fact evaluation collection so presentation selection and operations
+// cannot mistake it for current authority.
+type EvaluatedRetainedObservation struct {
+	CandidateID           CandidateID              `json:"candidate_id"`
+	CandidateRevision     Uint64                   `json:"candidate_revision"`
+	State                 RetainedObservationState `json:"state"`
+	Freshness             Freshness                `json:"freshness"`
+	EffectiveAvailability Availability             `json:"effective_availability"`
+}
+
 // EvaluationView is a complete, snapshot-bound, time-only result. Its digest
 // is SHA-256 over this record with EvaluationDigest omitted.
 type EvaluationView struct {
-	Contract         ContractVersion   `json:"contract"`
-	SnapshotID       SnapshotID        `json:"snapshot_id"`
-	Revisions        RevisionVector    `json:"revisions"`
-	Context          EvaluationContext `json:"context"`
-	Facts            []EvaluatedFact   `json:"facts"`
-	EvaluationDigest Digest            `json:"evaluation_digest"`
+	Contract         ContractVersion                `json:"contract"`
+	SnapshotID       SnapshotID                     `json:"snapshot_id"`
+	Revisions        RevisionVector                 `json:"revisions"`
+	Context          EvaluationContext              `json:"context"`
+	Facts            []EvaluatedFact                `json:"facts"`
+	Retained         []EvaluatedRetainedObservation `json:"retained_observations,omitempty"`
+	EvaluationDigest Digest                         `json:"evaluation_digest"`
 }
 
 // Selection is a presentation-only result bound to a complete immutable
