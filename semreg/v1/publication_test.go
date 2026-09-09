@@ -485,14 +485,6 @@ func TestPublicationTransitionMatrixCompositionAndWithdrawals(t *testing.T) {
 		restart.CapabilityWithdrawals = []CapabilityInstanceID{initial.CapabilityUpserts[0].InstanceID}
 		sealPublicationBatch(t, &restart)
 		assertRejectedUnchanged(t, kernel, restart, InvalidValue)
-		return
-		result, _, err := kernel.Apply(restart, publicationMonotonic)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if sourceByEpoch(t, result, "epoch:a").State != SourceRetired || serviceByID(t, result, initial.ServiceUpserts[0].InstanceID).Revision != "2" || capabilityByID(t, result, initial.CapabilityUpserts[0].InstanceID).Revision != "2" {
-			t.Fatalf("retirement withdrawals did not compose with tombstones: %+v", result)
-		}
 	})
 
 	t.Run("unrelated-and-uncovered-withdrawals-reject", func(t *testing.T) {
