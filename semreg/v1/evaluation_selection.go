@@ -30,7 +30,7 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	if v.Facts == nil {
 		errs = append(errs, errID(MissingMember, "evaluation facts"))
 	}
-	if len(v.Facts) > maxDerivationNodes {
+	if len(v.Facts) > maxDerivationNodes || len(v.Retained) > maxDerivationNodes {
 		errs = append(errs, errID(BoundsExceeded, "evaluation facts"))
 	}
 	dup, ordered := duplicateAndOrder(v.Facts, func(a, b EvaluatedFact) int {
@@ -39,12 +39,17 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	for _, fact := range v.Facts {
 		errs = append(errs, fact.Validate())
 	}
+	retainedErr := evaluatedRetainedObservationOrderError(v.Retained)
+	for _, record := range v.Retained {
+		errs = append(errs, record.Validate())
+	}
 	if dup {
 		errs = append(errs, errID(DuplicateKey, "evaluated candidate"))
 	}
 	if !ordered {
 		errs = append(errs, errID(NoncanonicalOrder, "evaluated candidates"))
 	}
+	errs = append(errs, retainedErr)
 	structure := bestError(errs...)
 	if !requireDigest {
 		return structure
@@ -88,6 +93,26 @@ func (v EvaluationView) computedDigestUnchecked() (Digest, error) {
 	}
 	sum := sha256.Sum256(out.Bytes())
 	return Digest("sha256:" + hex.EncodeToString(sum[:])), nil
+}
+
+func evaluatedRetainedObservationOrderError(records []EvaluatedRetainedObservation) error {
+	seen := make(map[Digest]struct{}, len(records))
+	var previous Digest
+	for index, record := range records {
+		identity, err := retainedObservationIdentity(record.Observation.Candidate)
+		if err != nil {
+			return err
+		}
+		if _, exists := seen[Digest(identity)]; exists {
+			return errID(DuplicateKey, "evaluated retained observations")
+		}
+		if index != 0 && strings.Compare(string(previous), identity) > 0 {
+			return errID(NoncanonicalOrder, "evaluated retained observations")
+		}
+		seen[Digest(identity)] = struct{}{}
+		previous = Digest(identity)
+	}
+	return nil
 }
 
 // EvaluateSnapshot computes a complete immutable time view. It only reads its
@@ -159,7 +184,17 @@ func EvaluateSnapshot(snapshot Snapshot, context EvaluationContext) (EvaluationV
 		}
 		facts = append(facts, fact)
 	}
-	view := EvaluationView{Contract: ContractEvaluationV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, Context: context, Facts: facts}
+	retained := make([]EvaluatedRetainedObservation, 0, len(snapshot.Retained))
+	for _, record := range snapshot.Retained {
+		freshness, err := evaluateFreshness(record.Candidate.Times, record.Candidate.FreshnessPolicy, context)
+		if err != nil {
+			return EvaluationView{}, err
+		}
+		if freshness != FreshnessExpired {
+			retained = append(retained, EvaluatedRetainedObservation{Observation: record, Freshness: freshness})
+		}
+	}
+	view := EvaluationView{Contract: ContractEvaluationV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, Context: context, Facts: facts, Retained: retained}
 	digest, err := view.EvaluationDigestValue()
 	if err != nil {
 		return EvaluationView{}, err

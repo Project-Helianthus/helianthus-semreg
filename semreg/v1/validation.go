@@ -750,6 +750,20 @@ func (f EvaluatedFact) Validate() error {
 	return bestError(errs...)
 }
 
+func (f EvaluatedRetainedObservation) Validate() error {
+	if f.Freshness != FreshnessFresh && f.Freshness != FreshnessStale && f.Freshness != FreshnessExpired && f.Freshness != FreshnessUnknown {
+		return errID(InvalidEnum, "evaluated retained freshness")
+	}
+	return f.Observation.Validate()
+}
+
+func retainedRemovalError(removal RetainedRemoval) error {
+	if removal != RetainedRemovalGenerationFence && removal != RetainedRemovalSourceRetirement {
+		return errID(InvalidEnum, "retained removal")
+	}
+	return nil
+}
+
 func (v EvaluationView) Validate() error {
 	return v.validateStructure(true)
 }
@@ -902,6 +916,15 @@ func (c FactCandidate) Validate() error {
 		errs = append(errs, errID(MissingMember, "projection causal context"))
 	}
 	return bestError(errs...)
+}
+
+func (r RetainedObservationRecord) Validate() error {
+	return bestError(func() error {
+		if r.Contract != ContractRetainedObservationV1 {
+			return errID(InvalidContract, "retained observation")
+		}
+		return nil
+	}(), retainedRemovalError(r.Removal), r.Candidate.Validate())
 }
 
 func (c FactCandidate) presentMemberErrors() []error {

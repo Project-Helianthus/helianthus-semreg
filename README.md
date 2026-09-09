@@ -73,6 +73,10 @@ mapping qualification, live-I/O, or hardware claim.
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
 [`helianthus-docs-semantic` contract at da5ab44](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/da5ab4415d3bec73f9572aec1c495a6cdcbcba47/api/v1).
+Retained observations use the accepted docs-semantic #22 / PR #23 contract:
+reviewed `b9a9e9c33b3f55dc18561da82e4de59eb5f290ee`, public main
+`c626e2a4a4364f5b94c4562dde9f7d01b88a5976`, tree
+`05424386e78e99324dc95bc82750b5f3920a9be6`.
 It provides:
 
 - protocol-neutral identities, exact values, evidence, lineage, time, quality,
@@ -86,6 +90,18 @@ It provides:
   atomically and returns deep-copied immutable `Snapshot` values and bytes with
   exact revision, replay, lifecycle-fence, dependency-cascade and conflict
   behavior;
+- explicit retained observations, which preserve an immutable original native
+  observation after its exact binding is fenced or source epoch retired. They
+  retain the original value, times, evidence, source path and freshness policy
+  only until that policy's original deadline; evaluation exposes them as
+  `retained_observations`, while current facts, lifecycle and routes continue
+  independently. Retained observations are read-only historical state and are
+  never selection or operation authority. Retained identity and canonical order
+  use `(candidate_id, candidate_revision, JCS(key), binding_id,
+  source_epoch_id, driver_generation)`, allowing a stable candidate ID to have
+  current and historical instances. `CurrentAt` is read-only: it returns the
+  unchanged audit snapshot bytes with its explicit-time evaluation view, which
+  omits expired retained entries during a publication gap;
 - pure `EvaluateSnapshot`, which creates a complete, digest-bound time view
   from an explicit context, including conservative restart-time uncertainty and
   transitive derivation aging; and
