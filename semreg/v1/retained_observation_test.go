@@ -127,6 +127,65 @@ func TestRetainedObservationFenceThenRetirementPreservesRemoval(t *testing.T) {
 	}
 }
 
+func TestRetainedObservationMultipleFencesThenRetirement(t *testing.T) {
+	const asset = AssetID("asset:sequential-many")
+	const source = SourceID("source:meter")
+	const epoch = SourceEpochID("epoch:meter:1")
+	k := newTestPublicationKernel(t, asset)
+	initial := completePublicationBatch(asset, source, epoch, "binding:meter:2", "2", "1", "0")
+	initial.FactUpserts[0].CandidateID = "candidate:meter:voltage"
+	sealPublicationBatch(t, &initial)
+	if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+		t.Fatal(err)
+	}
+
+	steps := []struct {
+		generation Uint64
+		prior      Uint64
+		binding    NativeBindingID
+		revision   Uint64
+		expected   Uint64
+		evidence   Uint64
+	}{
+		{"4", "2", "binding:meter:4", "2", "1", "7"},
+		{"6", "4", "binding:meter:6", "3", "2", "8"},
+		{"8", "6", "binding:meter:8", "4", "3", "9"},
+	}
+	for _, step := range steps {
+		batch := publicationBatch(asset, source, epoch, step.generation, "1", step.expected)
+		batch.BindingUpserts = []NativeBinding{publicationBinding(asset, source, epoch, step.binding, step.generation)}
+		batch.GenerationFences = []GenerationFence{publicationFence(source, epoch, step.prior, publicEvidence(string(step.evidence)))}
+		if step.generation != "8" {
+			candidate := publicationCandidate("candidate:meter:voltage", "fact.power", true, source, epoch, step.binding, step.generation)
+			candidate.Revision = step.revision
+			batch.FactUpserts = []FactCandidate{candidate}
+		}
+		sealPublicationBatch(t, &batch)
+		if _, _, err := k.Apply(batch, publicationMonotonic); err != nil {
+			t.Fatalf("generation %s: %v", step.generation, err)
+		}
+	}
+
+	retire := publicationBatch(asset, source, "epoch:meter:2", "1", "1", "4")
+	retire.SourceUpserts = []SourceDescriptor{publicationSource(source, "epoch:meter:2")}
+	retire.SourceRetirements = []SourceEpochID{epoch}
+	retire.BindingUpserts = []NativeBinding{publicationBinding(asset, source, "epoch:meter:2", "binding:meter:new", "1")}
+	retire.FactUpserts = []FactCandidate{publicationCandidate("candidate:meter:current", "fact.voltage", true, source, "epoch:meter:2", "binding:meter:new", "1")}
+	sealPublicationBatch(t, &retire)
+	snapshot, _, err := k.Apply(retire, publicationMonotonic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Retained) != 3 || !hasCandidate(snapshot, "candidate:meter:current") || sourceByEpoch(t, snapshot, epoch).State != SourceRetired || retainedObservationOrderError(snapshot.Retained) != nil {
+		t.Fatalf("multiple fence retirement: %+v", snapshot)
+	}
+	for _, record := range snapshot.Retained {
+		if record.Removal != RetainedRemovalGenerationFence || record.Candidate.BindingID == nil || bindingByID(t, snapshot, *record.Candidate.BindingID).State != BindingRetired {
+			t.Fatalf("retained transition changed: %+v", record)
+		}
+	}
+}
+
 func TestRetainedObservationStableCandidateIDHistoryAndOrdering(t *testing.T) {
 	kernel := newTestPublicationKernel(t, "asset:retained-history")
 	initial := completePublicationBatch("asset:retained-history", "source:retained-history", "epoch:retained-history", "binding:one", "1", "1", "0")
@@ -203,4 +262,98 @@ func TestRetainedObservationExplicitWithdrawalRemovesHistoricalRecords(t *testin
 	if err != nil || len(result.Retained) != 0 || len(result.Facts) != 0 || !reflect.DeepEqual(result.Sources, retained.Sources) || !reflect.DeepEqual(result.Bindings, retained.Bindings) {
 		t.Fatalf("retained explicit withdrawal changed unrelated state: result=%+v err=%v", result, err)
 	}
+}
+
+func TestRetainedObservationRetirementReplay(t *testing.T) {
+	k := newTestPublicationKernel(t, "asset:sequential-replay")
+	initial := completePublicationBatch("asset:sequential-replay", "source:meter", "epoch:meter:1", "binding:meter:1", "1", "1", "0")
+	sealPublicationBatch(t, &initial)
+	if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+		t.Fatal(err)
+	}
+	fence := publicationBatch("asset:sequential-replay", "source:meter", "epoch:meter:1", "2", "1", "1")
+	fence.GenerationFences = []GenerationFence{publicationFence("source:meter", "epoch:meter:1", "1", publicEvidence("9"))}
+	sealPublicationBatch(t, &fence)
+	if _, _, err := k.Apply(fence, publicationMonotonic); err != nil {
+		t.Fatal(err)
+	}
+	retire := publicationBatch("asset:sequential-replay", "source:meter", "epoch:meter:2", "1", "1", "2")
+	retire.SourceUpserts = []SourceDescriptor{publicationSource("source:meter", "epoch:meter:2")}
+	retire.SourceRetirements = []SourceEpochID{"epoch:meter:1"}
+	sealPublicationBatch(t, &retire)
+	before, beforeRaw, err := k.Apply(retire, publicationMonotonic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, replayedRaw, err := k.Apply(retire, publicationMonotonic)
+	if err != nil || !reflect.DeepEqual(replayed, before) || !bytes.Equal(replayedRaw, beforeRaw) {
+		t.Fatalf("retirement replay changed retained state: %v", err)
+	}
+}
+
+func TestRetainedObservationRetirementRejectsForeignAxes(t *testing.T) {
+	t.Run("foreign-source", func(t *testing.T) {
+		k := newTestPublicationKernel(t, "asset:foreign-source")
+		initial := completePublicationBatch("asset:foreign-source", "source:meter", "epoch:meter:1", "binding:meter", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		other := publicationBatch("asset:foreign-source", "source:other", "epoch:other:1", "1", "1", "1")
+		other.SourceUpserts = []SourceDescriptor{publicationSource("source:other", "epoch:other:1")}
+		sealPublicationBatch(t, &other)
+		if _, _, err := k.Apply(other, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		bad := publicationBatch("asset:foreign-source", "source:meter", "epoch:meter:1", "1", "2", "2")
+		bad.SourceRetirements = []SourceEpochID{"epoch:other:1"}
+		sealPublicationBatch(t, &bad)
+		assertRejectedUnchanged(t, k, bad, StaleSourceEpoch)
+	})
+
+	t.Run("foreign-epoch", func(t *testing.T) {
+		k := newTestPublicationKernel(t, "asset:foreign-epoch")
+		initial := completePublicationBatch("asset:foreign-epoch", "source:meter", "epoch:meter:1", "binding:meter", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		bad := publicationBatch("asset:foreign-epoch", "source:meter", "epoch:meter:1", "1", "2", "1")
+		bad.SourceRetirements = []SourceEpochID{"epoch:meter:other"}
+		sealPublicationBatch(t, &bad)
+		assertRejectedUnchanged(t, k, bad, StaleSourceEpoch)
+	})
+
+	t.Run("foreign-generation", func(t *testing.T) {
+		k := newTestPublicationKernel(t, "asset:foreign-generation")
+		initial := completePublicationBatch("asset:foreign-generation", "source:meter", "epoch:meter:1", "binding:meter", "7", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		bad := publicationBatch("asset:foreign-generation", "source:meter", "epoch:meter:1", "6", "1", "1")
+		bad.SourceRetirements = []SourceEpochID{"epoch:meter:1"}
+		sealPublicationBatch(t, &bad)
+		assertRejectedUnchanged(t, k, bad, StaleDriverGeneration)
+	})
+
+	t.Run("already-retired", func(t *testing.T) {
+		k := newTestPublicationKernel(t, "asset:already-retired")
+		initial := completePublicationBatch("asset:already-retired", "source:meter", "epoch:meter:1", "binding:meter", "1", "1", "0")
+		sealPublicationBatch(t, &initial)
+		if _, _, err := k.Apply(initial, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		retire := publicationBatch("asset:already-retired", "source:meter", "epoch:meter:2", "1", "1", "1")
+		retire.SourceUpserts = []SourceDescriptor{publicationSource("source:meter", "epoch:meter:2")}
+		retire.SourceRetirements = []SourceEpochID{"epoch:meter:1"}
+		sealPublicationBatch(t, &retire)
+		if _, _, err := k.Apply(retire, publicationMonotonic); err != nil {
+			t.Fatal(err)
+		}
+		bad := publicationBatch("asset:already-retired", "source:meter", "epoch:meter:2", "1", "2", "2")
+		bad.SourceRetirements = []SourceEpochID{"epoch:meter:1"}
+		sealPublicationBatch(t, &bad)
+		assertRejectedUnchanged(t, k, bad, StaleSourceEpoch)
+	})
 }

@@ -133,6 +133,17 @@ gateway/consumer integration, persistence, INT-06 lifecycle ownership, full
 INT-05, software 0.7, security review, hardware readiness, and physical
 validation remain separate work.
 
+[`v1/retained-observation-acceptance.json`](v1/retained-observation-acceptance.json)
+is a byte-for-byte copy of `api/v1/retained-observation-acceptance.json` from
+the accepted sequential-lifecycle correction at
+`Project-Helianthus/helianthus-docs-semantic@b5cb2a8df6c0c94268f35476d62e36643767a8c3`
+(public main `ed33276cddb2dd86757efcf335c95936bdf4efe2`). Its SHA-256 is
+`f98d57912a3a2f08291a80e6a65d8ecdd66a1037b7a580d3ec43b3ef1172ef73`.
+The runtime tests account for all 19 scenarios, including sequential
+fence-to-retirement, replay, and rejection without state advance. This fixture
+does not grant lifecycle, routing, operation, persistence, or native-I/O
+authority.
+
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must
 identify each donor contract and immutable source revision, preserve native

@@ -142,6 +142,14 @@ func TestPublicationSemanticStagingMatrix(t *testing.T) {
 				if reference != "none" {
 					want = DanglingReference
 				}
+				if reference == "retirement" {
+					want = map[string]ErrorID{
+						"none":    StaleSourceEpoch,
+						"source":  StaleSourceEpoch,
+						"binding": StaleSourceEpoch,
+						"cycle":   DerivationCycle,
+					}[fault]
+				}
 				// Seal intentional semantic failures without repairing their fields.
 				var err error
 				n.BatchDigest, err = n.computedDigestUnchecked()
