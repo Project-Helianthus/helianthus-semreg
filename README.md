@@ -73,6 +73,10 @@ mapping qualification, live-I/O, or hardware claim.
 
 The `semreg/v1` package implements the typed BASE foundation against the accepted
 [`helianthus-docs-semantic` contract at da5ab44](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/da5ab4415d3bec73f9572aec1c495a6cdcbcba47/api/v1).
+Retained observations use the accepted docs-semantic #22 / PR #23 contract:
+reviewed `b9a9e9c33b3f55dc18561da82e4de59eb5f290ee`, public main
+`c626e2a4a4364f5b94c4562dde9f7d01b88a5976`, tree
+`05424386e78e99324dc95bc82750b5f3920a9be6`.
 It provides:
 
 - protocol-neutral identities, exact values, evidence, lineage, time, quality,

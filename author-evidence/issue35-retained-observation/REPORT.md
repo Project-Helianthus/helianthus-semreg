@@ -56,7 +56,9 @@ route/authority fallback.
 ## Residual risk
 
 Expiry is evaluated against caller-supplied time through `CurrentAt` and during
-publication. The separately owned public documentation gate is pending at
-`helianthus-docs-semantic#22`; this PR must not merge until that contract is
-reviewed. No persistence, gateway projection, native lifecycle lock, or
+publication. The public documentation gate is accepted and merged as
+`helianthus-docs-semantic#22` / PR #23: reviewed
+`b9a9e9c33b3f55dc18561da82e4de59eb5f290ee`, public main
+`c626e2a4a4364f5b94c4562dde9f7d01b88a5976`, tree
+`05424386e78e99324dc95bc82750b5f3920a9be6`. No persistence, gateway projection, native lifecycle lock, or
 live-device behavior is introduced or claimed.
