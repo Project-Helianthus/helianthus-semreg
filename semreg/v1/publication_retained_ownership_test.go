@@ -165,6 +165,9 @@ func TestPublicationRetainedSourceOwnershipUnknownReferenceControls(t *testing.T
 		for _, malformedTime := range []bool{false, true} {
 			name := tc.name + "/reference-only"
 			want := DanglingReference
+			if tc.name == "source-retirement" {
+				want = StaleSourceEpoch
+			}
 			if malformedTime {
 				name, want = tc.name+"/malformed-time", InvalidTime
 			}

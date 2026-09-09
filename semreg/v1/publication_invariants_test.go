@@ -513,7 +513,7 @@ func TestPublicationErrorTransitionMatrix(t *testing.T) {
 		"unknown-capability-withdrawal": {DanglingReference, func(n *PublicationBatch, b PublicationBatch) {
 			n.CapabilityWithdrawals = []CapabilityInstanceID{"capability:missing"}
 		}},
-		"unknown-retirement": {DanglingReference, func(n *PublicationBatch, b PublicationBatch) { n.SourceRetirements = []SourceEpochID{"epoch:missing"} }},
+		"unknown-retirement": {StaleSourceEpoch, func(n *PublicationBatch, b PublicationBatch) { n.SourceRetirements = []SourceEpochID{"epoch:missing"} }},
 		"unknown-link-binding": {DanglingReference, func(n *PublicationBatch, b PublicationBatch) {
 			n.IdentityLinkUpserts = []IdentityLink{publicationLink(b.AssetID, "binding:missing")}
 		}},

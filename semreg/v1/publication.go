@@ -713,7 +713,10 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch, 
 		retirements[epoch] = struct{}{}
 		source, ok := sources[sourceKey{batch.SourceID, epoch}]
 		if !ok {
-			check(errID(DanglingReference, "source retirement"))
+			// Retirement is a lifecycle assertion about the header source. An
+			// epoch owned by another source, or absent from that source, is stale
+			// lifecycle input rather than an unresolved graph reference.
+			check(errID(StaleSourceEpoch, "source retirement"))
 			continue
 		}
 		if source.State != SourceCurrent {
@@ -1862,11 +1865,17 @@ func (s Snapshot) Validate() error {
 			continue
 		}
 		binding, exists := bindings[*candidate.BindingID]
-		if !exists || binding.State == BindingCurrent || binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration || (record.Removal == RetainedRemovalGenerationFence && binding.State != BindingFenced) || (record.Removal == RetainedRemovalSourceRetirement && binding.State != BindingRetired) {
+		if !exists || binding.State == BindingCurrent || binding.SourceID != *candidate.Origin.SourceID || binding.SourceEpochID != *candidate.SourceEpochID || binding.DriverGeneration != *candidate.DriverGeneration || (record.Removal == RetainedRemovalGenerationFence && binding.State != BindingFenced && binding.State != BindingRetired) || (record.Removal == RetainedRemovalSourceRetirement && binding.State != BindingRetired) {
 			errs = append(errs, errID(DanglingReference, "retained observation binding"))
 		}
 		if record.Removal == RetainedRemovalGenerationFence && !containsFence(s.Fences, binding.SourceID, binding.SourceEpochID, binding.DriverGeneration) {
 			errs = append(errs, errID(DanglingReference, "retained observation fence"))
+		}
+		if record.Removal == RetainedRemovalGenerationFence && binding.State == BindingRetired {
+			source, ok := sources[sourceKey{binding.SourceID, binding.SourceEpochID}]
+			if !ok || source.State != SourceRetired {
+				errs = append(errs, errID(DanglingReference, "retained observation retired source"))
+			}
 		}
 		if record.Removal == RetainedRemovalSourceRetirement {
 			source, ok := sources[sourceKey{binding.SourceID, binding.SourceEpochID}]
