@@ -99,14 +99,18 @@ func evaluatedRetainedObservationOrderError(records []EvaluatedRetainedObservati
 	seen := make(map[Digest]struct{}, len(records))
 	var previous Digest
 	for index, record := range records {
-		if _, exists := seen[record.RetentionID]; exists {
+		identity, err := retainedObservationIdentity(record.Observation.Candidate)
+		if err != nil {
+			return err
+		}
+		if _, exists := seen[Digest(identity)]; exists {
 			return errID(DuplicateKey, "evaluated retained observations")
 		}
-		if index != 0 && strings.Compare(string(previous), string(record.RetentionID)) > 0 {
+		if index != 0 && strings.Compare(string(previous), identity) > 0 {
 			return errID(NoncanonicalOrder, "evaluated retained observations")
 		}
-		seen[record.RetentionID] = struct{}{}
-		previous = record.RetentionID
+		seen[Digest(identity)] = struct{}{}
+		previous = Digest(identity)
 	}
 	return nil
 }
@@ -182,12 +186,12 @@ func EvaluateSnapshot(snapshot Snapshot, context EvaluationContext) (EvaluationV
 	}
 	retained := make([]EvaluatedRetainedObservation, 0, len(snapshot.Retained))
 	for _, record := range snapshot.Retained {
-		freshness, err := evaluateFreshness(record.Observation.Times, record.Observation.FreshnessPolicy, context)
+		freshness, err := evaluateFreshness(record.Candidate.Times, record.Candidate.FreshnessPolicy, context)
 		if err != nil {
 			return EvaluationView{}, err
 		}
 		if freshness != FreshnessExpired {
-			retained = append(retained, EvaluatedRetainedObservation{RetentionID: record.RetentionID, CandidateID: record.Observation.CandidateID, CandidateRevision: record.Observation.Revision, State: record.State, Freshness: freshness, EffectiveAvailability: effectiveAvailability(record.Observation.Quality.Availability, freshness)})
+			retained = append(retained, EvaluatedRetainedObservation{Observation: record, Freshness: freshness})
 		}
 	}
 	view := EvaluationView{Contract: ContractEvaluationV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, Context: context, Facts: facts, Retained: retained}

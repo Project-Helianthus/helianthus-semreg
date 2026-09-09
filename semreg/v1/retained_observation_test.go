@@ -9,7 +9,7 @@ import (
 func retainedResult(t *testing.T, view EvaluationView, id CandidateID) EvaluatedRetainedObservation {
 	t.Helper()
 	for _, record := range view.Retained {
-		if record.CandidateID == id {
+		if record.Observation.Candidate.CandidateID == id {
 			return record
 		}
 	}
@@ -46,7 +46,7 @@ func TestRetainedObservationGenerationFenceLifecycle(t *testing.T) {
 		t.Fatalf("fenced observation was not represented only as retained state: %+v", result)
 	}
 	retained := result.Retained[0]
-	if retained.State != RetainedObservation || !reflect.DeepEqual(retained.Observation, power) || retained.Observation.BindingID == voltage.BindingID {
+	if retained.Contract != ContractRetainedObservationV1 || retained.Removal != RetainedRemovalGenerationFence || !reflect.DeepEqual(retained.Candidate, power) || retained.Candidate.BindingID == voltage.BindingID {
 		t.Fatalf("retained observation changed its original binding/value/times/evidence: %+v", retained)
 	}
 	if !hasCandidate(result, voltage.CandidateID) || result.Revisions.Facts != "2" {
@@ -60,7 +60,7 @@ func TestRetainedObservationGenerationFenceLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := retainedResult(t, view, power.CandidateID); got.State != RetainedObservation || got.Freshness != FreshnessStale {
+	if got := retainedResult(t, view, power.CandidateID); got.Observation.Removal != RetainedRemovalGenerationFence || got.Freshness != FreshnessStale {
 		t.Fatalf("retained evaluation: %+v", got)
 	}
 	if hasCandidate(result, power.CandidateID) {
@@ -101,7 +101,7 @@ func TestRetainedObservationSourceEpochRetirement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Retained) != 1 || result.Retained[0].Observation.SourceEpochID == nil || *result.Retained[0].Observation.SourceEpochID != "epoch:old" || !hasCandidate(result, "candidate:new") {
+	if len(result.Retained) != 1 || result.Retained[0].Candidate.SourceEpochID == nil || *result.Retained[0].Candidate.SourceEpochID != "epoch:old" || result.Retained[0].Removal != RetainedRemovalSourceRetirement || !hasCandidate(result, "candidate:new") {
 		t.Fatalf("epoch retirement did not preserve original retained path and independent current fact: %+v", result)
 	}
 }
@@ -139,15 +139,15 @@ func TestRetainedObservationStableCandidateIDHistoryAndOrdering(t *testing.T) {
 		return result
 	}
 	second := transition("2", "1", "binding:one", "binding:two", "2")
-	if len(second.Retained) != 1 || !hasCandidate(second, "candidate:stable") || second.Retained[0].Observation.BindingID == nil || *second.Retained[0].Observation.BindingID != "binding:one" {
+	if len(second.Retained) != 1 || !hasCandidate(second, "candidate:stable") || second.Retained[0].Candidate.BindingID == nil || *second.Retained[0].Candidate.BindingID != "binding:one" {
 		t.Fatalf("same candidate ID did not retain immutable old observation beside current replacement: %+v", second)
 	}
 	view, err := EvaluateSnapshot(second, EvaluationContext{EvaluatedAt: TimePoint{UnixNanoseconds: "200", ClockID: "clock.utc", UncertaintyNS: "0"}, EvaluateMonotonic: publicationMonotonic})
-	if err != nil || view.Validate() != nil || len(view.Retained) != 1 || view.Retained[0].CandidateID != "candidate:stable" || view.Retained[0].RetentionID != second.Retained[0].RetentionID {
+	if err != nil || view.Validate() != nil || len(view.Retained) != 1 || view.Retained[0].Observation.Candidate.CandidateID != "candidate:stable" || !reflect.DeepEqual(view.Retained[0].Observation, second.Retained[0]) {
 		t.Fatalf("same-ID retained evaluation/digest binding: view=%+v err=%v", view, err)
 	}
 	third := transition("3", "2", "binding:two", "binding:three", "3")
-	if len(third.Retained) != 2 || !hasCandidate(third, "candidate:stable") || third.Retained[0].RetentionID == third.Retained[1].RetentionID {
+	if len(third.Retained) != 2 || !hasCandidate(third, "candidate:stable") || retainedObservationOrderError(third.Retained) != nil {
 		t.Fatalf("repeated stable-ID replacements lost historical observations: %+v", third)
 	}
 	unordered := cloneSnapshot(third)

@@ -751,12 +751,15 @@ func (f EvaluatedFact) Validate() error {
 }
 
 func (f EvaluatedRetainedObservation) Validate() error {
-	return bestError(f.RetentionID.Validate(), EvaluatedFact{CandidateID: f.CandidateID, CandidateRevision: f.CandidateRevision, Freshness: f.Freshness, EffectiveAvailability: f.EffectiveAvailability}.Validate(), retainedObservationStateError(f.State))
+	if f.Freshness != FreshnessFresh && f.Freshness != FreshnessStale && f.Freshness != FreshnessExpired && f.Freshness != FreshnessUnknown {
+		return errID(InvalidEnum, "evaluated retained freshness")
+	}
+	return f.Observation.Validate()
 }
 
-func retainedObservationStateError(state RetainedObservationState) error {
-	if state != RetainedObservation {
-		return errID(InvalidEnum, "retained observation state")
+func retainedRemovalError(removal RetainedRemoval) error {
+	if removal != RetainedRemovalGenerationFence && removal != RetainedRemovalSourceRetirement {
+		return errID(InvalidEnum, "retained removal")
 	}
 	return nil
 }
@@ -916,12 +919,12 @@ func (c FactCandidate) Validate() error {
 }
 
 func (r RetainedObservationRecord) Validate() error {
-	expected, digestErr := DigestRecord(r.Observation)
-	var identityErr error
-	if digestErr == nil && r.RetentionID != expected {
-		identityErr = errID(DigestMismatch, "retained observation identity")
-	}
-	return bestError(r.RetentionID.Validate(), retainedObservationStateError(r.State), r.Observation.Validate(), digestErr, identityErr)
+	return bestError(func() error {
+		if r.Contract != ContractRetainedObservationV1 {
+			return errID(InvalidContract, "retained observation")
+		}
+		return nil
+	}(), retainedRemovalError(r.Removal), r.Candidate.Validate())
 }
 
 func (c FactCandidate) presentMemberErrors() []error {

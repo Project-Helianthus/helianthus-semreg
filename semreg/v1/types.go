@@ -6,8 +6,9 @@ const ContractKernelV1 ContractVersion = "helianthus.semantic.kernel/v1"
 // ContractEvaluationV1 and ContractSelectionV1 identify the two immutable
 // time/presentation records. They are deliberately separate from Snapshot.
 const (
-	ContractEvaluationV1 ContractVersion = "helianthus.semantic.evaluation/v1"
-	ContractSelectionV1  ContractVersion = "helianthus.semantic.selection/v1"
+	ContractEvaluationV1          ContractVersion = "helianthus.semantic.evaluation/v1"
+	ContractSelectionV1           ContractVersion = "helianthus.semantic.selection/v1"
+	ContractRetainedObservationV1 ContractVersion = "helianthus.semantic.retained-observation/v1"
 )
 
 type ContractVersion string
@@ -337,14 +338,17 @@ type FactEnvelope struct {
 // after its source path has been fenced or retired. It is historical/read-only
 // state: it never re-enters Facts, is not a replacement binding, and cannot
 // satisfy operation authority.
-type RetainedObservationState string
+type RetainedRemoval string
 
-const RetainedObservation RetainedObservationState = "retained"
+const (
+	RetainedRemovalGenerationFence  RetainedRemoval = "generation_fence"
+	RetainedRemovalSourceRetirement RetainedRemoval = "source_retirement"
+)
 
 type RetainedObservationRecord struct {
-	RetentionID Digest                   `json:"retention_id"`
-	State       RetainedObservationState `json:"state"`
-	Observation FactCandidate            `json:"observation"`
+	Contract  ContractVersion `json:"contract"`
+	Candidate FactCandidate   `json:"candidate"`
+	Removal   RetainedRemoval `json:"removal"`
 }
 
 type PackRef struct {
@@ -499,12 +503,8 @@ type EvaluatedFact struct {
 // current Fact evaluation collection so presentation selection and operations
 // cannot mistake it for current authority.
 type EvaluatedRetainedObservation struct {
-	RetentionID           Digest                   `json:"retention_id"`
-	CandidateID           CandidateID              `json:"candidate_id"`
-	CandidateRevision     Uint64                   `json:"candidate_revision"`
-	State                 RetainedObservationState `json:"state"`
-	Freshness             Freshness                `json:"freshness"`
-	EffectiveAvailability Availability             `json:"effective_availability"`
+	Observation RetainedObservationRecord `json:"observation"`
+	Freshness   Freshness                 `json:"freshness"`
 }
 
 // EvaluationView is a complete, snapshot-bound, time-only result. Its digest

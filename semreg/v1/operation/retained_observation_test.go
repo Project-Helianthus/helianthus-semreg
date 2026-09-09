@@ -51,7 +51,7 @@ func TestAdmissionRejectsRetainedObservationAsCurrentPrecondition(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snapshot.Retained) != 1 || snapshot.Retained[0].Observation.CandidateID != "candidate:interlock" {
+	if len(snapshot.Retained) != 1 || snapshot.Retained[0].Candidate.CandidateID != "candidate:interlock" {
 		t.Fatalf("missing retained precondition witness: %+v", snapshot.Retained)
 	}
 	fixture.snapshot = snapshot
