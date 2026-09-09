@@ -92,7 +92,12 @@ It provides:
   only until that policy's original deadline; evaluation exposes them as
   `retained_observations`, while current facts, lifecycle and routes continue
   independently. Retained observations are read-only historical state and are
-  never selection or operation authority;
+  never selection or operation authority. Each retained record has a
+  digest-bound `retention_id`, so multiple historical observations may share a
+  stable candidate ID with each other and with a current replacement.
+  `CurrentAt` applies deadline expiry using caller-supplied time and reseals a
+  new snapshot revision; it is the public read path for consumers that need
+  retention expiry during a publication gap;
 - pure `EvaluateSnapshot`, which creates a complete, digest-bound time view
   from an explicit context, including conservative restart-time uncertainty and
   transitive derivation aging; and

@@ -39,9 +39,7 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	for _, fact := range v.Facts {
 		errs = append(errs, fact.Validate())
 	}
-	retainedDup, retainedOrdered := duplicateAndOrder(v.Retained, func(a, b EvaluatedRetainedObservation) int {
-		return strings.Compare(string(a.CandidateID), string(b.CandidateID))
-	})
+	retainedErr := evaluatedRetainedObservationOrderError(v.Retained)
 	for _, record := range v.Retained {
 		errs = append(errs, record.Validate())
 	}
@@ -51,12 +49,7 @@ func (v EvaluationView) validateStructure(requireDigest bool) error {
 	if !ordered {
 		errs = append(errs, errID(NoncanonicalOrder, "evaluated candidates"))
 	}
-	if retainedDup {
-		errs = append(errs, errID(DuplicateKey, "evaluated retained observation"))
-	}
-	if !retainedOrdered {
-		errs = append(errs, errID(NoncanonicalOrder, "evaluated retained observations"))
-	}
+	errs = append(errs, retainedErr)
 	structure := bestError(errs...)
 	if !requireDigest {
 		return structure
@@ -100,6 +93,22 @@ func (v EvaluationView) computedDigestUnchecked() (Digest, error) {
 	}
 	sum := sha256.Sum256(out.Bytes())
 	return Digest("sha256:" + hex.EncodeToString(sum[:])), nil
+}
+
+func evaluatedRetainedObservationOrderError(records []EvaluatedRetainedObservation) error {
+	seen := make(map[Digest]struct{}, len(records))
+	var previous Digest
+	for index, record := range records {
+		if _, exists := seen[record.RetentionID]; exists {
+			return errID(DuplicateKey, "evaluated retained observations")
+		}
+		if index != 0 && strings.Compare(string(previous), string(record.RetentionID)) > 0 {
+			return errID(NoncanonicalOrder, "evaluated retained observations")
+		}
+		seen[record.RetentionID] = struct{}{}
+		previous = record.RetentionID
+	}
+	return nil
 }
 
 // EvaluateSnapshot computes a complete immutable time view. It only reads its
@@ -178,7 +187,7 @@ func EvaluateSnapshot(snapshot Snapshot, context EvaluationContext) (EvaluationV
 			return EvaluationView{}, err
 		}
 		if freshness != FreshnessExpired {
-			retained = append(retained, EvaluatedRetainedObservation{CandidateID: record.Observation.CandidateID, CandidateRevision: record.Observation.Revision, State: record.State, Freshness: freshness, EffectiveAvailability: effectiveAvailability(record.Observation.Quality.Availability, freshness)})
+			retained = append(retained, EvaluatedRetainedObservation{RetentionID: record.RetentionID, CandidateID: record.Observation.CandidateID, CandidateRevision: record.Observation.Revision, State: record.State, Freshness: freshness, EffectiveAvailability: effectiveAvailability(record.Observation.Quality.Availability, freshness)})
 		}
 	}
 	view := EvaluationView{Contract: ContractEvaluationV1, SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, Context: context, Facts: facts, Retained: retained}

@@ -342,6 +342,7 @@ type RetainedObservationState string
 const RetainedObservation RetainedObservationState = "retained"
 
 type RetainedObservationRecord struct {
+	RetentionID Digest                   `json:"retention_id"`
 	State       RetainedObservationState `json:"state"`
 	Observation FactCandidate            `json:"observation"`
 }
@@ -498,6 +499,7 @@ type EvaluatedFact struct {
 // current Fact evaluation collection so presentation selection and operations
 // cannot mistake it for current authority.
 type EvaluatedRetainedObservation struct {
+	RetentionID           Digest                   `json:"retention_id"`
 	CandidateID           CandidateID              `json:"candidate_id"`
 	CandidateRevision     Uint64                   `json:"candidate_revision"`
 	State                 RetainedObservationState `json:"state"`

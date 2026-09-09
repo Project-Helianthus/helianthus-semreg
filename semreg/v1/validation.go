@@ -751,7 +751,7 @@ func (f EvaluatedFact) Validate() error {
 }
 
 func (f EvaluatedRetainedObservation) Validate() error {
-	return bestError(EvaluatedFact{CandidateID: f.CandidateID, CandidateRevision: f.CandidateRevision, Freshness: f.Freshness, EffectiveAvailability: f.EffectiveAvailability}.Validate(), retainedObservationStateError(f.State))
+	return bestError(f.RetentionID.Validate(), EvaluatedFact{CandidateID: f.CandidateID, CandidateRevision: f.CandidateRevision, Freshness: f.Freshness, EffectiveAvailability: f.EffectiveAvailability}.Validate(), retainedObservationStateError(f.State))
 }
 
 func retainedObservationStateError(state RetainedObservationState) error {
@@ -916,7 +916,12 @@ func (c FactCandidate) Validate() error {
 }
 
 func (r RetainedObservationRecord) Validate() error {
-	return bestError(retainedObservationStateError(r.State), r.Observation.Validate())
+	expected, digestErr := DigestRecord(r.Observation)
+	var identityErr error
+	if digestErr == nil && r.RetentionID != expected {
+		identityErr = errID(DigestMismatch, "retained observation identity")
+	}
+	return bestError(r.RetentionID.Validate(), retainedObservationStateError(r.State), r.Observation.Validate(), digestErr, identityErr)
 }
 
 func (c FactCandidate) presentMemberErrors() []error {
