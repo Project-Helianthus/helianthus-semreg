@@ -19,6 +19,18 @@ cross-pack relations before copying all source collections. Query results cannot
 mutate the registry. Storage exports only `storage.state.soc` with `unit.percent`;
 the two stale aliases are rejected.
 
+Independent review of the first PR head found that the constructor could still
+accept caller-invented same-pack units and dimensions because `DefinitionIndex`
+does not contain those relationships. The correction adds
+`PackMetadataProvider`: each of the five validator values now derives a fresh
+authoritative metadata snapshot from the same private tables used for validation.
+`NewPackMetadataRegistry` canonically copies the supplied record and compares it
+to that provider snapshot before registration. This binds every unit collection,
+field canonical unit (including nil for a non-quantity), field dimension, and
+service fact-key dimension to its owning validator. It retains the public source
+input, complete typed reference keys, deep-copy boundary, and reordered-input
+canonicalization without a central copy of the tables.
+
 The required public contract is docs-semantic PR #30, merged as
 `2b3ca7835d2cef623ed6710e1c27a1ea73715aa2`; its reviewed worktree was
 `d34b433e6d5af02062443765b763bac294b67c39` and the accepted independent report
@@ -29,6 +41,9 @@ Validation:
 
 - Focused normal and hostile metadata suite, including every field/service/
   capability combination and each operation tuple position: PASS.
+- P2 hostile cases for an appended forged unit, forged matching field/service
+  dimension, a unit assigned to a symbolic field, provider/input table drift,
+  and fresh provider snapshot isolation: PASS.
 - Focused race suite: `env GOWORK=off go test -race -count=1 ./semreg/v1 -run
   'TestPackMetadata'`: PASS.
 - `env GOWORK=off go vet ./...`, `env GOWORK=off go build ./...`, and `git diff

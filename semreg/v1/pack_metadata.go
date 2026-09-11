@@ -2,6 +2,7 @@ package semreg
 
 import (
 	"bytes"
+	"reflect"
 	"sort"
 )
 
@@ -52,6 +53,13 @@ type PackMetadataSource struct {
 	Metadata  PackMetadata
 }
 
+// PackMetadataProvider is implemented by a pack validator that can derive a
+// fresh metadata snapshot from its own private validator tables.
+type PackMetadataProvider interface {
+	PackValidator
+	Metadata() PackMetadata
+}
+
 // PackMetadataRegistry is the immutable query index for accepted pack metadata.
 type PackMetadataRegistry struct {
 	packs       []PackRef
@@ -88,7 +96,18 @@ func NewPackMetadataRegistry(sources ...PackMetadataSource) (*PackMetadataRegist
 		if source.Validator == nil {
 			return nil, errID(DefinitionOwnerConflict, "nil pack metadata validator")
 		}
-		metadata := clonePackMetadata(source.Metadata)
+		provider, ok := source.Validator.(PackMetadataProvider)
+		if !ok {
+			return nil, errID(DefinitionOwnerMissing, "pack metadata provider")
+		}
+		metadata := canonicalPackMetadata(source.Metadata)
+		if err := validatePackMetadataReferences(metadata); err != nil {
+			return nil, err
+		}
+		expected := canonicalPackMetadata(provider.Metadata())
+		if err := validatePackMetadataReferences(expected); err != nil || expected.Pack != provider.Pack() {
+			return nil, errID(DefinitionOwnerConflict, "validator metadata")
+		}
 		index := cloneIndex(source.Validator.Definitions())
 		if err := bestError(metadata.Pack.Validate(), index.Validate()); err != nil {
 			return nil, err
@@ -99,6 +118,9 @@ func NewPackMetadataRegistry(sources ...PackMetadataSource) (*PackMetadataRegist
 		if _, exists := seenPacks[metadata.Pack]; exists {
 			return nil, errID(DefinitionOwnerConflict, "duplicate metadata pack")
 		}
+		if !reflect.DeepEqual(metadata, expected) {
+			return nil, errID(DefinitionOwnerConflict, "metadata differs from validator tables")
+		}
 		if err := r.registerPack(metadata, index); err != nil {
 			return nil, err
 		}
@@ -107,6 +129,45 @@ func NewPackMetadataRegistry(sources ...PackMetadataSource) (*PackMetadataRegist
 	}
 	sort.Slice(r.packs, func(i, j int) bool { return comparePackMetadataRef(r.packs[i], r.packs[j]) < 0 })
 	return r, nil
+}
+
+func validatePackMetadataReferences(metadata PackMetadata) error {
+	if err := metadata.Pack.Validate(); err != nil {
+		return err
+	}
+	for _, unit := range metadata.Units {
+		if err := metadataRefOwns(metadata.Pack, unit); err != nil {
+			return err
+		}
+	}
+	for _, field := range metadata.Fields {
+		if err := bestError(metadataRefOwns(metadata.Pack, field.Ref), metadataRefOwns(metadata.Pack, field.Dimension)); err != nil {
+			return err
+		}
+		if field.CanonicalUnit != nil {
+			if err := metadataRefOwns(metadata.Pack, *field.CanonicalUnit); err != nil {
+				return err
+			}
+		}
+	}
+	for _, service := range metadata.Services {
+		if err := bestError(metadataRefOwns(metadata.Pack, service.Ref), metadataRefOwns(metadata.Pack, service.FactKeyDimension)); err != nil {
+			return err
+		}
+	}
+	for _, capability := range metadata.Capabilities {
+		if err := bestError(metadataRefOwns(metadata.Pack, capability.Ref), metadataRefOwns(metadata.Pack, capability.Service)); err != nil {
+			return err
+		}
+	}
+	for _, operation := range metadata.Operations {
+		for _, ref := range []DefinitionRef{operation.Ref, operation.Capability, operation.Service, operation.Argument, operation.Effect} {
+			if err := metadataRefOwns(metadata.Pack, ref); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r *PackMetadataRegistry) registerPack(metadata PackMetadata, index DefinitionIndex) error {
@@ -359,6 +420,22 @@ func clonePackMetadata(in PackMetadata) PackMetadata {
 	return out
 }
 
+func canonicalPackMetadata(in PackMetadata) PackMetadata {
+	out := clonePackMetadata(in)
+	sort.Slice(out.Units, func(i, j int) bool { return comparePackMetadataDefinition(out.Units[i], out.Units[j]) < 0 })
+	sort.Slice(out.Fields, func(i, j int) bool { return comparePackMetadataDefinition(out.Fields[i].Ref, out.Fields[j].Ref) < 0 })
+	sort.Slice(out.Services, func(i, j int) bool {
+		return comparePackMetadataDefinition(out.Services[i].Ref, out.Services[j].Ref) < 0
+	})
+	sort.Slice(out.Capabilities, func(i, j int) bool {
+		return comparePackMetadataDefinition(out.Capabilities[i].Ref, out.Capabilities[j].Ref) < 0
+	})
+	sort.Slice(out.Operations, func(i, j int) bool {
+		return comparePackMetadataDefinition(out.Operations[i].Ref, out.Operations[j].Ref) < 0
+	})
+	return out
+}
+
 func cloneFieldMetadata(in FieldMetadata) FieldMetadata {
 	out := in
 	if in.CanonicalUnit != nil {
@@ -369,6 +446,16 @@ func cloneFieldMetadata(in FieldMetadata) FieldMetadata {
 }
 
 func comparePackMetadataRef(a, b PackRef) int {
+	if c := bytes.Compare([]byte(a.ID), []byte(b.ID)); c != 0 {
+		return c
+	}
+	return bytes.Compare([]byte(a.Version), []byte(b.Version))
+}
+
+func comparePackMetadataDefinition(a, b DefinitionRef) int {
+	if c := comparePackMetadataRef(a.Pack, b.Pack); c != 0 {
+		return c
+	}
 	if c := bytes.Compare([]byte(a.ID), []byte(b.ID)); c != 0 {
 		return c
 	}

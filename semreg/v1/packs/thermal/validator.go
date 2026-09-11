@@ -16,9 +16,11 @@ func NewPackValidator() semreg.PackValidator { return New() }
 type validator struct{}
 
 var _ operation.OperationPackValidator = validator{}
+var _ semreg.PackMetadataProvider = validator{}
 
 func (validator) Pack() semreg.PackRef                { return pack }
 func (validator) Definitions() semreg.DefinitionIndex { return index() }
+func (validator) Metadata() semreg.PackMetadata       { return Metadata() }
 
 func (validator) ValidateFact(key semreg.FactKey, value *semreg.Value) error {
 	if err := key.Validate(); err != nil {

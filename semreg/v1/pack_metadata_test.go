@@ -24,6 +24,13 @@ func builtinSources() []semreg.PackMetadataSource {
 	}
 }
 
+type driftingMetadataProvider struct {
+	semreg.PackValidator
+	metadata semreg.PackMetadata
+}
+
+func (p driftingMetadataProvider) Metadata() semreg.PackMetadata { return p.metadata }
+
 func TestPackMetadataBuiltinQueries(t *testing.T) {
 	registry, err := packs.NewMetadataRegistry()
 	if err != nil {
@@ -176,6 +183,24 @@ func TestPackMetadataConstructorRejectsHostileRelations(t *testing.T) {
 			u.ID = "unit.unknown"
 			s[0].Metadata.Fields[1].CanonicalUnit = &u
 		}},
+		{"forged-unit-added-to-list", func(s []semreg.PackMetadataSource) {
+			forged := semreg.DefinitionRef{Pack: s[0].Metadata.Pack, ID: "unit.unaccepted", Version: s[0].Metadata.Pack.Version}
+			s[0].Metadata.Units = append(s[0].Metadata.Units, forged)
+			s[0].Metadata.Fields[1].CanonicalUnit = &forged
+		}},
+		{"forged-matching-dimension", func(s []semreg.PackMetadataSource) {
+			forged := semreg.DefinitionRef{Pack: s[0].Metadata.Pack, ID: "thermal.dimension.unaccepted", Version: s[0].Metadata.Pack.Version}
+			s[0].Metadata.Fields[0].Dimension = forged
+			for i := range s[0].Metadata.Services {
+				if s[0].Metadata.Services[i].Ref.ID == "thermal.service.system" {
+					s[0].Metadata.Services[i].FactKeyDimension = forged
+				}
+			}
+		}},
+		{"unit-on-non-quantity-field", func(s []semreg.PackMetadataSource) {
+			unit := s[0].Metadata.Units[0]
+			s[0].Metadata.Fields[0].CanonicalUnit = &unit
+		}},
 		{"missing-service", func(s []semreg.PackMetadataSource) {
 			s[0].Metadata.Capabilities[0].Service = s[0].Metadata.Services[0].Ref
 			s[0].Metadata.Services = s[0].Metadata.Services[1:]
@@ -193,6 +218,18 @@ func TestPackMetadataConstructorRejectsHostileRelations(t *testing.T) {
 		})
 	}
 
+	t.Run("authoritative-provider-drift", func(t *testing.T) {
+		sources := builtinSources()
+		drifted := thermal.Metadata()
+		forged := semreg.DefinitionRef{Pack: drifted.Pack, ID: "unit.drifted", Version: drifted.Pack.Version}
+		drifted.Units = append(drifted.Units, forged)
+		drifted.Fields[1].CanonicalUnit = &forged
+		sources[0].Validator = driftingMetadataProvider{PackValidator: thermal.New(), metadata: drifted}
+		if _, err := semreg.NewPackMetadataRegistry(sources...); semreg.ErrorIdentifier(err) != semreg.DefinitionOwnerConflict {
+			t.Fatalf("provider drift error = %v, want definition ownership conflict", err)
+		}
+	})
+
 	first, err := semreg.NewPackMetadataRegistry(builtinSources()...)
 	if err != nil {
 		t.Fatal(err)
@@ -207,6 +244,19 @@ func TestPackMetadataConstructorRejectsHostileRelations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(first.Packs(), second.Packs()) {
 		t.Fatal("equivalent reordered inputs changed canonical enumeration")
+	}
+}
+
+func TestPackMetadataProviderReturnsFreshAuthoritativeSnapshot(t *testing.T) {
+	provider, ok := thermal.New().(semreg.PackMetadataProvider)
+	if !ok {
+		t.Fatal("thermal validator does not expose metadata provider")
+	}
+	first := provider.Metadata()
+	*first.Fields[1].CanonicalUnit = semreg.DefinitionRef{}
+	second := provider.Metadata()
+	if second.Fields[1].CanonicalUnit == nil || second.Fields[1].CanonicalUnit.ID != "unit.percent" {
+		t.Fatalf("provider snapshot mutation leaked: %+v", second.Fields[1])
 	}
 }
 
