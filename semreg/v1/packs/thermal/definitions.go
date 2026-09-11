@@ -1,7 +1,11 @@
 // Package thermal implements the accepted thermal/HVAC capability pack.
 package thermal
 
-import semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+import (
+	"sort"
+
+	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+)
 
 const (
 	packID      semreg.DefinitionID    = "helianthus.pack.thermal"
@@ -95,4 +99,42 @@ func index() semreg.DefinitionIndex {
 		result.Operations = append(result.Operations, definition(id))
 	}
 	return result
+}
+
+// Metadata returns a fresh description derived from the validator's private
+// field, service, capability, and operation tables.
+func Metadata() semreg.PackMetadata {
+	metadata := semreg.PackMetadata{Pack: pack}
+	units := map[semreg.DefinitionID]struct{}{}
+	for _, spec := range fields {
+		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension)}
+		if spec.unit != "" {
+			unit := definition(spec.unit)
+			field.CanonicalUnit, units[spec.unit] = &unit, struct{}{}
+		}
+		metadata.Fields = append(metadata.Fields, field)
+	}
+	for id, dimension := range services {
+		metadata.Services = append(metadata.Services, semreg.ServiceMetadata{Ref: definition(id), FactKeyDimension: definition(dimension)})
+	}
+	for id, spec := range capabilities {
+		metadata.Capabilities = append(metadata.Capabilities, semreg.CapabilityMetadata{Ref: definition(id), Service: definition(spec.service)})
+	}
+	for id, spec := range operations {
+		service := capabilities[spec.capability].service
+		metadata.Operations = append(metadata.Operations, semreg.OperationMetadata{Ref: definition(id), Capability: definition(spec.capability), Service: definition(service), Argument: definition(spec.argument), Effect: definition(spec.effect)})
+	}
+	for id := range units {
+		metadata.Units = append(metadata.Units, definition(id))
+	}
+	sortMetadata(&metadata)
+	return metadata
+}
+
+func sortMetadata(metadata *semreg.PackMetadata) {
+	sort.Slice(metadata.Units, func(i, j int) bool { return metadata.Units[i].ID < metadata.Units[j].ID })
+	sort.Slice(metadata.Fields, func(i, j int) bool { return metadata.Fields[i].Ref.ID < metadata.Fields[j].Ref.ID })
+	sort.Slice(metadata.Services, func(i, j int) bool { return metadata.Services[i].Ref.ID < metadata.Services[j].Ref.ID })
+	sort.Slice(metadata.Capabilities, func(i, j int) bool { return metadata.Capabilities[i].Ref.ID < metadata.Capabilities[j].Ref.ID })
+	sort.Slice(metadata.Operations, func(i, j int) bool { return metadata.Operations[i].Ref.ID < metadata.Operations[j].Ref.ID })
 }

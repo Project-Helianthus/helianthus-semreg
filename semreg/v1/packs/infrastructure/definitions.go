@@ -3,7 +3,11 @@
 // or consumer API.
 package infrastructure
 
-import semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+import (
+	"sort"
+
+	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+)
 
 const (
 	packID      semreg.DefinitionID    = "helianthus.pack.infrastructure"
@@ -111,4 +115,32 @@ func index() semreg.DefinitionIndex {
 		result.Capabilities = append(result.Capabilities, definition(id))
 	}
 	return result
+}
+
+// Metadata returns fresh metadata derived from this validator's private tables.
+func Metadata() semreg.PackMetadata {
+	metadata := semreg.PackMetadata{Pack: pack}
+	units := map[semreg.DefinitionID]struct{}{}
+	for _, spec := range fields {
+		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension)}
+		if spec.unit != "" {
+			unit := definition(spec.unit)
+			field.CanonicalUnit, units[spec.unit] = &unit, struct{}{}
+		}
+		metadata.Fields = append(metadata.Fields, field)
+	}
+	for id, dimension := range services {
+		metadata.Services = append(metadata.Services, semreg.ServiceMetadata{Ref: definition(id), FactKeyDimension: definition(dimension)})
+	}
+	for id, service := range capabilities {
+		metadata.Capabilities = append(metadata.Capabilities, semreg.CapabilityMetadata{Ref: definition(id), Service: definition(service)})
+	}
+	for id := range units {
+		metadata.Units = append(metadata.Units, definition(id))
+	}
+	sort.Slice(metadata.Units, func(i, j int) bool { return metadata.Units[i].ID < metadata.Units[j].ID })
+	sort.Slice(metadata.Fields, func(i, j int) bool { return metadata.Fields[i].Ref.ID < metadata.Fields[j].Ref.ID })
+	sort.Slice(metadata.Services, func(i, j int) bool { return metadata.Services[i].Ref.ID < metadata.Services[j].Ref.ID })
+	sort.Slice(metadata.Capabilities, func(i, j int) bool { return metadata.Capabilities[i].Ref.ID < metadata.Capabilities[j].Ref.ID })
+	return metadata
 }

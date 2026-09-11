@@ -14,9 +14,11 @@ func NewPackValidator() semreg.PackValidator { return New() }
 type validator struct{}
 
 var _ operation.OperationPackValidator = validator{}
+var _ semreg.PackMetadataProvider = validator{}
 
 func (validator) Pack() semreg.PackRef                { return pack }
 func (validator) Definitions() semreg.DefinitionIndex { return index() }
+func (validator) Metadata() semreg.PackMetadata       { return Metadata() }
 func (v validator) ValidateFact(k semreg.FactKey, value *semreg.Value) error {
 	if err := k.Validate(); err != nil {
 		return err
@@ -149,20 +151,21 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	if err := i.Validate(); err != nil {
 		return err
 	}
-	if i.Kind != definition("evse.operation.set_allocated_current") {
+	spec, ok := operations[i.Kind.ID]
+	if !ok || i.Kind != definition(i.Kind.ID) {
 		return fail(semreg.DefinitionOwnerMissing, "evse operation")
 	}
-	if i.RequiredCapability.Pack != pack || i.RequiredCapability.DefinitionID != "evse.capability.set_allocated_current" || i.RequiredCapability.Versions.Minimum != packVersion || i.RequiredCapability.Versions.MaximumExclusive != "2.0.0" {
+	if i.RequiredCapability.Pack != pack || i.RequiredCapability.DefinitionID != spec.capability || i.RequiredCapability.Versions.Minimum != packVersion || i.RequiredCapability.Versions.MaximumExclusive != "2.0.0" {
 		return fail(semreg.InvalidValue, "evse required capability")
 	}
-	if len(i.Arguments) != 1 || i.Arguments[0].ID != "evse.limit.allocated_current" {
+	if len(i.Arguments) != 1 || i.Arguments[0].ID != spec.argument {
 		return fail(semreg.InvalidValue, "evse operation arguments")
 	}
 	if err := v.ValidateField(definition(i.Arguments[0].ID), i.Arguments[0]); err != nil {
 		return err
 	}
 	e := i.ExpectedEffect
-	if e.Rule != definition("evse.effect.set_allocated_current") || e.Fact.PackID != pack.ID || e.Fact.PackVersion != packVersion || e.Fact.FactID != "evse.limit.allocated_current" || e.Operator != semreg.PredicateEqual {
+	if e.Rule != definition(spec.effect) || e.Fact.PackID != pack.ID || e.Fact.PackVersion != packVersion || e.Fact.FactID != spec.argument || e.Operator != semreg.PredicateEqual {
 		return fail(semreg.InvalidValue, "evse expected effect")
 	}
 	s, _ := findField(e.Fact.FactID)

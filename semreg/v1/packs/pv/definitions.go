@@ -49,6 +49,13 @@ type capabilitySpec struct {
 
 var capabilities = map[semreg.DefinitionID]capabilitySpec{"pv.capability.read.system": {"pv.service.system", nil}, "pv.capability.read.inverter": {"pv.service.inverter", nil}, "pv.capability.read.array": {"pv.service.array", nil}, "pv.capability.read.string": {"pv.service.string", nil}, "pv.capability.read.input": {"pv.service.input", nil}, "pv.capability.read.phase": {"pv.service.phase", nil}, "pv.capability.set_active_power_limit": {"pv.service.inverter", []semreg.DefinitionID{"pv.limit.active_power"}}, "pv.capability.set_export_limit": {"pv.service.system", []semreg.DefinitionID{"pv.limit.export_power"}}}
 
+type operationSpec struct{ capability, argument, effect semreg.DefinitionID }
+
+var operations = map[semreg.DefinitionID]operationSpec{
+	"pv.operation.set_active_power_limit": {"pv.capability.set_active_power_limit", "pv.limit.active_power", "pv.effect.set_active_power_limit"},
+	"pv.operation.set_export_limit":       {"pv.capability.set_export_limit", "pv.limit.export_power", "pv.effect.set_export_limit"},
+}
+
 func definition(id semreg.DefinitionID) semreg.DefinitionRef {
 	return semreg.DefinitionRef{Pack: pack, ID: id, Version: packVersion}
 }
@@ -65,4 +72,36 @@ func index() semreg.DefinitionIndex {
 		r.Capabilities = append(r.Capabilities, definition(id))
 	}
 	return r
+}
+
+// Metadata returns fresh metadata derived from this validator's private tables.
+func Metadata() semreg.PackMetadata {
+	metadata := semreg.PackMetadata{Pack: pack}
+	units := map[semreg.DefinitionID]struct{}{}
+	for _, spec := range fields {
+		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension)}
+		if spec.unit != "" {
+			unit := definition(spec.unit)
+			field.CanonicalUnit, units[spec.unit] = &unit, struct{}{}
+		}
+		metadata.Fields = append(metadata.Fields, field)
+	}
+	for id, dimension := range services {
+		metadata.Services = append(metadata.Services, semreg.ServiceMetadata{Ref: definition(id), FactKeyDimension: definition(dimension)})
+	}
+	for id, spec := range capabilities {
+		metadata.Capabilities = append(metadata.Capabilities, semreg.CapabilityMetadata{Ref: definition(id), Service: definition(spec.service)})
+	}
+	for id, spec := range operations {
+		metadata.Operations = append(metadata.Operations, semreg.OperationMetadata{Ref: definition(id), Capability: definition(spec.capability), Service: definition(capabilities[spec.capability].service), Argument: definition(spec.argument), Effect: definition(spec.effect)})
+	}
+	for id := range units {
+		metadata.Units = append(metadata.Units, definition(id))
+	}
+	sort.Slice(metadata.Units, func(i, j int) bool { return metadata.Units[i].ID < metadata.Units[j].ID })
+	sort.Slice(metadata.Fields, func(i, j int) bool { return metadata.Fields[i].Ref.ID < metadata.Fields[j].Ref.ID })
+	sort.Slice(metadata.Services, func(i, j int) bool { return metadata.Services[i].Ref.ID < metadata.Services[j].Ref.ID })
+	sort.Slice(metadata.Capabilities, func(i, j int) bool { return metadata.Capabilities[i].Ref.ID < metadata.Capabilities[j].Ref.ID })
+	sort.Slice(metadata.Operations, func(i, j int) bool { return metadata.Operations[i].Ref.ID < metadata.Operations[j].Ref.ID })
+	return metadata
 }
