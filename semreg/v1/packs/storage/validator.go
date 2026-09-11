@@ -193,13 +193,8 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	return nil
 }
 func operationShape(id semreg.DefinitionID) (semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, bool) {
-	switch id {
-	case "storage.operation.set_charge_limit":
-		return id, "storage.capability.set_charge_limit", "storage.limit.charge_power", "storage.effect.set_charge_limit", true
-	case "storage.operation.set_discharge_limit":
-		return id, "storage.capability.set_discharge_limit", "storage.limit.discharge_power", "storage.effect.set_discharge_limit", true
-	}
-	return "", "", "", "", false
+	spec, ok := operations[id]
+	return id, spec.capability, spec.argument, spec.effect, ok
 }
 func canonicalInterlock(p operation.Precondition, effect semreg.FactKey) bool {
 	return p.Fact.PackID == pack.ID && p.Fact.PackVersion == packVersion && p.Fact.FactID == "storage.status.interlock" && len(p.Fact.Dimensions) == 1 && p.Fact.Dimensions[0].ID == "storage.dimension.interface" && p.Fact.Dimensions[0].Value.Kind == semreg.ValueText && p.Fact.Dimensions[0].Value.Text != nil && reflect.DeepEqual(p.Fact.Dimensions, effect.Dimensions) && p.Operator == semreg.PredicateEqual && equal(p.Expected, clearValue())

@@ -179,13 +179,8 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	return nil
 }
 func pvOperationShape(id semreg.DefinitionID) (semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, bool) {
-	switch id {
-	case "pv.operation.set_active_power_limit":
-		return id, "pv.capability.set_active_power_limit", "pv.limit.active_power", "pv.effect.set_active_power_limit", true
-	case "pv.operation.set_export_limit":
-		return id, "pv.capability.set_export_limit", "pv.limit.export_power", "pv.effect.set_export_limit", true
-	}
-	return "", "", "", "", false
+	spec, ok := operations[id]
+	return id, spec.capability, spec.argument, spec.effect, ok
 }
 func (v validator) EvaluateReadback(i operation.Intent, c semreg.FactCandidate) (operation.ReadbackRelation, error) {
 	if err := v.ValidateIntent(i); err != nil {
