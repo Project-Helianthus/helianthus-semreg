@@ -65,7 +65,11 @@ Its source manifest pins both that commit and the exact corrected
 `acceptance-vectors.json` bytes by SHA-256. Tests decode and execute the complete
 snapshot, evaluation, selection, and named mutation inputs.
 
-Three foundation vector operations remain deferred: K-NEG-014, K-NEG-015, and K-NEG-048.
+The three CapabilityInstance admit vectors in the foundation fixture, K-NEG-014,
+K-NEG-015, and K-NEG-048, execute in `semreg/v1/operation`
+(`TestCapabilityAdmissionFoundationVectors`) through publication and guarded
+admission, with exact error and unchanged-state assertions.
+
 [`v1/projection-compatibility-vectors.json`](v1/projection-compatibility-vectors.json)
 copies exactly K-POS-016, K-POS-017, K-NEG-024, K-NEG-025, and K-NEG-037 from
 the accepted semantic v1 source, with immutable source commit, path, SHA-256,
