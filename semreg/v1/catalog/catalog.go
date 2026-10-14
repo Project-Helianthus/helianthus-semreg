@@ -293,6 +293,9 @@ func (f Family) validate(allowed map[semreg.Qualification]struct{}) error {
 	if f.Composition != CompositionNotComposed && !(f.CompositionVerified && gateway) {
 		return errors.New("claimed composition needs composition_verified and gateway composition evidence")
 	}
+	if f.Composition == CompositionNotComposed && (f.CompositionVerified || gateway) {
+		return errors.New("not_composed rows stay unverified and carry no gateway composition evidence")
+	}
 	if f.CompositionVerified && !gateway {
 		return errors.New("composition_verified needs gateway composition evidence")
 	}

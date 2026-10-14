@@ -187,3 +187,24 @@ func TestCompositionClaimsNeedGatewayEvidence(t *testing.T) {
 		}
 	}
 }
+
+func TestNotComposedRowsCannotBeVerified(t *testing.T) {
+	c, _ := load(t)
+	for i, f := range c.Families {
+		if f.FamilyID != "sunspec-fronius-pv" {
+			continue
+		}
+		clone := c
+		clone.Families = append([]Family(nil), c.Families...)
+		clone.Families[i].Composition = CompositionNotComposed
+		if clone.Validate() == nil {
+			t.Error("not_composed with composition_verified=true and gateway evidence accepted")
+		}
+		clone.Families[i].CompositionVerified = false
+		if clone.Validate() == nil {
+			t.Error("not_composed carrying gateway composition evidence accepted")
+		}
+		return
+	}
+	t.Fatal("PV row missing")
+}
