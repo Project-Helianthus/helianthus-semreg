@@ -153,32 +153,42 @@ catalog: one row for each of the fourteen INT-07 draft families with the
 qualification state its published evidence supports today, a reason, the
 composition status, and evidence references pinned to immutable revisions
 (modbusreg `1d92f28`, canbusreg `f5b8cbf`, ebusreg `2342a8d`, eebusreg `cdfdf0c`,
-docs-semantic `30f5e5c`). States come only from the semantic `Qualification`
+docs-semantic `30f5e5c` for the evidence rows; the document pin is the contract revision above). States come only from the semantic `Qualification`
 vocabulary; "evidence-blocked", "no admissible profile" and NO_GO have no
 vocabulary value, so they stay `unknown` or `candidate` and are named by the
 row's `reason`. No row is `qualified`, and no row creates a native mapping,
 route, authority or live operation. `semreg/v1/catalog` decodes it strictly and
 its tests check completeness, evidence and states.
 
-Contract `family-catalog/v1` (documentation companion:
-`Project-Helianthus/helianthus-docs-semantic#33`): members `contract`,
-`semantic_docs_pin`, `states`, `families`. A family has `family_id`, `name`,
-`native_owner`, `semantic_pack` (both may be empty), `state`, `composition`,
-`composition_verified`, `reason` and `evidence` (`owner`, `kind`, `locator`,
-`statement`; at least one). Allowed `state`: `candidate`, `qualified`,
-`unsupported`, `unknown`, `rejected`, and `states` must equal that set exactly.
-Allowed `composition`: `composed`, `composed_legacy`, `provider_local`,
-`not_composed`; a claim other than `not_composed` requires
-`composition_verified=true` and a `gateway_composition` evidence entry pinned to
-a full gateway commit (here `helianthus-ebusgateway@e017a547`); other rows are
-unverified, not asserted absent. Allowed `reason`: `offline_profile_only`,
+Contract `family-catalog/v1` is defined by
+`api/v1/family-catalog-v1.md` in
+`Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e`; the page is authoritative
+and this summary follows it. The document has exactly the members `contract`,
+`semantic_docs_pin`, `states` and `families`, all required, with no unknown or
+repeated member at any object level and no trailing data. A family has the
+required members `family_id`, `name`, `native_owner`, `semantic_pack` (both may
+be empty strings), `state`, `composition`, `composition_verified`, `reason` and
+`evidence` (at least one entry with non-empty `owner`, `kind`, `locator`,
+`statement`). `state` is one of `candidate`, `qualified`, `unsupported`,
+`unknown`, `rejected`, and `states` must equal that set exactly, each value
+once. `composition` is `composed`, `composed_legacy`, `provider_local` or
+`not_composed`. Any claim other than `not_composed` requires
+`composition_verified=true` and a `gateway_composition` evidence entry in the
+`@` form pinned to a full 40-character `helianthus-ebusgateway` commit (here
+`e017a547967e449ffbe76ea779d5892596306f07`). A `not_composed` row must have
+`composition_verified=false` and no `gateway_composition` entry; `false` means
+unverified, not asserted absent. Evidence `owner` is
+`Project-Helianthus/<repository>@<revision>` (immutable revision) or
+`Project-Helianthus/<repository>#<number>` (issue or pull request thread, only
+for kinds `issue` and `pull_request`; the validator here does not yet enforce
+the two forms). `kind` is an open, additive vocabulary. `reason` is a closed
+vocabulary defined on the page: `offline_profile_only`,
 `offline_mapping_gate_only`, `family_compatible_offline`, `no_admissible_profile`,
 `qualification_test_ready_offline`, `evidence_blocked`, `no_go_missing_evidence`,
 `offline_replay_only`, `semantic_mapping_unknown`, `legacy_layer_composition`,
-`unknown_pending_std_01`, `no_producer`. Duplicate and unknown members are
-rejected at every object level. Compatibility: within v1 only additive values
-(families, reasons, compositions, evidence kinds) are allowed; removals,
-renames, new members or changed meanings need v2.
+`unknown_pending_std_01`, `no_producer`. Compatibility: within v1 only additive
+values (families, reasons, compositions, evidence kinds) are allowed; a new
+`state` value, removals, renames, new members or changed meanings need v2.
 
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must

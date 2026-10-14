@@ -16,13 +16,15 @@
 // composed, composed_legacy, provider_local or not_composed. A claimed
 // composition requires composition_verified=true and a gateway_composition
 // evidence reference; otherwise composition_verified is false and the value
-// is unverified. reason is one of the Reason constants below.
+// is unverified; a not_composed row must be unverified and carry no
+// gateway_composition evidence. reason is one of the Reason constants below.
 //
 // Compatibility rule: within v1 only additive values (new families, reasons,
 // compositions or evidence kinds) may be added; removing or renaming a value,
 // changing a member's meaning, or adding a member requires v2. The document
 // rejects duplicate and unknown members at every object level. The
-// documentation companion is Project-Helianthus/helianthus-docs-semantic#33.
+// contract page is api/v1/family-catalog-v1.md in
+// Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e; the page is authoritative.
 package catalog
 
 import (

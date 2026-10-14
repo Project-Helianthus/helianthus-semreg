@@ -1,6 +1,6 @@
 {
   "contract": "helianthus.semreg.family-catalog/v1",
-  "semantic_docs_pin": "Project-Helianthus/helianthus-docs-semantic@30f5e5c79ac6da3a7c7c10c990599906d1dfd0cb",
+  "semantic_docs_pin": "Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e",
   "states": [
     "candidate",
     "qualified",
