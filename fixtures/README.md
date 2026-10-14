@@ -148,6 +148,18 @@ fence-to-retirement, replay, and rejection without state advance. This fixture
 does not grant lifecycle, routing, operation, persistence, or native-I/O
 authority.
 
+[`v1/family-catalog-v1.json`](v1/family-catalog-v1.json) is the INT-05 family
+catalog: one row for each of the fourteen INT-07 draft families with the
+qualification state its published evidence supports today, a reason, the
+composition status, and evidence references pinned to immutable revisions
+(modbusreg `1d92f28`, canbusreg `f5b8cbf`, ebusreg `2342a8d`, eebusreg `cdfdf0c`,
+docs-semantic `30f5e5c`). States come only from the semantic `Qualification`
+vocabulary; "evidence-blocked", "no admissible profile" and NO_GO have no
+vocabulary value, so they stay `unknown` or `candidate` and are named by the
+row's `reason`. No row is `qualified`, and no row creates a native mapping,
+route, authority or live operation. `semreg/v1/catalog` decodes it strictly and
+its tests check completeness, evidence and states.
+
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must
 identify each donor contract and immutable source revision, preserve native
