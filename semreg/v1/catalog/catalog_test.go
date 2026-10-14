@@ -208,3 +208,55 @@ func TestNotComposedRowsCannotBeVerified(t *testing.T) {
 	}
 	t.Fatal("PV row missing")
 }
+
+func TestDecodeRejectsCaseVariantMemberAliases(t *testing.T) {
+	_, raw := load(t)
+	text := string(raw)
+	cases := map[string]string{
+		"duplicate State alias":    strings.Replace(text, `"state": "candidate"`, `"state": "candidate", "State": "qualified"`, 1),
+		"lone State alias":         strings.Replace(text, `"state": "candidate"`, `"State": "candidate"`, 1),
+		"COMPOSITION_VERIFIED":     strings.Replace(text, `"composition_verified": true`, `"COMPOSITION_VERIFIED": true`, 1),
+		"evidence Kind alias":      strings.Replace(text, `"kind": "native_disposition"`, `"Kind": "native_disposition"`, 1),
+		"evidence duplicate alias": strings.Replace(text, `"kind": "native_disposition"`, `"kind": "native_disposition", "KIND": "x"`, 1),
+		"top-level Contract":       strings.Replace(text, `"contract":`, `"Contract":`, 1),
+	}
+	for name, doc := range cases {
+		if doc == text {
+			t.Fatalf("%s: mutation did not apply", name)
+		}
+		if _, err := Decode([]byte(doc)); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+func TestCommitPinsRequireLowercaseHex(t *testing.T) {
+	c, _ := load(t)
+	good40 := strings.Repeat("a", 40)
+	for name, sha := range map[string]string{
+		"wrong length": good40[:39], "uppercase": strings.Repeat("A", 40), "non-hex": strings.Repeat("z", 40),
+	} {
+		clone := c
+		clone.SemanticDocsPin = "Project-Helianthus/helianthus-docs-semantic@" + sha
+		if clone.Validate() == nil {
+			t.Errorf("docs pin %s accepted", name)
+		}
+		for i, f := range c.Families {
+			if f.Composition == CompositionNotComposed {
+				continue
+			}
+			clone = c
+			clone.Families = append([]Family(nil), c.Families...)
+			clone.Families[i].Evidence = append([]Evidence(nil), f.Evidence...)
+			for j, e := range clone.Families[i].Evidence {
+				if e.Kind == EvidenceKindGatewayComposition {
+					clone.Families[i].Evidence[j].Owner = gatewayOwnerPrefix + sha
+				}
+			}
+			if clone.Validate() == nil {
+				t.Errorf("%s gateway pin %s accepted", f.FamilyID, name)
+			}
+			break
+		}
+	}
+}

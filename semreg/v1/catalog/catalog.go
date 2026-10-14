@@ -33,6 +33,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -160,10 +161,47 @@ func Decode(raw []byte) (Catalog, error) {
 	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
 		return Catalog{}, errors.New("family catalog: trailing data")
 	}
+	if err := requireCanonicalMembers(raw, c); err != nil {
+		return Catalog{}, err
+	}
 	if err := c.Validate(); err != nil {
 		return Catalog{}, err
 	}
 	return c, nil
+}
+
+// requireCanonicalMembers rejects any member name that is not the exact
+// canonical spelling (encoding/json would otherwise bind a case-variant alias)
+// and any omitted member, by requiring the decoded value to re-encode to the
+// same document.
+func requireCanonicalMembers(raw []byte, c Catalog) error {
+	canonical, err := json.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("family catalog: %w", err)
+	}
+	var got, want any
+	if err := json.Unmarshal(raw, &got); err != nil {
+		return fmt.Errorf("family catalog: %w", err)
+	}
+	if err := json.Unmarshal(canonical, &want); err != nil {
+		return fmt.Errorf("family catalog: %w", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		return errors.New("family catalog: non-canonical or missing member name")
+	}
+	return nil
+}
+
+func isCommitSHA(s string) bool {
+	if len(s) != 40 {
+		return false
+	}
+	for _, r := range s {
+		if !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // rejectDuplicateKeys walks the token stream and rejects a repeated member name
@@ -190,6 +228,9 @@ func rejectDuplicateKeys(raw []byte) error {
 					return err
 				}
 				key, _ := kt.(string)
+				// encoding/json matches member names case-insensitively, so
+				// case variants are duplicates of each other.
+				key = strings.ToLower(key)
 				if _, dup := keys[key]; dup {
 					return fmt.Errorf("duplicate member %q", key)
 				}
@@ -218,7 +259,7 @@ func (c Catalog) Validate() error {
 		return fmt.Errorf("family catalog: contract %q", c.Contract)
 	}
 	const pinPrefix = "Project-Helianthus/helianthus-docs-semantic@"
-	if !strings.HasPrefix(c.SemanticDocsPin, pinPrefix) || len(c.SemanticDocsPin) != len(pinPrefix)+40 {
+	if !strings.HasPrefix(c.SemanticDocsPin, pinPrefix) || !isCommitSHA(strings.TrimPrefix(c.SemanticDocsPin, pinPrefix)) {
 		return errors.New("family catalog: semantic docs pin must name a full commit")
 	}
 	allowed := map[semreg.Qualification]struct{}{}
@@ -286,7 +327,7 @@ func (f Family) validate(allowed map[semreg.Qualification]struct{}) error {
 			return errors.New("every evidence reference needs owner, kind, locator and statement")
 		}
 		if e.Kind == EvidenceKindGatewayComposition {
-			if !strings.HasPrefix(e.Owner, gatewayOwnerPrefix) || len(e.Owner) != len(gatewayOwnerPrefix)+40 {
+			if !strings.HasPrefix(e.Owner, gatewayOwnerPrefix) || !isCommitSHA(strings.TrimPrefix(e.Owner, gatewayOwnerPrefix)) {
 				return errors.New("gateway composition evidence must pin a full gateway commit")
 			}
 			gateway = true

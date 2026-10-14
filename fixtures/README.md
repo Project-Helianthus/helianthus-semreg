@@ -165,7 +165,7 @@ Contract `family-catalog/v1` is defined by
 `Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e`; the page is authoritative
 and this summary follows it. The document has exactly the members `contract`,
 `semantic_docs_pin`, `states` and `families`, all required, with no unknown or
-repeated member at any object level and no trailing data. A family has the
+repeated member at any object level (case variants of a member name count as repeated or unknown), no trailing data, and every commit pin is exactly 40 lowercase hexadecimal characters. A family has the
 required members `family_id`, `name`, `native_owner`, `semantic_pack` (both may
 be empty strings), `state`, `composition`, `composition_verified`, `reason` and
 `evidence` (at least one entry with non-empty `owner`, `kind`, `locator`,
