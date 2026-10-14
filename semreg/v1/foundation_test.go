@@ -223,10 +223,9 @@ func TestPinnedFoundationVectors(t *testing.T) {
 	t.Run("K-NEG-009", func(t *testing.T) {
 		requireID(t, (IdentityLink{AssetID: "asset:01", BindingID: "binding:02", State: LinkQualified, Basis: []EvidenceRef{}, Revision: "1"}).Validate(), IdentityNotQualified)
 	})
-	t.Run("K-NEG-014", func(t *testing.T) {
-		t.Skip("capability admission runtime is deferred; syntax and exact owner validation are covered separately")
-	})
-	t.Run("K-NEG-015", func(t *testing.T) { t.Skip("degraded capability admission policy is deferred") })
+	// K-NEG-014, K-NEG-015 and K-NEG-048 are CapabilityInstance admit vectors.
+	// They execute in semreg/v1/operation (TestCapabilityAdmissionFoundationVectors)
+	// because capability admission is owned by that package, which imports this one.
 	t.Run("K-NEG-027", func(t *testing.T) {
 		_, err := DecodeDecimal(vectorJSON(t, vectors, "K-NEG-027"))
 		requireID(t, err, DuplicateKey)
@@ -290,9 +289,6 @@ func TestPinnedFoundationVectors(t *testing.T) {
 	})
 	t.Run("K-NEG-047", func(t *testing.T) {
 		requireID(t, (IdentityLink{AssetID: "asset:01", BindingID: "binding:01", State: LinkQualified, Basis: []EvidenceRef{}, Revision: "1"}).Validate(), IdentityNotQualified)
-	})
-	t.Run("K-NEG-048", func(t *testing.T) {
-		t.Skip("capability admission is deferred; the empty activation-proof validation partition is covered outside the vector namespace")
 	})
 	t.Run("K-NEG-054", func(t *testing.T) {
 		f := exactVectorConflictEnvelope(t, vectors, "K-NEG-054")
