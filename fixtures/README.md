@@ -160,6 +160,26 @@ row's `reason`. No row is `qualified`, and no row creates a native mapping,
 route, authority or live operation. `semreg/v1/catalog` decodes it strictly and
 its tests check completeness, evidence and states.
 
+Contract `family-catalog/v1` (documentation companion:
+`Project-Helianthus/helianthus-docs-semantic#33`): members `contract`,
+`semantic_docs_pin`, `states`, `families`. A family has `family_id`, `name`,
+`native_owner`, `semantic_pack` (both may be empty), `state`, `composition`,
+`composition_verified`, `reason` and `evidence` (`owner`, `kind`, `locator`,
+`statement`; at least one). Allowed `state`: `candidate`, `qualified`,
+`unsupported`, `unknown`, `rejected`, and `states` must equal that set exactly.
+Allowed `composition`: `composed`, `composed_legacy`, `provider_local`,
+`not_composed`; a claim other than `not_composed` requires
+`composition_verified=true` and a `gateway_composition` evidence entry pinned to
+a full gateway commit (here `helianthus-ebusgateway@e017a547`); other rows are
+unverified, not asserted absent. Allowed `reason`: `offline_profile_only`,
+`offline_mapping_gate_only`, `family_compatible_offline`, `no_admissible_profile`,
+`qualification_test_ready_offline`, `evidence_blocked`, `no_go_missing_evidence`,
+`offline_replay_only`, `semantic_mapping_unknown`, `legacy_layer_composition`,
+`unknown_pending_std_01`, `no_producer`. Duplicate and unknown members are
+rejected at every object level. Compatibility: within v1 only additive values
+(families, reasons, compositions, evidence kinds) are allowed; removals,
+renames, new members or changed meanings need v2.
+
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must
 identify each donor contract and immutable source revision, preserve native

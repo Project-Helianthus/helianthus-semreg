@@ -129,3 +129,61 @@ func TestDecodeRejectsInvalidCatalogs(t *testing.T) {
 		t.Error("row without evidence accepted")
 	}
 }
+
+func TestDecodeRejectsDuplicateKeysAtEveryLevel(t *testing.T) {
+	_, raw := load(t)
+	text := string(raw)
+	cases := map[string]string{
+		"top level":      strings.Replace(text, `"contract":`, `"contract": "x", "contract":`, 1),
+		"row state":      strings.Replace(text, `"state": "candidate"`, `"state": "candidate", "state": "qualified"`, 1),
+		"evidence entry": strings.Replace(text, `"kind":`, `"kind": "a", "kind":`, 1),
+	}
+	for name, doc := range cases {
+		if doc == text {
+			t.Fatalf("%s: mutation did not apply", name)
+		}
+		if _, err := Decode([]byte(doc)); err == nil || !strings.Contains(err.Error(), "duplicate member") {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+}
+
+func TestStatesSetEquality(t *testing.T) {
+	c, _ := load(t)
+	c.States = []semreg.Qualification{"candidate", "candidate", "candidate", "candidate", "candidate"}
+	if c.Validate() == nil {
+		t.Error("repeated state accepted")
+	}
+	c.States = c.States[:4]
+	if c.Validate() == nil {
+		t.Error("incomplete state set accepted")
+	}
+}
+
+func TestCompositionClaimsNeedGatewayEvidence(t *testing.T) {
+	c, _ := load(t)
+	for i, f := range c.Families {
+		if f.Composition == CompositionNotComposed {
+			if f.CompositionVerified {
+				t.Errorf("%s: not_composed cannot be verified", f.FamilyID)
+			}
+			continue
+		}
+		clone := c
+		clone.Families = append([]Family(nil), c.Families...)
+		clone.Families[i].CompositionVerified = false
+		if clone.Validate() == nil {
+			t.Errorf("%s: unverified composition claim accepted", f.FamilyID)
+		}
+		clone.Families[i] = f
+		clone.Families[i].Evidence = nil
+		for _, e := range f.Evidence {
+			if e.Kind != EvidenceKindGatewayComposition {
+				clone.Families[i].Evidence = append(clone.Families[i].Evidence, e)
+			}
+		}
+		if clone.Validate() == nil {
+			t.Errorf("%s: composition without gateway evidence accepted", f.FamilyID)
+		}
+	}
+}
