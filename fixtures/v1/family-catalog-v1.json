@@ -1,0 +1,421 @@
+{
+  "contract": "helianthus.semreg.family-catalog/v1",
+  "semantic_docs_pin": "Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e",
+  "states": [
+    "candidate",
+    "qualified",
+    "unsupported",
+    "unknown",
+    "rejected"
+  ],
+  "families": [
+    {
+      "family_id": "sunspec-fronius-pv",
+      "name": "SunSpec / Fronius PV inverter (Modbus)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.pv@1.0.0",
+      "state": "candidate",
+      "composition": "composed",
+      "reason": "offline_profile_only",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_disposition",
+          "locator": "profiles/vendor/fronius/disposition.json",
+          "statement": "outcome OFFLINE_PROFILE_ADMITTED; live_qualified=false, write_authority=false, support_claim=false, automatic_runtime_admission=false"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "api/v1/packs/pv-inverter-v1.md",
+          "statement": "Fronius rows are candidates only, offline-only, live_qualified=false, no write authority"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-semreg@7c56095",
+          "kind": "semreg_fixture",
+          "locator": "fixtures/v1/compatibility/canonical-pv-v1/manifest.json",
+          "statement": "canonical-PV v1 migration comparator executes the composed PV path through SemReg; no native mapping or live authority is created"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "kind": "gateway_composition",
+          "locator": "internal/modbusadapter/semreg_pv_publication_core.go",
+          "statement": "gateway publishes canonical PV facts through SemReg (also internal/modbusadapter/adapter.go); cmd/gateway/modbus_sunspec_runtime.go is a read-only live-smoke driver, not a composition claim"
+        }
+      ],
+      "composition_verified": true
+    },
+    {
+      "family_id": "growatt-bms-rs485-v202",
+      "name": "Growatt BMS RS-485 V2.02 (Modbus RTU)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.storage@1.1.0",
+      "state": "candidate",
+      "composition": "composed",
+      "reason": "offline_mapping_gate_only",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "api/v1/mappings/growatt-bms-rs485-v202-storage-v1.md",
+          "statement": "accepted source-specific read-only mapping gate over offline synthetic RTU observations; neither device support nor physical qualification"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_evidence",
+          "locator": "growatt_bms_rs485.go",
+          "statement": "revision tuple 1xSxxP ESS / Rev2.01 / V2.0 / 2.02 native read-only decoder"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "compatibility/donor-ledger.md",
+          "statement": "storage/BMS RS-485 row is an offline candidate only, physical qualification false, no control route"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "kind": "gateway_composition",
+          "locator": "cmd/gateway/growatt_bms_rs485_runtime.go",
+          "statement": "SemanticStorageCurrent performs the SemReg-only storage publication (line ~236-256); cmd/gateway/growatt_storage_semreg.go"
+        }
+      ],
+      "composition_verified": true
+    },
+    {
+      "family_id": "tesla-gen3-evse",
+      "name": "Tesla Wall Connector Gen3 (wc3_24_44_3 current limit)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.evse@1.0.0",
+      "state": "candidate",
+      "composition": "provider_local",
+      "reason": "offline_mapping_gate_only",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "api/v1/mappings/tesla-gen3-wc3-24443-evse-current-limit-v1.md",
+          "statement": "accepted source-specific read-only current-limit mapping gate for the exact profile; offline mapping qualification, not device-support or physical qualification"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_evidence",
+          "locator": "tesla_gen3_evse_current_limit.go",
+          "statement": "Gen3 FC100 persistent and provisional current-limit retention; native evidence stays with the registry"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "kind": "gateway_composition",
+          "locator": "cmd/gateway/tesla_hsc_retained_owner.go",
+          "statement": "retained owner publishes only to mcp.TeslaGen3EVSESemanticPublication (mcp/tesla_gen3_evse_semantic.go) and serves MCP readers: provider-local, no gateway-wide composition"
+        }
+      ],
+      "composition_verified": true
+    },
+    {
+      "family_id": "tesla-legacy-fbe0-fde0",
+      "name": "Tesla legacy Wall Connector FBE0/FDE0 (RS-485)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.evse@1.0.0",
+      "state": "candidate",
+      "composition": "not_composed",
+      "reason": "family_compatible_offline",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_evidence",
+          "locator": "tesla_legacy_fbe0_fde0.go",
+          "statement": "TeslaLegacyFamilyCompatible and TeslaLegacyBuildConfirmed evidence tiers; relative/unknown state carries no absolute allocation"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "compatibility/donor-ledger.md",
+          "statement": "Tesla FBE0/FDE0 is offline family-compatible native evidence only; allocated and actual current remain separate; no sender, control route or live authority"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "growatt-protocol-ii",
+      "name": "Growatt Protocol II (Modbus)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.pv@1.0.0",
+      "state": "unknown",
+      "composition": "not_composed",
+      "reason": "no_admissible_profile",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_disposition",
+          "locator": "profiles/vendor/growatt/disposition.json",
+          "statement": "outcome OFFLINE_IDENTITY_ADMITTED only; unresolved: automatic_detector_uniqueness, exact_fc04_telemetry_schema, runtime_admission_contract; support_claim=false"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_evidence",
+          "locator": "growatt_protocol_ii_fc04.go",
+          "statement": "pinned Protocol II v1.24 source establishes no admissible exact device-type/model-build/protocol tuple; no public successful FC04 applicability constructor"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-modbus#143",
+          "kind": "issue",
+          "locator": "https://github.com/Project-Helianthus/helianthus-docs-modbus/issues/143",
+          "statement": "TL3-X tuple and FC04 field evidence qualification (closed, evidence still blocks admission)"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg#196",
+          "kind": "issue",
+          "locator": "https://github.com/Project-Helianthus/helianthus-modbusreg/issues/196",
+          "statement": "admit an exact FC04 profile and complete native monitoring (open)"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "huawei-smartlogger",
+      "name": "Huawei SmartLogger (Modbus)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.pv@1.0.0",
+      "state": "candidate",
+      "composition": "not_composed",
+      "reason": "qualification_test_ready_offline",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_qualification_card",
+          "locator": "huawei_qualification_cards.go",
+          "statement": "card huawei.qualification.smartlogger.readonly@1.0.0 reports QUALIFICATION_TEST_READY; HardwareTestReady, LiveQualified, CatalogRegistered, SupportClaim, WriteAuthority all false"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_disposition",
+          "locator": "profiles/vendor/huawei/smartlogger-disposition.json",
+          "statement": "older disposition record NO_ADMISSIBLE_PROFILE with missing offline fixtures; superseded for readiness by the qualification card, support_claim=false"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "huawei-emma",
+      "name": "Huawei EMMA (Modbus)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.pv@1.0.0",
+      "state": "unknown",
+      "composition": "not_composed",
+      "reason": "evidence_blocked",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_qualification_card",
+          "locator": "huawei_qualification_cards.go",
+          "statement": "card huawei.qualification.emma.readonly@1.0.0 reports QUALIFICATION_EVIDENCE_BLOCKED"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_disposition",
+          "locator": "profiles/vendor/huawei/emma-disposition.json",
+          "statement": "OFFLINE_IDENTITY_ADMITTED; missing sanitized_readonly_capability_fixture, negative_overlap_with_smartlogger, model_specific_capability_fixture; support_claim=false"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "huawei-sdongle",
+      "name": "Huawei S-Dongle (Modbus)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.pv@1.0.0",
+      "state": "unknown",
+      "composition": "not_composed",
+      "reason": "evidence_blocked",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_qualification_card",
+          "locator": "huawei_qualification_cards.go",
+          "statement": "card huawei.qualification.sdongle.evidence-blocked@1.0.0 reports QUALIFICATION_EVIDENCE_BLOCKED with LIVE_STOPPED_PERSISTENT_NON_RESPONSE"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_disposition",
+          "locator": "profiles/vendor/huawei/sdongle-disposition.json",
+          "statement": "outcome PRE_LIVE_INSUFFICIENT_EVIDENCE; non-response is neither an identification nor an incompatibility claim"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "outback-axs",
+      "name": "OutBack AXS (SunSpec flavor)",
+      "native_owner": "Project-Helianthus/helianthus-modbusreg",
+      "semantic_pack": "helianthus.pack.storage@1.1.0",
+      "state": "unknown",
+      "composition": "not_composed",
+      "reason": "no_go_missing_evidence",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg#204",
+          "kind": "pull_request",
+          "locator": "https://github.com/Project-Helianthus/helianthus-modbusreg/pull/204",
+          "statement": "merged at 1d92f28: NO_GO / missing evidence; typed decoding, discovery and acquisition removed; model 64111 stays opaque"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-modbusreg@1d92f28",
+          "kind": "native_evidence",
+          "locator": "outback_axs_sunspec.go",
+          "statement": "ErrOutBackAXSSourceNotQualified: source selection and read operation are not qualified (docs-modbus #145 NO_GO selector); payload length is not qualification evidence"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "growatt-bms-can-v104",
+      "name": "Growatt low-voltage BMS CAN V1.04",
+      "native_owner": "Project-Helianthus/helianthus-canbusreg",
+      "semantic_pack": "helianthus.pack.storage@1.1.0",
+      "state": "candidate",
+      "composition": "not_composed",
+      "reason": "offline_replay_only",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-canbusreg@f5b8cbf",
+          "kind": "native_evidence",
+          "locator": "growatt_v104_replay.go",
+          "statement": "V1.04 observations replay-qualified offline (canbusreg #17); receive-only"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-canbusreg@f5b8cbf",
+          "kind": "native_evidence",
+          "locator": "growatt_common_projection.go",
+          "statement": "caller-selected receive-only common projection exposes only fields shared by V1.04 and V1.08 (canbusreg #19); revision-local fields stay raw evidence"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-canbusreg#18",
+          "kind": "issue",
+          "locator": "https://github.com/Project-Helianthus/helianthus-canbusreg/issues/18",
+          "statement": "divergent V1.04/V1.08 fields withheld; version-bound admission still open"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "compatibility/donor-ledger.md",
+          "statement": "storage/BMS CAN V1.04 row is an offline candidate only, physical qualification false, no control route"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "gree-vrf-can",
+      "name": "Gree VRF CAN",
+      "native_owner": "Project-Helianthus/helianthus-canbusreg",
+      "semantic_pack": "helianthus.pack.thermal@1.0.0",
+      "state": "candidate",
+      "composition": "not_composed",
+      "reason": "semantic_mapping_unknown",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-canbusreg@f5b8cbf",
+          "kind": "native_evidence",
+          "locator": "gree_vrf_replay.go",
+          "statement": "NATIVE-05 receive-only offline replay qualification; state cells remain native and opaque (canbusreg #15)"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-canbusreg@f5b8cbf",
+          "kind": "native_evidence",
+          "locator": "gree_vrf_candidate.go",
+          "statement": "gree.vrf.canbus.candidate.v1 bounded candidate state-update classification"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "api/v1/packs/thermal-hvac-v1.md",
+          "statement": "thermal.mapping.gree.vrf is a native-owner candidate row; no mapping is normative"
+        }
+      ],
+      "composition_verified": false
+    },
+    {
+      "family_id": "vaillant-ebus-thermal",
+      "name": "Vaillant eBUS thermal",
+      "native_owner": "Project-Helianthus/helianthus-ebusreg",
+      "semantic_pack": "helianthus.pack.thermal@1.0.0",
+      "state": "candidate",
+      "composition": "composed_legacy",
+      "reason": "legacy_layer_composition",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-ebusreg@2342a8d",
+          "kind": "native_registry",
+          "locator": "registry",
+          "statement": "owner of Vaillant eBUS identity and native evidence; carries no composition claim"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "api/v1/packs/thermal-hvac-v1.md",
+          "statement": "thermal.mapping.ebus.companion is a native-owner candidate row; no mapping is normative"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "kind": "gateway_composition",
+          "locator": "cmd/gateway/semantic_vaillant.go",
+          "statement": "Vaillant polling feeds graphql.LiveSemanticProvider, the legacy semantic layer, not a SemReg thermal pack publication"
+        }
+      ],
+      "composition_verified": true
+    },
+    {
+      "family_id": "eebus-inbound",
+      "name": "eeBUS inbound",
+      "native_owner": "Project-Helianthus/helianthus-eebusreg",
+      "semantic_pack": "",
+      "state": "unknown",
+      "composition": "composed_legacy",
+      "reason": "unknown_pending_std_01",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-eebusreg@cdfdf0c",
+          "kind": "native_registry",
+          "locator": "README.md",
+          "statement": "native end to end (runtime v2, raw and evidence packages); exact SHIP/SPINE/use-case revisions unresolved; physical verification Unknown"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "compatibility/donor-ledger.md",
+          "statement": "eeBUS remains unknown_pending_std_01 in every pack; no normative mapping or conformance claim"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "kind": "gateway_composition",
+          "locator": "cmd/gateway/eebus_promoted_semantic.go",
+          "statement": "wireEEBusPromotedSemanticGraphQL composes graphql.NewPromotedSemanticProvider(base, promoted.Overlay): promoted overlay over the legacy semantic provider"
+        }
+      ],
+      "composition_verified": true
+    },
+    {
+      "family_id": "infrastructure",
+      "name": "Electrical infrastructure (site, grid, feeder, circuit, phase, meter)",
+      "native_owner": "",
+      "semantic_pack": "helianthus.pack.infrastructure@1.0.0",
+      "state": "unknown",
+      "composition": "not_composed",
+      "reason": "no_producer",
+      "evidence": [
+        {
+          "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
+          "kind": "semantic_contract",
+          "locator": "api/v1/packs/infrastructure-v1.md",
+          "statement": "read-only pack; no pin proves a universal site/grid/feeder/circuit/phase/meter mapping; eBUS is identity-only unknown evidence, Modbus a profile-specific candidate, eeBUS unknown_pending_std_01"
+        },
+        {
+          "owner": "Project-Helianthus/helianthus-semreg@7c56095",
+          "kind": "semreg_fixture",
+          "locator": "fixtures/v1/infrastructure-pack-vectors.json",
+          "statement": "accepted static pack vectors only; no producer, topology instance or mapping exists"
+        }
+      ],
+      "composition_verified": false
+    }
+  ]
+}
