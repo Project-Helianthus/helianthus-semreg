@@ -85,6 +85,22 @@ and conflict rejection, source retirement, generation supersession, graph
 cascade, conflict reconciliation, bounds, dangling references and deep-copy
 isolation.
 
+[`v1/coherent-revision-vectors.json`](v1/coherent-revision-vectors.json) adds
+six synthetic S1c scenarios against `helianthus.semantic.kernel/v1`, derived
+from the accepted publication contract identified by
+[`v1/publication-vectors.json`](v1/publication-vectors.json). The matching runner
+expands the scenario inputs with existing synthetic typed publication helpers;
+this is a local supplement, not a byte-for-byte documentation fixture. It pins
+two candidate-linked bindings on one asset, canonical fan-out order, coherent
+revision vectors, retirement of only the second perspective and its lifecycle
+closure, deterministic bytes, and unchanged historical state. Negatives use the
+existing successor-revision, asset ownership, dangling-reference and unique-ID
+rules. Binding revisions are local counters, not semantic revision timestamps;
+no new numeric comparison between those counters is introduced. Synthetic
+public evidence records describe test data only: they prove no native facts or
+qualification. This adds no mapping, gateway composition, API, family admission
+or broader INT-05 migration completion.
+
 [`v1/kernel-fork-acceptance.json`](v1/kernel-fork-acceptance.json) is a
 byte-for-byte copy of `api/v1/kernel-fork-acceptance.json` from accepted
 `Project-Helianthus/helianthus-docs-semantic@a435dba83f227c3d0ae83ca13611388132efd2e5`.
@@ -165,7 +181,9 @@ Contract `family-catalog/v1` is defined by
 `Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e`; the page is authoritative
 and this summary follows it. The document has exactly the members `contract`,
 `semantic_docs_pin`, `states` and `families`, all required, with no unknown or
-repeated member at any object level (case variants of a member name count as repeated or unknown), no trailing data, and every commit pin is exactly 40 lowercase hexadecimal characters. A family has the
+repeated member at any object level (case variants of a member name count as repeated or unknown), no trailing data, and `semantic_docs_pin` and `gateway_composition` evidence owners require
+exactly 40 lowercase hexadecimal characters for their commit pins. Other
+evidence references may use abbreviated immutable revisions. A family has the
 required members `family_id`, `name`, `native_owner`, `semantic_pack` (both may
 be empty strings), `state`, `composition`, `composition_verified`, `reason` and
 `evidence` (at least one entry with non-empty `owner`, `kind`, `locator`,
@@ -181,7 +199,8 @@ unverified, not asserted absent. Evidence `owner` is
 `Project-Helianthus/<repository>@<revision>` (immutable revision) or
 `Project-Helianthus/<repository>#<number>` (issue or pull request thread, only
 for kinds `issue` and `pull_request`; the validator here does not yet enforce
-the two forms). `kind` is an open, additive vocabulary. `reason` is a closed
+the two forms or required-member presence; these requirements are recorded on
+the contract page). `kind` is an open, additive vocabulary. `reason` is a closed
 vocabulary defined on the page: `offline_profile_only`,
 `offline_mapping_gate_only`, `family_compatible_offline`, `no_admissible_profile`,
 `qualification_test_ready_offline`, `evidence_blocked`, `no_go_missing_evidence`,
