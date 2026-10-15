@@ -1,0 +1,65 @@
+{
+  "contract": "helianthus.semantic.kernel.coherent-revision-fixtures/v1",
+  "source": {
+    "contract": "helianthus.semantic.kernel/v1",
+    "evidence": "publication-vectors.json",
+    "status": "synthetic"
+  },
+  "asset_id": "asset:synthetic:two-perspectives",
+  "bindings": [
+    {
+      "binding_id": "binding:synthetic:a",
+      "source_id": "source:synthetic:a",
+      "source_epoch_id": "epoch:synthetic:a"
+    },
+    {
+      "binding_id": "binding:synthetic:b",
+      "source_id": "source:synthetic:b",
+      "source_epoch_id": "epoch:synthetic:b"
+    }
+  ],
+  "vectors": [
+    {
+      "id": "S1C-POS-001",
+      "operation": "snapshot",
+      "criterion": "Two current bindings and candidate identity links share one asset and complete semantic revision 2; bindings retain canonical ID order and local object revision 1. No native qualification is asserted.",
+      "expect": {
+        "revisions": {"semantic": "2", "identity": "2", "facts": "1", "services": "1", "capabilities": "1"},
+        "states": ["current", "current"]
+      }
+    },
+    {
+      "id": "S1C-POS-002",
+      "operation": "retire_second_binding",
+      "criterion": "Revision 3 retires only source b and binding b, withdraws its candidate identity link and advances its publication cursor; all unrelated content and the historical snapshot remain unchanged. Retirement preserves tombstones without granting authority.",
+      "expect": {
+        "revisions": {"semantic": "3", "identity": "3", "facts": "1", "services": "1", "capabilities": "1"},
+        "states": ["current", "retired"]
+      }
+    },
+    {
+      "id": "S1C-NEG-001",
+      "operation": "later_revision_binding",
+      "criterion": "Against the coherent two-binding snapshot, upserting binding b at local revision 3 from revision 1 fails the publication successor rule with revision_conflict and retains the last known good snapshot. Grafting the later retired binding into the earlier current-source snapshot also fails the lifecycle reference rule after resealing. Object revisions are not semantic revision timestamps.",
+      "expect": {"error_id": "revision_conflict", "snapshot_error_id": "dangling_reference"}
+    },
+    {
+      "id": "S1C-NEG-002",
+      "operation": "foreign_asset",
+      "criterion": "A resealed snapshot with binding b owned by another asset fails the Snapshot binding ownership rule, independently of digest validation.",
+      "expect": {"error_id": "dangling_reference"}
+    },
+    {
+      "id": "S1C-NEG-003",
+      "operation": "missing_binding",
+      "criterion": "Removing binding b while retaining its identity link fails the Snapshot identity binding reference rule. A binding is required by the retained reference, not by an invented minimum binding count.",
+      "expect": {"error_id": "dangling_reference"}
+    },
+    {
+      "id": "S1C-NEG-004",
+      "operation": "duplicate_binding",
+      "criterion": "Duplicating binding b in a resealed snapshot fails the existing ordered-unique binding identity rule.",
+      "expect": {"error_id": "duplicate_key"}
+    }
+  ]
+}
