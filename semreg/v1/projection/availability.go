@@ -118,16 +118,14 @@ func DerivePackAvailability(metadata *semreg.PackMetadataRegistry, snapshot semr
 				return PackAvailabilityView{}, errorf(semreg.DefinitionOwnerMissing, "availability capability service")
 			}
 			validator := validators[capability.Definition.Pack]
-			// Pack validators also check actionability. Those two state diagnostics
-			// are preserved as source state rather than treated as read-view failures.
-			if err := validator.ValidateCapability(capability); err != nil && semreg.ErrorIdentifier(err) != semreg.CapabilityNotQualified && semreg.ErrorIdentifier(err) != semreg.CapabilityUnavailable {
+			// Actionability is source state in this read view. Validate structure on
+			// the already detached snapshot copy with only those axes normalized;
+			// the returned capability retains its original state and evidence.
+			structural := capability
+			structural.Qualification = semreg.QualificationQualified
+			structural.Availability = semreg.AvailabilityAvailable
+			if err := validator.ValidateCapability(structural); err != nil {
 				return PackAvailabilityView{}, err
-			}
-			for _, constraint := range capability.Constraints {
-				ref := semreg.DefinitionRef{Pack: capability.Definition.Pack, ID: constraint.ID, Version: capability.Definition.Version}
-				if err := validator.ValidateField(ref, constraint); err != nil {
-					return PackAvailabilityView{}, err
-				}
 			}
 			result.Packs[index].Capabilities = append(result.Packs[index].Capabilities, capability)
 		}
@@ -163,18 +161,27 @@ func DerivePackAvailability(metadata *semreg.PackMetadataRegistry, snapshot semr
 }
 
 func availabilityFactValid(metadata *semreg.PackMetadataRegistry, validator semreg.PackValidator, candidate semreg.FactCandidate) error {
-	// Resolve field versions from the shipped index, never from an ID prefix or
+	// Resolve field versions from the shipped metadata, never from an ID prefix or
 	// an assumed equality between pack and definition versions.
-	for _, field := range validator.Definitions().Fields {
-		if field.ID != candidate.Key.FactID {
+	if err := candidate.Key.Validate(); err != nil {
+		return err
+	}
+	for _, field := range validator.(semreg.PackMetadataProvider).Metadata().Fields {
+		if field.Ref.ID != candidate.Key.FactID {
 			continue
 		}
-		if !metadata.HasDefinition(field) {
+		if !metadata.HasDefinition(field.Ref) {
 			return errorf(semreg.DefinitionOwnerMissing, "availability field")
+		}
+		// All five shipped packs require one text dimension. Use their field
+		// metadata for its ID even when a tombstone has no value to validate.
+		dimensions := candidate.Key.Dimensions
+		if len(dimensions) != 1 || dimensions[0].ID != field.Dimension.ID || dimensions[0].Value.Kind != semreg.ValueText || dimensions[0].Value.Text == nil {
+			return errorf(semreg.InvalidValue, "availability fact dimensions")
 		}
 		if candidate.Value == nil {
 			return nil
-		} // Kernel-validated valueless tombstone.
+		}
 		return validator.ValidateFact(candidate.Key, candidate.Value)
 	}
 	return errorf(semreg.DefinitionOwnerMissing, "availability field")
