@@ -166,7 +166,11 @@ func availabilityFactValid(metadata *semreg.PackMetadataRegistry, validator semr
 	if err := candidate.Key.Validate(); err != nil {
 		return err
 	}
-	for _, field := range validator.(semreg.PackMetadataProvider).Metadata().Fields {
+	provider, ok := validator.(semreg.PackMetadataProvider)
+	if !ok {
+		return errorf(semreg.DefinitionOwnerMissing, "availability metadata provider")
+	}
+	for _, field := range provider.Metadata().Fields {
 		if field.Ref.ID != candidate.Key.FactID {
 			continue
 		}
