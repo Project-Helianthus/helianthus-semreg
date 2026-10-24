@@ -329,13 +329,23 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	return admission, nil
 }
 
+// snapshotPackError dispatches every snapshot record to its exact pack owner.
+// Capability actionability belongs to the required route alone: after a
+// generation fence or source retirement the snapshot keeps the retired route's
+// withdrawn tombstone beside the successor, and that tombstone must not refuse
+// the successor's admission or readback. Each capability's record structure is
+// validated as supplied; the pack hook sees it with only the qualification and
+// availability axes normalized. routes still refuses a non-actionable required
+// capability and passes it unnormalized to the pack's MatchConstraints.
 func (k *Kernel) snapshotPackError(snapshot semreg.Snapshot) error {
 	var errs []error
 	for _, service := range snapshot.Services {
 		errs = append(errs, k.registry.ValidateService(service))
 	}
 	for _, capability := range snapshot.Capabilities {
-		errs = append(errs, k.registry.ValidateCapability(capability))
+		structural := capability
+		structural.Qualification, structural.Availability = semreg.QualificationQualified, semreg.AvailabilityAvailable
+		errs = append(errs, capability.Validate(), k.registry.ValidateCapability(structural))
 	}
 	for _, envelope := range snapshot.Facts {
 		for _, candidate := range envelope.Candidates {

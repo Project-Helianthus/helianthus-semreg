@@ -207,6 +207,65 @@ func TestPublishedThermalConstraintsGateOperationAdmission(t *testing.T) {
 	}
 }
 
+// A restarted thermal source retires its epoch and republishes its service and
+// capability under new instance IDs; the retired capability stays in the
+// snapshot as a withdrawn tombstone, which the shipped capability hook refuses
+// as unavailable. Admission must route the successor regardless, and keep
+// refusing an intent that names the retired epoch.
+func TestThermalOperationAdmitsTheSuccessorAfterSourceRestart(t *testing.T) {
+	for _, operationID := range []semreg.DefinitionID{"thermal.operation.set_temperature", "thermal.operation.set_mode"} {
+		t.Run(string(operationID), func(t *testing.T) {
+			fixture := newThermalFixture(t, operationID)
+			definitionID := operations[operationID].capability
+			service := semreg.ServiceInstance{InstanceID: "service:2", AssetID: "asset:1", Definition: definition(capabilities[definitionID].service), BindingID: "binding:2", SourceEpochID: "epoch:2", DriverGeneration: "1", Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "1"}
+			successor := validCapability(definitionID)
+			successor.InstanceID, successor.ServiceInstance, successor.BindingID, successor.SourceEpochID = "capability:2", "service:2", "binding:2", "epoch:2"
+			batch := semreg.PublicationBatch{Contract: semreg.ContractKernelV1, BatchID: "batch:thermal:restart", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:2", DriverGeneration: "1", Sequence: "1", ExpectedSemanticRevision: fixture.snapshot.Revisions.Semantic, ObservedAt: thermalTime("120"),
+				SourceUpserts:     []semreg.SourceDescriptor{{SourceID: "source:1", SourceEpochID: "epoch:2", ProtocolID: "protocol.test", ProfileID: "profile.test", ProfileVersion: "1", RegistryEvidence: evidence(), StartedAt: thermalTime("110"), State: semreg.SourceCurrent, Revision: "1"}},
+				SourceRetirements: []semreg.SourceEpochID{"epoch:1"}, BindingUpserts: []semreg.NativeBinding{{BindingID: "binding:2", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:2", DriverGeneration: "1", NativeResource: evidence(), State: semreg.BindingCurrent, Revision: "1"}},
+				IdentityLinkUpserts: []semreg.IdentityLink{{AssetID: "asset:1", BindingID: "binding:2", State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{evidence()}, Revision: "1"}}, FactUpserts: []semreg.FactCandidate{}, FactWithdrawals: []semreg.CandidateID{},
+				ServiceUpserts: []semreg.ServiceInstance{service}, ServiceWithdrawals: []semreg.ServiceInstanceID{}, CapabilityUpserts: []semreg.CapabilityInstance{successor}, CapabilityWithdrawals: []semreg.CapabilityInstanceID{}, GenerationFences: []semreg.GenerationFence{}}
+			digest, err := batch.ComputedDigest()
+			if err != nil {
+				t.Fatal(err)
+			}
+			batch.BatchDigest = digest
+			restarted, _, err := fixture.publication.Apply(batch, semreg.MonotonicPoint{ClockEpochID: "clock-epoch:1", Nanoseconds: "120"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			tombstone := false
+			for _, capability := range restarted.Capabilities {
+				if capability.InstanceID == "capability:1" {
+					tombstone = capability.Availability == semreg.AvailabilityWithdrawn
+					requireID(t, fixture.hook.ValidateCapability(capability), semreg.CapabilityUnavailable)
+				}
+			}
+			if !tombstone || len(restarted.Capabilities) != 2 {
+				t.Fatalf("restart did not retain the retired capability tombstone: %+v", restarted.Capabilities)
+			}
+
+			authorize := operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error { return nil })
+			intent := fixture.intent
+			intent.ExpectedSemanticRevision, intent.ExpectedCapabilityRevision = restarted.Revisions.Semantic, restarted.Revisions.Capabilities
+			intent.IntentID, intent.IdempotencyKey, intent.ExpectedSourceEpochID = "intent:2", "idempotency:2", "epoch:2"
+			admission, err := fixture.kernel.Admit(restarted, fixture.current, intent, authorize)
+			if err != nil {
+				t.Fatalf("successor admission after restart: %v", err)
+			}
+			want := operation.Route{CapabilityInstance: "capability:2", ServiceInstance: "service:2", BindingID: "binding:2", SourceID: "source:1", SourceEpochID: "epoch:2", DriverGeneration: "1"}
+			if route, _ := admission.Route(); !reflect.DeepEqual(route, want) {
+				t.Fatalf("successor route %+v; want %+v", route, want)
+			}
+
+			retired := intent
+			retired.IntentID, retired.IdempotencyKey, retired.ExpectedSourceEpochID = "intent:3", "idempotency:3", "epoch:1"
+			_, err = fixture.kernel.Admit(restarted, fixture.current, retired, authorize)
+			requireID(t, err, semreg.StaleSourceEpoch)
+		})
+	}
+}
+
 type thermalRecordHook struct {
 	validator
 	readbackCalls  int

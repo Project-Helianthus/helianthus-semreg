@@ -135,7 +135,11 @@ Typed operation inputs are validated before detached copies or hook dispatch,
 so malformed unions and invalid UTF-8 cannot be repaired by serialization or
 installed in retained state. Admission and execution validation collect and
 rank independently knowable failures using the accepted stable precedence.
-Both record entry paths validate supplied evidence before returning an input
+Snapshot-wide pack validation checks each capability's structure only;
+qualification and availability are judged on the required route. A fenced or
+retired generation's withdrawn capability tombstone therefore never refuses its
+successor's admission or readback, while any intent or evidence naming the
+retired route stays refused. Both record entry paths validate supplied evidence before returning an input
 error. Readback hooks require exact binding to the kernel's owned admission
 and a safely resolved current route and candidate. `DecodeIntent` and
 `DecodeExecutionRecord` classify absent or malformed document contracts as
