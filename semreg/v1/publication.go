@@ -17,7 +17,7 @@ const (
 	maxSnapshotBindings     = 128
 	maxSnapshotIdentity     = 128
 	maxSnapshotEnvelopes    = 4096
-	maxSnapshotRetained     = 32
+	maxSnapshotRetained     = 40
 	maxSnapshotServices     = 1024
 	maxSnapshotCapabilities = 2048
 	maxSnapshotFences       = 128
@@ -352,6 +352,10 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
+	return k.applyLocked(batch, publicationMonotonic, true)
+}
+
+func (k *PublicationKernel) applyLocked(batch PublicationBatch, publicationMonotonic MonotonicPoint, admission bool) (Snapshot, []byte, error) {
 	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch))
 	// Local member validation ranks malformed/missing fields, invalid values,
 	// bounds and collection order before reference/lifecycle semantics. Higher-
@@ -437,6 +441,9 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 	}
 	changed, err := k.applyTo(&working, batch, publicationMonotonic)
 	check(err)
+	if admission {
+		check(retainedAdmissionError(working))
+	}
 	working.Contract = ContractKernelV1
 	working.AssetID = k.asset
 	working.EvaluatedAt = batch.ObservedAt
