@@ -151,6 +151,7 @@ func sortCandidateIDs(ids []CandidateID) {
 }
 
 func TestRetainedRestoreAtomicValidationAndCopies(t *testing.T) {
+	t.Parallel()
 	good := capacityLog(t, 30, 20, 0)
 	mutations := []struct {
 		name   string
@@ -225,6 +226,7 @@ func TestRetainedRestoreAtomicValidationAndCopies(t *testing.T) {
 }
 
 func TestRetainedAdmissionRefreshInferredExpiredAndPrecedence(t *testing.T) {
+	t.Parallel()
 	k, _ := restoredCapacity(t, 20, 20, 0)
 	for n := 0; n < 3; n++ {
 		b := capacityPatch(k)

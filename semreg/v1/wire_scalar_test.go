@@ -49,6 +49,7 @@ func checkCandidateWireTargets(t *testing.T, raw []byte, want ErrorID) {
 }
 
 func TestOptionalCandidateWireMatrix(t *testing.T) {
+	t.Parallel()
 	for _, assertion := range []AssertionKind{AssertionObserved, AssertionInferred} {
 		for _, field := range []string{"driver_generation", "binding_id", "source_epoch_id"} {
 			values := []string{`"!"`}
