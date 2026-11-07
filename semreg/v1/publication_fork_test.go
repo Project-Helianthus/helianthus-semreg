@@ -212,6 +212,7 @@ func TestPublicationKernelForkKFNeg002(t *testing.T) {
 }
 
 func TestPublicationKernelForkKFPos005(t *testing.T) {
+	t.Parallel()
 	kernel, _ := publicationKernelAtSequence32(t)
 	errs := make(chan error, 1)
 	var reportOnce sync.Once

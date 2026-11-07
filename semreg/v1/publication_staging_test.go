@@ -333,6 +333,7 @@ func TestPublicationStagingErrorResource(t *testing.T) {
 }
 
 func TestPublicationFinalCandidateCardinality(t *testing.T) {
+	t.Parallel()
 	k := newTestPublicationKernel(t, "asset:site")
 	initial := completePublicationBatch("asset:site", "source:a", "epoch:a", "binding:a", "1", "1", "0")
 	root := initial.FactUpserts[0]

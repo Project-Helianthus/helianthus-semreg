@@ -108,6 +108,7 @@ func TestRetainedAdmissionFenceBoundaryAndEmptyGeneration(t *testing.T) {
 }
 
 func TestRetainedAdmissionDistinctTupleAxes(t *testing.T) {
+	t.Parallel()
 	for _, axis := range []string{"source", "epoch", "generation", "binding"} {
 		t.Run(axis, func(t *testing.T) {
 			k := newTestPublicationKernel(t, "asset:capacity")
