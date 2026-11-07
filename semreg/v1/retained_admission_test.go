@@ -73,6 +73,7 @@ func TestRetainedAdmissionTwoSetsAndThirdRefusal(t *testing.T) {
 }
 
 func TestRetainedAdmissionFenceBoundaryAndEmptyGeneration(t *testing.T) {
+	t.Parallel()
 	k := newTestPublicationKernel(t, "asset:capacity")
 	revision := Uint64("0")
 	var log []AcceptedPublication

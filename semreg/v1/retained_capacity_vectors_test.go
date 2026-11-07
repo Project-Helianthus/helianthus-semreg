@@ -12,6 +12,10 @@ import (
 )
 
 func TestRetainedCapacityTypedVectors(t *testing.T) {
+	// The accepted histories are large; this test and the fence-boundary test
+	// run alongside each other so the race-detector gate stays well inside its
+	// package budget.
+	t.Parallel()
 	_, file, _, _ := runtime.Caller(0)
 	raw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "fixtures", "v1", "retained-observation-acceptance.json"))
 	if err != nil {
@@ -48,7 +52,9 @@ func TestRetainedCapacityTypedVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	executed := 0
-	var fenceVectors *capacityFenceVectors
+	// The fence vectors share one accepted history built before the parallel
+	// subtests start; every vector forks its own copy of that state.
+	fenceVectors := newCapacityFenceVectors(t)
 	for _, v := range fixture.Scenarios {
 		if v.Operation != "bounded_admission" && v.Operation != "structural_restore" {
 			continue
@@ -66,15 +72,14 @@ func TestRetainedCapacityTypedVectors(t *testing.T) {
 		case "RO-CAP-fence_boundary", "RO-CAP-fence_excess", "RO-CAP-invalid_fence_restore", "RO-CAP-invalid_empty_fence_restore", "RO-CAP-empty_generation_fence_reservation":
 			executed++
 			t.Run(v.ID, func(t *testing.T) {
-				if fenceVectors == nil {
-					fenceVectors = newCapacityFenceVectors(t)
-				}
+				t.Parallel()
 				fenceVectors.run(t, v.ID, v.Operation, v.Input.Fences, v.Input.Current, v.Input.Upserts, v.Input.Future, v.Input.CurrentUnfenced, expect.Result, expect.H, expect.C, expect.Blocked)
 			})
 			continue
 		}
 		executed++
 		t.Run(v.ID, func(t *testing.T) {
+			t.Parallel()
 			k, log := restoredCapacity(t, v.Input.History, v.Input.Current, v.Input.Expiry)
 			if v.Input.ExpiredCurrent > 0 {
 				last := &log[len(log)-1]
