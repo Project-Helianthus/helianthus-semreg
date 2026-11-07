@@ -8,7 +8,13 @@ import (
 )
 
 func TestAdmissionRejectsRetainedObservationAsCurrentPrecondition(t *testing.T) {
-	fixture := newOperationFixture(t)
+	t.Run("publication", func(t *testing.T) { retainedPreconditionRefusal(t, false) })
+	t.Run("restored_log", func(t *testing.T) { retainedPreconditionRefusal(t, true) })
+}
+
+func retainedPreconditionRefusal(t *testing.T, restore bool) {
+	var initial semreg.PublicationBatch
+	fixture := newOperationFixtureWith(t, func(b *semreg.PublicationBatch) { initial = *b })
 	transition := semreg.PublicationBatch{
 		Contract:                 semreg.ContractKernelV1,
 		BatchID:                  "batch:test:retire-precondition",
@@ -50,6 +56,24 @@ func TestAdmissionRejectsRetainedObservationAsCurrentPrecondition(t *testing.T) 
 	snapshot, _, err := fixture.publication.Apply(transition, semreg.MonotonicPoint{ClockEpochID: "clock-epoch:test", Nanoseconds: "150"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if restore {
+		initial.BatchDigest, err = initial.ComputedDigest()
+		if err != nil {
+			t.Fatal(err)
+		}
+		restored, err := semreg.NewPublicationKernel("asset:test", fixture.pack)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = restored.RestoreAccepted([]semreg.AcceptedPublication{
+			{Batch: initial, PublicationMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock-epoch:test", Nanoseconds: "100"}},
+			{Batch: transition, PublicationMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock-epoch:test", Nanoseconds: "150"}},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot, _, _ = restored.Current()
 	}
 	if len(snapshot.Retained) != 1 || snapshot.Retained[0].Candidate.CandidateID != "candidate:interlock" {
 		t.Fatalf("missing retained precondition witness: %+v", snapshot.Retained)

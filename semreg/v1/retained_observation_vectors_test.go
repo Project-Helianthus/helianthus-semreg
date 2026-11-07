@@ -2,7 +2,6 @@ package semreg
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,10 +9,8 @@ import (
 	"testing"
 )
 
-// TestRetainedObservationAcceptedVectors pins the public docs-semantic #24
-// sequential-lifecycle fixture. The focused lifecycle and operation tests
-// execute its positive/negative semantic postconditions through typed entry
-// points; this loader fails if the accepted inventory or ordering drifts.
+// TestRetainedObservationAcceptedVectors pins the merged docs-semantic #49 fixture.
+// Typed admission and lifecycle tests exercise the executable scenarios.
 func TestRetainedObservationAcceptedVectors(t *testing.T) {
 	_, file, _, _ := runtime.Caller(0)
 	raw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "fixtures", "v1", "retained-observation-acceptance.json"))
@@ -21,9 +18,11 @@ func TestRetainedObservationAcceptedVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(raw)
-	if got := hex.EncodeToString(sum[:]); got != "f98d57912a3a2f08291a80e6a65d8ecdd66a1037b7a580d3ec43b3ef1172ef73" {
-		t.Fatalf("fixture digest %s", got)
+	wantDigest := [sha256.Size]byte{9, 5, 56, 191, 192, 1, 179, 153, 106, 186, 24, 112, 168, 146, 189, 94, 87, 178, 16, 29, 156, 235, 49, 243, 4, 29, 189, 37, 128, 201, 255, 225}
+	if sum != wantDigest {
+		t.Fatal("retained fixture integrity mismatch")
 	}
+
 	var fixture struct {
 		Contract string `json:"contract"`
 		Kernel   string `json:"kernel_contract"`
@@ -42,7 +41,7 @@ func TestRetainedObservationAcceptedVectors(t *testing.T) {
 	if err := json.Unmarshal(raw, &fixture); err != nil {
 		t.Fatal(err)
 	}
-	if fixture.Contract != "helianthus.semantic.retained-observation.acceptance/v1" || fixture.Kernel != string(ContractKernelV1) || fixture.Retained != string(ContractRetainedObservationV1) || fixture.Counts.Positive != 9 || fixture.Counts.Negative != 10 || fixture.Counts.Total != 19 || len(fixture.Scenarios) != 19 {
+	if fixture.Contract != "helianthus.semantic.retained-observation.acceptance/v1" || fixture.Kernel != string(ContractKernelV1) || fixture.Retained != string(ContractRetainedObservationV1) || fixture.Counts.Positive != 21 || fixture.Counts.Negative != 20 || fixture.Counts.Total != 41 || len(fixture.Scenarios) != 41 {
 		t.Fatalf("fixture contract: %+v", fixture)
 	}
 	want := []struct {
@@ -67,6 +66,28 @@ func TestRetainedObservationAcceptedVectors(t *testing.T) {
 		{"RO-NEG-008", "negative", "retire_foreign_epoch"},
 		{"RO-NEG-009", "negative", "retire_foreign_generation"},
 		{"RO-NEG-010", "negative", "retire_already_retired_epoch"},
+		{"RO-CAP-boundary", "positive", "bounded_admission"},
+		{"RO-CAP-excess", "negative", "bounded_admission"},
+		{"RO-CAP-first_twenty", "positive", "bounded_admission"},
+		{"RO-CAP-second_twenty", "positive", "bounded_admission"},
+		{"RO-CAP-second_fence", "positive", "bounded_admission"},
+		{"RO-CAP-third_twenty", "negative", "bounded_admission"},
+		{"RO-CAP-refresh", "positive", "bounded_admission"},
+		{"RO-CAP-inferred", "positive", "bounded_admission"},
+		{"RO-CAP-mixed_paths", "positive", "bounded_admission"},
+		{"RO-CAP-expiry", "positive", "bounded_admission"},
+		{"RO-CAP-unknown_clock", "negative", "bounded_admission"},
+		{"RO-CAP-expired_current_reserved", "negative", "bounded_admission"},
+		{"RO-CAP-legacy_import", "positive", "bounded_admission"},
+		{"RO-CAP-legacy_refusal", "negative", "bounded_admission"},
+		{"RO-CAP-legacy_expiry_recovery", "positive", "bounded_admission"},
+		{"RO-CAP-replay", "positive", "bounded_admission"},
+		{"RO-CAP-precedence", "negative", "bounded_admission"},
+		{"RO-CAP-fence_boundary", "positive", "bounded_admission"},
+		{"RO-CAP-fence_excess", "negative", "bounded_admission"},
+		{"RO-CAP-invalid_fence_restore", "negative", "structural_restore"},
+		{"RO-CAP-invalid_empty_fence_restore", "negative", "structural_restore"},
+		{"RO-CAP-empty_generation_fence_reservation", "negative", "bounded_admission"},
 	}
 	for i, scenario := range fixture.Scenarios {
 		if scenario.ID != want[i].id || scenario.Polarity != want[i].polarity || scenario.Operation != want[i].operation {

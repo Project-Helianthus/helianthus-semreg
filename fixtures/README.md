@@ -154,15 +154,52 @@ INT-05, software 0.7, security review, hardware readiness, and physical
 validation remain separate work.
 
 [`v1/retained-observation-acceptance.json`](v1/retained-observation-acceptance.json)
-is a byte-for-byte copy of `api/v1/retained-observation-acceptance.json` from
-the accepted sequential-lifecycle correction at
-`Project-Helianthus/helianthus-docs-semantic@b5cb2a8df6c0c94268f35476d62e36643767a8c3`
-(public main `ed33276cddb2dd86757efcf335c95936bdf4efe2`). Its SHA-256 is
-`f98d57912a3a2f08291a80e6a65d8ecdd66a1037b7a580d3ec43b3ef1172ef73`.
-The runtime tests account for all 19 scenarios, including sequential
-fence-to-retirement, replay, and rejection without state advance. This fixture
-does not grant lifecycle, routing, operation, persistence, or native-I/O
-authority.
+is a byte-for-byte copy of the accepted
+[bounded retained admission fixture](https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/main/api/v1/retained-observation-acceptance.json)
+from docs-semantic #49, extending the sequential-lifecycle correction. The
+fixture contains 41 scenarios; its inherited digest evidence remains unchanged.
+The integrity test compares computed fixture bytes against a byte-array digest.
+
+Contract `helianthus.semantic.kernel/v1` keeps wire records and operation
+eligibility unchanged. New publication reserves retained history plus every
+current observed instance under forty and existing fences plus distinct live
+generation tuples under 128. Refreshes replace instances; inferred facts add no
+observed debt. Expired current observations still reserve debt. Pruning history
+requires a provable original expiry; unknown clocks never free room.
+
+`PublicationKernel.RestoreAccepted` accepts a complete trusted accepted-batch log
+into an empty kernel. Each entry includes its original explicit monotonic
+publication context. It validates every historical transition, including digest,
+source ownership, references, pack behavior, revisions and sequence, without
+applying the new reservation rule to legacy intermediate states. Replacement of
+live state is refused. Import is atomic and copies all state; accepted current-
+tuple replay results and cursors are reconstructed. Persistence owners must
+establish trust and completeness; this method does not authenticate a log.
+`RetainedCapacity` reports committed debt and recovery/downgrade blockers;
+it is never an admission token. Ordinary `Apply` always enforces capacity.
+Legacy overcommit requires truthful expiry or evidenced explicit withdrawal.
+Fencing is not guaranteed to recover legacy debt. More than 32 retained records
+cannot be downgraded to the former implementation; preserve history and refuse
+that downgrade until a reviewed compatible recovery makes it representable.
+
+The gateway consumer described in #71 restores logs through detached kernels.
+It must use the supported restore method for historical replay, then ordinary
+`Apply` for new publication, and expose recovery blocked without claiming managed
+startup readiness. This repository contains no production kernel caller outside
+the root kernel; operation, projection, packs and catalog retain their existing
+surfaces. No eBUS MCP or GraphQL representation changes are introduced. Gateway
+startup, native-profile maximum proof and partial-child cleanup remain gateway
+work; qualification and physical behavior remain Unknown.
+
+The capacity runner expands all twenty-two admission and structural-restore
+cases through typed kernel entry points. It covers the 127-fence plus one live
+tuple boundary, two bindings sharing a tuple, successful restore at both
+128-cursor boundaries, and atomic refusal of an additional observed or empty
+generation. Structurally impossible imports leave an empty destination; they
+are not admitted recovery-blocked states. The existing cursor and fence bounds
+remain unchanged. Existing retained lifecycle, selection and operation exclusion
+tests remain applicable. Synthetic fixtures establish no native qualification,
+route, authority or physical proof.
 
 [`v1/family-catalog-v1.json`](v1/family-catalog-v1.json) is the INT-05 family
 catalog: one row for each of the fourteen INT-07 draft families with the
