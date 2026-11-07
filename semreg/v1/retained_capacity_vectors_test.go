@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 )
 
@@ -52,9 +53,36 @@ func TestRetainedCapacityTypedVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	executed := 0
-	// The fence vectors share one accepted history built before the parallel
-	// subtests start; every vector forks its own copy of that state.
-	fenceVectors := newCapacityFenceVectors(t)
+	history := sharedCapacityHistory(t)
+	// The max-profile restore proofs replay the shared histories into fresh
+	// kernels; they run alongside the fixture scenarios.
+	t.Run("max-profile-live-restore", func(t *testing.T) {
+		t.Parallel()
+		restored := newTestPublicationKernel(t, "asset:capacity")
+		if err := restored.RestoreAccepted(history.liveLog); err != nil {
+			t.Fatalf("restore 127 fences plus live: %v", err)
+		}
+		if !bytes.Equal(mustCurrentBytes(t, history.live), mustCurrentBytes(t, restored)) {
+			t.Fatal("live restore differs")
+		}
+		expectCapacity(t, restored, 0, 20, false)
+		if d, _ := restored.RetainedCapacity(); d.FenceReservations != 128 {
+			t.Fatalf("live reservations %+v", d)
+		}
+	})
+	t.Run("max-profile-fenced-restore", func(t *testing.T) {
+		t.Parallel()
+		restored := newTestPublicationKernel(t, "asset:capacity")
+		if err := restored.RestoreAccepted(history.fencedLog); err != nil {
+			t.Fatalf("restore 128 fences: %v", err)
+		}
+		if !bytes.Equal(mustCurrentBytes(t, history.fenced), mustCurrentBytes(t, restored)) {
+			t.Fatal("fenced restore differs")
+		}
+		if d, _ := restored.RetainedCapacity(); d.FenceReservations != 128 || d.RecoveryBlocked {
+			t.Fatalf("fenced reservations %+v", d)
+		}
+	})
 	for _, v := range fixture.Scenarios {
 		if v.Operation != "bounded_admission" && v.Operation != "structural_restore" {
 			continue
@@ -73,7 +101,7 @@ func TestRetainedCapacityTypedVectors(t *testing.T) {
 			executed++
 			t.Run(v.ID, func(t *testing.T) {
 				t.Parallel()
-				fenceVectors.run(t, v.ID, v.Operation, v.Input.Fences, v.Input.Current, v.Input.Upserts, v.Input.Future, v.Input.CurrentUnfenced, expect.Result, expect.H, expect.C, expect.Blocked)
+				history.run(t, v.ID, v.Operation, v.Input.Fences, v.Input.Current, v.Input.Upserts, v.Input.Future, v.Input.CurrentUnfenced, expect.Result, expect.H, expect.C, expect.Blocked)
 			})
 			continue
 		}
@@ -175,47 +203,96 @@ func TestRetainedCapacityTypedVectors(t *testing.T) {
 	}
 }
 
-// capacityFenceVectors builds real accepted histories up to the independent
-// cursor limit. Each vector starts from an isolated copy of the appropriate
-// accepted state, rather than constructing an impossible snapshot directly.
-type capacityFenceVectors struct {
+// capacityHistory is the accepted max-profile history shared by the retained
+// proofs: one tuple admitted and fenced through 127 generations, then
+// generation 128 either live (two bindings and twenty candidates on the
+// unfenced tuple) or fenced (an empty admission and its fence). Building it
+// replays hundreds of kernel applications, so the test binary builds it once
+// and checks the reservation count after every generation; each proof forks
+// its own copy of the accepted state and never mutates the shared logs.
+type capacityHistory struct {
 	live, fenced                 *PublicationKernel
-	fencedLog                    []AcceptedPublication
+	liveLog, fencedLog           []AcceptedPublication
 	liveRevision, fencedRevision Uint64
+	err                          error
 }
 
-func newCapacityFenceVectors(t *testing.T) *capacityFenceVectors {
+var (
+	capacityHistoryOnce sync.Once
+	capacityHistoryData *capacityHistory
+)
+
+func sharedCapacityHistory(t *testing.T) *capacityHistory {
 	t.Helper()
-	k := newTestPublicationKernel(t, "asset:capacity")
+	capacityHistoryOnce.Do(func() { capacityHistoryData = buildCapacityHistory() })
+	if capacityHistoryData.err != nil {
+		t.Fatalf("shared capacity history: %v", capacityHistoryData.err)
+	}
+	return capacityHistoryData
+}
+
+func sealBatch(batch *PublicationBatch) error {
+	digest, err := batch.ComputedDigest()
+	if err != nil {
+		return err
+	}
+	batch.BatchDigest = digest
+	return nil
+}
+
+func buildCapacityHistory() *capacityHistory {
+	h := &capacityHistory{}
+	k, err := testPublicationKernel("asset:capacity")
+	if err != nil {
+		h.err = err
+		return h
+	}
+	apply := func(k *PublicationKernel, b *PublicationBatch, what string) (Snapshot, error) {
+		if err := sealBatch(b); err != nil {
+			return Snapshot{}, fmt.Errorf("%s: %w", what, err)
+		}
+		s, _, err := k.Apply(*b, publicationMonotonic)
+		if err != nil {
+			return Snapshot{}, fmt.Errorf("%s: %w", what, err)
+		}
+		return s, nil
+	}
+	observed := TimePoint{UnixNanoseconds: "1000", ClockID: "clock.utc", UncertaintyNS: "0"}
 	var log []AcceptedPublication
 	revision := Uint64("0")
 	for generation := 1; generation <= 127; generation++ {
 		g := Uint64(fmt.Sprint(generation))
 		b := publicationBatch("asset:capacity", "source:capacity", "epoch:capacity", g, "1", revision)
-		b.ObservedAt = TimePoint{UnixNanoseconds: "1000", ClockID: "clock.utc", UncertaintyNS: "0"}
+		b.ObservedAt = observed
 		if generation == 1 {
 			b.SourceUpserts = []SourceDescriptor{publicationSource(b.SourceID, b.SourceEpochID)}
 		}
-		sealPublicationBatch(t, &b)
-		s, _, err := k.Apply(b, publicationMonotonic)
+		s, err := apply(k, &b, "generation "+string(g))
 		if err != nil {
-			t.Fatalf("generation %s: %v", g, err)
+			h.err = err
+			return h
 		}
 		log = append(log, AcceptedPublication{b, publicationMonotonic})
+		// Every accepted generation reserves exactly one fence cursor.
+		if d, _ := k.RetainedCapacity(); d.FenceReservations != generation {
+			h.err = fmt.Errorf("generation %d reservations %+v", generation, d)
+			return h
+		}
 		f := publicationBatch(b.AssetID, b.SourceID, b.SourceEpochID, g, "2", s.Revisions.Semantic)
-		f.ObservedAt = b.ObservedAt
+		f.ObservedAt = observed
 		f.GenerationFences = []GenerationFence{publicationFence(b.SourceID, b.SourceEpochID, g, publicEvidence("9"))}
-		sealPublicationBatch(t, &f)
-		s, _, err = k.Apply(f, publicationMonotonic)
-		if err != nil {
-			t.Fatalf("fence %s: %v", g, err)
+		if s, err = apply(k, &f, "fence "+string(g)); err != nil {
+			h.err = err
+			return h
 		}
 		log = append(log, AcceptedPublication{f, publicationMonotonic})
 		revision = s.Revisions.Semantic
 	}
+
 	live, err := k.Fork()
 	if err != nil {
-		t.Fatal(err)
+		h.err = err
+		return h
 	}
 	b := admissionSet(20, "128", "1", revision)
 	other := publicationBinding(b.AssetID, b.SourceID, b.SourceEpochID, "binding:capacity:other", "128")
@@ -224,56 +301,41 @@ func newCapacityFenceVectors(t *testing.T) *capacityFenceVectors {
 		b.FactUpserts[i].BindingID = pointerRecord(other.BindingID)
 		b.FactUpserts[i].Origin.BindingID = pointerRecord(other.BindingID)
 	}
-	sealPublicationBatch(t, &b)
-	s, _, err := live.Apply(b, publicationMonotonic)
+	s, err := apply(live, &b, "live generation 128")
 	if err != nil {
-		t.Fatal(err)
+		h.err = err
+		return h
 	}
-	liveLog := append(append([]AcceptedPublication(nil), log...), AcceptedPublication{b, publicationMonotonic})
-	restored := newTestPublicationKernel(t, "asset:capacity")
-	if err := restored.RestoreAccepted(liveLog); err != nil {
-		t.Fatalf("restore 127 fences plus live: %v", err)
+	if d, _ := live.RetainedCapacity(); d.FenceReservations != 128 || d.Retained != 0 || d.CurrentObserved != 20 || d.RecoveryBlocked {
+		h.err = fmt.Errorf("live reservations %+v", d)
+		return h
 	}
-	if !bytes.Equal(mustCurrentBytes(t, live), mustCurrentBytes(t, restored)) {
-		t.Fatal("live restore differs")
-	}
-	expectCapacity(t, restored, 0, 20, false)
-	d, _ := restored.RetainedCapacity()
-	if d.FenceReservations != 128 {
-		t.Fatalf("live reservations %+v", d)
-	}
+	h.live, h.liveRevision = live, s.Revisions.Semantic
+	h.liveLog = append(append([]AcceptedPublication(nil), log...), AcceptedPublication{b, publicationMonotonic})
 
-	b = admissionSet(0, "128", "1", revision)
-	sealPublicationBatch(t, &b)
-	s2, _, err := k.Apply(b, publicationMonotonic)
-	if err != nil {
-		t.Fatal(err)
+	e := admissionSet(0, "128", "1", revision)
+	if s, err = apply(k, &e, "fenced generation 128"); err != nil {
+		h.err = err
+		return h
 	}
-	log = append(log, AcceptedPublication{b, publicationMonotonic})
-	f := publicationBatch(b.AssetID, b.SourceID, b.SourceEpochID, "128", "2", s2.Revisions.Semantic)
-	f.ObservedAt = b.ObservedAt
-	f.GenerationFences = []GenerationFence{publicationFence(b.SourceID, b.SourceEpochID, "128", publicEvidence("9"))}
-	sealPublicationBatch(t, &f)
-	s2, _, err = k.Apply(f, publicationMonotonic)
-	if err != nil {
-		t.Fatal(err)
+	log = append(log, AcceptedPublication{e, publicationMonotonic})
+	f := publicationBatch(e.AssetID, e.SourceID, e.SourceEpochID, "128", "2", s.Revisions.Semantic)
+	f.ObservedAt = e.ObservedAt
+	f.GenerationFences = []GenerationFence{publicationFence(e.SourceID, e.SourceEpochID, "128", publicEvidence("9"))}
+	if s, err = apply(k, &f, "fence 128"); err != nil {
+		h.err = err
+		return h
 	}
 	log = append(log, AcceptedPublication{f, publicationMonotonic})
-	restored = newTestPublicationKernel(t, "asset:capacity")
-	if err := restored.RestoreAccepted(log); err != nil {
-		t.Fatalf("restore 128 fences: %v", err)
+	if d, _ := k.RetainedCapacity(); d.FenceReservations != 128 || d.RecoveryBlocked {
+		h.err = fmt.Errorf("fenced reservations %+v", d)
+		return h
 	}
-	if !bytes.Equal(mustCurrentBytes(t, k), mustCurrentBytes(t, restored)) {
-		t.Fatal("fenced restore differs")
-	}
-	d, _ = restored.RetainedCapacity()
-	if d.FenceReservations != 128 || d.RecoveryBlocked {
-		t.Fatalf("fenced reservations %+v", d)
-	}
-	return &capacityFenceVectors{live, k, log, s.Revisions.Semantic, s2.Revisions.Semantic}
+	h.fenced, h.fencedLog, h.fencedRevision = k, log, s.Revisions.Semantic
+	return h
 }
 
-func (v *capacityFenceVectors) run(t *testing.T, id, operation string, fences, current, upserts, future, unfenced int, result string, h, c int, blocked bool) {
+func (v *capacityHistory) run(t *testing.T, id, operation string, fences, current, upserts, future, unfenced int, result string, h, c int, blocked bool) {
 	t.Helper()
 	if future != 1 || h != 0 || blocked {
 		t.Fatalf("unexpected vector expectation %s", id)

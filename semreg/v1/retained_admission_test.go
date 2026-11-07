@@ -74,58 +74,30 @@ func TestRetainedAdmissionTwoSetsAndThirdRefusal(t *testing.T) {
 
 func TestRetainedAdmissionFenceBoundaryAndEmptyGeneration(t *testing.T) {
 	t.Parallel()
-	k := newTestPublicationKernel(t, "asset:capacity")
-	revision := Uint64("0")
-	var log []AcceptedPublication
-	for generation := 1; generation <= 128; generation++ {
-		g := Uint64(fmt.Sprint(generation))
-		b := publicationBatch("asset:capacity", "source:capacity", "epoch:capacity", g, "1", revision)
-		b.ObservedAt = TimePoint{UnixNanoseconds: "1000", ClockID: "clock.utc", UncertaintyNS: "0"}
-		if generation == 1 {
-			b.SourceUpserts = []SourceDescriptor{publicationSource(b.SourceID, b.SourceEpochID)}
-		}
-		if generation == 128 {
-			// Two live bindings and twenty candidates on one tuple reserve one fence.
-			b = admissionSet(20, g, "1", revision)
-			other := publicationBinding(b.AssetID, b.SourceID, b.SourceEpochID, "binding:capacity:other", g)
-			b.BindingUpserts = append(b.BindingUpserts, other)
-			for i := 10; i < 20; i++ {
-				b.FactUpserts[i].BindingID = pointerRecord(other.BindingID)
-				b.FactUpserts[i].Origin.BindingID = pointerRecord(other.BindingID)
-			}
-		}
-		sealPublicationBatch(t, &b)
-		s, _, err := k.Apply(b, publicationMonotonic)
-		if err != nil {
-			t.Fatalf("generation %d: %v", generation, err)
-		}
-		log = append(log, AcceptedPublication{b, publicationMonotonic})
-		revision = s.Revisions.Semantic
-		d, _ := k.RetainedCapacity()
-		if d.FenceReservations != generation {
-			t.Fatalf("generation %d reservations %+v", generation, d)
-		}
-		f := publicationBatch(b.AssetID, b.SourceID, b.SourceEpochID, g, "2", revision)
-		f.ObservedAt = b.ObservedAt
-		f.GenerationFences = []GenerationFence{publicationFence(b.SourceID, b.SourceEpochID, g, publicEvidence("9"))}
-		sealPublicationBatch(t, &f)
-		s, _, err = k.Apply(f, publicationMonotonic)
-		if err != nil {
-			t.Fatal(err)
-		}
-		log = append(log, AcceptedPublication{f, publicationMonotonic})
-		revision = s.Revisions.Semantic
+	// The shared history proves that each of the 127 accepted generations
+	// reserved exactly one fence cursor. Fencing the live generation 128
+	// retains its twenty candidates on the 128th cursor.
+	history := sharedCapacityHistory(t)
+	k, err := history.live.Fork()
+	if err != nil {
+		t.Fatal(err)
 	}
+	last := history.liveLog[len(history.liveLog)-1].Batch
+	f := publicationBatch(last.AssetID, last.SourceID, last.SourceEpochID, "128", "2", history.liveRevision)
+	f.ObservedAt = last.ObservedAt
+	f.GenerationFences = []GenerationFence{publicationFence(last.SourceID, last.SourceEpochID, "128", publicEvidence("9"))}
+	sealPublicationBatch(t, &f)
+	s := applyAdmission(t, k, f)
 	d, _ := k.RetainedCapacity()
 	if d.FenceReservations != 128 || d.Retained != 20 || d.DowngradeBlocked {
 		t.Fatalf("full fences %+v", d)
 	}
-	empty := admissionSet(0, "129", "1", revision)
+	empty := admissionSet(0, "129", "1", s.Revisions.Semantic)
 	sealPublicationBatch(t, &empty)
 	assertRejectedUnchanged(t, k, empty, BoundsExceeded)
 	// Structural import cannot represent 128 fence cursors plus one live cursor.
 	// It must reject atomically instead of weakening the independent cursor bound.
-	log = append(log, AcceptedPublication{empty, publicationMonotonic})
+	log := append(append([]AcceptedPublication(nil), history.liveLog...), AcceptedPublication{f, publicationMonotonic}, AcceptedPublication{empty, publicationMonotonic})
 	restored := newTestPublicationKernel(t, "asset:capacity")
 	if err := restored.RestoreAccepted(log); ErrorIdentifier(err) != BoundsExceeded {
 		t.Fatalf("cursor-overflow import: %v", err)
