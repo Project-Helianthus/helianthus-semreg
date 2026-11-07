@@ -832,13 +832,19 @@ func publicationCapability(asset AssetID, id CapabilityInstanceID, service Servi
 
 func newTestPublicationKernel(t *testing.T, asset AssetID) *PublicationKernel {
 	t.Helper()
-	pack := PackRef{ID: "pack.test", Version: "1.0.0"}
-	validator := &countingValidator{pack: pack, index: DefinitionIndex{Pack: pack, Fields: []DefinitionRef{}, Services: []DefinitionRef{{Pack: pack, ID: "service.test", Version: "1.0.0"}}, Capabilities: []DefinitionRef{{Pack: pack, ID: "capability.test", Version: "1.0.0"}}, Operations: []DefinitionRef{}, EffectRules: []DefinitionRef{}}}
-	kernel, err := NewPublicationKernel(asset, validator)
+	kernel, err := testPublicationKernel(asset)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return kernel
+}
+
+// testPublicationKernel builds the test kernel without a testing.T so that
+// shared histories built once per test binary can report their own errors.
+func testPublicationKernel(asset AssetID) (*PublicationKernel, error) {
+	pack := PackRef{ID: "pack.test", Version: "1.0.0"}
+	validator := &countingValidator{pack: pack, index: DefinitionIndex{Pack: pack, Fields: []DefinitionRef{}, Services: []DefinitionRef{{Pack: pack, ID: "service.test", Version: "1.0.0"}}, Capabilities: []DefinitionRef{{Pack: pack, ID: "capability.test", Version: "1.0.0"}}, Operations: []DefinitionRef{}, EffectRules: []DefinitionRef{}}}
+	return NewPublicationKernel(asset, validator)
 }
 
 func sealPublicationBatch(t *testing.T, batch *PublicationBatch) {
