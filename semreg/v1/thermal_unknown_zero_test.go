@@ -26,7 +26,7 @@ func TestK14ZeroUnknownProjection(t *testing.T) {
 	if zero == nil || zero.Kind != semreg.ValueQuantity || zero.Quantity == nil || zero.Quantity.Number != (semreg.Decimal{Coefficient: "0", Exponent10: 0}) || zero.Quantity.Unit != "unit.celsius" {
 		t.Fatalf("valid zero temperature lost: %+v", zero)
 	}
-	unknown := semreg.DefinitionID("thermal.measurement.humidity_relative")
+	unknown := semreg.DefinitionID("thermal.measurement.humidity")
 	reason := semreg.DefinitionID("reason.value_unknown")
 	requested := []projection.RequestedItem{{ItemID: decoded.Facts[0].Key.FactID, Kind: projection.ItemFact}, {ItemID: unknown, Kind: projection.ItemFact}}
 	dispositions := []projection.ProjectionDisposition{
@@ -105,6 +105,10 @@ func TestK14InvalidNumericPartialObservation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			kernel, initial := k14Initial(t)
+			// Exercise renamed setpoints through atomic failure and permitted partial retention.
+			for i, id := range []semreg.DefinitionID{"thermal.setpoint.dhw_temperature_setpoint", "thermal.setpoint.temperature_setpoint"} {
+				initial.FactUpserts[i].Key.FactID = id
+			}
 			before, beforeRaw := k14Apply(t, kernel, initial)
 			partial := k14Batch(initial, "2", "1")
 			good, bad := initial.FactUpserts[0], initial.FactUpserts[1]
