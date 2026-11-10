@@ -152,7 +152,7 @@ func TestPackMetadataFailsClosedAndCopies(t *testing.T) {
 	wrongOperation := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.operation.set_temperature", Version: "1.0.0"}
 	wrongEffect := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.effect.set_mode", Version: "1.0.0"}
 	operationCapability := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.capability.set_temperature", Version: "1.0.0"}
-	operationArgument := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.setpoint.temperature", Version: "1.0.0"}
+	operationArgument := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.setpoint.temperature_setpoint", Version: "1.0.0"}
 	if registry.OperationMatches(wrongOperation, operationCapability, service, operationArgument, wrongEffect) {
 		t.Fatal("wrong operation effect accepted")
 	}

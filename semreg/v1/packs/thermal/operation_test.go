@@ -70,10 +70,10 @@ func TestOperationRejectsIncorrectEffectAndArguments(t *testing.T) {
 			v.Arguments[0] = semreg.TypedField{ID: "thermal.mode.system", Value: validValue(mustField("thermal.mode.system"))}
 		}, semreg.InvalidValue},
 		{"wrong argument value", func(v *operation.Intent) {
-			v.Arguments[0].Value.Quantity.Number = above(mustField("thermal.setpoint.temperature").maximum.decimal())
+			v.Arguments[0].Value.Quantity.Number = above(mustField("thermal.setpoint.temperature_setpoint").maximum.decimal())
 		}, semreg.BoundsExceeded},
 		{"wrong effect rule", func(v *operation.Intent) { v.ExpectedEffect.Rule = definition("thermal.effect.set_mode") }, semreg.InvalidValue},
-		{"wrong effect fact", func(v *operation.Intent) { v.ExpectedEffect.Fact.FactID = "thermal.setpoint.dhw_temperature" }, semreg.InvalidValue},
+		{"wrong effect fact", func(v *operation.Intent) { v.ExpectedEffect.Fact.FactID = "thermal.setpoint.dhw_temperature_setpoint" }, semreg.InvalidValue},
 		{"wrong effect operator", func(v *operation.Intent) { v.ExpectedEffect.Operator = semreg.PredicateNotEqual }, semreg.InvalidValue},
 		{"wrong effect value", func(v *operation.Intent) {
 			v.ExpectedEffect.Expected.Quantity.Number = semreg.Decimal{Coefficient: "0"}

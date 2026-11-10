@@ -111,7 +111,7 @@ func TestServicesCapabilitiesAndConcurrentAccess(t *testing.T) {
 	}
 	t.Run("stored operation constraint validates full value", func(t *testing.T) {
 		capability := validCapability("thermal.capability.set_temperature")
-		capability.Constraints[0].Value.Quantity.Number = above(mustField("thermal.setpoint.temperature").maximum.decimal())
+		capability.Constraints[0].Value.Quantity.Number = above(mustField("thermal.setpoint.temperature_setpoint").maximum.decimal())
 		requireID(t, validator.ValidateCapability(capability), semreg.BoundsExceeded)
 	})
 	t.Run("operation argument must admit published constraint", func(t *testing.T) {

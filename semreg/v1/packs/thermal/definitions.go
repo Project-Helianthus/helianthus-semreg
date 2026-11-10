@@ -39,13 +39,13 @@ var fields = []fieldSpec{
 	{"thermal.demand.level", semreg.ValueQuantity, "unit.percent", "thermal.dimension.ratio", bound("0", 0), bound("1", 2), nil},
 	{"thermal.measurement.air_temperature", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-1", 2), bound("2", 2), nil},
 	{"thermal.measurement.flow_rate", semreg.ValueQuantity, "unit.litre_per_minute", "thermal.dimension.volumetric_flow", bound("0", 0), bound("1", 4), nil},
-	{"thermal.measurement.humidity_relative", semreg.ValueQuantity, "unit.percent", "thermal.dimension.ratio", bound("0", 0), bound("1", 2), nil},
+	{"thermal.measurement.humidity", semreg.ValueQuantity, "unit.percent", "thermal.dimension.ratio", bound("0", 0), bound("1", 2), nil},
 	{"thermal.measurement.power", semreg.ValueQuantity, "unit.watt", "thermal.dimension.power", bound("-1", 6), bound("1", 6), nil},
 	{"thermal.measurement.water_temperature", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-1", 2), bound("2", 2), nil},
 	{"thermal.mode.system", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.mode.system.auto", "thermal.mode.system.cool", "thermal.mode.system.heat", "thermal.mode.system.off"}},
 	{"thermal.mode.zone", semreg.ValueSymbol, "", "thermal.dimension.zone", nil, nil, []string{"thermal.mode.zone.auto", "thermal.mode.zone.comfort", "thermal.mode.zone.eco", "thermal.mode.zone.off"}},
-	{"thermal.setpoint.dhw_temperature", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-5", 1), bound("15", 1), nil},
-	{"thermal.setpoint.temperature", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-5", 1), bound("15", 1), nil},
+	{"thermal.setpoint.dhw_temperature_setpoint", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-5", 1), bound("15", 1), nil},
+	{"thermal.setpoint.temperature_setpoint", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-5", 1), bound("15", 1), nil},
 	{"thermal.status.fault", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.status.fault.clear", "thermal.status.fault.present"}},
 	{"thermal.status.operation", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.status.operation.active", "thermal.status.operation.idle"}},
 }
@@ -70,14 +70,14 @@ var capabilities = map[semreg.DefinitionID]capabilitySpec{
 	"thermal.capability.read.system": {"thermal.service.system", nil}, "thermal.capability.read.zone": {"thermal.service.zone", nil},
 	"thermal.capability.read.circuit": {"thermal.service.circuit", nil}, "thermal.capability.read.dhw": {"thermal.service.dhw", nil},
 	"thermal.capability.read.ventilation": {"thermal.service.ventilation", nil},
-	"thermal.capability.set_temperature":  {"thermal.service.zone", []semreg.DefinitionID{"thermal.setpoint.temperature"}},
+	"thermal.capability.set_temperature":  {"thermal.service.zone", []semreg.DefinitionID{"thermal.setpoint.temperature_setpoint"}},
 	"thermal.capability.set_mode":         {"thermal.service.system", []semreg.DefinitionID{"thermal.mode.system"}},
 }
 
 type operationSpec struct{ capability, argument, effect semreg.DefinitionID }
 
 var operations = map[semreg.DefinitionID]operationSpec{
-	"thermal.operation.set_temperature": {"thermal.capability.set_temperature", "thermal.setpoint.temperature", "thermal.effect.set_temperature"},
+	"thermal.operation.set_temperature": {"thermal.capability.set_temperature", "thermal.setpoint.temperature_setpoint", "thermal.effect.set_temperature"},
 	"thermal.operation.set_mode":        {"thermal.capability.set_mode", "thermal.mode.system", "thermal.effect.set_mode"},
 }
 

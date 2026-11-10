@@ -338142,5 +338142,17 @@
     "semreg/v1/wire_relations_test.go::go_identifier::TestWireEnclosingTimeRelations": [],
     "semreg/v1/wire_scalar_test.go::go_identifier::TestContextualScalarWireInventory": [],
     "semreg/v1/wire_scalar_test.go::go_identifier::TestOptionalCandidateWireMatrix": []
+  },
+  "adoption": {
+    "contract": "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/main/architecture/naming-contract.md",
+    "supported_renames": {
+      "thermal.measurement.humidity_relative": "thermal.measurement.humidity",
+      "thermal.setpoint.temperature": "thermal.setpoint.temperature_setpoint",
+      "thermal.setpoint.dhw_temperature": "thermal.setpoint.dhw_temperature_setpoint"
+    },
+    "evidence_class": "S",
+    "qualification": "Unknown: naming proof does not establish native qualification.",
+    "consumer_obligation": "Adopt only canonical keys in one coordinated pre-1.0 wave, including generic passthrough, GraphQL/MCP parity and eBUS MCP compatibility. No aliases or migration. Renew affected security, hardware and candidate evidence before release.",
+    "coverage_limitation": "Merged lexical inventory is partial; other names remain explicitly provisional, structural or native identity. Follow-up enumeration remains required."
   }
 }
