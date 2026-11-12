@@ -12,3 +12,10 @@ restore the entire consumer wave. This artifact-changing contract requires renew
 affected security, hardware and candidate evidence. Naming proof does not establish
 native qualification. All other pack vocabulary remains unchanged and provisional
 as recorded in [the inventory](naming-inventory.json).
+
+The publication kernel now applies a batch in five named phases: input validation,
+binding resolution, evaluation, fact assembly and commit. Results are unchanged: the
+same error values in the same collection order, the same changed revision components,
+the same snapshot, retained-observation and tombstone handling, and no commit before
+final validation. No exported name, wire value or fixture changes. The library
+revision still changes, so the gateway pin and its renewed evidence follow it.
