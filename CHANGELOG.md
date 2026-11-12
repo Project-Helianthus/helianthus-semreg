@@ -19,3 +19,13 @@ same error values in the same collection order, the same changed revision compon
 the same snapshot, retained-observation and tombstone handling, and no commit before
 final validation. No exported name, wire value or fixture changes. The library
 revision still changes, so the gateway pin and its renewed evidence follow it.
+
+The exported API of the `catalog`, `operation` and `projection` packages and the
+pack validator constructors now has doc comments that state each declaration's
+responsibility and its non-obvious contracts: error identifiers, bounds,
+ordering, ownership and lifecycle. The catalog reason `unknown_pending_std_01`
+is documented by the condition it stands for and keeps its wire value. Only
+comments change; no code, exported name, wire value or fixture changes. The new
+comment lines move source line numbers, so a consumer binary built on this
+revision changes and the gateway pin and its renewed evidence follow it. The
+root package `semreg/v1` is documented separately.

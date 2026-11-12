@@ -10,7 +10,9 @@ import (
 )
 
 // New returns the immutable thermal/HVAC v1 validator.
-func New() semreg.PackValidator              { return validator{} }
+func New() semreg.PackValidator { return validator{} }
+
+// NewPackValidator is an explicit constructor name for registry composition.
 func NewPackValidator() semreg.PackValidator { return New() }
 
 type validator struct{}

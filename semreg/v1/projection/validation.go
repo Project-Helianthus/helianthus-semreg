@@ -60,6 +60,7 @@ var errorRank = map[semreg.ErrorID]int{
 	semreg.ProjectionIncomplete: 37, semreg.AliasNotRoutable: 38,
 }
 
+// Validate rejects a value outside the ItemKind set with invalid_enum.
 func (k ItemKind) Validate() error {
 	if k != ItemFact && k != ItemRelation && k != ItemCapability && k != ItemOperation {
 		return errorf(semreg.InvalidEnum, "projection item kind")
@@ -67,6 +68,7 @@ func (k ItemKind) Validate() error {
 	return nil
 }
 
+// Validate rejects a value outside the LossKind set with invalid_enum.
 func (k LossKind) Validate() error {
 	switch k {
 	case LossUnit, LossRange, LossPrecision, LossTime, LossSymbol, LossProvenance, LossIdentity, LossCapability, LossOperation, LossPolicy:
@@ -76,6 +78,8 @@ func (k LossKind) Validate() error {
 	}
 }
 
+// Validate rejects a value outside the ProjectionOutcome set with
+// invalid_enum.
 func (o ProjectionOutcome) Validate() error {
 	switch o {
 	case ProjectionExact, ProjectionTransformed, ProjectionWithheld, ProjectionUnrepresentable, ProjectionUnsupported, ProjectionUnknown:
@@ -85,6 +89,10 @@ func (o ProjectionOutcome) Validate() error {
 	}
 }
 
+// Validate checks the manifest identifiers, the fixed kernel contract, and the
+// bounded, unique, canonically ordered pack versions. Like every Validate in
+// this package it returns the most specific *semreg.Error among independent
+// failures, or nil.
 func (m ProjectionManifest) Validate() error {
 	errs := []error{m.TargetID.Validate(), m.TargetVersion.Validate(), m.KernelVersion.Validate(), m.MappingRevision.Validate()}
 	if m.KernelVersion != semreg.ContractKernelV1 {
@@ -107,8 +115,11 @@ func (m ProjectionManifest) Validate() error {
 	return ranked(errs...)
 }
 
+// Validate checks the item ID and kind.
 func (r RequestedItem) Validate() error { return ranked(r.ItemID.Validate(), r.Kind.Validate()) }
 
+// Validate checks the kind, the source item list and the description text.
+// Reversible needs no check.
 func (l LossDetail) Validate() error {
 	errs := []error{l.Kind.Validate(), validatePublicText(l.Description)}
 	if l.SourceItems == nil {
@@ -151,6 +162,8 @@ func (l LossDetail) ValidateWireCollectionKey() error {
 	return ranked(errs...)
 }
 
+// Validate checks the tuple, outcome, bounded canonical source keys and loss
+// details, and the loss and reason rules of the outcome.
 func (d ProjectionDisposition) Validate() error {
 	errs := []error{d.Kind.Validate(), d.ItemID.Validate(), d.Outcome.Validate()}
 	if d.SourceKeys == nil {
@@ -195,6 +208,9 @@ func (d ProjectionDisposition) Validate() error {
 	return ranked(errs...)
 }
 
+// Validate checks the contract, manifest, snapshot identity and revisions,
+// every requested item and disposition, their order, and one-to-one tuple
+// accounting; a duplicate or unaccounted tuple is projection_incomplete.
 func (r ProjectionReport) Validate() error {
 	errs := []error{r.Manifest.Validate(), r.SnapshotID.Validate(), r.Revisions.Validate()}
 	if r.Contract != ContractProjectionV1 {
@@ -234,6 +250,8 @@ func (r ProjectionReport) Validate() error {
 	return ranked(errs...)
 }
 
+// Validate checks the contract, identifiers, validity interval and evidence
+// list. A routable alias is always rejected with alias_not_routable.
 func (a CompatibilityAlias) Validate() error {
 	errs := []error{a.LegacyID.Validate(), a.AssetID.Validate(), a.ValidFrom.Validate()}
 	if a.AliasContract != ContractAliasV1 {
