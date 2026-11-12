@@ -64,19 +64,54 @@ const (
 // conditions stay candidate or unknown and are named here instead.
 type Reason string
 
+// Reason values. The set is closed: Validate rejects any other value, and a
+// value keeps its meaning for the whole of v1. Each value names the strongest
+// evidence the row cites; none of them grants live, write or support authority.
 const (
-	ReasonOfflineProfileOnly         Reason = "offline_profile_only"
-	ReasonOfflineMappingGateOnly     Reason = "offline_mapping_gate_only"
-	ReasonFamilyCompatibleOffline    Reason = "family_compatible_offline"
-	ReasonNoAdmissibleProfile        Reason = "no_admissible_profile"
+	// ReasonOfflineProfileOnly means the cited native disposition admits an
+	// offline profile only, without live qualification or write authority.
+	ReasonOfflineProfileOnly Reason = "offline_profile_only"
+	// ReasonOfflineMappingGateOnly means the cited evidence is an accepted
+	// read-only mapping gate over offline observations; it establishes neither
+	// device support nor physical qualification.
+	ReasonOfflineMappingGateOnly Reason = "offline_mapping_gate_only"
+	// ReasonFamilyCompatibleOffline means the cited native evidence is offline
+	// and family-compatible only, with no sender, control route or live
+	// authority. Narrower restrictions belong to the owning pack or mapping.
+	ReasonFamilyCompatibleOffline Reason = "family_compatible_offline"
+	// ReasonNoAdmissibleProfile means the pinned native sources establish no
+	// admissible exact profile tuple for the family.
+	ReasonNoAdmissibleProfile Reason = "no_admissible_profile"
+	// ReasonQualificationTestReadyOnly means a native qualification card reports
+	// the qualification as test-ready only; hardware, live, catalog, support and
+	// write qualification are all still absent. The wire value is
+	// qualification_test_ready_offline.
 	ReasonQualificationTestReadyOnly Reason = "qualification_test_ready_offline"
-	ReasonEvidenceBlocked            Reason = "evidence_blocked"
-	ReasonNoGoMissingEvidence        Reason = "no_go_missing_evidence"
-	ReasonOfflineReplayOnly          Reason = "offline_replay_only"
-	ReasonSemanticMappingUnknown     Reason = "semantic_mapping_unknown"
-	ReasonLegacyLayerComposition     Reason = "legacy_layer_composition"
-	ReasonUnknownPendingSTD01        Reason = "unknown_pending_std_01"
-	ReasonNoProducer                 Reason = "no_producer"
+	// ReasonEvidenceBlocked means a native qualification card or disposition
+	// reports the qualification as blocked on evidence.
+	ReasonEvidenceBlocked Reason = "evidence_blocked"
+	// ReasonNoGoMissingEvidence means the native owner recorded a no-go for lack
+	// of evidence and removed typed decoding, discovery and acquisition.
+	ReasonNoGoMissingEvidence Reason = "no_go_missing_evidence"
+	// ReasonOfflineReplayOnly means the cited evidence is offline replay
+	// qualification of receive-only observations.
+	ReasonOfflineReplayOnly Reason = "offline_replay_only"
+	// ReasonSemanticMappingUnknown means native receive-side evidence exists but
+	// no semantic mapping of the family is established; native state stays
+	// opaque.
+	ReasonSemanticMappingUnknown Reason = "semantic_mapping_unknown"
+	// ReasonLegacyLayerComposition means the cited gateway composition evidence
+	// shows the family reaching consumers through the legacy semantic layer,
+	// not through a SemReg pack publication.
+	ReasonLegacyLayerComposition Reason = "legacy_layer_composition"
+	// ReasonUnknownPendingSTD01 means the family stays unknown while the
+	// dependency the accepted packs record under this same coded value is
+	// unresolved; no normative mapping or conformance claim exists. The
+	// dependency itself is defined by the packs, not by the catalog.
+	ReasonUnknownPendingSTD01 Reason = "unknown_pending_std_01"
+	// ReasonNoProducer means no producer, topology instance or mapping is
+	// established for the family.
+	ReasonNoProducer Reason = "no_producer"
 )
 
 // EvidenceKindGatewayComposition marks evidence citing gateway code at an

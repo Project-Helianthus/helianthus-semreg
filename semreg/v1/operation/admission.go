@@ -17,8 +17,10 @@ type AuthorityResolver interface {
 	Authorize(Intent, Route, semreg.EvaluationContext) error
 }
 
+// AuthorityResolverFunc adapts a function to AuthorityResolver.
 type AuthorityResolverFunc func(Intent, Route, semreg.EvaluationContext) error
 
+// Authorize calls f. The kernel maps any non-nil error to authority_missing.
 func (f AuthorityResolverFunc) Authorize(intent Intent, route Route, context semreg.EvaluationContext) error {
 	return f(intent, route, context)
 }
@@ -44,7 +46,9 @@ const (
 	// convenience constructor. Callers with a measured workload can select a
 	// different fail-closed bound through NewKernelWithOptions.
 	DefaultMaxRetainedOperations = 1024
-	MaxRetainedOperations        = 65536
+	// MaxRetainedOperations is the largest retention bound NewKernelWithOptions
+	// accepts; a larger request is rejected with bounds_exceeded.
+	MaxRetainedOperations = 65536
 )
 
 // KernelOptions controls the bounded semantic idempotency history. The kernel
@@ -87,6 +91,11 @@ type Admission struct {
 	recordBytes      []byte
 }
 
+// NewKernel constructs a kernel with DefaultMaxRetainedOperations. Every
+// validator that declares operations or effect rules must also implement
+// OperationPackValidator, otherwise construction fails with
+// definition_owner_missing. Registry construction errors, including a nil or
+// duplicate validator, are returned unchanged.
 func NewKernel(validators ...semreg.PackValidator) (*Kernel, error) {
 	return NewKernelWithOptions(KernelOptions{MaxRetainedOperations: DefaultMaxRetainedOperations}, validators...)
 }
@@ -636,6 +645,9 @@ func (k *Kernel) AdmitAliasRoute(legacyID semreg.OpaqueID) (*Admission, error) {
 	return nil, opError(semreg.AliasNotRoutable, "compatibility alias route")
 }
 
+// Intent returns a deep copy of the admitted intent, or of the rejected intent
+// for an entry created by RecordRejection. A nil admission returns the zero
+// value.
 func (a *Admission) Intent() Intent {
 	if a == nil {
 		return Intent{}
@@ -645,6 +657,8 @@ func (a *Admission) Intent() Intent {
 	return clone(a.intent)
 }
 
+// Route returns a deep copy of the single route resolved by Admit. It reports
+// false for a nil admission and for a rejection entry, which has no route.
 func (a *Admission) Route() (Route, bool) {
 	if a == nil {
 		return Route{}, false
@@ -654,6 +668,9 @@ func (a *Admission) Route() (Route, bool) {
 	return clone(a.route), a.hasRoute
 }
 
+// AdmittedAt returns the trusted wall time of admission and the revision
+// vector of the snapshot the intent was admitted against. It reports false for a
+// nil admission and for a rejection entry, which was never admitted.
 func (a *Admission) AdmittedAt() (semreg.TimePoint, semreg.RevisionVector, bool) {
 	if a == nil {
 		return semreg.TimePoint{}, semreg.RevisionVector{}, false
@@ -691,6 +708,9 @@ func (a *Admission) GuardClaims() (GuardClaims, bool) {
 	}, true
 }
 
+// Recorded returns a deep copy of the execution record installed by
+// Kernel.Record or Kernel.RecordRejection. It reports false until a record
+// exists; once installed, the record never changes.
 func (a *Admission) Recorded() (ExecutionRecord, bool) {
 	if a == nil {
 		return ExecutionRecord{}, false

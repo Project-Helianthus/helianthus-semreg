@@ -9,7 +9,13 @@ import (
 	operation "github.com/Project-Helianthus/helianthus-semreg/semreg/v1/operation"
 )
 
-func New() semreg.PackValidator              { return validator{} }
+// New returns the stateless, immutable validator of the storage/BMS pack
+// helianthus.pack.storage. The value also implements operation.OperationPackValidator
+// and semreg.PackMetadataProvider, so the same value can be passed to
+// operation.NewKernel.
+func New() semreg.PackValidator { return validator{} }
+
+// NewPackValidator is an explicit constructor name for registry composition.
 func NewPackValidator() semreg.PackValidator { return New() }
 
 type validator struct{}

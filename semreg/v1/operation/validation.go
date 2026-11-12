@@ -129,6 +129,10 @@ func compareEvidence(left, right semreg.EvidenceRef) int {
 	return strings.Compare(string(left.Digest), string(right.Digest))
 }
 
+// Validate checks the pack reference, definition ID, version range and the
+// optional instance ID. It does not resolve them against a registry. Like every
+// Validate in this package it returns the most specific *semreg.Error among
+// independent failures, or nil.
 func (r CapabilityRequirement) Validate() error {
 	var instanceErr error
 	if r.InstanceID != nil {
@@ -137,6 +141,9 @@ func (r CapabilityRequirement) Validate() error {
 	return mostSpecific(r.Pack.Validate(), r.DefinitionID.Validate(), r.Versions.Validate(), instanceErr)
 }
 
+// Validate checks the fact key, candidate ID, a positive candidate revision,
+// the operator and the expected value. Candidate eligibility is checked only at
+// admission.
 func (p Precondition) Validate() error {
 	var revisionErr error
 	if !positive(p.CandidateRevision) {
@@ -145,10 +152,17 @@ func (p Precondition) Validate() error {
 	return mostSpecific(p.Fact.Validate(), p.CandidateID.Validate(), revisionErr, p.Operator.Validate(), p.Expected.Validate())
 }
 
+// Validate checks the rule reference, fact key, operator and expected value.
+// Agreement with the pack-derived effect is checked by Kernel.ValidateIntent.
 func (e ExpectedEffect) Validate() error {
 	return mostSpecific(e.Rule.Validate(), e.Fact.Validate(), e.Operator.Validate(), e.Expected.Validate())
 }
 
+// Validate performs the state-independent structural checks of an intent:
+// contract, identifiers, a clock.utc deadline, positive expected revisions,
+// matching effect-rule pack, and bounded, unique, canonically ordered arguments
+// and preconditions. Pack ownership and hooks are checked by
+// Kernel.ValidateIntent.
 func (i Intent) Validate() error {
 	var errs []error
 	if i.Contract != ContractOperationV1 {
@@ -240,6 +254,7 @@ func comparePrecondition(left, right Precondition) int {
 	return compareUint64(left.CandidateRevision, right.CandidateRevision)
 }
 
+// Validate checks every route identifier and a positive driver generation.
 func (r Route) Validate() error {
 	var generationErr error
 	if !positive(r.DriverGeneration) {
@@ -249,6 +264,9 @@ func (r Route) Validate() error {
 		r.SourceID.Validate(), r.SourceEpochID.Validate(), generationErr)
 }
 
+// Validate checks the attempt ID, contexts, delivery value and evidence list.
+// Completion before start and a possible side effect on not_sent are
+// invalid_outcome.
 func (d DispatchEvidence) Validate() error {
 	var errs []error
 	errs = append(errs, d.AttemptID.Validate(), d.Started.Validate(), requiredEvidence(d.Evidence, "dispatch evidence"))
@@ -264,6 +282,7 @@ func (d DispatchEvidence) Validate() error {
 	return mostSpecific(errs...)
 }
 
+// Validate checks the state value, time point and evidence list.
 func (a Acknowledgement) Validate() error {
 	var enumErr error
 	if a.State != AckAccepted && a.State != AckRejected && a.State != AckProvisional {
@@ -272,6 +291,9 @@ func (a Acknowledgement) Validate() error {
 	return mostSpecific(enumErr, a.At.Validate(), requiredEvidence(a.Evidence, "acknowledgement evidence"))
 }
 
+// Validate checks identifiers, revisions, the relation value, the evaluation
+// context and the evidence list. Resolution against the later snapshot and
+// the admitted route happens in Kernel.Record.
 func (r Readback) Validate() error {
 	var errs []error
 	errs = append(errs, r.SnapshotID.Validate(), r.Revisions.Validate(), r.CandidateID.Validate(), r.BindingID.Validate(),
@@ -285,6 +307,10 @@ func (r Readback) Validate() error {
 	return mostSpecific(errs...)
 }
 
+// Validate checks the contract, the nested intent and evidence records, and
+// the evidence combination each Outcome requires; a wrong combination is
+// invalid_outcome. It does not bind the record to an admission; Kernel.Record
+// does.
 func (r ExecutionRecord) Validate() error {
 	var errs []error
 	if r.Contract != ContractOperationV1 {
@@ -395,10 +421,17 @@ func wallChronological(start, end semreg.TimePoint, strict bool) error {
 	return nil
 }
 
+// DecodeIntent strictly decodes one Intent document with the root decoder's
+// syntax, member and collection rules. A contract member other than
+// ContractOperationV1 and duplicate or misordered precondition keys are
+// rejected; the most specific error wins and no partial value is returned.
 func DecodeIntent(raw []byte) (Intent, error) {
 	return decodeOperationDocument[Intent](raw, operationPreconditionWireError(raw, false))
 }
 
+// DecodeExecutionRecord strictly decodes one ExecutionRecord document under the
+// same rules as DecodeIntent; the contract check applies to the record and the
+// precondition key checks to its nested intent.
 func DecodeExecutionRecord(raw []byte) (ExecutionRecord, error) {
 	return decodeOperationDocument[ExecutionRecord](raw, operationPreconditionWireError(raw, true))
 }
