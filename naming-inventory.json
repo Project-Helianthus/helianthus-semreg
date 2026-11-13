@@ -30936,13 +30936,13 @@
       "consumer_files": []
     },
     {
-      "identity": "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonUnknownPendingSTD01",
+      "identity": "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonUnknownPendingNormativeSource",
       "owning_file": "semreg/v1/catalog/catalog.go",
       "kind": "go_field_candidate",
-      "current_name": "ReasonUnknownPendingSTD01",
-      "target": "ReasonUnknownPendingSTD01",
+      "current_name": "ReasonUnknownPendingNormativeSource",
+      "target": "ReasonUnknownPendingNormativeSource",
       "role_decomposition": [
-        "ReasonUnknownPendingSTD01"
+        "ReasonUnknownPendingNormativeSource"
       ],
       "public_evidence": [
         "semreg/v1/catalog/catalog.go"

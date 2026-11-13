@@ -33364,7 +33364,7 @@
     "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonOfflineReplayOnly": [],
     "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonQualificationTestReadyOnly": [],
     "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonSemanticMappingUnknown": [],
-    "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonUnknownPendingSTD01": [],
+    "semreg/v1/catalog/catalog.go::go_field_candidate::ReasonUnknownPendingNormativeSource": [],
     "semreg/v1/catalog/catalog.go::go_field_candidate::SemanticDocsPin": [],
     "semreg/v1/catalog/catalog.go::go_field_candidate::SemanticPack": [],
     "semreg/v1/catalog/catalog.go::go_field_candidate::State": [

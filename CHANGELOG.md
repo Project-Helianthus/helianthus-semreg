@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+The catalog and pack reason for an eeBUS mapping that stays unknown while its
+normative source is unresolved is renamed to `unknown_pending_normative_source`
+(Go constant `ReasonUnknownPendingNormativeSource`). The value now states the
+condition instead of a work item. Documentary correspondence only: the previous
+value was `unknown_pending_std_01` (`ReasonUnknownPendingSTD01`). The old value
+is rejected, with no alias, dual acceptance, shim or migration. Fixture vectors
+change only in this value, and their pinned digests follow. The consumer wave
+moves together: the kernel contract in
+Project-Helianthus/helianthus-docs-semantic#55 and the consumer documentation it
+lists, then the gateway re-pin, which also renames its own use of the value as a
+`semreg.DefinitionID`. This artifact-changing wire change requires renewed
+affected security, hardware and candidate evidence before release.
+
 Thermal pack v1 (pack version 1.0.0) now emits `thermal.measurement.humidity`,
 `thermal.setpoint.temperature_setpoint` and `thermal.setpoint.dhw_temperature_setpoint`
 under the [public semantic naming contract](https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/main/architecture/naming-contract.md).

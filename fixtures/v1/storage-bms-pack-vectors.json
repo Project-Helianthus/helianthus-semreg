@@ -35,7 +35,7 @@
         "source_refs": [
           "eebus_ledger"
         ],
-        "state": "unknown_pending_std_01"
+        "state": "unknown_pending_normative_source"
       }
     ],
     "counter_policy": {

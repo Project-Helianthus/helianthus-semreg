@@ -91,7 +91,7 @@
     },
     "candidate_mappings":[
       {"id":"evse.mapping.tesla.legacy_fbe0_fde0","native_owner":"helianthus-docs-modbus","source_refs":["tesla_docs_modbus","tesla_modbusreg"],"state":"candidate","qualification":"offline_family_compatible_only","provenance":["legacy_fbe0","legacy_fde0"],"allocated_current":"native_candidate","actual_current":"native_candidate_separate","relative_or_unknown_state":"native_only_no_absolute_allocation","sender":"none","control_route":"none","live_authority":false,"loss":"unknown"},
-      {"id":"evse.mapping.eebus","native_owner":"helianthus-docs-eebus","source_refs":["eebus_ledger","eebus_m625_donor"],"state":"unknown_pending_std_01","qualification":"unresolved","loss":"unknown"},
+      {"id":"evse.mapping.eebus","native_owner":"helianthus-docs-eebus","source_refs":["eebus_ledger","eebus_m625_donor"],"state":"unknown_pending_normative_source","qualification":"unresolved","loss":"unknown"},
       {"id":"evse.mapping.matter","native_owner":"matter_draft","source_refs":["matter_draft"],"state":"candidate_design_input_only","qualification":"not_conformance","loss":"unknown"}
     ]
   },

@@ -1059,7 +1059,7 @@
           "eebus_ledger",
           "eebus_m625_donor"
         ],
-        "state": "unknown_pending_std_01",
+        "state": "unknown_pending_normative_source",
         "qualification": "unresolved",
         "control_route": "none",
         "live_authority": false,

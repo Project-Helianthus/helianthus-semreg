@@ -104,11 +104,12 @@ const (
 	// shows the family reaching consumers through the legacy semantic layer,
 	// not through a SemReg pack publication.
 	ReasonLegacyLayerComposition Reason = "legacy_layer_composition"
-	// ReasonUnknownPendingSTD01 means the family stays unknown while the
-	// dependency the accepted packs record under this same coded value is
-	// unresolved; no normative mapping or conformance claim exists. The
-	// dependency itself is defined by the packs, not by the catalog.
-	ReasonUnknownPendingSTD01 Reason = "unknown_pending_std_01"
+	// ReasonUnknownPendingNormativeSource means the family stays unknown
+	// while the normative source the accepted packs record under this same
+	// coded value is unresolved; no normative mapping or conformance claim
+	// exists. The dependency itself is defined by the packs, not by the
+	// catalog.
+	ReasonUnknownPendingNormativeSource Reason = "unknown_pending_normative_source"
 	// ReasonNoProducer means no producer, topology instance or mapping is
 	// established for the family.
 	ReasonNoProducer Reason = "no_producer"
@@ -124,7 +125,7 @@ var reasons = map[Reason]struct{}{
 	ReasonOfflineProfileOnly: {}, ReasonOfflineMappingGateOnly: {}, ReasonFamilyCompatibleOffline: {},
 	ReasonNoAdmissibleProfile: {}, ReasonQualificationTestReadyOnly: {}, ReasonEvidenceBlocked: {},
 	ReasonNoGoMissingEvidence: {}, ReasonOfflineReplayOnly: {}, ReasonSemanticMappingUnknown: {},
-	ReasonLegacyLayerComposition: {}, ReasonUnknownPendingSTD01: {}, ReasonNoProducer: {},
+	ReasonLegacyLayerComposition: {}, ReasonUnknownPendingNormativeSource: {}, ReasonNoProducer: {},
 }
 
 var compositions = map[Composition]struct{}{

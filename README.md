@@ -14,7 +14,7 @@ qualified-current, same-interface, exact known-clear storage interlock
 precondition before the existing operation kernel evaluates authority or any
 dispatch boundary. The pack has no native mapping, route, authority, Portal
 composition, persistence, gateway, consumer, or live-I/O behavior; eeBUS
-remains `unknown_pending_std_01`.
+remains `unknown_pending_normative_source`.
 
 ## PV/inverter capability pack v1
 
@@ -38,7 +38,7 @@ through the existing operation kernel; it does not implement topology
 instances, native mappings, Tesla sending or routes, eeBUS qualification,
 Matter conformance, Portal composition, consumer behavior, persistence, or
 live I/O. Tesla remains a no-sender/no-route/no-live-authority candidate,
-eeBUS remains `unknown_pending_std_01`, and Matter is input-only. Native
+eeBUS remains `unknown_pending_normative_source`, and Matter is input-only. Native
 counter reset/wrap evidence, lifecycle and loss semantics remain outside this
 pack. Capability-to-service instance pairing remains static metadata because
 the current `PackValidator` boundary sees only an opaque service-instance ID.

@@ -79,7 +79,7 @@ func TestStatesSupportedByEvidence(t *testing.T) {
 		"outback-axs": ReasonNoGoMissingEvidence, "growatt-protocol-ii": ReasonNoAdmissibleProfile,
 		"huawei-emma": ReasonEvidenceBlocked, "huawei-sdongle": ReasonEvidenceBlocked,
 		"gree-vrf-can": ReasonSemanticMappingUnknown, "infrastructure": ReasonNoProducer,
-		"eebus-inbound": ReasonUnknownPendingSTD01,
+		"eebus-inbound": ReasonUnknownPendingNormativeSource,
 	}
 	for _, f := range c.Families {
 		if f.State != want[f.FamilyID] {

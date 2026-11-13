@@ -370,7 +370,7 @@
       "semantic_pack": "",
       "state": "unknown",
       "composition": "composed_legacy",
-      "reason": "unknown_pending_std_01",
+      "reason": "unknown_pending_normative_source",
       "evidence": [
         {
           "owner": "Project-Helianthus/helianthus-eebusreg@cdfdf0c",
@@ -382,7 +382,7 @@
           "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
           "kind": "semantic_contract",
           "locator": "compatibility/donor-ledger.md",
-          "statement": "eeBUS remains unknown_pending_std_01 in every pack; no normative mapping or conformance claim"
+          "statement": "eeBUS remains unknown_pending_normative_source in every pack; no normative mapping or conformance claim"
         },
         {
           "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
@@ -406,7 +406,7 @@
           "owner": "Project-Helianthus/helianthus-docs-semantic@30f5e5c",
           "kind": "semantic_contract",
           "locator": "api/v1/packs/infrastructure-v1.md",
-          "statement": "read-only pack; no pin proves a universal site/grid/feeder/circuit/phase/meter mapping; eBUS is identity-only unknown evidence, Modbus a profile-specific candidate, eeBUS unknown_pending_std_01"
+          "statement": "read-only pack; no pin proves a universal site/grid/feeder/circuit/phase/meter mapping; eBUS is identity-only unknown evidence, Modbus a profile-specific candidate, eeBUS unknown_pending_normative_source"
         },
         {
           "owner": "Project-Helianthus/helianthus-semreg@7c56095",
