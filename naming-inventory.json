@@ -135,6 +135,10 @@
     "semreg/v1/thermal_unknown_zero_test.go",
     "semreg/v1/types.go",
     "semreg/v1/validation.go",
+    "semreg/v1/validation_bindings.go",
+    "semreg/v1/validation_facts.go",
+    "semreg/v1/validation_registry.go",
+    "semreg/v1/validation_wire.go",
     "semreg/v1/wire_relations_test.go",
     "semreg/v1/wire_scalar_test.go"
   ],
@@ -371013,838 +371017,6 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::go_identifier::ElapsedMonotonicNS",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "ElapsedMonotonicNS",
-      "target": "ElapsedMonotonicNS",
-      "role_decomposition": [
-        "ElapsedMonotonicNS"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DefinitionKind",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DefinitionKind",
-      "target": "DefinitionKind",
-      "role_decomposition": [
-        "DefinitionKind"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::Registry",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "Registry",
-      "target": "Registry",
-      "role_decomposition": [
-        "Registry"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/api/graphql.md",
-        "docs-ebus/api/mcp.md",
-        "docs-ebus/api/modbus-v1-addon-runtime.md",
-        "docs-ebus/architecture/ak12_b516_directional_types_api.md",
-        "docs-ebus/architecture/ak16_b555_additional_forms_api.md",
-        "docs-ebus/architecture/ak22_b524_component_selectors_api.md",
-        "docs-ebus/architecture/atr/04-sn-merge-gate.md",
-        "docs-ebus/architecture/b524-semantic-mapping.md",
-        "docs-ebus/architecture/overview.md",
-        "docs-ebus/architecture/protocol-routing-vendor-fronius-observed-flavor-v1-2.md",
-        "docs-ebus/architecture/regulator-identity-enrichment.md",
-        "docs-ebus/architecture/vaillant-plane-capabilities.md",
-        "docs-ebus/development/ad10-migration-equivalence.md",
-        "docs-ebus/development/b524-basv2-publication-intake.md",
-        "docs-ebus/development/conventions.md",
-        "docs-ebus/docs/platform/live/fronius-m4-04-0.6.46/README.md",
-        "docs-ebus/docs/platform/live/fronius-m4-04-0.6.47/README.md",
-        "docs-ebus/docs/platform/live/fronius-observed-flavor-1.2.0/README.md",
-        "docs-ebus/docs/platform/modbus-foundation-profile-contract-v1.md",
-        "docs-ebus/docs/platform/schemas/canonical-pv-source-registry-bindings-v1.schema.json",
-        "docs-ebus/docs/platform/shared-registry-boundary.md",
-        "docs-ebus/tests/test_ak12_b516_directional_types.py",
-        "docs-ebus/tests/test_b524_operation_docs.py",
-        "docs-ebus/tests/test_modbus_v1_live_qualification_contract.py",
-        "docs-ebus/tests/test_platform_contracts.py",
-        "docs-ebus/tests/test_runtime_control_contract.py",
-        "docs-ebus/tests/test_sunspec_model_123_fronius_v3_contract.py",
-        "docs-semantic/api/v1/kernel.md",
-        "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.md",
-        "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.md",
-        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.md",
-        "docs-semantic/scripts/validate_huawei_luna2000_storage_mapping.py",
-        "docs-semantic/scripts/validate_pack_metadata_v1.py",
-        "ebus-vdev/README.md",
-        "ebus-vdev/internal/device/registry.go",
-        "ebusgateway/author-evidence/issue965-tesla-hsc-retained-owner/REPORT.md",
-        "ebusgateway/author-evidence/issue973-portal-catalog-admission/REPORT.md",
-        "ebusgateway/cmd/gateway/gateway_http_providers_test.go",
-        "ebusgateway/cmd/gateway/gateway_run_lifecycle.go",
-        "ebusgateway/cmd/gateway/gateway_run_setup.go",
-        "ebusgateway/cmd/gateway/mcp_tool_inventory_test.go",
-        "ebusgateway/cmd/gateway/portal_catalog_contributions.go",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/semantic_snapshot_provider_test.go",
-        "ebusgateway/cmd/gateway/semantic_vaillant.go",
-        "ebusgateway/cmd/gateway/semantic_vaillant_test.go",
-        "ebusgateway/cmd/gateway/startup_scan.go",
-        "ebusgateway/cmd/gateway/startup_scan_test.go",
-        "ebusgateway/cmd/gateway/testdata/growatt_project_conformance.json",
-        "ebusgateway/docs/architecture/portal-driver-contribution-contract-v1.md",
-        "ebusgateway/docs/architecture/portal-investigation-bundle.md",
-        "ebusgateway/docs/architecture/portal-investigation-selection.md",
-        "ebusgateway/docs/architecture/runtime-driver-provider-contract-v1.md",
-        "ebusgateway/docs/architecture/semantic-metric-slot-store.md",
-        "ebusgateway/gateway.go",
-        "ebusgateway/graphql/builder.go",
-        "ebusgateway/graphql/find_controller_entry_p95_test.go",
-        "ebusgateway/graphql/schema.go",
-        "ebusgateway/internal/candidatefacts/artifacts.go",
-        "ebusgateway/internal/candidatefacts/contract_red_test.go",
-        "ebusgateway/internal/candidatefacts/types.go",
-        "ebusgateway/internal/candidatefacts/validation.go",
-        "ebusgateway/internal/coexistence/amended_red_test.go",
-        "ebusgateway/internal/coexistence/captured_runtime_test.go",
-        "ebusgateway/internal/coexistence/cmd/msp08harness/main.go",
-        "ebusgateway/internal/coexistence/report_generate.go",
-        "ebusgateway/internal/coexistence/review_regression_test.go",
-        "ebusgateway/internal/coexistence/types.go",
-        "ebusgateway/internal/promotioncapture/assembler.go",
-        "ebusgateway/internal/promotioncapture/assembler_test.go",
-        "ebusgateway/internal/promotioncapture/core_test.go",
-        "ebusgateway/internal/promotioncapture/evaluator.go",
-        "ebusgateway/internal/promotioncapture/registry.go",
-        "ebusgateway/internal/promotionlock/contract_red_test.go",
-        "ebusgateway/internal/promotionlock/source.go",
-        "ebusgateway/internal/promotionlock/types.go",
-        "ebusgateway/internal/runtimecontrol/provider.go",
-        "ebusgateway/internal/runtimecontrol/registry.go",
-        "ebusgateway/internal/runtimecontrol/registry_test.go",
-        "ebusgateway/internal/semanticmetrics/metrics.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go",
-        "ebusgateway/internal/semanticmetrics/o21_slot_store.go",
-        "ebusgateway/internal/semanticmetrics/o21_slot_store_test.go",
-        "ebusgateway/internal/teslaobserve/worksheet.go",
-        "ebusgateway/mcp/lookup_discovery_labels_p83_test.go",
-        "ebusgateway/mcp/server.go",
-        "ebusgateway/mcp/server_construction.go",
-        "ebusgateway/passive_discovery_promoter.go",
-        "ebusgateway/passive_discovery_promoter_test.go",
-        "ebusgateway/portal/contributions.go",
-        "ebusgateway/portal/contributions_test.go",
-        "ebusgateway/portal/contributionv1/testdata/five-domain-catalog.json",
-        "ebusgateway/portal/contributionv1/validate.go",
-        "ebusgateway/portal/static/assets/app.js",
-        "ebusgateway/portal/web/src/app.js",
-        "ebusgateway/portal/web/test/portal-contribution-v1.test.mjs",
-        "ebusgateway/smoke.go",
-        "ebusgateway/snapshot_contains_address_p92_test.go",
-        "ebusgo/errors/errors_test.go",
-        "ha-addon/README.md",
-        "ha-integration/README.md",
-        "ha-integration/docs/physical-model-metadata-contract.md",
-        "ha-integration/docs/zone-dhw-lifecycle-contract.md",
-        "matter-binding/docs/target-profile/can-driver-coverage.md",
-        "matter-binding/docs/target-profile/evse.md",
-        "tinyebus/README.md"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::Pack",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "Pack",
-      "target": "Pack",
-      "role_decomposition": [
-        "Pack"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/api/semantic-snapshot-read.md",
-        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-        "docs-ebus/architecture/solar-pump-semreg-cutover.md",
-        "docs-ebus/deployment/prometheus-semantic-coverage.md",
-        "docs-ebus/docs/platform/canonical-pv-semantics-v1.md",
-        "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
-        "docs-ebus/tests/semreg_thermal_map_contract/thermal_map_test.go",
-        "docs-semantic/api/v1/kernel.md",
-        "docs-semantic/api/v1/mappings/growatt-bms-rs485-v202-storage-v1.md",
-        "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.md",
-        "docs-semantic/api/v1/pack-availability-view.md",
-        "docs-semantic/api/v1/packs/storage-bms-v1.md",
-        "docs-semantic/api/v1/targets/matter-1.6.1-v1.md",
-        "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
-        "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
-        "ebusgateway/cmd/gateway/portal_catalog_v1.go",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_valve_mapping_test.go",
-        "ebusgateway/graphql/semantic_snapshot_test.go",
-        "ebusgateway/internal/modbusadapter/semreg_pv_publication_core.go",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/epoch_test.go",
-        "ebusgateway/internal/semhub/fixture_test.go",
-        "ebusgateway/mcp/semantic_snapshot_test.go",
-        "ebusgateway/mcp/tesla_gen3_evse_semantic.go",
-        "ebusgateway/portal/catalogv1/compose.go",
-        "ebusgateway/portal/catalogv1/compose_test.go",
-        "ebusgateway/portal/catalogv1/contract.go",
-        "ebusgateway/portal/contributions_test.go",
-        "ebusgateway/portal/contributionv1/contract.go",
-        "ebusgateway/portal/contributionv1/static_index_external_test.go",
-        "ebusgateway/portal/contributionv1/testdata/five-domain-catalog.json",
-        "ebusgateway/portal/contributionv1/validate_test.go",
-        "ha-integration/docs/semantic-snapshot-consumer.md",
-        "matter-binding/docs/target-profile/evse.md",
-        "matter-binding/docs/target-profile/photovoltaic.md",
-        "matter-binding/docs/target-profile/storage.md",
-        "vrc-explorer/src/helianthus_vrc_explorer/protocol/b516.py"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::Definitions",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "Definitions",
-      "target": "Definitions",
-      "role_decomposition": [
-        "Definitions"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/LICENSE",
-        "docs-ebus/api/modbus-multi-endpoint-runtime.md",
-        "docs-ebus/architecture/circuit-temperature-cutover.md",
-        "docs-ebus/architecture/protocol-routing-vendor-huawei-candidate-evidence-v1.md",
-        "docs-ebus/architecture/startup-admission-and-discovery.md",
-        "docs-ebus/development/device-dump.md",
-        "docs-ebus/docs/platform/manifests/modbus-vendor-evidence-v1.json",
-        "docs-ebus/protocols/brink/brink-40xx.md",
-        "docs-semantic/LICENSE",
-        "docs-semantic/api/v1/kernel.md",
-        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.json",
-        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.md",
-        "docs-semantic/api/v1/pack-availability-view.md",
-        "docs-semantic/scripts/kernel-validation-rules.json",
-        "docs-semantic/scripts/test_validate_huawei_sun2000_pv_mapping.py",
-        "docs-semantic/scripts/validate_huawei_sun2000_pv_mapping.py",
-        "ebus-vdev/LICENSE",
-        "ebusgateway/LICENSE",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/epoch_test.go",
-        "ebusgateway/internal/semhub/fixture_test.go",
-        "ebusgateway/internal/syncevidence/m625.go",
-        "ebusgateway/internal/syncevidence/registry.go",
-        "ebusgateway/portal/contributionv1/validate_test.go",
-        "ebusgo/LICENSE",
-        "ha-addon/LICENSE",
-        "ha-integration/LICENSE",
-        "matter-binding/LICENSE",
-        "modbus/LICENSE",
-        "tinyebus/LICENSE",
-        "vrc-explorer/LICENSE",
-        "vrc-explorer/fixtures/b524_shared/LICENSE-AGPL"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::ValidateFact",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "ValidateFact",
-      "target": "ValidateFact",
-      "role_decomposition": [
-        "ValidateFact"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/tests/semreg_thermal_map_contract/dhw_setpoint_test.go",
-        "docs-semantic/api/v1/kernel.md",
-        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping.go",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/fixture_test.go",
-        "ebusgateway/internal/semhub/restore_test.go",
-        "ebusgateway/matter/model161.go",
-        "ebusgateway/matter/projection.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::ValidateService",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "ValidateService",
-      "target": "ValidateService",
-      "role_decomposition": [
-        "ValidateService"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-semantic/api/v1/kernel.md",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/fixture_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::ValidateCapability",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "ValidateCapability",
-      "target": "ValidateCapability",
-      "role_decomposition": [
-        "ValidateCapability"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-semantic/api/v1/kernel.md",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/fixture_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::ValidateField",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "ValidateField",
-      "target": "ValidateField",
-      "role_decomposition": [
-        "ValidateField"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-semantic/api/v1/kernel.md",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/fixture_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::MatchConstraints",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "MatchConstraints",
-      "target": "MatchConstraints",
-      "role_decomposition": [
-        "MatchConstraints"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-semantic/api/v1/kernel.md",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/fixture_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::EvaluatePredicate",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "EvaluatePredicate",
-      "target": "EvaluatePredicate",
-      "role_decomposition": [
-        "EvaluatePredicate"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-semantic/api/v1/kernel.md",
-        "docs-semantic/scripts/kernel-validation-rules.json",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semhub/fixture_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::NewRegistry",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "NewRegistry",
-      "target": "NewRegistry",
-      "role_decomposition": [
-        "NewRegistry"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "ebus-vdev/internal/device/registry.go",
-        "ebus-vdev/internal/device/registry_test.go",
-        "ebusgateway/internal/runtimecontrol/registry.go",
-        "ebusgateway/internal/runtimecontrol/registry_test.go",
-        "ebusgateway/portal/contributionv1/validate.go",
-        "ebusgateway/portal/contributionv1/validate_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::Validator",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "Validator",
-      "target": "Validator",
-      "role_decomposition": [
-        "Validator"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/architecture/ebus_standard/12-address-table.md",
-        "docs-ebus/architecture/runtime-state.md",
-        "docs-ebus/author-evidence/issue523-portal-ux-contract/REPORT.md",
-        "ebusgo/protocol/validate_frame_addressing.go",
-        "ha-addon/scripts/build_offline_acceptance_index.py",
-        "matter-binding/docs/adoption/pin-transition.md"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::Definition",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "Definition",
-      "target": "Definition",
-      "role_decomposition": [
-        "Definition"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
-        "docs-ebus/architecture/enh-ens-conformance-tests.md",
-        "docs-ebus/architecture/startup-admission-and-discovery.md",
-        "docs-ebus/docs/platform/schemas/adversarial-runtime-report-v1.schema.json",
-        "docs-ebus/protocols/vaillant/ebus-vaillant-B508.md",
-        "docs-semantic/api/v1/family-catalog-v1.md",
-        "docs-semantic/api/v1/kernel.md",
-        "docs-semantic/api/v1/pack-availability-view.md",
-        "docs-semantic/api/v1/serialization.md",
-        "docs-semantic/scripts/test_validate_matter_17_projection_v1.py",
-        "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
-        "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
-        "ebusgateway/cmd/gateway/portal_catalog_v1_test.go",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/thermal_circuit_capability_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_valve_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_zone_valve_mapping_test.go",
-        "ebusgateway/graphql/semantic_snapshot_test.go",
-        "ebusgateway/internal/adversarial/contract_v1.go",
-        "ebusgateway/internal/adversarial/executor.go",
-        "ebusgateway/internal/adversarial/scenario.go",
-        "ebusgateway/internal/adversarial/types.go",
-        "ebusgateway/internal/modbusadapter/semreg_pv_publication_core.go",
-        "ebusgateway/internal/runtimecontrol/recovery_test.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go",
-        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
-        "ebusgateway/internal/semanticview/outcome_reason_test.go",
-        "ebusgateway/internal/semanticview/view_test.go",
-        "ebusgateway/internal/semhub/control_test.go",
-        "ebusgateway/internal/semhub/fixture_test.go",
-        "ebusgateway/mcp/semantic_snapshot_test.go",
-        "ebusgateway/mcp/tesla_gen3_evse_semantic.go",
-        "ebusgo/protocol/vaillant/b503/decode.go",
-        "matter-binding/adoption/reference.go",
-        "matter-binding/adoption/reference_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::ValidateFactCandidate",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "ValidateFactCandidate",
-      "target": "ValidateFactCandidate",
-      "role_decomposition": [
-        "ValidateFactCandidate"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::Decode",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "Decode",
-      "target": "Decode",
-      "role_decomposition": [
-        "Decode"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/architecture/an20_b531_limit_numeric_views.md",
-        "docs-ebus/architecture/aq22_b51a_diagnostic_fields.md",
-        "docs-ebus/architecture/ebus_standard/02-l7-types.md",
-        "docs-ebus/architecture/ebus_standard/03-identification.md",
-        "docs-ebus/architecture/ebus_standard/11-m4b-semantic-lock.md",
-        "docs-ebus/architecture/outdoor-temperature-semreg-cutover.md",
-        "docs-ebus/architecture/solar-pump-semreg-cutover.md",
-        "docs-ebus/architecture/startup-admission-and-discovery.md",
-        "docs-ebus/architecture/system-pressure-semreg-disposition.md",
-        "docs-ebus/architecture/zone-room-temperature-cutover.md",
-        "docs-ebus/development/ebus-vaillant-b524-explorer-discovery.md",
-        "docs-ebus/docs/platform/opaque-runtime-acquisition-v1.md",
-        "docs-ebus/firmware/pic16f15356-pinout.md",
-        "docs-ebus/protocols/vaillant/ebus-vaillant-B514.md",
-        "docs-ebus/protocols/vaillant/ebus-vaillant-B524-register-map.md",
-        "docs-ebus/protocols/vaillant/ebus-vaillant-b524-survey-methodology.md",
-        "docs-ebus/scripts/ci_local.sh",
-        "docs-ebus/tests/test_fronius_flavor_v1_2_walk_evidence.py",
-        "docs-ebus/types/composite.md",
-        "docs-ebus/types/overview.md",
-        "ebus-vdev/internal/device/thermostat/vr90_test.go",
-        "ebusgateway/cmd/gateway/m2m_graphql_runtime_red_test.go",
-        "ebusgateway/cmd/gateway/matter_binding_feed_v1_test.go",
-        "ebusgateway/cmd/gateway/static_seed_table_test.go",
-        "ebusgateway/docs/architecture/portal-investigation-selection.md",
-        "ebusgateway/graphql/snapshot_handler_test.go",
-        "ebusgateway/internal/portalconfig/o10_diagnostics_test.go",
-        "ebusgateway/internal/portalconfig/store.go",
-        "ebusgateway/internal/portalconfig/store_test.go",
-        "ebusgateway/internal/runtimecontrol/contractcheck/contractcheck.go",
-        "ebusgateway/internal/runtimecontrol/contractcheck/contractcheck_test.go",
-        "ebusgateway/mcp/ebus_standard/server.go",
-        "ebusgateway/mcp/ebus_standard/server_test.go",
-        "ebusgateway/mcp/ebus_standard_wiring.go",
-        "ebusgateway/mcp/ebus_standard_wiring_test.go",
-        "ebusgateway/mcp/testdata/growatt_protocol_ii_tools_list.golden.json",
-        "ebusgateway/portal/contributionv1/validate.go",
-        "ebusgateway/portal/contributionv1/validate_test.go",
-        "ebusgateway/portal/explorer.go",
-        "ebusgateway/portal/explorer_ebus_standard.go",
-        "ebusgateway/portal/explorer_ebus_standard_test.go",
-        "ebusgateway/portal/static/assets/app.js",
-        "ebusgateway/portal/web/src/app.js",
-        "ebusgateway/portal/web/test/l7-catalog.test.mjs",
-        "ebusgateway/register_dump.go",
-        "ebusgateway/register_dump_upload.go",
-        "ebusgateway/register_dump_upload_test.go",
-        "ebusgo/protocol/ebus_standard/types/bcd.go",
-        "ebusgo/protocol/ebus_standard/types/bcd_test.go",
-        "ebusgo/protocol/ebus_standard/types/byte.go",
-        "ebusgo/protocol/ebus_standard/types/byte_test.go",
-        "ebusgo/protocol/ebus_standard/types/char.go",
-        "ebusgo/protocol/ebus_standard/types/char_test.go",
-        "ebusgo/protocol/ebus_standard/types/data1c.go",
-        "ebusgo/protocol/ebus_standard/types/data1c_test.go",
-        "ebusgo/protocol/ebus_standard/types/raw.go",
-        "ebusgo/protocol/ebus_standard/types/types.go",
-        "ebusgo/protocol/fixtures_test.go",
-        "ebusgo/protocol/responder/frame_decoder.go",
-        "ebusgo/types/bcd.go",
-        "ebusgo/types/bcd_test.go",
-        "ebusgo/types/bitfield.go",
-        "ebusgo/types/bitfield_test.go",
-        "ebusgo/types/data1b.go",
-        "ebusgo/types/data1b_test.go",
-        "ebusgo/types/data2b.go",
-        "ebusgo/types/data2b_test.go",
-        "ebusgo/types/data2c.go",
-        "ebusgo/types/data2c_test.go",
-        "ebusgo/types/exp.go",
-        "ebusgo/types/exp_test.go",
-        "ebusgo/types/types.go",
-        "ebusgo/types/word.go",
-        "ebusgo/types/word_test.go",
-        "ha-integration/docs/semantic-snapshot-consumer.md",
-        "matter-binding/tools/validate_lock.py",
-        "vrc-explorer/CHANGELOG.md",
-        "vrc-explorer/src/helianthus_vrc_explorer/protocol/b524_metadata.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/protocol/parser.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/scanner/b509.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/scanner/b524_operation_reads.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/schema/parameter_descriptions.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/schema/regulator_identity.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/transport/enhanced_tcp.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/ui/html_report.py",
-        "vrc-explorer/src/helianthus_vrc_explorer/ui/register_semantics.py",
-        "vrc-explorer/tests/test_register_semantics.py"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeDecimal",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeDecimal",
-      "target": "DecodeDecimal",
-      "role_decomposition": [
-        "DecodeDecimal"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeValue",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeValue",
-      "target": "DecodeValue",
-      "role_decomposition": [
-        "DecodeValue"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeFactCandidate",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeFactCandidate",
-      "target": "DecodeFactCandidate",
-      "role_decomposition": [
-        "DecodeFactCandidate"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeFactEnvelope",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeFactEnvelope",
-      "target": "DecodeFactEnvelope",
-      "role_decomposition": [
-        "DecodeFactEnvelope"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeEvaluationView",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeEvaluationView",
-      "target": "DecodeEvaluationView",
-      "role_decomposition": [
-        "DecodeEvaluationView"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeSelection",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeSelection",
-      "target": "DecodeSelection",
-      "role_decomposition": [
-        "DecodeSelection"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DecodeCapabilityInstance",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DecodeCapabilityInstance",
-      "target": "DecodeCapabilityInstance",
-      "role_decomposition": [
-        "DecodeCapabilityInstance"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::CanonicalJSON",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "CanonicalJSON",
-      "target": "CanonicalJSON",
-      "role_decomposition": [
-        "CanonicalJSON"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": [
-        "docs-ebus/architecture/decisions.md",
-        "ebusgateway/internal/promotioncapture/assembler.go",
-        "ebusgateway/internal/promotioncapture/assembler_test.go",
-        "ebusgateway/internal/promotioncapture/canonical.go",
-        "ebusgateway/internal/promotioncapture/evaluator.go",
-        "ebusgateway/matter/README.md",
-        "ebusgateway/matter/feedv1/contract.go",
-        "ebusgateway/matter/feedv1/server.go",
-        "ebusgateway/matter/projection.go",
-        "ebusgateway/matter/projection_test.go",
-        "ebusgateway/portal/catalogv1/compose.go",
-        "ebusgateway/portal/catalogv1/compose_test.go",
-        "ebusgo/determinism/canonical.go",
-        "ebusgo/determinism/canonical_test.go"
-      ]
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_identifier::DigestRecord",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_identifier",
-      "current_name": "DigestRecord",
-      "target": "DigestRecord",
-      "role_decomposition": [
-        "DigestRecord"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
       "identity": "semreg/v1/validation.go::go_field_candidate::InvalidJSON",
       "owning_file": "semreg/v1/validation.go",
       "kind": "go_field_candidate",
@@ -373114,16 +372286,16 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::go_field_candidate::DefinitionField",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_field_candidate",
-      "current_name": "DefinitionField",
-      "target": "DefinitionField",
+      "identity": "semreg/v1/validation_facts.go::go_identifier::ElapsedMonotonicNS",
+      "owning_file": "semreg/v1/validation_facts.go",
+      "kind": "go_identifier",
+      "current_name": "ElapsedMonotonicNS",
+      "target": "ElapsedMonotonicNS",
       "role_decomposition": [
-        "DefinitionField"
+        "ElapsedMonotonicNS"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -373132,80 +372304,8 @@
       "consumer_files": []
     },
     {
-      "identity": "semreg/v1/validation.go::go_field_candidate::DefinitionService",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_field_candidate",
-      "current_name": "DefinitionService",
-      "target": "DefinitionService",
-      "role_decomposition": [
-        "DefinitionService"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_field_candidate::DefinitionCapability",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_field_candidate",
-      "current_name": "DefinitionCapability",
-      "target": "DefinitionCapability",
-      "role_decomposition": [
-        "DefinitionCapability"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_field_candidate::DefinitionOperation",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_field_candidate",
-      "current_name": "DefinitionOperation",
-      "target": "DefinitionOperation",
-      "role_decomposition": [
-        "DefinitionOperation"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_field_candidate::DefinitionEffectRule",
-      "owning_file": "semreg/v1/validation.go",
-      "kind": "go_field_candidate",
-      "current_name": "DefinitionEffectRule",
-      "target": "DefinitionEffectRule",
-      "role_decomposition": [
-        "DefinitionEffectRule"
-      ],
-      "public_evidence": [
-        "semreg/v1/validation.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
-      "consumer_files": []
-    },
-    {
-      "identity": "semreg/v1/validation.go::go_field_candidate::Contract",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::go_field_candidate::Contract",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "go_field_candidate",
       "current_name": "Contract",
       "target": "Contract",
@@ -373213,7 +372313,7 @@
         "Contract"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -373422,8 +372522,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::go_field_candidate::AssetID",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::go_field_candidate::AssetID",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "go_field_candidate",
       "current_name": "AssetID",
       "target": "AssetID",
@@ -373431,7 +372531,7 @@
         "AssetID"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -373513,8 +372613,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::go_field_candidate::Key",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::go_field_candidate::Key",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "go_field_candidate",
       "current_name": "Key",
       "target": "Key",
@@ -373522,7 +372622,7 @@
         "Key"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -373734,8 +372834,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::go_field_candidate::Kind",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::go_field_candidate::Kind",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "go_field_candidate",
       "current_name": "Kind",
       "target": "Kind",
@@ -373743,7 +372843,7 @@
         "Kind"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -374021,8 +373121,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::go_field_candidate::Candidates",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::go_field_candidate::Candidates",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "go_field_candidate",
       "current_name": "Candidates",
       "target": "Candidates",
@@ -374030,7 +373130,7 @@
         "Candidates"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -374077,8 +373177,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::json_tag::contract",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::json_tag::contract",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "json_tag",
       "current_name": "contract",
       "target": "contract",
@@ -374086,7 +373186,7 @@
         "contract"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -375601,8 +374701,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::json_tag::asset_id",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::json_tag::asset_id",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "json_tag",
       "current_name": "asset_id",
       "target": "asset_id",
@@ -375611,7 +374711,7 @@
         "id"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -375739,8 +374839,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::json_tag::key",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::json_tag::key",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "json_tag",
       "current_name": "key",
       "target": "key",
@@ -375748,7 +374848,7 @@
         "key"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -376905,8 +376005,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::json_tag::kind",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::json_tag::kind",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "json_tag",
       "current_name": "kind",
       "target": "kind",
@@ -376914,7 +376014,7 @@
         "kind"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -377714,8 +376814,8 @@
       ]
     },
     {
-      "identity": "semreg/v1/validation.go::json_tag::candidates",
-      "owning_file": "semreg/v1/validation.go",
+      "identity": "semreg/v1/validation_facts.go::json_tag::candidates",
+      "owning_file": "semreg/v1/validation_facts.go",
       "kind": "json_tag",
       "current_name": "candidates",
       "target": "candidates",
@@ -377723,7 +376823,7 @@
         "candidates"
       ],
       "public_evidence": [
-        "semreg/v1/validation.go"
+        "semreg/v1/validation_facts.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -378113,6 +377213,910 @@
         "vrc-explorer/tests/test_research_probe_policy.py",
         "vrc-explorer/tests/test_scanner_scan.py"
       ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::DefinitionKind",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "DefinitionKind",
+      "target": "DefinitionKind",
+      "role_decomposition": [
+        "DefinitionKind"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::Registry",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "Registry",
+      "target": "Registry",
+      "role_decomposition": [
+        "Registry"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/api/graphql.md",
+        "docs-ebus/api/mcp.md",
+        "docs-ebus/api/modbus-v1-addon-runtime.md",
+        "docs-ebus/architecture/ak12_b516_directional_types_api.md",
+        "docs-ebus/architecture/ak16_b555_additional_forms_api.md",
+        "docs-ebus/architecture/ak22_b524_component_selectors_api.md",
+        "docs-ebus/architecture/atr/04-sn-merge-gate.md",
+        "docs-ebus/architecture/b524-semantic-mapping.md",
+        "docs-ebus/architecture/overview.md",
+        "docs-ebus/architecture/protocol-routing-vendor-fronius-observed-flavor-v1-2.md",
+        "docs-ebus/architecture/regulator-identity-enrichment.md",
+        "docs-ebus/architecture/vaillant-plane-capabilities.md",
+        "docs-ebus/development/ad10-migration-equivalence.md",
+        "docs-ebus/development/b524-basv2-publication-intake.md",
+        "docs-ebus/development/conventions.md",
+        "docs-ebus/docs/platform/live/fronius-m4-04-0.6.46/README.md",
+        "docs-ebus/docs/platform/live/fronius-m4-04-0.6.47/README.md",
+        "docs-ebus/docs/platform/live/fronius-observed-flavor-1.2.0/README.md",
+        "docs-ebus/docs/platform/modbus-foundation-profile-contract-v1.md",
+        "docs-ebus/docs/platform/schemas/canonical-pv-source-registry-bindings-v1.schema.json",
+        "docs-ebus/docs/platform/shared-registry-boundary.md",
+        "docs-ebus/tests/test_ak12_b516_directional_types.py",
+        "docs-ebus/tests/test_b524_operation_docs.py",
+        "docs-ebus/tests/test_modbus_v1_live_qualification_contract.py",
+        "docs-ebus/tests/test_platform_contracts.py",
+        "docs-ebus/tests/test_runtime_control_contract.py",
+        "docs-ebus/tests/test_sunspec_model_123_fronius_v3_contract.py",
+        "docs-semantic/api/v1/kernel.md",
+        "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.md",
+        "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.md",
+        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.md",
+        "docs-semantic/scripts/validate_huawei_luna2000_storage_mapping.py",
+        "docs-semantic/scripts/validate_pack_metadata_v1.py",
+        "ebus-vdev/README.md",
+        "ebus-vdev/internal/device/registry.go",
+        "ebusgateway/author-evidence/issue965-tesla-hsc-retained-owner/REPORT.md",
+        "ebusgateway/author-evidence/issue973-portal-catalog-admission/REPORT.md",
+        "ebusgateway/cmd/gateway/gateway_http_providers_test.go",
+        "ebusgateway/cmd/gateway/gateway_run_lifecycle.go",
+        "ebusgateway/cmd/gateway/gateway_run_setup.go",
+        "ebusgateway/cmd/gateway/mcp_tool_inventory_test.go",
+        "ebusgateway/cmd/gateway/portal_catalog_contributions.go",
+        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
+        "ebusgateway/cmd/gateway/semantic_snapshot_provider_test.go",
+        "ebusgateway/cmd/gateway/semantic_vaillant.go",
+        "ebusgateway/cmd/gateway/semantic_vaillant_test.go",
+        "ebusgateway/cmd/gateway/startup_scan.go",
+        "ebusgateway/cmd/gateway/startup_scan_test.go",
+        "ebusgateway/cmd/gateway/testdata/growatt_project_conformance.json",
+        "ebusgateway/docs/architecture/portal-driver-contribution-contract-v1.md",
+        "ebusgateway/docs/architecture/portal-investigation-bundle.md",
+        "ebusgateway/docs/architecture/portal-investigation-selection.md",
+        "ebusgateway/docs/architecture/runtime-driver-provider-contract-v1.md",
+        "ebusgateway/docs/architecture/semantic-metric-slot-store.md",
+        "ebusgateway/gateway.go",
+        "ebusgateway/graphql/builder.go",
+        "ebusgateway/graphql/find_controller_entry_p95_test.go",
+        "ebusgateway/graphql/schema.go",
+        "ebusgateway/internal/candidatefacts/artifacts.go",
+        "ebusgateway/internal/candidatefacts/contract_red_test.go",
+        "ebusgateway/internal/candidatefacts/types.go",
+        "ebusgateway/internal/candidatefacts/validation.go",
+        "ebusgateway/internal/coexistence/amended_red_test.go",
+        "ebusgateway/internal/coexistence/captured_runtime_test.go",
+        "ebusgateway/internal/coexistence/cmd/msp08harness/main.go",
+        "ebusgateway/internal/coexistence/report_generate.go",
+        "ebusgateway/internal/coexistence/review_regression_test.go",
+        "ebusgateway/internal/coexistence/types.go",
+        "ebusgateway/internal/promotioncapture/assembler.go",
+        "ebusgateway/internal/promotioncapture/assembler_test.go",
+        "ebusgateway/internal/promotioncapture/core_test.go",
+        "ebusgateway/internal/promotioncapture/evaluator.go",
+        "ebusgateway/internal/promotioncapture/registry.go",
+        "ebusgateway/internal/promotionlock/contract_red_test.go",
+        "ebusgateway/internal/promotionlock/source.go",
+        "ebusgateway/internal/promotionlock/types.go",
+        "ebusgateway/internal/runtimecontrol/provider.go",
+        "ebusgateway/internal/runtimecontrol/registry.go",
+        "ebusgateway/internal/runtimecontrol/registry_test.go",
+        "ebusgateway/internal/semanticmetrics/metrics.go",
+        "ebusgateway/internal/semanticmetrics/metrics_test.go",
+        "ebusgateway/internal/semanticmetrics/o21_slot_store.go",
+        "ebusgateway/internal/semanticmetrics/o21_slot_store_test.go",
+        "ebusgateway/internal/teslaobserve/worksheet.go",
+        "ebusgateway/mcp/lookup_discovery_labels_p83_test.go",
+        "ebusgateway/mcp/server.go",
+        "ebusgateway/mcp/server_construction.go",
+        "ebusgateway/passive_discovery_promoter.go",
+        "ebusgateway/passive_discovery_promoter_test.go",
+        "ebusgateway/portal/contributions.go",
+        "ebusgateway/portal/contributions_test.go",
+        "ebusgateway/portal/contributionv1/testdata/five-domain-catalog.json",
+        "ebusgateway/portal/contributionv1/validate.go",
+        "ebusgateway/portal/static/assets/app.js",
+        "ebusgateway/portal/web/src/app.js",
+        "ebusgateway/portal/web/test/portal-contribution-v1.test.mjs",
+        "ebusgateway/smoke.go",
+        "ebusgateway/snapshot_contains_address_p92_test.go",
+        "ebusgo/errors/errors_test.go",
+        "ha-addon/README.md",
+        "ha-integration/README.md",
+        "ha-integration/docs/physical-model-metadata-contract.md",
+        "ha-integration/docs/zone-dhw-lifecycle-contract.md",
+        "matter-binding/docs/target-profile/can-driver-coverage.md",
+        "matter-binding/docs/target-profile/evse.md",
+        "tinyebus/README.md"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::Pack",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "Pack",
+      "target": "Pack",
+      "role_decomposition": [
+        "Pack"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/api/semantic-snapshot-read.md",
+        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
+        "docs-ebus/architecture/solar-pump-semreg-cutover.md",
+        "docs-ebus/deployment/prometheus-semantic-coverage.md",
+        "docs-ebus/docs/platform/canonical-pv-semantics-v1.md",
+        "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
+        "docs-ebus/tests/semreg_thermal_map_contract/thermal_map_test.go",
+        "docs-semantic/api/v1/kernel.md",
+        "docs-semantic/api/v1/mappings/growatt-bms-rs485-v202-storage-v1.md",
+        "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.md",
+        "docs-semantic/api/v1/pack-availability-view.md",
+        "docs-semantic/api/v1/packs/storage-bms-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.md",
+        "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
+        "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
+        "ebusgateway/cmd/gateway/portal_catalog_v1.go",
+        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
+        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
+        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
+        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
+        "ebusgateway/cmd/gateway/thermal_zone_valve_mapping_test.go",
+        "ebusgateway/graphql/semantic_snapshot_test.go",
+        "ebusgateway/internal/modbusadapter/semreg_pv_publication_core.go",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticmetrics/metrics_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/epoch_test.go",
+        "ebusgateway/internal/semhub/fixture_test.go",
+        "ebusgateway/mcp/semantic_snapshot_test.go",
+        "ebusgateway/mcp/tesla_gen3_evse_semantic.go",
+        "ebusgateway/portal/catalogv1/compose.go",
+        "ebusgateway/portal/catalogv1/compose_test.go",
+        "ebusgateway/portal/catalogv1/contract.go",
+        "ebusgateway/portal/contributions_test.go",
+        "ebusgateway/portal/contributionv1/contract.go",
+        "ebusgateway/portal/contributionv1/static_index_external_test.go",
+        "ebusgateway/portal/contributionv1/testdata/five-domain-catalog.json",
+        "ebusgateway/portal/contributionv1/validate_test.go",
+        "ha-integration/docs/semantic-snapshot-consumer.md",
+        "matter-binding/docs/target-profile/evse.md",
+        "matter-binding/docs/target-profile/photovoltaic.md",
+        "matter-binding/docs/target-profile/storage.md",
+        "vrc-explorer/src/helianthus_vrc_explorer/protocol/b516.py"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::Definitions",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "Definitions",
+      "target": "Definitions",
+      "role_decomposition": [
+        "Definitions"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/LICENSE",
+        "docs-ebus/api/modbus-multi-endpoint-runtime.md",
+        "docs-ebus/architecture/circuit-temperature-cutover.md",
+        "docs-ebus/architecture/protocol-routing-vendor-huawei-candidate-evidence-v1.md",
+        "docs-ebus/architecture/startup-admission-and-discovery.md",
+        "docs-ebus/development/device-dump.md",
+        "docs-ebus/docs/platform/manifests/modbus-vendor-evidence-v1.json",
+        "docs-ebus/protocols/brink/brink-40xx.md",
+        "docs-semantic/LICENSE",
+        "docs-semantic/api/v1/kernel.md",
+        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.json",
+        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.md",
+        "docs-semantic/api/v1/pack-availability-view.md",
+        "docs-semantic/scripts/kernel-validation-rules.json",
+        "docs-semantic/scripts/test_validate_huawei_sun2000_pv_mapping.py",
+        "docs-semantic/scripts/validate_huawei_sun2000_pv_mapping.py",
+        "ebus-vdev/LICENSE",
+        "ebusgateway/LICENSE",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/epoch_test.go",
+        "ebusgateway/internal/semhub/fixture_test.go",
+        "ebusgateway/internal/syncevidence/m625.go",
+        "ebusgateway/internal/syncevidence/registry.go",
+        "ebusgateway/portal/contributionv1/validate_test.go",
+        "ebusgo/LICENSE",
+        "ha-addon/LICENSE",
+        "ha-integration/LICENSE",
+        "matter-binding/LICENSE",
+        "modbus/LICENSE",
+        "tinyebus/LICENSE",
+        "vrc-explorer/LICENSE",
+        "vrc-explorer/fixtures/b524_shared/LICENSE-AGPL"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::ValidateFact",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateFact",
+      "target": "ValidateFact",
+      "role_decomposition": [
+        "ValidateFact"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/tests/semreg_thermal_map_contract/dhw_setpoint_test.go",
+        "docs-semantic/api/v1/kernel.md",
+        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
+        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
+        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping.go",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/fixture_test.go",
+        "ebusgateway/internal/semhub/restore_test.go",
+        "ebusgateway/matter/model161.go",
+        "ebusgateway/matter/projection.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::ValidateService",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateService",
+      "target": "ValidateService",
+      "role_decomposition": [
+        "ValidateService"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/kernel.md",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/fixture_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::ValidateCapability",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateCapability",
+      "target": "ValidateCapability",
+      "role_decomposition": [
+        "ValidateCapability"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/kernel.md",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/fixture_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::ValidateField",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateField",
+      "target": "ValidateField",
+      "role_decomposition": [
+        "ValidateField"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/kernel.md",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/fixture_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::MatchConstraints",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "MatchConstraints",
+      "target": "MatchConstraints",
+      "role_decomposition": [
+        "MatchConstraints"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/kernel.md",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/fixture_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::EvaluatePredicate",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "EvaluatePredicate",
+      "target": "EvaluatePredicate",
+      "role_decomposition": [
+        "EvaluatePredicate"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/kernel.md",
+        "docs-semantic/scripts/kernel-validation-rules.json",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semhub/fixture_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::NewRegistry",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "NewRegistry",
+      "target": "NewRegistry",
+      "role_decomposition": [
+        "NewRegistry"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "ebus-vdev/internal/device/registry.go",
+        "ebus-vdev/internal/device/registry_test.go",
+        "ebusgateway/internal/runtimecontrol/registry.go",
+        "ebusgateway/internal/runtimecontrol/registry_test.go",
+        "ebusgateway/portal/contributionv1/validate.go",
+        "ebusgateway/portal/contributionv1/validate_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::Validator",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "Validator",
+      "target": "Validator",
+      "role_decomposition": [
+        "Validator"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/architecture/ebus_standard/12-address-table.md",
+        "docs-ebus/architecture/runtime-state.md",
+        "docs-ebus/author-evidence/issue523-portal-ux-contract/REPORT.md",
+        "ebusgo/protocol/validate_frame_addressing.go",
+        "ha-addon/scripts/build_offline_acceptance_index.py",
+        "matter-binding/docs/adoption/pin-transition.md"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::Definition",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "Definition",
+      "target": "Definition",
+      "role_decomposition": [
+        "Definition"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
+        "docs-ebus/architecture/enh-ens-conformance-tests.md",
+        "docs-ebus/architecture/startup-admission-and-discovery.md",
+        "docs-ebus/docs/platform/schemas/adversarial-runtime-report-v1.schema.json",
+        "docs-ebus/protocols/vaillant/ebus-vaillant-B508.md",
+        "docs-semantic/api/v1/family-catalog-v1.md",
+        "docs-semantic/api/v1/kernel.md",
+        "docs-semantic/api/v1/pack-availability-view.md",
+        "docs-semantic/api/v1/serialization.md",
+        "docs-semantic/scripts/test_validate_matter_17_projection_v1.py",
+        "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
+        "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
+        "ebusgateway/cmd/gateway/portal_catalog_v1_test.go",
+        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
+        "ebusgateway/cmd/gateway/thermal_circuit_capability_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
+        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
+        "ebusgateway/cmd/gateway/thermal_zone_valve_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_zone_valve_mapping_test.go",
+        "ebusgateway/graphql/semantic_snapshot_test.go",
+        "ebusgateway/internal/adversarial/contract_v1.go",
+        "ebusgateway/internal/adversarial/executor.go",
+        "ebusgateway/internal/adversarial/scenario.go",
+        "ebusgateway/internal/adversarial/types.go",
+        "ebusgateway/internal/modbusadapter/semreg_pv_publication_core.go",
+        "ebusgateway/internal/runtimecontrol/recovery_test.go",
+        "ebusgateway/internal/semanticmetrics/metrics_test.go",
+        "ebusgateway/internal/semanticoperations/semoptest/fixture.go",
+        "ebusgateway/internal/semanticview/outcome_reason_test.go",
+        "ebusgateway/internal/semanticview/view_test.go",
+        "ebusgateway/internal/semhub/control_test.go",
+        "ebusgateway/internal/semhub/fixture_test.go",
+        "ebusgateway/mcp/semantic_snapshot_test.go",
+        "ebusgateway/mcp/tesla_gen3_evse_semantic.go",
+        "ebusgo/protocol/vaillant/b503/decode.go",
+        "matter-binding/adoption/reference.go",
+        "matter-binding/adoption/reference_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_identifier::ValidateFactCandidate",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateFactCandidate",
+      "target": "ValidateFactCandidate",
+      "role_decomposition": [
+        "ValidateFactCandidate"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_field_candidate::DefinitionField",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_field_candidate",
+      "current_name": "DefinitionField",
+      "target": "DefinitionField",
+      "role_decomposition": [
+        "DefinitionField"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_field_candidate::DefinitionService",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_field_candidate",
+      "current_name": "DefinitionService",
+      "target": "DefinitionService",
+      "role_decomposition": [
+        "DefinitionService"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_field_candidate::DefinitionCapability",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_field_candidate",
+      "current_name": "DefinitionCapability",
+      "target": "DefinitionCapability",
+      "role_decomposition": [
+        "DefinitionCapability"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_field_candidate::DefinitionOperation",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_field_candidate",
+      "current_name": "DefinitionOperation",
+      "target": "DefinitionOperation",
+      "role_decomposition": [
+        "DefinitionOperation"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_field_candidate::DefinitionEffectRule",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_field_candidate",
+      "current_name": "DefinitionEffectRule",
+      "target": "DefinitionEffectRule",
+      "role_decomposition": [
+        "DefinitionEffectRule"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::Decode",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "Decode",
+      "target": "Decode",
+      "role_decomposition": [
+        "Decode"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/architecture/an20_b531_limit_numeric_views.md",
+        "docs-ebus/architecture/aq22_b51a_diagnostic_fields.md",
+        "docs-ebus/architecture/ebus_standard/02-l7-types.md",
+        "docs-ebus/architecture/ebus_standard/03-identification.md",
+        "docs-ebus/architecture/ebus_standard/11-m4b-semantic-lock.md",
+        "docs-ebus/architecture/outdoor-temperature-semreg-cutover.md",
+        "docs-ebus/architecture/solar-pump-semreg-cutover.md",
+        "docs-ebus/architecture/startup-admission-and-discovery.md",
+        "docs-ebus/architecture/system-pressure-semreg-disposition.md",
+        "docs-ebus/architecture/zone-room-temperature-cutover.md",
+        "docs-ebus/development/ebus-vaillant-b524-explorer-discovery.md",
+        "docs-ebus/docs/platform/opaque-runtime-acquisition-v1.md",
+        "docs-ebus/firmware/pic16f15356-pinout.md",
+        "docs-ebus/protocols/vaillant/ebus-vaillant-B514.md",
+        "docs-ebus/protocols/vaillant/ebus-vaillant-B524-register-map.md",
+        "docs-ebus/protocols/vaillant/ebus-vaillant-b524-survey-methodology.md",
+        "docs-ebus/scripts/ci_local.sh",
+        "docs-ebus/tests/test_fronius_flavor_v1_2_walk_evidence.py",
+        "docs-ebus/types/composite.md",
+        "docs-ebus/types/overview.md",
+        "ebus-vdev/internal/device/thermostat/vr90_test.go",
+        "ebusgateway/cmd/gateway/m2m_graphql_runtime_red_test.go",
+        "ebusgateway/cmd/gateway/matter_binding_feed_v1_test.go",
+        "ebusgateway/cmd/gateway/static_seed_table_test.go",
+        "ebusgateway/docs/architecture/portal-investigation-selection.md",
+        "ebusgateway/graphql/snapshot_handler_test.go",
+        "ebusgateway/internal/portalconfig/o10_diagnostics_test.go",
+        "ebusgateway/internal/portalconfig/store.go",
+        "ebusgateway/internal/portalconfig/store_test.go",
+        "ebusgateway/internal/runtimecontrol/contractcheck/contractcheck.go",
+        "ebusgateway/internal/runtimecontrol/contractcheck/contractcheck_test.go",
+        "ebusgateway/mcp/ebus_standard/server.go",
+        "ebusgateway/mcp/ebus_standard/server_test.go",
+        "ebusgateway/mcp/ebus_standard_wiring.go",
+        "ebusgateway/mcp/ebus_standard_wiring_test.go",
+        "ebusgateway/mcp/testdata/growatt_protocol_ii_tools_list.golden.json",
+        "ebusgateway/portal/contributionv1/validate.go",
+        "ebusgateway/portal/contributionv1/validate_test.go",
+        "ebusgateway/portal/explorer.go",
+        "ebusgateway/portal/explorer_ebus_standard.go",
+        "ebusgateway/portal/explorer_ebus_standard_test.go",
+        "ebusgateway/portal/static/assets/app.js",
+        "ebusgateway/portal/web/src/app.js",
+        "ebusgateway/portal/web/test/l7-catalog.test.mjs",
+        "ebusgateway/register_dump.go",
+        "ebusgateway/register_dump_upload.go",
+        "ebusgateway/register_dump_upload_test.go",
+        "ebusgo/protocol/ebus_standard/types/bcd.go",
+        "ebusgo/protocol/ebus_standard/types/bcd_test.go",
+        "ebusgo/protocol/ebus_standard/types/byte.go",
+        "ebusgo/protocol/ebus_standard/types/byte_test.go",
+        "ebusgo/protocol/ebus_standard/types/char.go",
+        "ebusgo/protocol/ebus_standard/types/char_test.go",
+        "ebusgo/protocol/ebus_standard/types/data1c.go",
+        "ebusgo/protocol/ebus_standard/types/data1c_test.go",
+        "ebusgo/protocol/ebus_standard/types/raw.go",
+        "ebusgo/protocol/ebus_standard/types/types.go",
+        "ebusgo/protocol/fixtures_test.go",
+        "ebusgo/protocol/responder/frame_decoder.go",
+        "ebusgo/types/bcd.go",
+        "ebusgo/types/bcd_test.go",
+        "ebusgo/types/bitfield.go",
+        "ebusgo/types/bitfield_test.go",
+        "ebusgo/types/data1b.go",
+        "ebusgo/types/data1b_test.go",
+        "ebusgo/types/data2b.go",
+        "ebusgo/types/data2b_test.go",
+        "ebusgo/types/data2c.go",
+        "ebusgo/types/data2c_test.go",
+        "ebusgo/types/exp.go",
+        "ebusgo/types/exp_test.go",
+        "ebusgo/types/types.go",
+        "ebusgo/types/word.go",
+        "ebusgo/types/word_test.go",
+        "ha-integration/docs/semantic-snapshot-consumer.md",
+        "matter-binding/tools/validate_lock.py",
+        "vrc-explorer/CHANGELOG.md",
+        "vrc-explorer/src/helianthus_vrc_explorer/protocol/b524_metadata.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/protocol/parser.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/scanner/b509.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/scanner/b524_operation_reads.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/schema/parameter_descriptions.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/schema/regulator_identity.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/transport/enhanced_tcp.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/ui/html_report.py",
+        "vrc-explorer/src/helianthus_vrc_explorer/ui/register_semantics.py",
+        "vrc-explorer/tests/test_register_semantics.py"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeDecimal",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeDecimal",
+      "target": "DecodeDecimal",
+      "role_decomposition": [
+        "DecodeDecimal"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeValue",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeValue",
+      "target": "DecodeValue",
+      "role_decomposition": [
+        "DecodeValue"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeFactCandidate",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeFactCandidate",
+      "target": "DecodeFactCandidate",
+      "role_decomposition": [
+        "DecodeFactCandidate"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeFactEnvelope",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeFactEnvelope",
+      "target": "DecodeFactEnvelope",
+      "role_decomposition": [
+        "DecodeFactEnvelope"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeEvaluationView",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeEvaluationView",
+      "target": "DecodeEvaluationView",
+      "role_decomposition": [
+        "DecodeEvaluationView"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeSelection",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeSelection",
+      "target": "DecodeSelection",
+      "role_decomposition": [
+        "DecodeSelection"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DecodeCapabilityInstance",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DecodeCapabilityInstance",
+      "target": "DecodeCapabilityInstance",
+      "role_decomposition": [
+        "DecodeCapabilityInstance"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::CanonicalJSON",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "CanonicalJSON",
+      "target": "CanonicalJSON",
+      "role_decomposition": [
+        "CanonicalJSON"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-ebus/architecture/decisions.md",
+        "ebusgateway/internal/promotioncapture/assembler.go",
+        "ebusgateway/internal/promotioncapture/assembler_test.go",
+        "ebusgateway/internal/promotioncapture/canonical.go",
+        "ebusgateway/internal/promotioncapture/evaluator.go",
+        "ebusgateway/matter/README.md",
+        "ebusgateway/matter/feedv1/contract.go",
+        "ebusgateway/matter/feedv1/server.go",
+        "ebusgateway/matter/projection.go",
+        "ebusgateway/matter/projection_test.go",
+        "ebusgateway/portal/catalogv1/compose.go",
+        "ebusgateway/portal/catalogv1/compose_test.go",
+        "ebusgo/determinism/canonical.go",
+        "ebusgo/determinism/canonical_test.go"
+      ]
+    },
+    {
+      "identity": "semreg/v1/validation_wire.go::go_identifier::DigestRecord",
+      "owning_file": "semreg/v1/validation_wire.go",
+      "kind": "go_identifier",
+      "current_name": "DigestRecord",
+      "target": "DigestRecord",
+      "role_decomposition": [
+        "DigestRecord"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_wire.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
     },
     {
       "identity": "semreg/v1/wire_relations_test.go::go_identifier::TestWireEnclosingTimeRelations",

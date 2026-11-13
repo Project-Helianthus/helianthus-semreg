@@ -29,3 +29,18 @@ comments change; no code, exported name, wire value or fixture changes. The new
 comment lines move source line numbers, so a consumer binary built on this
 revision changes and the gateway pin and its renewed evidence follow it. The
 root package `semreg/v1` is documented separately.
+
+Validation in the root package `semreg/v1` is now split by the type it validates.
+`validation.go` keeps the error type and error identifiers, the scalar and
+identifier validators and the record and contract interfaces. Evidence references,
+source descriptors, origins, native bindings, identity links, source paths and
+derivations move to `validation_bindings.go`; values, fact keys, times, freshness,
+evaluation context and views, selections, quality, causal context, fact candidates,
+retained observations, conflicts and fact envelopes to `validation_facts.go`; pack
+and definition references, typed fields, predicates, service and capability
+instances and the registry to `validation_registry.go`; and the strict JSON
+decoder, canonical JSON and record digests to `validation_wire.go`. Declarations
+move unchanged with their doc comments, so the error identifiers and their order
+are the same. No exported name, wire value or fixture changes; the naming
+inventories re-key the moved rows to their new owning files. The library revision
+still changes, so the gateway pin and its renewed evidence follow it.
