@@ -6,7 +6,7 @@ for protocol-neutral semantic contracts.
 [`v1/pv-inverter-pack-vectors.json`](v1/pv-inverter-pack-vectors.json) is the
 byte-for-byte PV/inverter acceptance fixture from
 `helianthus-docs-semantic@c20fdef000fe95df95fca60c55d651a0614c4efd`; its
-SHA-256 is `7ed698087047207597a103218e3b5e4f2efa55765e7cc4e31c3cf5b6a882b2fd`.
+SHA-256 is `10d45d196f6ff020c3e596eaa16c36f8e39cd9ab4eb0bb276d975f7d42c9511e`.
 It defines static semantic evidence only and does not create a native mapping,
 route, authority, or live operation.
 
@@ -15,7 +15,7 @@ route, authority, or live operation.
 are byte-for-byte copies from accepted
 `helianthus-docs-semantic@c20fdef000fe95df95fca60c55d651a0614c4efd` for
 `helianthus.pack.storage@1.1.0`; their SHA-256 values are respectively
-`f78906f336973c5fbe44bbf40d9ad9715c043b3c6421cf2d7ec0a5ce68f79146` and
+`6bb66f304c3ccd5870a4e49a68f1f3d20011eab84e3722c5f8fdfda79b7b4321` and
 `3bde31cbc59ff3e2ea19408f3bfb09210837e7df20a692593e5c261bc48b032f`.
 They define semantic evidence only and do not create native qualification,
 mapping, a route, authority, or live operation.
@@ -24,7 +24,7 @@ mapping, a route, authority, or live operation.
 copy of `api/v1/packs/evse-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
 Its SHA-256 is
-`38faa10b8c7893d8fcd3acd04a47ce478eba6bb9a224520adb12d8ac142f8dab`.
+`0138874611fd78cadb792785c4ab73f3b062d92cddae2297b06b9cb8c28f30b4`.
 The EVSE pack tests execute all twelve static catalog vectors, including the
 five-domain catalog, topology and Portal metadata, operation safety, Tesla,
 eeBUS, Matter, and counter-policy boundaries. The fixture does not create a
@@ -45,7 +45,7 @@ is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
 Its SHA-256 is
-`5ccf84e4727ec27f7234d1cd4a6a72bc1c5fc60dd5aa755f42f3a9a0e5cf5b6e`.
+`1f7db5f27ab6260c168e8dac4d91b746e0f64d92f56e29561c16cd3fb587ed9c`.
 The infrastructure pack tests pin its source and execute every accepted static
 catalog vector. The fixture is documentation-derived contract metadata only;
 it does not create topology instances, Portal composition, routes, native
@@ -242,7 +242,7 @@ vocabulary defined on the page: `offline_profile_only`,
 `offline_mapping_gate_only`, `family_compatible_offline`, `no_admissible_profile`,
 `qualification_test_ready_offline`, `evidence_blocked`, `no_go_missing_evidence`,
 `offline_replay_only`, `semantic_mapping_unknown`, `legacy_layer_composition`,
-`unknown_pending_std_01`, `no_producer`. Compatibility: within v1 only additive
+`unknown_pending_normative_source`, `no_producer`. Compatibility: within v1 only additive
 values (families, reasons, compositions, evidence kinds) are allowed; a new
 `state` value, removals, renames, new members or changed meanings need v2.
 

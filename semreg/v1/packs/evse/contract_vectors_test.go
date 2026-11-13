@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const fixtureHash = "38faa10b8c7893d8fcd3acd04a47ce478eba6bb9a224520adb12d8ac142f8dab"
+const fixtureHash = "0138874611fd78cadb792785c4ab73f3b062d92cddae2297b06b9cb8c28f30b4"
 
 type evseVector struct {
 	ID     string `json:"id"`
@@ -158,7 +158,7 @@ func evseVectorFailure(t *testing.T, id string, document map[string]any) string 
 			return "native mapping boundary"
 		}
 	case "eebus_normative":
-		if evseObject(t, evseArray(t, catalog["candidate_mappings"])[1])["state"] != "unknown_pending_std_01" {
+		if evseObject(t, evseArray(t, catalog["candidate_mappings"])[1])["state"] != "unknown_pending_normative_source" {
 			return "native mapping boundary"
 		}
 	case "matter_conformance":

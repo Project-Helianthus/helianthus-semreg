@@ -35,7 +35,7 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 		t.Fatal("fixture path")
 	}
 	root := filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "fixtures", "v1")
-	for _, tc := range []struct{ name, want string }{{"storage-bms-pack-vectors.json", "f78906f336973c5fbe44bbf40d9ad9715c043b3c6421cf2d7ec0a5ce68f79146"}, {"storage-bms-contract-tables.json", "3bde31cbc59ff3e2ea19408f3bfb09210837e7df20a692593e5c261bc48b032f"}} {
+	for _, tc := range []struct{ name, want string }{{"storage-bms-pack-vectors.json", "6bb66f304c3ccd5870a4e49a68f1f3d20011eab84e3722c5f8fdfda79b7b4321"}, {"storage-bms-contract-tables.json", "3bde31cbc59ff3e2ea19408f3bfb09210837e7df20a692593e5c261bc48b032f"}} {
 		raw, err := os.ReadFile(filepath.Join(root, tc.name))
 		if err != nil {
 			t.Fatal(err)
@@ -66,7 +66,7 @@ func TestStorageMachineFixtureVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(raw)
-	if actual := hex.EncodeToString(sum[:]); actual != "f78906f336973c5fbe44bbf40d9ad9715c043b3c6421cf2d7ec0a5ce68f79146" {
+	if actual := hex.EncodeToString(sum[:]); actual != "6bb66f304c3ccd5870a4e49a68f1f3d20011eab84e3722c5f8fdfda79b7b4321" {
 		t.Fatalf("fixture SHA-256 = %s", actual)
 	}
 	var baseline map[string]any

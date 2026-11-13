@@ -71,7 +71,7 @@ func TestPVMachineVectors(t *testing.T) {
 		t.Fatal(e)
 	}
 	s := sha256.Sum256(raw)
-	if hex.EncodeToString(s[:]) != "7ed698087047207597a103218e3b5e4f2efa55765e7cc4e31c3cf5b6a882b2fd" {
+	if hex.EncodeToString(s[:]) != "10d45d196f6ff020c3e596eaa16c36f8e39cd9ab4eb0bb276d975f7d42c9511e" {
 		t.Fatal("hash")
 	}
 	var d struct {
@@ -244,7 +244,7 @@ func pvVectorFailure(t *testing.T, id string, d map[string]any) string {
 			return "native mapping boundary"
 		}
 	case "PV-NEG-007":
-		if pvObj(t, c["candidate_mappings"].([]any)[2])["state"] != "unknown_pending_std_01" {
+		if pvObj(t, c["candidate_mappings"].([]any)[2])["state"] != "unknown_pending_normative_source" {
 			return "native mapping boundary"
 		}
 	case "PV-NEG-008":

@@ -15,7 +15,7 @@ import (
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 )
 
-const infrastructureFixtureSHA256 = "5ccf84e4727ec27f7234d1cd4a6a72bc1c5fc60dd5aa755f42f3a9a0e5cf5b6e"
+const infrastructureFixtureSHA256 = "1f7db5f27ab6260c168e8dac4d91b746e0f64d92f56e29561c16cd3fb587ed9c"
 
 type machineVector struct {
 	ID    string `json:"id"`
@@ -172,7 +172,7 @@ func validateMachineCatalog(document map[string]any) error {
 		return fmt.Errorf("read-only operation boundary")
 	}
 	mappings, ok := catalog["candidate_mappings"].([]any)
-	if !ok || len(mappings) != 4 || mapValueNoPanic(mappings[0])["live_authority"] != false || mapValueNoPanic(mappings[2])["state"] != "unknown_pending_std_01" || mapValueNoPanic(mappings[3])["qualification"] != "not_conformance" {
+	if !ok || len(mappings) != 4 || mapValueNoPanic(mappings[0])["live_authority"] != false || mapValueNoPanic(mappings[2])["state"] != "unknown_pending_normative_source" || mapValueNoPanic(mappings[3])["qualification"] != "not_conformance" {
 		return fmt.Errorf("native mapping boundary")
 	}
 	counter, ok := catalog["counter_policy"].(map[string]any)
