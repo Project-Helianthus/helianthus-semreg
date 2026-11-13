@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+The coherent-revision fixture now names its synthetic asset
+`asset:synthetic:two-bindings`, and the fixture README and its test describe two
+source bindings on one asset. The vectors prove revision coherence across two
+bindings of one asset and are not evidence of any wider grouping. Expected
+revisions, states, error IDs and kernel behaviour are unchanged. The fixture is a
+local supplement with no pinned digest. Only test data, a test and Markdown
+change, with no exported name or wire value, but the module revision changes and
+the gateway pin follows it.
+
 The catalog and pack reason for an eeBUS mapping that stays unknown while its
 normative source is unresolved is renamed to `unknown_pending_normative_source`
 (Go constant `ReasonUnknownPendingNormativeSource`). The value now states the

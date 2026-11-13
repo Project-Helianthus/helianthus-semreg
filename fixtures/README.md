@@ -92,7 +92,7 @@ from the accepted publication contract identified by
 expands the scenario inputs with existing synthetic typed publication helpers;
 this is a local supplement, not a byte-for-byte documentation fixture. It pins
 two candidate-linked bindings on one asset, canonical fan-out order, coherent
-revision vectors, retirement of only the second perspective and its lifecycle
+revision vectors, retirement of only the second binding and its lifecycle
 closure, deterministic bytes, and unchanged historical state. Negatives use the
 existing successor-revision, asset ownership, dangling-reference and unique-ID
 rules. Binding revisions are local counters, not semantic revision timestamps;
