@@ -44,3 +44,13 @@ move unchanged with their doc comments, so the error identifiers and their order
 are the same. No exported name, wire value or fixture changes; the naming
 inventories re-key the moved rows to their new owning files. The library revision
 still changes, so the gateway pin and its renewed evidence follow it.
+
+Snapshot validation moves from `publication.go` to `snapshot_validation.go` and is
+split into named checks: header, collection shape and order, sources, fences,
+cursors, source and fence cursor coverage, bindings and their lifecycle, identity
+links, services, capabilities, fact candidates, retained observations, the
+candidate graph and the snapshot identity. The checks run in the same order and
+report the same error identifiers, so `Snapshot.Validate` returns the same error
+for every snapshot. No exported name, wire value or fixture changes, and no
+naming-inventory row moves. The library revision still changes, so the gateway
+pin and its renewed evidence follow it.
