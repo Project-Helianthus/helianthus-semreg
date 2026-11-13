@@ -12,8 +12,9 @@ import (
 	"sync"
 )
 
-// EvaluationDigest returns the digest defined for an EvaluationView: canonical
-// JSON with evaluation_digest omitted. It does not modify the receiver.
+// EvaluationDigestValue returns the digest defined for an EvaluationView:
+// canonical JSON with evaluation_digest omitted. It ignores the stored digest,
+// fails when the view structure is invalid, and does not modify the receiver.
 func (v EvaluationView) EvaluationDigestValue() (Digest, error) {
 	if err := v.validateStructure(false); err != nil {
 		return "", err
@@ -398,6 +399,8 @@ func snapshotViewBinding(snapshot Snapshot, view EvaluationView) (snapshotViewCo
 	return binding, bestError(errs...)
 }
 
+// NewSelectionKernel registers every policy in order through
+// RegisterSelectionPolicy and returns no kernel on the first failure.
 func NewSelectionKernel(policies ...SelectionPolicy) (*SelectionKernel, error) {
 	kernel := &SelectionKernel{policies: make(map[selectionPolicyKey]SelectionPolicy)}
 	for _, policy := range policies {
@@ -408,6 +411,11 @@ func NewSelectionKernel(policies ...SelectionPolicy) (*SelectionKernel, error) {
 	return kernel, nil
 }
 
+// RegisterSelectionPolicy adds one policy under its exact PolicyID and
+// Version, read once at registration; an invalid pair returns its validation
+// error. A nil kernel or policy, or an already registered pair, is
+// definition_owner_conflict; registrations are never
+// replaced or removed. It is safe to call concurrently with SelectPresentation.
 func (k *SelectionKernel) RegisterSelectionPolicy(policy SelectionPolicy) error {
 	if k == nil || policy == nil || (reflect.ValueOf(policy).Kind() == reflect.Ptr && reflect.ValueOf(policy).IsNil()) {
 		return errID(DefinitionOwnerConflict, "nil selection policy")
