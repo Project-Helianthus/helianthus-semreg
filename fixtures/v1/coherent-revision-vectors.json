@@ -5,7 +5,7 @@
     "evidence": "publication-vectors.json",
     "status": "synthetic"
   },
-  "asset_id": "asset:synthetic:two-perspectives",
+  "asset_id": "asset:synthetic:two-bindings",
   "bindings": [
     {
       "binding_id": "binding:synthetic:a",

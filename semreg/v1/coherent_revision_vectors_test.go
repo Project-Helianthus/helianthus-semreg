@@ -57,11 +57,11 @@ func loadCoherentRevisionVectors(t *testing.T) coherentRevisionFixture {
 	if err := decoder.Decode(&fixture); err != nil {
 		t.Fatal(err)
 	}
-	if fixture.Contract != "helianthus.semantic.kernel.coherent-revision-fixtures/v1" || fixture.Source.Contract != ContractKernelV1 || fixture.Source.Evidence != "publication-vectors.json" || fixture.Source.Status != "synthetic" || len(fixture.Bindings) != 2 || len(fixture.Vectors) != 6 {
+	if fixture.Contract != "helianthus.semantic.kernel.coherent-revision-fixtures/v1" || fixture.AssetID != "asset:synthetic:two-bindings" || fixture.Source.Contract != ContractKernelV1 || fixture.Source.Evidence != "publication-vectors.json" || fixture.Source.Status != "synthetic" || len(fixture.Bindings) != 2 || len(fixture.Vectors) != 6 {
 		t.Fatalf("unexpected coherent revision manifest: %+v", fixture)
 	}
 	if fixture.Bindings[0].BindingID >= fixture.Bindings[1].BindingID || fixture.Bindings[0].SourceID == fixture.Bindings[1].SourceID {
-		t.Fatal("expected two ordered distinct binding perspectives and sources")
+		t.Fatal("expected two ordered distinct bindings and sources")
 	}
 	return fixture
 }
@@ -188,7 +188,7 @@ func TestCoherentTwoBindingRevisionVectors(t *testing.T) {
 			}
 		})
 	}
-	// Normalize exactly the lifecycle closure of the second perspective; every
+	// Normalize exactly the lifecycle closure of the second binding; every
 	// other byte must be retained, including the first binding and its lineage.
 	normalized := cloneSnapshot(after)
 	normalized.SnapshotID, normalized.Revisions = before.SnapshotID, before.Revisions
