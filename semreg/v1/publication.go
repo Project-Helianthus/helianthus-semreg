@@ -259,7 +259,11 @@ func NewPublicationKernel(asset AssetID, validators ...PackValidator) (*Publicat
 	if err != nil {
 		return nil, err
 	}
-	return &PublicationKernel{asset: asset, registry: registry, replays: make(map[cursorKey]publicationResult)}, nil
+	return newPublicationKernel(asset, registry), nil
+}
+
+func newPublicationKernel(asset AssetID, registry *Registry) *PublicationKernel {
+	return &PublicationKernel{asset: asset, registry: registry, replays: make(map[cursorKey]publicationResult)}
 }
 
 // Current returns a deep copy and a copy of its canonical bytes.
@@ -360,7 +364,7 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 }
 
 func (k *PublicationKernel) applyLocked(batch PublicationBatch, publicationMonotonic MonotonicPoint, admission bool) (Snapshot, []byte, error) {
-	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch), batch.graphMembershipError())
+	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch), k.graphPublicationError(batch))
 	// Local member validation ranks malformed/missing fields, invalid values,
 	// bounds and collection order before reference/lifecycle semantics. Higher-
 	// ranked malformed records need no retained lookup at all.
