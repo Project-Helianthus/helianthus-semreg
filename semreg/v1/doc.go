@@ -13,4 +13,13 @@
 // claim qualification or promotion additionally cross the explicit Registry
 // boundary through ValidateFactCandidate, ValidateService, ValidateCapability,
 // or ValidateField so one exact registered owner hook is dispatched.
+//
+// The records of the semantic resource graph (Resource, RelationInstance and
+// RelationAbsence with their keys) and the graph members of IdentityLink,
+// ServiceInstance, PublicationBatch, Snapshot and RevisionVector are optional
+// and omitted when empty, so a record without graph content keeps its canonical
+// bytes, digest and identifier; a present empty collection is invalid_value.
+// Decode and Validate check their value shapes and canonical order only. A
+// PublicationKernel is not graph-enforced and refuses every graph member of a
+// batch with membership_missing.
 package semreg

@@ -232,6 +232,9 @@ func validateShapeWithNumberDomain(node jsonNode, t reflect.Type, errors *[]erro
 		if document && !seen[discriminatorMember] {
 			*errors = append(*errors, errID(InvalidContract, discriminatorMember))
 		}
+		// An optional graph member is omitted when empty; binding a present
+		// empty one would silently change the canonical bytes.
+		*errors = append(*errors, graphPresentEmptyErrors(node, t)...)
 	case reflect.Slice:
 		if node.kind != 'a' {
 			*errors = append(*errors, errID(InvalidValue, "array token"))
@@ -557,10 +560,10 @@ func independentlyKnowableErrors(node jsonNode, t reflect.Type) []error {
 			value := reflect.New(t)
 			if json.Unmarshal(encoded, value.Interface()) == nil {
 				if record, ok := value.Elem().Interface().(Record); ok {
-					return []error{record.Validate()}
+					return []error{record.Validate(), recordGraphMembersError(record)}
 				}
 				if record, ok := value.Interface().(Record); ok {
-					return []error{record.Validate()}
+					return []error{record.Validate(), recordGraphMembersError(record)}
 				}
 			}
 		}
@@ -654,7 +657,7 @@ func CanonicalJSON(record Record) ([]byte, error) {
 	if (value.Kind() == reflect.Ptr || value.Kind() == reflect.Map || value.Kind() == reflect.Slice || value.Kind() == reflect.Interface) && value.IsNil() {
 		return nil, errID(InvalidValue, "nil record")
 	}
-	if err := record.Validate(); err != nil {
+	if err := bestError(record.Validate(), recordGraphMembersError(record)); err != nil {
 		return nil, err
 	}
 	raw, err := json.Marshal(record)

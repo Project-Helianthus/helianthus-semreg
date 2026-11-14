@@ -282,13 +282,17 @@ const (
 // IdentityLink records the evidence that a binding belongs to an asset. Basis
 // holds 1 through 32 unique, sorted references; an empty basis is
 // identity_not_qualified. A non-withdrawn link must resolve a current binding.
-// A link is never identity or route authority.
+// A link is never identity or route authority. The optional Resource states
+// that the binding observes that resource, and the optional Key is the
+// identity-object digest of the unit's native token seen through the binding.
 type IdentityLink struct {
 	AssetID   AssetID         `json:"asset_id"`
 	BindingID NativeBindingID `json:"binding_id"`
 	State     LinkState       `json:"state"`
 	Basis     []EvidenceRef   `json:"basis"`
 	Revision  Uint64          `json:"revision"`
+	Resource  *ResourceID     `json:"resource,omitempty"`
+	Key       *Digest         `json:"key,omitempty"`
 }
 
 // SourcePathRef names one exact native dependency without a live handle. All
@@ -650,7 +654,8 @@ const (
 
 // ServiceInstance is a published service on one binding. DriverGeneration and
 // Revision are positive. Unless withdrawn, it must resolve to a current binding
-// of the same source epoch and generation.
+// of the same source epoch and generation. The optional Resource names the
+// resource the service is about.
 type ServiceInstance struct {
 	InstanceID       ServiceInstanceID `json:"instance_id"`
 	AssetID          AssetID           `json:"asset_id"`
@@ -661,6 +666,7 @@ type ServiceInstance struct {
 	Qualification    Qualification     `json:"qualification"`
 	Availability     Availability      `json:"availability"`
 	Revision         Uint64            `json:"revision"`
+	Resource         *ResourceID       `json:"resource,omitempty"`
 }
 
 // CapabilityInstance is a published capability of a service on the same
@@ -695,7 +701,9 @@ type GenerationFence struct {
 }
 
 // PublicationBatch is one complete atomic patch for an asset/source/epoch and
-// generation. Empty collections are required and mean "no change".
+// generation. Empty collections are required and mean "no change". The graph
+// collections are optional instead: each is omitted when empty, and a present
+// empty one is invalid_value.
 type PublicationBatch struct {
 	Contract                 ContractVersion        `json:"contract"`
 	BatchID                  BatchID                `json:"batch_id"`
@@ -718,17 +726,25 @@ type PublicationBatch struct {
 	CapabilityUpserts        []CapabilityInstance   `json:"capability_upserts"`
 	CapabilityWithdrawals    []CapabilityInstanceID `json:"capability_withdrawals"`
 	GenerationFences         []GenerationFence      `json:"generation_fences"`
+	ResourceUpserts          []Resource             `json:"resource_upserts,omitempty"`
+	RelationUpserts          []RelationInstance     `json:"relation_upserts,omitempty"`
+	RelationWithdrawals      []RelationKey          `json:"relation_withdrawals,omitempty"`
+	AbsenceUpserts           []RelationAbsence      `json:"absence_upserts,omitempty"`
+	AbsenceWithdrawals       []RelationAbsenceKey   `json:"absence_withdrawals,omitempty"`
 }
 
-// RevisionVector is the per-asset revision set of a snapshot. Every member is
-// positive once published; Semantic increments once per accepted batch and
-// each component increments only when that component changes.
+// RevisionVector is the per-asset revision set of a snapshot. Every present
+// member is positive once published; Semantic increments once per accepted
+// batch and each component increments only when that component changes.
+// Structure counts changes to resources, relation instances and absence
+// statements; it is omitted until the asset's first such change.
 type RevisionVector struct {
 	Semantic     Uint64 `json:"semantic"`
 	Identity     Uint64 `json:"identity"`
 	Facts        Uint64 `json:"facts"`
 	Services     Uint64 `json:"services"`
 	Capabilities Uint64 `json:"capabilities"`
+	Structure    Uint64 `json:"structure,omitempty"`
 }
 
 // PublicationCursor is the kernel-maintained replay state of one source,
@@ -746,6 +762,8 @@ type PublicationCursor struct {
 
 // Snapshot is the complete immutable semantic state for one asset revision.
 // Callers receive deep copies; CanonicalJSON returns the stable wire value.
+// The graph collections are omitted when empty, so a snapshot without graph
+// records keeps its canonical bytes and identifier.
 type Snapshot struct {
 	Contract          ContractVersion             `json:"contract"`
 	SnapshotID        SnapshotID                  `json:"snapshot_id"`
@@ -762,6 +780,9 @@ type Snapshot struct {
 	Capabilities      []CapabilityInstance        `json:"capabilities"`
 	Fences            []GenerationFence           `json:"fences"`
 	Cursors           []PublicationCursor         `json:"cursors"`
+	Resources         []Resource                  `json:"resources,omitempty"`
+	Relations         []RelationInstance          `json:"relations,omitempty"`
+	RelationAbsences  []RelationAbsence           `json:"relation_absences,omitempty"`
 }
 
 // EvaluationContext is supplied by the caller. Evaluation never obtains time
