@@ -345,7 +345,7 @@ func causalTimeErrors(firstPoint, expiresPoint *TimePoint) []error {
 }
 func (c FactCandidate) Validate() error {
 	// Presence determines member validation; assertion and origin determine only
-	// relationships. Forbidden data still contributes its own stable errors.
+	// cross-member consistency. Forbidden data still contributes its own stable errors.
 	errs := c.presentMemberErrors()
 	errs = append(errs, c.CandidateID.Validate(), c.Key.Validate(), c.Quality.Validate(), c.Times.Validate(), c.FreshnessPolicy.Validate(), c.Origin.Validate(), validateEvidenceSet(c.Evidence, 1, 32))
 	if !positive(c.Revision) {

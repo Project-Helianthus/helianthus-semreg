@@ -3,32 +3,37 @@
 This directory contains versioned, public compatibility fixtures
 for protocol-neutral semantic contracts.
 
-[`v1/pv-inverter-pack-vectors.json`](v1/pv-inverter-pack-vectors.json) is the
-byte-for-byte PV/inverter acceptance fixture from
-`helianthus-docs-semantic@c20fdef000fe95df95fca60c55d651a0614c4efd`; its
-SHA-256 is `10d45d196f6ff020c3e596eaa16c36f8e39cd9ab4eb0bb276d975f7d42c9511e`.
+[`v1/pv-inverter-pack-vectors.json`](v1/pv-inverter-pack-vectors.json) is a
+byte-for-byte copy of `api/v1/packs/pv-inverter-acceptance-vectors.json` from
+`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083`; its
+SHA-256 is `78540d3492ed11ebcb87f8d05bb6cc8227a650349b8e9e65946915917695b384`.
+Its five relation definitions use the shared encoding (`from`, `to`,
+`cardinality`, `order`) and each declares `one_to_many`.
 It defines static semantic evidence only and does not create a native mapping,
 route, authority, or live operation.
 
 [`v1/storage-bms-pack-vectors.json`](v1/storage-bms-pack-vectors.json) and
 [`v1/storage-bms-contract-tables.json`](v1/storage-bms-contract-tables.json)
-are byte-for-byte copies from accepted
-`helianthus-docs-semantic@c20fdef000fe95df95fca60c55d651a0614c4efd` for
+are byte-for-byte copies of `api/v1/packs/storage-bms-acceptance-vectors.json`
+and `api/v1/packs/storage-bms-contract-tables.json` from
+`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083` for
 `helianthus.pack.storage@1.1.0`; their SHA-256 values are respectively
-`6bb66f304c3ccd5870a4e49a68f1f3d20011eab84e3722c5f8fdfda79b7b4321` and
-`3bde31cbc59ff3e2ea19408f3bfb09210837e7df20a692593e5c261bc48b032f`.
+`8907aeeaa9f2d942fe66d683764a7bcab5a43433068c6b5a97d58c7076490cb4` and
+`b599b8aa50eecba2d350d370aef96ffb3178bf5dd1dfe929147f297f17f8eafc`.
+The six relation definitions of the contract tables use the shared encoding
+(`from`, `to`, `cardinality`, `order`).
 They define semantic evidence only and do not create native qualification,
 mapping, a route, authority, or live operation.
 
 [`v1/evse-pack-vectors.json`](v1/evse-pack-vectors.json) is a byte-for-byte
 copy of `api/v1/packs/evse-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
+`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083`.
 Its SHA-256 is
-`0138874611fd78cadb792785c4ab73f3b062d92cddae2297b06b9cb8c28f30b4`.
+`edc827128a5ef5700d3f82fac792084868a6155b705e08df69148e400226ccdd`.
 The EVSE pack tests execute all twelve static catalog vectors, including the
-five-domain catalog, topology and Portal metadata, operation safety, Tesla,
+five-domain catalog, relation and Portal metadata, operation safety, Tesla,
 eeBUS, Matter, and counter-policy boundaries. The fixture does not create a
-topology instance, native mapping or sender, route, consumer API, persistence,
+relation instance, native mapping or sender, route, consumer API, persistence,
 or live authority.
 
 [`v1/thermal-hvac-pack-vectors.json`](v1/thermal-hvac-pack-vectors.json) is a
@@ -43,12 +48,12 @@ route, consumer API, or live authority.
 [`v1/infrastructure-pack-vectors.json`](v1/infrastructure-pack-vectors.json)
 is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
+`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083`.
 Its SHA-256 is
-`1f7db5f27ab6260c168e8dac4d91b746e0f64d92f56e29561c16cd3fb587ed9c`.
+`0aa59e1ef9197d6b24348bfecaa791f9c86123f02ceba4f964433d1d0c5a7472`.
 The infrastructure pack tests pin its source and execute every accepted static
 catalog vector. The fixture is documentation-derived contract metadata only;
-it does not create topology instances, Portal composition, routes, native
+it does not create relation instances, Portal composition, routes, native
 mappings, qualifications, or operations.
 
 [`v1/foundation-vectors.json`](v1/foundation-vectors.json) copies the 30

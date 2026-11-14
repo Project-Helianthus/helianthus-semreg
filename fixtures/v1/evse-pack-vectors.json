@@ -59,12 +59,12 @@
         {"id":"evse.service.session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.session","version":"1.0.0"},"fact_key_dimension":"evse.dimension.session","order":40},
         {"id":"evse.service.meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.service.meter","version":"1.0.0"},"fact_key_dimension":"evse.dimension.meter","order":50}
       ],
-      "relationships":[
-        {"id":"evse.relationship.asset_evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.asset_evse","version":"1.0.0"},"from":"evse.dimension.asset","to":"evse.dimension.evse","cardinality":"one_to_many","order":10},
-        {"id":"evse.relationship.evse_connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.evse_connector","version":"1.0.0"},"from":"evse.dimension.evse","to":"evse.dimension.connector","cardinality":"one_to_many","order":20},
-        {"id":"evse.relationship.connector_phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.connector_phase","version":"1.0.0"},"from":"evse.dimension.connector","to":"evse.dimension.phase","cardinality":"one_to_many","order":30},
-        {"id":"evse.relationship.connector_session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.connector_session","version":"1.0.0"},"from":"evse.dimension.connector","to":"evse.dimension.session","cardinality":"one_to_many_over_time","order":40},
-        {"id":"evse.relationship.evse_meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relationship.evse_meter","version":"1.0.0"},"from":"evse.dimension.evse","to":"evse.dimension.meter","cardinality":"one_to_many","order":50}
+      "relations":[
+        {"id":"evse.relation.asset_evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relation.asset_evse","version":"1.0.0"},"from":"evse.dimension.asset","to":"evse.dimension.evse","cardinality":"one_to_many","order":10},
+        {"id":"evse.relation.evse_connector","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relation.evse_connector","version":"1.0.0"},"from":"evse.dimension.evse","to":"evse.dimension.connector","cardinality":"one_to_many","order":20},
+        {"id":"evse.relation.connector_phase","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relation.connector_phase","version":"1.0.0"},"from":"evse.dimension.connector","to":"evse.dimension.phase","cardinality":"one_to_many","order":30},
+        {"id":"evse.relation.connector_session","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relation.connector_session","version":"1.0.0"},"from":"evse.dimension.connector","to":"evse.dimension.session","cardinality":"one_to_many_over_time","order":40},
+        {"id":"evse.relation.evse_meter","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.relation.evse_meter","version":"1.0.0"},"from":"evse.dimension.evse","to":"evse.dimension.meter","cardinality":"one_to_many","order":50}
       ],
       "capabilities":[
         {"id":"evse.capability.read.evse","ref":{"pack":{"id":"helianthus.pack.evse","version":"1.0.0"},"id":"evse.capability.read.evse","version":"1.0.0"},"service":"evse.service.evse","activation":"qualified_current_binding","order":10},
@@ -100,7 +100,7 @@
     {"id":"wrong_pack","polarity":"negative","input":{"mutations":[{"op":"set","path":"pack.id","value":"helianthus.pack.pv"}]},"expect":{"error":"exact PackRef"}},
     {"id":"storage_downgrade","polarity":"negative","input":{"mutations":[{"op":"set","path":"domain_catalog.2.state","value":"follow_on"}]},"expect":{"error":"five-domain catalog"}},
     {"id":"bound_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.fields.0.bounds.maximum","value":{"coefficient":"9","exponent10":2}}]},"expect":{"error":"quantity contract"}},
-    {"id":"topology_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.relationships.1.cardinality","value":"one_to_one"}]},"expect":{"error":"relationship association"}},
+    {"id":"topology_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.relations.1.cardinality","value":"one_to_one"}]},"expect":{"error":"relation association"}},
     {"id":"operation_authority_weakened","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.operations.0.preconditions","value":["qualified_active_capability"]}]},"expect":{"error":"operation safety"}},
     {"id":"portal_drift","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.portal_contributions.5.admission","value":"always"}]},"expect":{"error":"Portal operation"}},
     {"id":"tesla_live_authority","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.0.live_authority","value":true}]},"expect":{"error":"native mapping boundary"}},

@@ -15,7 +15,14 @@ import (
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 )
 
-const infrastructureFixtureSHA256 = "1f7db5f27ab6260c168e8dac4d91b746e0f64d92f56e29561c16cd3fb587ed9c"
+// infrastructureFixtureSHA256 is the SHA-256 of
+// fixtures/v1/infrastructure-pack-vectors.json.
+var infrastructureFixtureSHA256 = [sha256.Size]byte{
+	0x0a, 0xa5, 0x9e, 0x1e, 0xf9, 0x19, 0x7d, 0x6b,
+	0x24, 0x34, 0x8b, 0xfe, 0xca, 0xa7, 0x91, 0xf9,
+	0xc8, 0x61, 0x23, 0xf0, 0x2c, 0xeb, 0xa4, 0xf9,
+	0x64, 0x43, 0x3d, 0x1d, 0x0c, 0x5a, 0x74, 0x72,
+}
 
 type machineVector struct {
 	ID    string `json:"id"`
@@ -39,8 +46,8 @@ func TestInfrastructureMachineContractVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := sha256.Sum256(bytes)
-	if got := hex.EncodeToString(actual[:]); got != infrastructureFixtureSHA256 {
-		t.Fatalf("fixture SHA-256 = %s, want %s", got, infrastructureFixtureSHA256)
+	if actual != infrastructureFixtureSHA256 {
+		t.Fatalf("fixture SHA-256 = %s, want %s", hex.EncodeToString(actual[:]), hex.EncodeToString(infrastructureFixtureSHA256[:]))
 	}
 	var document map[string]any
 	if err := json.Unmarshal(bytes, &document); err != nil {
@@ -85,32 +92,35 @@ func TestInfrastructureMachineContractVectors(t *testing.T) {
 	}
 }
 
-func TestStaticRelationshipAndPortalMetadata(t *testing.T) {
+func TestStaticRelationAndPortalMetadata(t *testing.T) {
 	document := loadMachineDocument(t)
 	catalog := mapValue(t, document["catalog"])
 	definitions := mapValue(t, catalog["definitions"])
-	relationships := listValue(t, definitions["relationships"])
-	if len(relationships) != 5 {
-		t.Fatalf("relationship count = %d", len(relationships))
+	relations := listValue(t, definitions["relations"])
+	if len(relations) != 5 {
+		t.Fatalf("relation count = %d", len(relations))
 	}
-	wantRelationships := map[string][3]string{
-		"infrastructure.relationship.site_grid_connection":   {"infrastructure.dimension.site", "infrastructure.dimension.grid_connection", "one_to_many"},
-		"infrastructure.relationship.grid_connection_feeder": {"infrastructure.dimension.grid_connection", "infrastructure.dimension.feeder", "one_to_many"},
-		"infrastructure.relationship.feeder_circuit":         {"infrastructure.dimension.feeder", "infrastructure.dimension.circuit", "one_to_many"},
-		"infrastructure.relationship.circuit_phase":          {"infrastructure.dimension.circuit", "infrastructure.dimension.phase", "one_to_many"},
-		"infrastructure.relationship.grid_connection_meter":  {"infrastructure.dimension.grid_connection", "infrastructure.dimension.meter", "one_to_many"},
+	wantRelations := map[string]struct {
+		from, to, cardinality string
+		order                 float64
+	}{
+		"infrastructure.relation.site_grid_connection":   {"infrastructure.dimension.site", "infrastructure.dimension.grid_connection", "one_to_many", 10},
+		"infrastructure.relation.grid_connection_feeder": {"infrastructure.dimension.grid_connection", "infrastructure.dimension.feeder", "one_to_many", 20},
+		"infrastructure.relation.feeder_circuit":         {"infrastructure.dimension.feeder", "infrastructure.dimension.circuit", "one_to_many", 30},
+		"infrastructure.relation.circuit_phase":          {"infrastructure.dimension.circuit", "infrastructure.dimension.phase", "one_to_many", 40},
+		"infrastructure.relation.grid_connection_meter":  {"infrastructure.dimension.grid_connection", "infrastructure.dimension.meter", "one_to_many", 50},
 	}
-	for _, item := range relationships {
-		relationship := mapValue(t, item)
-		id := stringValue(t, relationship["id"])
-		want, ok := wantRelationships[id]
-		if !ok || stringValue(t, relationship["from"]) != want[0] || stringValue(t, relationship["to"]) != want[1] || stringValue(t, relationship["cardinality"]) != want[2] {
-			t.Fatalf("unexpected relationship: %#v", relationship)
+	for _, item := range relations {
+		relation := mapValue(t, item)
+		id := stringValue(t, relation["id"])
+		want, ok := wantRelations[id]
+		if !ok || stringValue(t, relation["from"]) != want.from || stringValue(t, relation["to"]) != want.to || stringValue(t, relation["cardinality"]) != want.cardinality || relation["order"] != want.order {
+			t.Fatalf("unexpected relation: %#v", relation)
 		}
-		delete(wantRelationships, id)
+		delete(wantRelations, id)
 	}
-	if len(wantRelationships) != 0 {
-		t.Fatalf("missing relationships: %#v", wantRelationships)
+	if len(wantRelations) != 0 {
+		t.Fatalf("missing relations: %#v", wantRelations)
 	}
 	portal := listValue(t, definitions["portal_contributions"])
 	if len(portal) != 6 {
@@ -164,8 +174,8 @@ func validateMachineCatalog(document map[string]any) error {
 	if !ok || !exactFields(definitions) || !exactDimensions(definitions) || !exactServicesAndCapabilities(definitions) {
 		return fmt.Errorf("quantity contract")
 	}
-	if !exactRelationships(definitions) {
-		return fmt.Errorf("relationship association")
+	if !exactRelations(definitions) {
+		return fmt.Errorf("relation association")
 	}
 	boundary, ok := catalog["read_only_operation_boundary"].(map[string]any)
 	if !ok || boundary["breaker_actuation"] != "not_published" || !emptyList(definitions["operations"]) || !emptyList(definitions["effect_rules"]) {
@@ -247,8 +257,8 @@ func exactServicesAndCapabilities(definitions map[string]any) bool {
 	return true
 }
 
-func exactRelationships(definitions map[string]any) bool {
-	entries, ok := definitions["relationships"].([]any)
+func exactRelations(definitions map[string]any) bool {
+	entries, ok := definitions["relations"].([]any)
 	return ok && len(entries) == 5 && mapValueNoPanic(entries[2])["cardinality"] == "one_to_many"
 }
 

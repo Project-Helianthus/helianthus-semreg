@@ -155,8 +155,8 @@ func validateBaseline(t *testing.T, document map[string]any) {
 			t.Fatalf("catalog count %d", count.want)
 		}
 	}
-	if relationships, present := definitions["relationships"]; present && len(array(t, relationships)) != 0 {
-		t.Fatal("relationships")
+	if relations, present := definitions["relations"]; present && len(array(t, relations)) != 0 {
+		t.Fatal("relations")
 	}
 }
 

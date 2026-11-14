@@ -744,15 +744,15 @@
           "order": 60
         }
       ],
-      "relationships": [
+      "relations": [
         {
-          "id": "infrastructure.relationship.site_grid_connection",
+          "id": "infrastructure.relation.site_grid_connection",
           "ref": {
             "pack": {
               "id": "helianthus.pack.infrastructure",
               "version": "1.0.0"
             },
-            "id": "infrastructure.relationship.site_grid_connection",
+            "id": "infrastructure.relation.site_grid_connection",
             "version": "1.0.0"
           },
           "from": "infrastructure.dimension.site",
@@ -761,13 +761,13 @@
           "order": 10
         },
         {
-          "id": "infrastructure.relationship.grid_connection_feeder",
+          "id": "infrastructure.relation.grid_connection_feeder",
           "ref": {
             "pack": {
               "id": "helianthus.pack.infrastructure",
               "version": "1.0.0"
             },
-            "id": "infrastructure.relationship.grid_connection_feeder",
+            "id": "infrastructure.relation.grid_connection_feeder",
             "version": "1.0.0"
           },
           "from": "infrastructure.dimension.grid_connection",
@@ -776,13 +776,13 @@
           "order": 20
         },
         {
-          "id": "infrastructure.relationship.feeder_circuit",
+          "id": "infrastructure.relation.feeder_circuit",
           "ref": {
             "pack": {
               "id": "helianthus.pack.infrastructure",
               "version": "1.0.0"
             },
-            "id": "infrastructure.relationship.feeder_circuit",
+            "id": "infrastructure.relation.feeder_circuit",
             "version": "1.0.0"
           },
           "from": "infrastructure.dimension.feeder",
@@ -791,13 +791,13 @@
           "order": 30
         },
         {
-          "id": "infrastructure.relationship.circuit_phase",
+          "id": "infrastructure.relation.circuit_phase",
           "ref": {
             "pack": {
               "id": "helianthus.pack.infrastructure",
               "version": "1.0.0"
             },
-            "id": "infrastructure.relationship.circuit_phase",
+            "id": "infrastructure.relation.circuit_phase",
             "version": "1.0.0"
           },
           "from": "infrastructure.dimension.circuit",
@@ -806,13 +806,13 @@
           "order": 40
         },
         {
-          "id": "infrastructure.relationship.grid_connection_meter",
+          "id": "infrastructure.relation.grid_connection_meter",
           "ref": {
             "pack": {
               "id": "helianthus.pack.infrastructure",
               "version": "1.0.0"
             },
-            "id": "infrastructure.relationship.grid_connection_meter",
+            "id": "infrastructure.relation.grid_connection_meter",
             "version": "1.0.0"
           },
           "from": "infrastructure.dimension.grid_connection",
@@ -1145,13 +1145,13 @@
         "mutations": [
           {
             "op": "set",
-            "path": "definitions.relationships.2.cardinality",
+            "path": "definitions.relations.2.cardinality",
             "value": "one_to_one"
           }
         ]
       },
       "expect": {
-        "error": "relationship association"
+        "error": "relation association"
       }
     },
     {
