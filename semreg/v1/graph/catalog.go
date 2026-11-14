@@ -27,7 +27,9 @@ const KernelContract semreg.ContractVersion = "helianthus.semantic.kernel/v1"
 const CatalogOrder = "owner kind, pack id, pack version, element id, element version as canonical UTF-8 byte sequence"
 
 // PinnedDigest is the SHA-256 of fixtures/v1/element-catalog-v1.json, the
-// byte copy of the accepted catalog. Load accepts no other bytes.
+// byte copy of the accepted catalog. Load accepts no other bytes, and a
+// graph-enforced registry of the root package accepts no catalog with another
+// digest.
 const PinnedDigest semreg.Digest = "sha256:14c36bfcf1fafd22149e05f3ad4b11ecc4b8ba54723c1dc16a78f571c2713d17"
 
 // Status is the document status.

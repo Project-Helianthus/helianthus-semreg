@@ -130,6 +130,8 @@ type Registry struct {
 	validators map[PackRef]PackValidator
 	indexes    map[PackRef]DefinitionIndex
 	owners     map[definitionKey]PackRef
+	// graph is set only by NewGraphRegistry and never changes afterwards.
+	graph *graphState
 }
 type frozenValidator struct {
 	hook   PackValidator

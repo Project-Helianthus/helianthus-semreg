@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+Graph enforcement is now a property of the kernel registry. The root package
+defines the interface `GraphCatalog` (digest, pack coverage, disposition and
+planes of a pack definition and of a resource kind, kind of a dimension and of
+a service, relation definition attributes, scheme listing) with the types
+`GraphDisposition`, `GraphPlane`, `GraphMembership` and
+`GraphRelationDefinition`, and never imports `semreg/v1/graph`.
+`NewGraphRegistry` and `NewGraphPublicationKernel` build a graph-enforced
+registry: a missing catalog, a catalog whose digest is not the pinned digest
+of `fixtures/v1/element-catalog-v1.json`, or a registered pack the catalog does
+not cover fails construction with `membership_missing`. Every operation and
+effect rule whose disposition is not `member` is recorded as inadmissible at
+construction. `Registry.GraphEnforced` and `Registry.CatalogDigest` expose the
+enforcement and the catalog digest for the release bill of materials, and
+`Registry.GraphAdmissionError` is the one admission lookup of that index. The
+new `operation.NewGraphKernel` builds an operation kernel over such a registry;
+its `Admit` rejects an intent whose operation or effect rule is inadmissible
+with `membership_missing` before any route is resolved, and reads no catalog
+or graph record. In `semreg/v1/graph`, `Catalog` implements the interface and
+gains `Covers`, which applies CAT-1 to one registered pack; `Embedded` loads
+the catalog compiled into the package (a byte copy of the fixture, accepted
+only under `PinnedDigest`), and `Enforced` builds a graph-enforced registry
+with it. A graph-enforced publication kernel publishes a batch without graph
+members exactly as a kernel without the catalog, and still refuses every graph
+member with `membership_missing` until the resource and relation publication
+rules land. `NewRegistry`, `NewPublicationKernel`, `operation.NewKernel` and
+`operation.NewKernelWithOptions` keep their behaviour, and kernel vectors with
+synthetic definitions under a real pack reference keep running without the
+catalog. No pack, fixture, wire value or existing exported name changes, and
+no pack or contract version is raised. The module revision changes, so the
+gateway pin follows it when a consumer adopts graph enforcement.
+
+The records of the semantic resource graph are part of the root package:
+`Resource` with its anchor, anchor supersession, state, anchor class and anchor
+basis; `RelationInstance` and `RelationKey`; `RelationAbsence` and
+`RelationAbsenceKey`; the optional `resource` and `key` members of
+`IdentityLink`, the optional `resource` member of `ServiceInstance`, the
+resource, relation and absence collections of `PublicationBatch` and
+`Snapshot`, and the `structure` component of `RevisionVector`. Every graph
+member is omitted when empty, so a record without graph content keeps its
+canonical bytes, digest and identifier; a present empty collection is
+`invalid_value`. Decode and Validate check value shapes, bounds and canonical
+order only. A kernel without the element catalog refuses every graph member of
+a batch with `membership_missing`.
+
 New package `semreg/v1/graph` holds the element catalog of the graph contract.
 `fixtures/v1/element-catalog-v1.json` is a byte copy of the docs-semantic
 catalog, pinned by SHA-256 in `fixtures/README.md` and in the constant

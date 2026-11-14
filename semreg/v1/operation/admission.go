@@ -110,6 +110,28 @@ func NewKernelWithOptions(options KernelOptions, validators ...semreg.PackValida
 	if err != nil {
 		return nil, err
 	}
+	return newKernel(options, registry, validators)
+}
+
+// NewGraphKernel constructs a kernel over a graph-enforced registry built by
+// semreg.NewGraphRegistry: the catalog must be the pinned catalog and cover
+// every registered pack, otherwise construction fails with
+// membership_missing. Admit then rejects, with membership_missing and before
+// any route is resolved, an intent whose operation or effect rule the
+// registry recorded as inadmissible. Admission reads only that registry index
+// and never the catalog or a graph record.
+func NewGraphKernel(options KernelOptions, catalog semreg.GraphCatalog, validators ...semreg.PackValidator) (*Kernel, error) {
+	if options.MaxRetainedOperations <= 0 || options.MaxRetainedOperations > MaxRetainedOperations {
+		return nil, opError(semreg.BoundsExceeded, "operation retention capacity")
+	}
+	registry, err := semreg.NewGraphRegistry(catalog, validators...)
+	if err != nil {
+		return nil, err
+	}
+	return newKernel(options, registry, validators)
+}
+
+func newKernel(options KernelOptions, registry *semreg.Registry, validators []semreg.PackValidator) (*Kernel, error) {
 	kernel := &Kernel{
 		registry:              registry,
 		validators:            make(map[semreg.PackRef]*lockedOperationValidator),
@@ -254,10 +276,17 @@ func stableHookError(err error, detail string) error {
 
 // Admit evaluates the supplied immutable snapshot at the caller's trusted
 // current context, resolves one route, and atomically installs one idempotency
-// entry. Repeating identical admitted bytes returns the same admission.
+// entry. Repeating identical admitted bytes returns the same admission. A
+// kernel built by NewGraphKernel first rejects an inadmissible operation or
+// effect rule with membership_missing and installs nothing.
 func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContext, intent Intent, authority AuthorityResolver) (*Admission, error) {
 	if k == nil {
 		return nil, opError(semreg.DefinitionOwnerMissing, "operation kernel")
+	}
+	if k.registry != nil {
+		if err := k.registry.GraphAdmissionError(intent.Kind, intent.ExpectedEffect.Rule); err != nil {
+			return nil, err
+		}
 	}
 	typedIntentErr := intent.Validate()
 	snapshotErr, currentErr := snapshot.Validate(), current.Validate()
