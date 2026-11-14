@@ -251,6 +251,21 @@ vocabulary defined on the page: `offline_profile_only`,
 values (families, reasons, compositions, evidence kinds) are allowed; a new
 `state` value, removals, renames, new members or changed meanings need v2.
 
+[`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a
+byte-for-byte copy of `api/v1/element-catalog-v1.json` from
+`Project-Helianthus/helianthus-docs-semantic`, as accepted in
+docs-semantic #76. Its SHA-256 is
+`14c36bfcf1fafd22149e05f3ad4b11ecc4b8ba54723c1dc16a78f571c2713d17`; the
+constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
+other bytes. Every in-place edit of the source catalog moves the copy, this
+digest and the constant together. The catalog lists six planes, seven core
+relation types and 307 entries, with no identification scheme and no lens yet.
+`semreg/v1/graph` decodes it strictly and checks rules CAT-1 to CAT-9 against
+the accepted packs. Its tests apply one rejected mutation per rule and match
+the relation and Portal entries against the copied pack vectors above. The
+fixture creates no resource, relation instance, membership record, route or
+authority.
+
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must
 identify each donor contract and immutable source revision, preserve native
