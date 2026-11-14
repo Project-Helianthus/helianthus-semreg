@@ -15,6 +15,27 @@ are kernel records defined by the
 their implementation follows in
 [#90](https://github.com/Project-Helianthus/helianthus-semreg/issues/90).
 
+## Element catalog
+
+`semreg/v1/graph` holds the element catalog of the
+[graph contract](https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/main/api/v1/graph.md):
+six planes, seven core relation types, the identification schemes, the lenses
+and one entry per semantic element with its owner, disposition, planes and
+admission record. Its source is the byte copy
+[`fixtures/v1/element-catalog-v1.json`](fixtures/v1/element-catalog-v1.json),
+pinned by SHA-256 in `graph.PinnedDigest`.
+
+| Function or method | What it does |
+|---|---|
+| `Decode` | Strictly decodes `helianthus.semantic.element-catalog/v1`: no repeated, unknown or missing member, and every value in its vocabulary. |
+| `Check`, `Validate` | Apply CAT-1 to CAT-9 against the metadata and definition indexes of the given packs; `Validate` returns the first finding as a stable error. |
+| `Load` | Accepts only the pinned bytes, then decodes and validates them against the five accepted packs. |
+| `Catalog` lookups | Entry by exact `DefinitionRef` or core `DefinitionID`; planes and disposition of an entry; kind of a dimension and a service; core type, orientation, endpoint kinds, cardinality, basis classes and medium of a relation definition; identification schemes and lenses. Every result is a detached copy. |
+
+The package imports the root package and the pack packages only, and no
+package imports it yet. It records membership and admission; it publishes,
+evaluates and admits nothing.
+
 ## Storage/BMS capability pack v1.1
 
 `semreg/v1/packs/storage` implements the read-only

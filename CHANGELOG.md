@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+New package `semreg/v1/graph` holds the element catalog of the graph contract.
+`fixtures/v1/element-catalog-v1.json` is a byte copy of the docs-semantic
+catalog, pinned by SHA-256 in `fixtures/README.md` and in the constant
+`graph.PinnedDigest`. `Decode` reads `helianthus.semantic.element-catalog/v1`
+strictly. `Check` and `Validate` apply CAT-1 to CAT-9 against the pack metadata
+registry and the pack definition indexes, with the stable errors of the
+contract: `membership_missing`, `definition_owner_missing`,
+`definition_owner_conflict`, `duplicate_identity`, `noncanonical_order` and
+`invalid_value`. `Load` accepts only the pinned bytes. Read-only lookups return
+detached copies of entries, planes, dispositions, dimension and service kinds,
+relation definitions, identification schemes and lenses. No package imports the
+new one yet, and no existing package, pack, fixture, exported name or wire value
+changes. No pack or contract version is raised. The module revision changes, so
+the gateway pin follows it when a consumer adopts the package.
+
 The PV, EVSE, infrastructure and storage pack vectors and the storage contract
 tables are copied again, byte for byte, from the semantic contract, which renamed
 the pack member `relationships` to `relations` and the identifiers
