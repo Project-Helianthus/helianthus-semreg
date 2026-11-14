@@ -824,48 +824,48 @@
       "service": "storage.service.interface"
     }
   ],
-  "relationships": [
+  "relations": [
     {
       "cardinality": "one_to_many",
-      "id": "storage.relationship.system_battery",
+      "from": "storage.service.system",
+      "id": "storage.relation.system_battery",
       "order": 10,
-      "source": "storage.service.system",
-      "target": "storage.service.battery"
+      "to": "storage.service.battery"
     },
     {
       "cardinality": "one_to_many",
-      "id": "storage.relationship.battery_pack",
+      "from": "storage.service.battery",
+      "id": "storage.relation.battery_pack",
       "order": 20,
-      "source": "storage.service.battery",
-      "target": "storage.service.pack"
+      "to": "storage.service.pack"
     },
     {
       "cardinality": "one_to_many",
-      "id": "storage.relationship.pack_module",
+      "from": "storage.service.pack",
+      "id": "storage.relation.pack_module",
       "order": 30,
-      "source": "storage.service.pack",
-      "target": "storage.service.module"
+      "to": "storage.service.module"
     },
     {
       "cardinality": "one_to_many",
-      "id": "storage.relationship.module_cell",
+      "from": "storage.service.module",
+      "id": "storage.relation.module_cell",
       "order": 40,
-      "source": "storage.service.module",
-      "target": "storage.service.cell"
+      "to": "storage.service.cell"
     },
     {
       "cardinality": "one_to_many",
-      "id": "storage.relationship.pack_string",
+      "from": "storage.service.pack",
+      "id": "storage.relation.pack_string",
       "order": 50,
-      "source": "storage.service.pack",
-      "target": "storage.service.string"
+      "to": "storage.service.string"
     },
     {
       "cardinality": "one_to_many",
-      "id": "storage.relationship.pack_interface",
+      "from": "storage.service.pack",
+      "id": "storage.relation.pack_interface",
       "order": 60,
-      "source": "storage.service.pack",
-      "target": "storage.service.interface"
+      "to": "storage.service.interface"
     }
   ],
   "services": [

@@ -70,9 +70,8 @@ func TestPVMachineVectors(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	s := sha256.Sum256(raw)
-	if hex.EncodeToString(s[:]) != "10d45d196f6ff020c3e596eaa16c36f8e39cd9ab4eb0bb276d975f7d42c9511e" {
-		t.Fatal("hash")
+	if s := sha256.Sum256(raw); s != pvFixtureSHA256 {
+		t.Fatalf("fixture SHA-256 = %s", hex.EncodeToString(s[:]))
 	}
 	var d struct {
 		Vectors []struct {
@@ -95,6 +94,87 @@ func TestPVMachineVectors(t *testing.T) {
 			}
 			if v.ID != "PV-POS-001" && (v.Expect == nil || v.Expect.Error == "") {
 				t.Fatal(v)
+			}
+		})
+	}
+}
+
+// pvFixtureSHA256 is the SHA-256 of fixtures/v1/pv-inverter-pack-vectors.json.
+var pvFixtureSHA256 = [sha256.Size]byte{
+	0x78, 0x54, 0x0d, 0x34, 0x92, 0xed, 0x11, 0xeb,
+	0xcb, 0x87, 0xf8, 0xd0, 0x5b, 0xb6, 0xcc, 0x82,
+	0x27, 0xa6, 0x50, 0x34, 0x9b, 0x8e, 0x9e, 0x65,
+	0x94, 0x69, 0x15, 0x91, 0x76, 0x95, 0xb3, 0x84,
+}
+
+// pvRelations lists the accepted PV relations in declared order; every one
+// declares cardinality one_to_many.
+var pvRelations = []struct{ id, from, to string }{
+	{"pv.relation.system_inverter", "pv.dimension.system", "pv.dimension.inverter"},
+	{"pv.relation.inverter_array", "pv.dimension.inverter", "pv.dimension.array"},
+	{"pv.relation.array_string", "pv.dimension.array", "pv.dimension.string"},
+	{"pv.relation.inverter_input", "pv.dimension.inverter", "pv.dimension.input"},
+	{"pv.relation.inverter_phase", "pv.dimension.inverter", "pv.dimension.phase"},
+}
+
+// pvRelationsExact reports whether the catalog relations equal pvRelations,
+// including identity, endpoints, declared cardinality and order.
+func pvRelationsExact(t *testing.T, relations []any) bool {
+	t.Helper()
+	if len(relations) != len(pvRelations) {
+		return false
+	}
+	for index, want := range pvRelations {
+		relation := pvObj(t, relations[index])
+		ref := pvObj(t, relation["ref"])
+		refPack := pvObj(t, ref["pack"])
+		if relation["id"] != want.id || ref["id"] != want.id || ref["version"] != string(pack.Version) || refPack["id"] != string(pack.ID) || refPack["version"] != string(pack.Version) || relation["from"] != want.from || relation["to"] != want.to || relation["cardinality"] != "one_to_many" || relation["order"] != float64(10*(index+1)) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestPVRelationsDeclareCardinality(t *testing.T) {
+	_, f, _, _ := runtime.Caller(0)
+	raw, err := os.ReadFile(filepath.Join(filepath.Dir(f), "..", "..", "..", "..", "fixtures", "v1", "pv-inverter-pack-vectors.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err = json.Unmarshal(raw, &document); err != nil {
+		t.Fatal(err)
+	}
+	defs := pvObj(t, pvObj(t, document["catalog"])["definitions"])
+	if !pvRelationsExact(t, defs["relations"].([]any)) {
+		t.Fatalf("relations: %#v", defs["relations"])
+	}
+	for _, mutation := range []struct {
+		name  string
+		apply func(t *testing.T, relation map[string]any)
+	}{
+		{"id", func(t *testing.T, r map[string]any) { r["id"] = "pv.relation.other" }},
+		{"ref id", func(t *testing.T, r map[string]any) { pvObj(t, r["ref"])["id"] = "pv.relation.other" }},
+		{"ref version", func(t *testing.T, r map[string]any) { pvObj(t, r["ref"])["version"] = "1.0.1" }},
+		{"ref pack id", func(t *testing.T, r map[string]any) {
+			pvObj(t, pvObj(t, r["ref"])["pack"])["id"] = "helianthus.pack.other"
+		}},
+		{"ref pack version", func(t *testing.T, r map[string]any) { pvObj(t, pvObj(t, r["ref"])["pack"])["version"] = "1.0.1" }},
+		{"from", func(t *testing.T, r map[string]any) { r["from"] = "pv.dimension.other" }},
+		{"to", func(t *testing.T, r map[string]any) { r["to"] = "pv.dimension.other" }},
+		{"cardinality", func(t *testing.T, r map[string]any) { r["cardinality"] = "one_to_one" }},
+		{"cardinality absent", func(t *testing.T, r map[string]any) { delete(r, "cardinality") }},
+		{"order", func(t *testing.T, r map[string]any) { r["order"] = float64(11) }},
+	} {
+		t.Run(mutation.name, func(t *testing.T) {
+			var copied map[string]any
+			if err := json.Unmarshal(raw, &copied); err != nil {
+				t.Fatal(err)
+			}
+			relations := pvObj(t, pvObj(t, copied["catalog"])["definitions"])["relations"].([]any)
+			mutation.apply(t, pvObj(t, relations[0]))
+			if pvRelationsExact(t, relations) {
+				t.Fatalf("%s mutation accepted", mutation.name)
 			}
 		})
 	}
@@ -236,8 +316,8 @@ func pvVectorFailure(t *testing.T, id string, d map[string]any) string {
 			}
 		}
 	case "PV-NEG-005":
-		if len(defs["relationships"].([]any)) != 5 {
-			return "relationships catalog"
+		if !pvRelationsExact(t, defs["relations"].([]any)) {
+			return "relations catalog"
 		}
 	case "PV-NEG-006":
 		if pvObj(t, c["candidate_mappings"].([]any)[0])["state"] != "candidate" {

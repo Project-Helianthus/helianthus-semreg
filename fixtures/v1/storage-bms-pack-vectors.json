@@ -198,7 +198,7 @@
         "operation": "current_admission_only",
         "read": "all_fields_exactly_once"
       },
-      "relationships": [
+      "relations": [
         "system_battery",
         "battery_pack",
         "pack_module",

@@ -35,13 +35,15 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 		t.Fatal("fixture path")
 	}
 	root := filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "fixtures", "v1")
-	for _, tc := range []struct{ name, want string }{{"storage-bms-pack-vectors.json", "6bb66f304c3ccd5870a4e49a68f1f3d20011eab84e3722c5f8fdfda79b7b4321"}, {"storage-bms-contract-tables.json", "3bde31cbc59ff3e2ea19408f3bfb09210837e7df20a692593e5c261bc48b032f"}} {
+	for _, tc := range []struct {
+		name string
+		want [sha256.Size]byte
+	}{{"storage-bms-pack-vectors.json", storageVectorFixtureSHA256}, {"storage-bms-contract-tables.json", storageContractTablesSHA256}} {
 		raw, err := os.ReadFile(filepath.Join(root, tc.name))
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := sha256.Sum256(raw)
-		if hex.EncodeToString(got[:]) != tc.want {
+		if got := sha256.Sum256(raw); got != tc.want {
 			t.Fatalf("%s digest %x", tc.name, got)
 		}
 	}
@@ -53,11 +55,45 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 	if err := json.Unmarshal(raw, &tables); err != nil {
 		t.Fatal(err)
 	}
-	for key, want := range map[string]int{"field_specs": 20, "services": 7, "capabilities": 5, "relationships": 6, "operations": 2, "effects": 2, "portal_contributions": 5} {
+	for key, want := range map[string]int{"field_specs": 20, "services": 7, "capabilities": 5, "relations": 6, "operations": 2, "effects": 2, "portal_contributions": 5} {
 		if got := len(tables[key].([]any)); got != want {
 			t.Fatalf("%s=%d", key, got)
 		}
 	}
+	for index, want := range storageRelations {
+		relation := storageVectorObject(t, tables["relations"].([]any)[index])
+		if len(relation) != 5 || relation["id"] != "storage.relation."+want.name || relation["from"] != want.from || relation["to"] != want.to || relation["cardinality"] != "one_to_many" || relation["order"] != float64(10*(index+1)) {
+			t.Fatalf("relation %d: %#v", index, relation)
+		}
+	}
+}
+
+// storageVectorFixtureSHA256 and storageContractTablesSHA256 are the SHA-256
+// values of fixtures/v1/storage-bms-pack-vectors.json and
+// fixtures/v1/storage-bms-contract-tables.json.
+var (
+	storageVectorFixtureSHA256 = [sha256.Size]byte{
+		0x89, 0x07, 0xae, 0xea, 0xa9, 0xf2, 0xd9, 0x42,
+		0xfe, 0x66, 0xd6, 0x83, 0x76, 0x4a, 0x7b, 0xca,
+		0xb5, 0xa4, 0x34, 0x33, 0x06, 0x8c, 0x6b, 0x5a,
+		0x97, 0xd5, 0x8c, 0x70, 0x76, 0x49, 0x0c, 0xb4,
+	}
+	storageContractTablesSHA256 = [sha256.Size]byte{
+		0xb5, 0x99, 0xb8, 0xaa, 0x50, 0xee, 0xcb, 0xa2,
+		0xd3, 0x50, 0xd3, 0x70, 0xae, 0xf9, 0x6f, 0xfb,
+		0x31, 0x78, 0xbf, 0x5d, 0xd1, 0xdf, 0xe9, 0x29,
+		0x14, 0x7f, 0x29, 0x7f, 0x17, 0xf8, 0xea, 0xfc,
+	}
+)
+
+// storageRelations lists the accepted storage relations in declared order.
+var storageRelations = []struct{ name, from, to string }{
+	{"system_battery", "storage.service.system", "storage.service.battery"},
+	{"battery_pack", "storage.service.battery", "storage.service.pack"},
+	{"pack_module", "storage.service.pack", "storage.service.module"},
+	{"module_cell", "storage.service.module", "storage.service.cell"},
+	{"pack_string", "storage.service.pack", "storage.service.string"},
+	{"pack_interface", "storage.service.pack", "storage.service.interface"},
 }
 
 func TestStorageMachineFixtureVectors(t *testing.T) {
@@ -66,8 +102,8 @@ func TestStorageMachineFixtureVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(raw)
-	if actual := hex.EncodeToString(sum[:]); actual != "6bb66f304c3ccd5870a4e49a68f1f3d20011eab84e3722c5f8fdfda79b7b4321" {
-		t.Fatalf("fixture SHA-256 = %s", actual)
+	if sum != storageVectorFixtureSHA256 {
+		t.Fatalf("fixture SHA-256 = %s", hex.EncodeToString(sum[:]))
 	}
 	var baseline map[string]any
 	if err := json.Unmarshal(raw, &baseline); err != nil {
@@ -123,9 +159,14 @@ func validateStorageVectorBaseline(t *testing.T, document map[string]any) {
 	for _, count := range []struct {
 		value any
 		want  int
-	}{{definitions["fields"], 20}, {definitions["dimensions"], 7}, {definitions["relationships"], 6}, {catalog["domain_catalog"], 5}, {index.Fields, 20}, {index.Services, 7}, {index.Capabilities, 5}, {index.Operations, 2}, {index.EffectRules, 2}} {
+	}{{definitions["fields"], 20}, {definitions["dimensions"], 7}, {definitions["relations"], 6}, {catalog["domain_catalog"], 5}, {index.Fields, 20}, {index.Services, 7}, {index.Capabilities, 5}, {index.Operations, 2}, {index.EffectRules, 2}} {
 		if storageVectorLen(t, count.value) != count.want {
 			t.Fatalf("catalog count = %d, want %d", storageVectorLen(t, count.value), count.want)
+		}
+	}
+	for index, name := range storageVectorArray(t, definitions["relations"]) {
+		if name != storageRelations[index].name {
+			t.Fatalf("relation %d = %#v", index, name)
 		}
 	}
 	for _, fixtureField := range storageVectorArray(t, definitions["fields"]) {

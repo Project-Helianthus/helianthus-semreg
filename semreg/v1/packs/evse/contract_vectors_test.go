@@ -12,7 +12,13 @@ import (
 	"testing"
 )
 
-const fixtureHash = "0138874611fd78cadb792785c4ab73f3b062d92cddae2297b06b9cb8c28f30b4"
+// fixtureHash is the SHA-256 of fixtures/v1/evse-pack-vectors.json.
+var fixtureHash = [sha256.Size]byte{
+	0xed, 0xc8, 0x27, 0x12, 0x8a, 0x5e, 0xf5, 0x70,
+	0x0d, 0x3f, 0x82, 0xfa, 0xc7, 0x92, 0x08, 0x48,
+	0x68, 0xa6, 0x15, 0x5b, 0x70, 0x5e, 0x08, 0xdf,
+	0x69, 0x14, 0x8e, 0x40, 0x02, 0x26, 0xcc, 0xdd,
+}
 
 type evseVector struct {
 	ID     string `json:"id"`
@@ -34,8 +40,8 @@ func TestEVSEMachineVectors(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(bytes)
-	if actual := hex.EncodeToString(sum[:]); actual != fixtureHash {
-		t.Fatalf("fixture SHA-256 = %s", actual)
+	if sum != fixtureHash {
+		t.Fatalf("fixture SHA-256 = %s", hex.EncodeToString(sum[:]))
 	}
 	var baseline map[string]any
 	if err := json.Unmarshal(bytes, &baseline); err != nil {
@@ -70,7 +76,7 @@ func TestEVSEMachineVectors(t *testing.T) {
 	}
 }
 
-func TestEVSEStaticRelationshipsAndPortalReferences(t *testing.T) {
+func TestEVSEStaticRelationsAndPortalReferences(t *testing.T) {
 	bytes, err := os.ReadFile(fixturePath(t))
 	if err != nil {
 		t.Fatal(err)
@@ -81,8 +87,22 @@ func TestEVSEStaticRelationshipsAndPortalReferences(t *testing.T) {
 	}
 	definitions := evseObject(t, evseObject(t, document["catalog"])["definitions"])
 	fields, services, operations := evseIDs(t, definitions["fields"]), evseIDs(t, definitions["services"]), evseIDs(t, definitions["operations"])
-	if len(evseArray(t, definitions["relationships"])) != 5 {
-		t.Fatal("static relationship count")
+	wantRelations := []struct{ id, from, to, cardinality string }{
+		{"evse.relation.asset_evse", "evse.dimension.asset", "evse.dimension.evse", "one_to_many"},
+		{"evse.relation.evse_connector", "evse.dimension.evse", "evse.dimension.connector", "one_to_many"},
+		{"evse.relation.connector_phase", "evse.dimension.connector", "evse.dimension.phase", "one_to_many"},
+		{"evse.relation.connector_session", "evse.dimension.connector", "evse.dimension.session", "one_to_many_over_time"},
+		{"evse.relation.evse_meter", "evse.dimension.evse", "evse.dimension.meter", "one_to_many"},
+	}
+	relations := evseArray(t, definitions["relations"])
+	if len(relations) != len(wantRelations) {
+		t.Fatalf("static relation count = %d", len(relations))
+	}
+	for index, want := range wantRelations {
+		relation := evseObject(t, relations[index])
+		if relation["id"] != want.id || relation["from"] != want.from || relation["to"] != want.to || relation["cardinality"] != want.cardinality || relation["order"] != float64(10*(index+1)) {
+			t.Fatalf("relation %d: %#v", index, relation)
+		}
 	}
 	for _, entry := range evseArray(t, definitions["portal_contributions"]) {
 		descriptor := evseObject(t, entry)
@@ -118,7 +138,7 @@ func validateEVSEBaseline(t *testing.T, document map[string]any) {
 	for _, count := range []struct {
 		value any
 		want  int
-	}{{definitions["fields"], 15}, {definitions["fact_dimensions"], 6}, {definitions["services"], 5}, {definitions["relationships"], 5}, {definitions["capabilities"], 6}, {definitions["operations"], 1}, {definitions["effect_rules"], 1}, {definitions["portal_contributions"], 6}} {
+	}{{definitions["fields"], 15}, {definitions["fact_dimensions"], 6}, {definitions["services"], 5}, {definitions["relations"], 5}, {definitions["capabilities"], 6}, {definitions["operations"], 1}, {definitions["effect_rules"], 1}, {definitions["portal_contributions"], 6}} {
 		if len(evseArray(t, count.value)) != count.want {
 			t.Fatalf("catalog count %d", count.want)
 		}
@@ -142,8 +162,8 @@ func evseVectorFailure(t *testing.T, id string, document map[string]any) string 
 			return "quantity contract"
 		}
 	case "topology_drift":
-		if evseObject(t, evseArray(t, definitions["relationships"])[1])["cardinality"] != "one_to_many" {
-			return "relationship association"
+		if evseObject(t, evseArray(t, definitions["relations"])[1])["cardinality"] != "one_to_many" {
+			return "relation association"
 		}
 	case "operation_authority_weakened":
 		if len(evseArray(t, evseObject(t, evseArray(t, definitions["operations"])[0])["preconditions"])) != 6 {

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+The PV, EVSE, infrastructure and storage pack vectors and the storage contract
+tables are copied again, byte for byte, from the semantic contract, which renamed
+the pack member `relationships` to `relations` and the identifiers
+`<pack>.relationship.<name>` to `<pack>.relation.<name>` in place. Every relation
+definition now uses one encoding (`from`, `to`, `cardinality`, `order`); the
+storage contract tables replace `source` and `target` with `from` and `to`, and
+the PV relations declare `one_to_many`. The vector errors `relationships catalog`
+and `relationship association` are now `relations catalog` and
+`relation association`. The five SHA-256 pins in `fixtures/README.md` and the
+pack tests move with the bytes; the thermal fixture and its pin are unchanged.
+The pack tests read `relations`, check each relation's identity, endpoints,
+cardinality and order, and two test functions drop the old word from their
+names. The README now states that packs are read-only at run time and change in
+place until the 0.7 release, and that relation instances are kernel records
+defined by the graph contract. No pack definition, validator, exported name or
+kernel behaviour changes, and no pack or contract version is raised.
+
 The coherent-revision fixture now names its synthetic asset
 `asset:synthetic:two-bindings`, and the fixture README and its test describe two
 source bindings on one asset. The vectors prove revision coherence across two

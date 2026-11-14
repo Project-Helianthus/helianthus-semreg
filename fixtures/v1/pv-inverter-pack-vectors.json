@@ -68,12 +68,12 @@
         {"id":"pv.service.input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.input","version":"1.0.0"},"fact_key_dimension":"pv.dimension.input","order":50},
         {"id":"pv.service.phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.service.phase","version":"1.0.0"},"fact_key_dimension":"pv.dimension.phase","order":60}
       ],
-      "relationships": [
-        {"id":"pv.relationship.system_inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.system_inverter","version":"1.0.0"},"from":"pv.dimension.system","to":"pv.dimension.inverter","order":10},
-        {"id":"pv.relationship.inverter_array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.inverter_array","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.array","order":20},
-        {"id":"pv.relationship.array_string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.array_string","version":"1.0.0"},"from":"pv.dimension.array","to":"pv.dimension.string","order":30},
-        {"id":"pv.relationship.inverter_input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.inverter_input","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.input","order":40},
-        {"id":"pv.relationship.inverter_phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relationship.inverter_phase","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.phase","order":50}
+      "relations": [
+        {"id":"pv.relation.system_inverter","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relation.system_inverter","version":"1.0.0"},"from":"pv.dimension.system","to":"pv.dimension.inverter","cardinality":"one_to_many","order":10},
+        {"id":"pv.relation.inverter_array","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relation.inverter_array","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.array","cardinality":"one_to_many","order":20},
+        {"id":"pv.relation.array_string","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relation.array_string","version":"1.0.0"},"from":"pv.dimension.array","to":"pv.dimension.string","cardinality":"one_to_many","order":30},
+        {"id":"pv.relation.inverter_input","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relation.inverter_input","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.input","cardinality":"one_to_many","order":40},
+        {"id":"pv.relation.inverter_phase","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.relation.inverter_phase","version":"1.0.0"},"from":"pv.dimension.inverter","to":"pv.dimension.phase","cardinality":"one_to_many","order":50}
       ],
       "capabilities": [
         {"id":"pv.capability.read.system","ref":{"pack":{"id":"helianthus.pack.pv","version":"1.0.0"},"id":"pv.capability.read.system","version":"1.0.0"},"service":"pv.service.system","activation":"qualified_current_binding","order":10},
@@ -116,7 +116,7 @@
     {"id":"PV-NEG-002","polarity":"negative","input":{"mutations":[{"op":"remove_id","path":"domain_catalog","id":"infrastructure"}]},"expect":{"error":"five-domain catalog"}},
     {"id":"PV-NEG-003","polarity":"negative","input":{"mutations":[{"op":"delete","path":"definitions.fields.0.ref"}]},"expect":{"error":"DefinitionRef owner/version"}},
     {"id":"PV-NEG-004","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.fields.0.unit","value":"volt"}]},"expect":{"error":"invalid unit ID"}},
-    {"id":"PV-NEG-005","polarity":"negative","input":{"mutations":[{"op":"remove_id","path":"definitions.relationships","id":"pv.relationship.inverter_phase"}]},"expect":{"error":"relationships catalog"}},
+    {"id":"PV-NEG-005","polarity":"negative","input":{"mutations":[{"op":"remove_id","path":"definitions.relations","id":"pv.relation.inverter_phase"}]},"expect":{"error":"relations catalog"}},
     {"id":"PV-NEG-006","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.0.state","value":"qualified"}]},"expect":{"error":"native mapping boundary"}},
     {"id":"PV-NEG-007","polarity":"negative","input":{"mutations":[{"op":"set","path":"candidate_mappings.2.state","value":"candidate"}]},"expect":{"error":"native mapping boundary"}},
     {"id":"PV-NEG-008","polarity":"negative","input":{"mutations":[{"op":"set","path":"definitions.operations.0.preconditions.3","value":"optional_authority"}]},"expect":{"error":"operation lacks admission/readback"}},

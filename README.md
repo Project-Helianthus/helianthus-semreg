@@ -4,9 +4,20 @@
 semantic code, versioned capability packages, interfaces, types, and
 compatibility fixtures.
 
+## Capability packs
+
+Capability packs are read-only at run time: no publication, evaluation or
+operation changes a pack definition. Until the Helianthus 0.7 release, pack
+definitions and their copied fixtures change in place, without a new pack or
+contract version. A pack declares relation definitions only. Relation instances
+are kernel records defined by the
+[graph contract](https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/main/api/v1/graph.md);
+their implementation follows in
+[#90](https://github.com/Project-Helianthus/helianthus-semreg/issues/90).
+
 ## Storage/BMS capability pack v1.1
 
-`semreg/v1/packs/storage` implements the immutable
+`semreg/v1/packs/storage` implements the read-only
 `helianthus.pack.storage@1.1.0` validator from accepted semantic docs revision
 `c20fdef`. It indexes 20 fields, seven services, five capabilities, and two
 charge/discharge limit operation/effect pairs. Each operation requires one
@@ -18,7 +29,7 @@ remains `unknown_pending_normative_source`.
 
 ## PV/inverter capability pack v1
 
-`semreg/v1/packs/pv` implements the immutable
+`semreg/v1/packs/pv` implements the read-only
 `helianthus.pack.pv@1.0.0` validator from accepted semantic documentation. It
 indexes 21 fields, six services, eight capabilities, and the active-power and
 export limit operation/effect pairs. It preserves the fixture's native mapping
@@ -27,17 +38,17 @@ live-I/O behavior.
 
 ## EVSE capability pack v1
 
-`semreg/v1/packs/evse` implements the immutable
+`semreg/v1/packs/evse` implements the read-only
 `helianthus.pack.evse@1.0.0` validator from
 [`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
 It indexes 15 field contracts, six static dimensions, five services, six
 capabilities, one allocated-current operation/effect pair, five static
-relationships, and six Portal descriptors. It validates exact qualified,
+relation definitions, and six Portal descriptors. It validates exact qualified,
 available capability constraints and exact allocated-current argument matching
-through the existing operation kernel; it does not implement topology
-instances, native mappings, Tesla sending or routes, eeBUS qualification,
-Matter conformance, Portal composition, consumer behavior, persistence, or
-live I/O. Tesla remains a no-sender/no-route/no-live-authority candidate,
+through the existing operation kernel; relation instances are kernel records,
+and the pack does not implement native mappings, Tesla sending or routes,
+eeBUS qualification, Matter conformance, Portal composition, consumer
+behavior, persistence, or live I/O. Tesla remains a no-sender/no-route/no-live-authority candidate,
 eeBUS remains `unknown_pending_normative_source`, and Matter is input-only. Native
 counter reset/wrap evidence, lifecycle and loss semantics remain outside this
 pack. Capability-to-service instance pairing remains static metadata because
@@ -45,7 +56,7 @@ the current `PackValidator` boundary sees only an opaque service-instance ID.
 
 ## Thermal/HVAC capability pack v1
 
-`semreg/v1/packs/thermal` implements the immutable
+`semreg/v1/packs/thermal` implements the read-only
 `helianthus.pack.thermal@1.0.0` validator from
 [`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
 It indexes 13 field contracts, five services, seven capabilities, two bounded
@@ -58,16 +69,16 @@ only an opaque service-instance ID.
 
 ## Infrastructure capability pack v1
 
-`semreg/v1/packs/infrastructure` provides the immutable read-only validator for
+`semreg/v1/packs/infrastructure` provides the read-only validator for
 `helianthus.pack.infrastructure@1.0.0`, accepted from
 [`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
 It indexes 19 electrical facts, six services, and six read capabilities. It
 checks canonical text dimensions, units, Decimal bounds, and status symbols
 through the existing semantic registry only. It indexes no operations or effect
-rules and exports no native mapping, route, Portal, consumer, topology-instance,
-or control API. The copied machine fixture pins the source contract and static
-relationship/Portal metadata; passing its tests is not a native conformance,
-mapping qualification, live-I/O, or hardware claim.
+rules and exports no native mapping, route, Portal, consumer, or control API;
+relation instances are kernel records. The copied machine fixture pins the
+source contract and static relation/Portal metadata; passing its tests is not a
+native conformance, mapping qualification, live-I/O, or hardware claim.
 
 ## Implemented v1 foundation, publication, evaluation, selection, operations, and projection
 
