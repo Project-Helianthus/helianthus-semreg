@@ -52,6 +52,16 @@ const (
 	AliasNotRoutable               ErrorID = "alias_not_routable"
 )
 
+// Stable errors of the semantic resource graph. They extend the v1 list and
+// take their places in the error precedence below.
+const (
+	StaleRelation        ErrorID = "stale_relation"
+	MembershipMissing    ErrorID = "membership_missing"
+	DuplicateIdentity    ErrorID = "duplicate_identity"
+	IdentityDrift        ErrorID = "identity_drift"
+	RelationNotQualified ErrorID = "relation_not_qualified"
+)
+
 type Error struct {
 	ID     ErrorID
 	Detail string
@@ -76,12 +86,13 @@ var errorRanks = map[ErrorID]int{
 	InvalidIdentifier: 6, InvalidDecimal: 7, InvalidValue: 8, InvalidTime: 9, InvalidEvidence: 10,
 	InvalidEnum: 11, BoundsExceeded: 12, NoncanonicalOrder: 13, DigestMismatch: 14,
 	DanglingReference: 15, DerivationCycle: 16, StaleSourceEpoch: 17, StaleDriverGeneration: 18,
-	SequenceConflict: 19, RevisionConflict: 20, IncomparableClockEpoch: 21,
-	GenerationTransitionIncomplete: 22, DefinitionOwnerConflict: 23, DefinitionOwnerMissing: 24,
-	IdentityNotQualified: 25, CapabilityNotQualified: 26, CapabilityUnavailable: 27,
-	AuthorityMissing: 28, DeadlineExpired: 29, PreconditionFailed: 30,
-	RouteSelectionForbidden: 31, AmbiguousRoute: 32, RetryForbidden: 33, InvalidOutcome: 34,
-	EchoSuppressed: 35, CausalBudgetExceeded: 36, ProjectionIncomplete: 37, AliasNotRoutable: 38,
+	StaleRelation: 19, SequenceConflict: 20, RevisionConflict: 21, IncomparableClockEpoch: 22,
+	GenerationTransitionIncomplete: 23, DefinitionOwnerConflict: 24, DefinitionOwnerMissing: 25,
+	MembershipMissing: 26, IdentityNotQualified: 27, DuplicateIdentity: 28, IdentityDrift: 29,
+	RelationNotQualified: 30, CapabilityNotQualified: 31, CapabilityUnavailable: 32,
+	AuthorityMissing: 33, DeadlineExpired: 34, PreconditionFailed: 35,
+	RouteSelectionForbidden: 36, AmbiguousRoute: 37, RetryForbidden: 38, InvalidOutcome: 39,
+	EchoSuppressed: 40, CausalBudgetExceeded: 41, ProjectionIncomplete: 42, AliasNotRoutable: 43,
 }
 
 func bestError(errors ...error) error {

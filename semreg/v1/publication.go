@@ -42,6 +42,9 @@ func (r RevisionVector) Validate() error {
 	if !positive(r.Semantic) || !positive(r.Identity) || !positive(r.Facts) || !positive(r.Services) || !positive(r.Capabilities) {
 		return errID(InvalidIdentifier, "revision vector")
 	}
+	if r.Structure != "" && !positive(r.Structure) {
+		return errID(InvalidIdentifier, "structure revision")
+	}
 	return nil
 }
 
@@ -186,6 +189,7 @@ func (b PublicationBatch) validateStructure(requireDigest bool) error {
 		orderedUnique(b.CapabilityUpserts, func(a, z CapabilityInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) }),
 		orderedUnique(b.CapabilityWithdrawals, func(a, z CapabilityInstanceID) int { return strings.Compare(string(a), string(z)) }),
 		orderedUnique(b.GenerationFences, compareFence),
+		b.graphMembersError(),
 	)
 	return bestError(errs...)
 }
@@ -356,7 +360,7 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 }
 
 func (k *PublicationKernel) applyLocked(batch PublicationBatch, publicationMonotonic MonotonicPoint, admission bool) (Snapshot, []byte, error) {
-	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch))
+	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch), batch.graphMembershipError())
 	// Local member validation ranks malformed/missing fields, invalid values,
 	// bounds and collection order before reference/lifecycle semantics. Higher-
 	// ranked malformed records need no retained lookup at all.
@@ -1197,7 +1201,13 @@ func factKeyIdentity(key FactKey) (string, error) {
 	return string(canonical), err
 }
 
+// computedID derives the identifier from canonical bytes, so graph members must
+// first be valid and in canonical order. A snapshot without them hashes the
+// same bytes as before they existed.
 func (s Snapshot) computedID() (SnapshotID, error) {
+	if err := s.graphMembersError(); err != nil {
+		return "", err
+	}
 	raw, err := json.Marshal(s)
 	if err != nil {
 		return "", errID(InvalidJSON, "snapshot identity")
