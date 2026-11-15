@@ -58,7 +58,7 @@ func (v *snapshotValidation) checkCollectionShape() {
 			v.add(errID(MissingMember, "snapshot collection"))
 		}
 	}
-	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || len(s.IdentityLinks) > maxSnapshotIdentity || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotRetained || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
+	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || identityLinkBoundsExceeded(s.IdentityLinks) || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotRetained || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
 		v.add(errID(BoundsExceeded, "snapshot collection"))
 	}
 	v.add(

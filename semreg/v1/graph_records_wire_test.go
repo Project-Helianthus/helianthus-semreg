@@ -117,12 +117,13 @@ func graphSlotResource(id ResourceID) Resource {
 
 func graphNativeResource(t *testing.T, id ResourceID) Resource {
 	t.Helper()
-	key := graphIdentityKey(t, "scheme.test", "", "token-1")
+	scheme := "scheme.test"
+	key := graphIdentityKey(t, scheme, "", "token-1")
 	previousSlot := "slot-1"
 	binding, source, epoch := NativeBindingID("binding:a"), SourceID("source:a"), SourceEpochID("epoch:a")
 	return Resource{
 		ResourceID: id, Kind: "resource.equipment",
-		Anchor:     ResourceAnchor{Class: AnchorEquipment, Basis: AnchorNativeIdentity, Key: &key, Evidence: []EvidenceRef{publicEvidence("7")}},
+		Anchor:     ResourceAnchor{Class: AnchorEquipment, Basis: AnchorNativeIdentity, Scheme: &scheme, Key: &key, Evidence: []EvidenceRef{publicEvidence("7")}},
 		Supersedes: &AnchorSupersession{Previous: ResourceAnchor{Class: AnchorEquipment, Basis: AnchorOperatorSlot, Slot: &previousSlot, Evidence: []EvidenceRef{publicEvidence("6")}}, Evidence: []EvidenceRef{publicEvidence("8")}},
 		State:      ResourceCurrent,
 		Origin:     OriginRef{OriginID: "origin:native", Kind: OriginNativeObservation, SourceID: &source, SourceEpochID: &epoch, BindingID: &binding, Evidence: []EvidenceRef{publicEvidence("4")}},
@@ -301,8 +302,13 @@ func TestGraphRecordBytesUnchangedWithoutGraphMembers(t *testing.T) {
 // trips through canonical JSON with the member present.
 func TestGraphRecordCanonicalRoundTrip(t *testing.T) {
 	native := graphNativeResource(t, "resource:inverter")
-	graphRoundTrip(t, native)
-	graphRoundTrip(t, graphSlotResource("resource:logger"))
+	if canonical := graphRoundTrip(t, native); !bytes.Contains(canonical, []byte(`"scheme":"scheme.test"`)) {
+		t.Fatalf("native identity anchor without its scheme: %s", canonical)
+	}
+	// An anchor of another basis omits the scheme, so its bytes are unchanged.
+	if canonical := graphRoundTrip(t, graphSlotResource("resource:logger")); bytes.Contains(canonical, []byte(`"scheme"`)) {
+		t.Fatalf("slot anchor carries a scheme member: %s", canonical)
+	}
 	graphRoundTrip(t, graphComponentResource("resource:inverter:input", "resource:inverter"))
 	graphRoundTrip(t, native.Anchor)
 	graphRoundTrip(t, *native.Supersedes)
@@ -457,7 +463,7 @@ func TestGraphRecordMembersMatchContractSketches(t *testing.T) {
 			{"supersedes", "*semreg.AnchorSupersession", true}, {"state", "semreg.ResourceState", false}, origin, revision,
 		},
 		reflect.TypeOf(ResourceAnchor{}): {
-			{"class", "semreg.AnchorClass", false}, {"basis", "semreg.AnchorBasis", false}, {"key", "*semreg.Digest", true},
+			{"class", "semreg.AnchorClass", false}, {"basis", "semreg.AnchorBasis", false}, {"scheme", "*string", true}, {"key", "*semreg.Digest", true},
 			{"parent", "*semreg.ResourceID", true}, {"slot", "*string", true}, {"evidence", evidence, false},
 		},
 		reflect.TypeOf(AnchorSupersession{}): {{"previous", "semreg.ResourceAnchor", false}, {"evidence", evidence, false}},
@@ -618,6 +624,11 @@ func TestGraphRecordValueShapes(t *testing.T) {
 		{"native slot with key", resource(func(r *Resource) { r.Anchor.Basis, r.Anchor.Key = AnchorNativeSlot, &someKey }), InvalidValue},
 		{"operator slot with key", resource(func(r *Resource) { r.Anchor.Key = &someKey }), InvalidValue},
 		{"key syntax", native(func(r *Resource) { r.Anchor.Key = &badKey }), InvalidValue},
+		{"native identity without scheme", native(func(r *Resource) { r.Anchor.Scheme = nil }), InvalidValue},
+		{"native slot with scheme", resource(func(r *Resource) { r.Anchor.Basis, r.Anchor.Scheme = AnchorNativeSlot, text("scheme.test") }), InvalidValue},
+		{"operator slot with scheme", resource(func(r *Resource) { r.Anchor.Scheme = text("scheme.test") }), InvalidValue},
+		{"scheme empty", native(func(r *Resource) { r.Anchor.Scheme = text("") }), InvalidIdentifier},
+		{"scheme syntax", native(func(r *Resource) { r.Anchor.Scheme = text("Scheme Test") }), InvalidIdentifier},
 		{"parent syntax", resource(func(r *Resource) { r.Anchor.Parent = &empty }), InvalidIdentifier},
 		{"slot empty", resource(func(r *Resource) { r.Anchor.Slot = text("") }), BoundsExceeded},
 		{"slot over 128 bytes", resource(func(r *Resource) { r.Anchor.Slot = text(strings.Repeat("\u00e9", 64) + "x") }), BoundsExceeded},

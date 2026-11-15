@@ -5,6 +5,7 @@ import (
 	operation "github.com/Project-Helianthus/helianthus-semreg/semreg/v1/operation"
 	"math/big"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -21,11 +22,25 @@ type validator struct{}
 
 var _ operation.OperationPackValidator = validator{}
 var _ semreg.PackMetadataProvider = validator{}
+var _ semreg.GraphFactValidator = validator{}
 
 func (validator) Pack() semreg.PackRef                { return pack }
 func (validator) Definitions() semreg.DefinitionIndex { return index() }
 func (validator) Metadata() semreg.PackMetadata       { return Metadata() }
 func (v validator) ValidateFact(k semreg.FactKey, value *semreg.Value) error {
+	return validateFact(k, value, dimensionsOK)
+}
+
+// ValidateGraphFact validates a fact under graph enforcement: the dimensions
+// are exactly the ones the catalog declares for the field, the resource
+// dimension carries an opaque resource identifier and every qualifier
+// dimension keeps the shape it has without the catalog.
+func (v validator) ValidateGraphFact(k semreg.FactKey, value *semreg.Value, subject semreg.GraphFactSubject) error {
+	return validateFact(k, value, func(values []semreg.Dimension, expected semreg.DefinitionID) error {
+		return graphDimensionsOK(values, expected, subject)
+	})
+}
+func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, semreg.DefinitionID) error) error {
 	if err := k.Validate(); err != nil {
 		return err
 	}
@@ -42,7 +57,7 @@ func (v validator) ValidateFact(k semreg.FactKey, value *semreg.Value) error {
 	if !ok {
 		return fail(semreg.DefinitionOwnerMissing, "evse fact")
 	}
-	if err := dimensionsOK(k.Dimensions, s.dimension); err != nil {
+	if err := dimensionsCheck(k.Dimensions, s.dimension); err != nil {
 		return err
 	}
 	return valueOK(s, *value)
@@ -281,3 +296,32 @@ func contains(vs []string, w string) bool {
 	return false
 }
 func fail(id semreg.ErrorID, d string) error { return &semreg.Error{ID: id, Detail: d} }
+
+// graphDimensionsOK replaces the single text dimension of a field under graph
+// enforcement: exactly the declared resource dimension, whose value is an
+// opaque identifier, plus the declared qualifier dimensions. The field's own
+// dimension is one of them.
+func graphDimensionsOK(values []semreg.Dimension, expected semreg.DefinitionID, subject semreg.GraphFactSubject) error {
+	declared := append([]semreg.DefinitionID{}, subject.Qualifiers...)
+	if subject.Resolved {
+		declared = append(declared, subject.Dimension)
+	}
+	sort.Slice(declared, func(i, j int) bool { return declared[i] < declared[j] })
+	if len(values) != len(declared) {
+		return fail(semreg.InvalidValue, "evse dimensions")
+	}
+	own := false
+	for i, d := range values {
+		if d.ID != declared[i] || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
+			return fail(semreg.InvalidValue, "evse dimension")
+		}
+		if subject.Resolved && d.ID == subject.Dimension && semreg.ResourceID(*d.Value.Text).Validate() != nil {
+			return fail(semreg.InvalidValue, "evse resource dimension")
+		}
+		own = own || d.ID == expected
+	}
+	if !own {
+		return fail(semreg.InvalidValue, "evse dimension")
+	}
+	return nil
+}

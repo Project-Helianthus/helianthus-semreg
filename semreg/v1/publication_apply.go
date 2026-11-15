@@ -26,11 +26,13 @@ type applyState struct {
 	cursors      map[cursorKey]PublicationCursor
 	candidates   map[CandidateID]FactCandidate
 	retained     map[string]RetainedObservationRecord
+	resources    map[ResourceID]Resource
 
 	originalBindings     map[NativeBindingID]NativeBinding
 	originalServices     map[ServiceInstanceID]ServiceInstance
 	originalCapabilities map[CapabilityInstanceID]CapabilityInstance
 	originalCandidates   map[CandidateID]FactCandidate
+	originalResources    map[ResourceID]Resource
 
 	retirements          map[SourceEpochID]struct{}
 	transitionedBindings map[NativeBindingID]NativeBinding
@@ -42,8 +44,10 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch, 
 	state := newApplyState(k.registry, snapshot, batch, publicationMonotonic)
 	state.validateInput()
 	state.resolveBindings()
+	state.upsertResources()
 	state.evaluate()
 	state.assembleFacts()
+	state.checkResourceGraph()
 	changed := state.commit()
 	return changed, state.failure
 }
@@ -64,6 +68,7 @@ func newApplyState(registry *Registry, snapshot *Snapshot, batch PublicationBatc
 		candidates:         make(map[CandidateID]FactCandidate),
 		originalCandidates: make(map[CandidateID]FactCandidate),
 		retained:           make(map[string]RetainedObservationRecord, len(snapshot.Retained)),
+		resources:          make(map[ResourceID]Resource, len(snapshot.Resources)),
 	}
 	for _, source := range snapshot.Sources {
 		s.sources[sourceKey{source.SourceID, source.SourceEpochID}] = source
@@ -80,6 +85,10 @@ func newApplyState(registry *Registry, snapshot *Snapshot, batch PublicationBatc
 	for _, capability := range snapshot.Capabilities {
 		s.capabilities[capability.InstanceID] = capability
 	}
+	for _, resource := range snapshot.Resources {
+		s.resources[resource.ResourceID] = resource
+	}
+	s.originalResources = cloneMap(s.resources)
 	s.originalBindings = cloneMap(s.bindings)
 	s.originalServices = cloneMap(s.services)
 	s.originalCapabilities = cloneMap(s.capabilities)
@@ -575,6 +584,7 @@ func (s *applyState) commit() componentChanges {
 		facts:        !reflect.DeepEqual(before.Facts, snapshot.Facts) || !reflect.DeepEqual(before.Retained, snapshot.Retained),
 		services:     !reflect.DeepEqual(before.Services, snapshot.Services),
 		capabilities: !reflect.DeepEqual(before.Capabilities, snapshot.Capabilities),
+		structure:    !reflect.DeepEqual(before.Resources, snapshot.Resources),
 	}
 	s.check(snapshot.publicationContentErrors())
 	return changed
@@ -609,4 +619,11 @@ func (s *applyState) writeSnapshot() {
 	snapshot.Capabilities = sortedMapValues(s.capabilities, func(a, z CapabilityInstance) int { return strings.Compare(string(a.InstanceID), string(z.InstanceID)) })
 	snapshot.Fences = sortedMapValues(s.fences, compareFence)
 	snapshot.Cursors = sortedMapValues(s.cursors, compareCursor)
+	// An asset without resources omits the collection, so its snapshot keeps
+	// the bytes it had before resources existed.
+	if len(s.resources) == 0 {
+		snapshot.Resources = nil
+	} else {
+		snapshot.Resources = sortedMapValues(s.resources, func(a, z Resource) int { return strings.Compare(string(a.ResourceID), string(z.ResourceID)) })
+	}
 }

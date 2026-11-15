@@ -133,10 +133,24 @@ type Registry struct {
 	// graph is set only by NewGraphRegistry and never changes afterwards.
 	graph *graphState
 }
+
+// GraphFactValidator is implemented by a pack validator that validates facts
+// under graph enforcement. A graph-enforced registry calls ValidateGraphFact
+// instead of ValidateFact with the subject the catalog declares for the fact:
+// the resource dimension then carries an opaque resource identifier and the
+// other dimensions are the declared qualifier dimensions. A registry without
+// the catalog never calls it.
+type GraphFactValidator interface {
+	ValidateGraphFact(key FactKey, value *Value, subject GraphFactSubject) error
+}
+
 type frozenValidator struct {
 	hook   PackValidator
 	index  DefinitionIndex
 	owners map[definitionKey]PackRef
+	// subjects is set only by NewGraphRegistry, from a catalog with the
+	// resource lookups, and never changes afterwards.
+	subjects GraphResourceCatalog
 	// mutex is a pointer so registry value copies, including a fork-shared
 	// registry, serialize calls into the same external hook instance.
 	mutex *sync.Mutex
@@ -165,6 +179,18 @@ func (v frozenValidator) ValidateFact(k FactKey, value *Value) error {
 	if value != nil {
 		detached := copyHookValue(*value)
 		value = &detached
+	}
+	if v.subjects != nil {
+		subject, ok := v.subjects.FactSubject(v.Pack(), k.FactID)
+		if !ok {
+			return errID(MembershipMissing, "fact without a catalog entry")
+		}
+		if hook, ok := v.hook.(GraphFactValidator); ok {
+			subject.Qualifiers = append([]DefinitionID(nil), subject.Qualifiers...)
+			v.mutex.Lock()
+			defer v.mutex.Unlock()
+			return hook.ValidateGraphFact(copyHookKey(k), value, subject)
+		}
 	}
 	v.mutex.Lock()
 	defer v.mutex.Unlock()

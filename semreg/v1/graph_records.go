@@ -35,7 +35,8 @@ const (
 // AnchorBasis states what establishes a resource anchor.
 type AnchorBasis string
 
-// AnchorBasis values. Only AnchorNativeIdentity carries an anchor key.
+// AnchorBasis values. Only AnchorNativeIdentity carries a scheme and an
+// anchor key.
 const (
 	AnchorNativeIdentity AnchorBasis = "native_identity"
 	AnchorNativeSlot     AnchorBasis = "native_slot"
@@ -63,13 +64,16 @@ const (
 	AbsenceTo   AbsenceSide = "to"
 )
 
-// ResourceAnchor is the identity basis of a resource. Key is present exactly
-// when Basis is native_identity. Slot is NFC text of 1 through 128 bytes
+// ResourceAnchor is the identity basis of a resource. Scheme and Key are
+// present exactly when Basis is native_identity: Scheme names, in clear, the
+// identification scheme of the identity object that Key digests; issuer and
+// token stay inside the digest. Slot is NFC text of 1 through 128 bytes
 // without control characters. Evidence holds 1 through 32 unique, sorted
 // references.
 type ResourceAnchor struct {
 	Class    AnchorClass   `json:"class"`
 	Basis    AnchorBasis   `json:"basis"`
+	Scheme   *string       `json:"scheme,omitempty"`
 	Key      *Digest       `json:"key,omitempty"`
 	Parent   *ResourceID   `json:"parent,omitempty"`
 	Slot     *string       `json:"slot,omitempty"`
@@ -188,11 +192,17 @@ func (s AbsenceSide) Validate() error {
 
 func (a ResourceAnchor) Validate() error {
 	errs := []error{a.Class.Validate(), a.Basis.Validate(), validateEvidenceSet(a.Evidence, 1, 32)}
+	if a.Scheme != nil {
+		errs = append(errs, DefinitionID(*a.Scheme).Validate())
+	}
 	if a.Key != nil {
 		errs = append(errs, a.Key.Validate())
 	}
 	if (a.Basis == AnchorNativeIdentity) != (a.Key != nil) {
 		errs = append(errs, errID(InvalidValue, "anchor key presence"))
+	}
+	if (a.Basis == AnchorNativeIdentity) != (a.Scheme != nil) {
+		errs = append(errs, errID(InvalidValue, "anchor scheme presence"))
 	}
 	if a.Parent != nil {
 		errs = append(errs, a.Parent.Validate())

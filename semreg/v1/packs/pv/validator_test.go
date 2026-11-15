@@ -443,3 +443,59 @@ func pvOutside(n semreg.Decimal, d int64) semreg.Decimal {
 	x, _ := strconv.ParseInt(n.Coefficient, 10, 64)
 	return semreg.Decimal{Coefficient: strconv.FormatInt(x+d, 10), Exponent10: n.Exponent10}
 }
+
+func pvGraphTestFact(s fieldSpec) (semreg.FactKey, semreg.Value) {
+	name := "id"
+	k := semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: s.id, Dimensions: []semreg.Dimension{{ID: s.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	z := semreg.Decimal{Coefficient: "0"}
+	if s.minimum != nil {
+		z = s.minimum.decimal()
+	}
+	q := semreg.Value{Kind: s.kind}
+	if s.kind == semreg.ValueQuantity {
+		q.Quantity = &semreg.Quantity{Number: z, Unit: s.unit}
+	} else {
+		q.Symbol = &semreg.Symbol{Namespace: s.id, Token: strings.TrimPrefix(s.symbols[0], string(s.id)+"."), Known: true}
+	}
+	return k, q
+}
+
+// Under graph enforcement the field's dimension is the dimension the catalog
+// declares: as a resource dimension it carries an opaque resource identifier,
+// as a qualifier dimension it keeps its shape, and no undeclared dimension is
+// accepted. Without the catalog ValidateFact is unchanged.
+func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
+	var graphValidator semreg.GraphFactValidator = New().(semreg.GraphFactValidator)
+	for _, s := range fields {
+		key, value := pvGraphTestFact(s)
+		withText := func(text string) semreg.FactKey {
+			changed := key
+			changed.Dimensions = []semreg.Dimension{{ID: key.Dimensions[0].ID, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}}}
+			return changed
+		}
+		resource := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: s.dimension, Kind: "resource.equipment"}
+		qualifier := semreg.GraphFactSubject{Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{s.dimension}}
+		if err := graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, resource); err != nil {
+			t.Fatalf("%s: resource identifier refused: %v", s.id, err)
+		}
+		if got := semreg.ErrorIdentifier(graphValidator.ValidateGraphFact(withText("unit 01"), &value, resource)); got != semreg.InvalidValue {
+			t.Fatalf("%s: resource dimension text accepted: %s", s.id, got)
+		}
+		if err := graphValidator.ValidateGraphFact(withText("unit 01"), &value, qualifier); err != nil {
+			t.Fatalf("%s: qualifier dimension refused: %v", s.id, err)
+		}
+		if err := New().ValidateFact(withText("unit 01"), &value); err != nil {
+			t.Fatalf("%s: text dimension refused without the catalog: %v", s.id, err)
+		}
+		for subjectName, subject := range map[string]semreg.GraphFactSubject{
+			"another resource dimension":      {Disposition: semreg.GraphMember, Resolved: true, Dimension: "zz.dimension.other", Kind: "resource.equipment"},
+			"an undeclared extra qualifier":   {Disposition: semreg.GraphMember, Resolved: true, Dimension: s.dimension, Kind: "resource.equipment", Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
+			"no declared dimension":           {Disposition: semreg.GraphUnknown},
+			"another declared qualifier only": {Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
+		} {
+			if got := semreg.ErrorIdentifier(graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, subject)); got != semreg.InvalidValue {
+				t.Fatalf("%s with %s: %s", s.id, subjectName, got)
+			}
+		}
+	}
+}

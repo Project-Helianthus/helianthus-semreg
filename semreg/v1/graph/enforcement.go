@@ -7,8 +7,8 @@ import (
 )
 
 // A Catalog is the element catalog the root package reads through its own
-// interface.
-var _ semreg.GraphCatalog = (*Catalog)(nil)
+// interface, including the lookups of the resource publication rules.
+var _ semreg.GraphResourceCatalog = (*Catalog)(nil)
 
 var embedded struct {
 	once    sync.Once
@@ -148,6 +148,68 @@ func (c *Catalog) SchemeListed(id semreg.DefinitionID) bool {
 		}
 	}
 	return false
+}
+
+// ResourceKindClass returns the anchor class the catalog declares for the
+// core resource kind with the identifier.
+func (c *Catalog) ResourceKindClass(kind semreg.DefinitionID) (semreg.AnchorClass, bool) {
+	if c == nil {
+		return "", false
+	}
+	at := c.coreByID[kind]
+	if len(at) != 1 || c.elements[at[0]].ResourceKind == nil {
+		return "", false
+	}
+	return c.elements[at[0]].ResourceKind.AnchorClass, true
+}
+
+// FactSubject returns the subject and disposition of the one fact entry of
+// the pack with the identifier: a resolved subject names its resource
+// dimension and kind, an unresolved one its qualifier dimension when the
+// entry declares it.
+func (c *Catalog) FactSubject(pack semreg.PackRef, fact semreg.DefinitionID) (semreg.GraphFactSubject, bool) {
+	element, ok := c.packEntryOfKind(pack, fact, KindFact)
+	if !ok || element.Fact == nil {
+		return semreg.GraphFactSubject{}, false
+	}
+	subject := element.Fact.Subject
+	result := semreg.GraphFactSubject{Disposition: semreg.GraphDisposition(element.Disposition), Resolved: subject.Status == SubjectResolved}
+	if result.Resolved {
+		if subject.Dimension == nil {
+			return semreg.GraphFactSubject{}, false
+		}
+		result.Dimension, result.Kind = subject.Dimension.ID, subject.Kind
+	}
+	if subject.QualifierDimension != nil {
+		result.Qualifiers = []semreg.DefinitionID{subject.QualifierDimension.ID}
+	}
+	return result, true
+}
+
+// PackDimension returns the role of the one dimension entry of the pack with
+// the identifier, and the resource kind of a resource dimension.
+func (c *Catalog) PackDimension(pack semreg.PackRef, dimension semreg.DefinitionID) (semreg.GraphDimension, bool) {
+	element, ok := c.packEntryOfKind(pack, dimension, KindDimension)
+	if !ok || element.Dimension == nil {
+		return semreg.GraphDimension{}, false
+	}
+	if element.Dimension.Role != RoleResource {
+		return semreg.GraphDimension{}, true
+	}
+	return semreg.GraphDimension{Resource: true, Kind: element.Dimension.ResourceKind}, true
+}
+
+// packEntryOfKind returns the pack's entry with the identifier when exactly
+// one entry of the pack has it and it is of the kind.
+func (c *Catalog) packEntryOfKind(pack semreg.PackRef, id semreg.DefinitionID, kind ElementKind) (Element, bool) {
+	if c == nil {
+		return Element{}, false
+	}
+	at := c.byPackID[packIDKey{pack, id}]
+	if len(at) != 1 || c.elements[at[0]].ElementKind != kind {
+		return Element{}, false
+	}
+	return c.elements[at[0]], true
 }
 
 func membershipOf(element Element) semreg.GraphMembership {
