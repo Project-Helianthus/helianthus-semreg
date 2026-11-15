@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+`fixtures/v1/graph-acceptance-vectors.json` is a byte copy of the graph
+acceptance vectors of docs-semantic, pinned by SHA-256 in `fixtures/README.md`
+and in `TestGraphAcceptanceVectorsPin`; the element catalog copy, its digest
+and `graph.PinnedDigest` are unchanged. `TestGraphAcceptanceVectors` executes
+every one of the 60 vectors by identifier through the public API, with the
+element catalog registered wherever the prior state registers it, for the
+criteria of semreg#90: relation instances, plane membership, catalog
+validation, cross-asset structure through graph cuts and the seven negative
+classes (duplicate identity, false join, missing membership, stale relation,
+dangling endpoint, cross-plane identity drift and an operation admitted from
+visibility alone). No vector is skipped or selected by identifier. A vector
+passes, fails, or ends as a document finding when the kernel refuses a record
+of the document with exactly the stable error and detail of a contract rule
+the harness finds that record breaking; any other refusal fails, and so does
+an accepted record that breaks a rule. `TestGraphVectorDocumentRules` varies
+every member those rules read. Six vectors pass: G-POS-ACT-1, G-NEG-ACT-2,
+G-POS-CAT-1, G-POS-CAT-2, G-NEG-CAT-1 and G-NEG-CAT-2. The other 54 end as
+document findings on four rules: relation definitions are written as
+owner-tagged catalog references instead of the kernel's definition reference
+(17 vectors); operator origins carry native source fields (33); decimals are
+not canonical (2); and snapshot identifiers digest an empty retained-observation
+list the kernel omits (2). Conformance is therefore not reached yet.
+`TestOperationDoesNotImportGraph` encodes the `go list -deps` evidence that
+neither the operation package nor the root package depends on
+`semreg/v1/graph` (AUT-1, ACT-4). No product code, pack, fixture or contract
+version changes.
+
 `semreg/v1/graph` assembles graph cuts. `AssembleCut` reads at most 256
 snapshots of distinct assets together with the element catalog and a
 caller-asserted completeness, `complete` or `partial`. It is pure and
