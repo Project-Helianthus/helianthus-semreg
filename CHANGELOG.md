@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+A graph-enforced publication kernel publishes resources. The catalog
+interface gains the optional extension `GraphResourceCatalog`
+(`ResourceKindClass`, `FactSubject` and `PackDimension`, the last two keyed by
+pack and identifier because a fact key carries no definition version) with the
+types `GraphFactSubject` and `GraphDimension`; `semreg/v1/graph.Catalog`
+implements it. Under it the kernel applies RES-1 to RES-9, the subject rule of
+section 6.2 and PUB-3 of the graph contract: a resource kind is a catalog
+member (`membership_missing`); the anchor class, its members, the basis
+against the origin kind and the identification scheme follow the catalog
+(`invalid_value`); a kind change or an anchor change without an allowed
+supersession naming the exact previous anchor is `identity_drift`; two current
+resources with one anchor key, or a retired `ResourceID` made current or
+withdrawn, are `duplicate_identity`; a resource dimension value and a
+service's `resource` name a current resource of the declared kind
+(`dangling_reference` when absent or not current, `identity_drift` for another
+kind); an observed fact comes from a binding whose non-withdrawn identity link
+names its subject or the subject's anchor parent chain, qualified for a
+promoted fact (`identity_not_qualified`); an identity link that carries `key`
+and names a natively anchored resource carries its anchor key
+(`identity_not_qualified`); a resource still named by a current fact or
+service is neither withdrawn nor retired; and a native origin resolves to a
+current or tombstoned binding of the asset. A fact of an `unknown` definition
+names no resource and stays publishable; facts of `unsupported` definitions
+and services or capabilities whose disposition is not `member` are refused
+with `membership_missing`. Resources are revisioned like the other objects and
+are never rewritten by a source epoch, a fence or a retirement. The `structure`
+revision is set to 1 on the first accepted resource change and increments on
+every later one; a snapshot without graph content keeps its bytes. Per asset,
+4096 resources and 1024 identity links that carry `resource` are allowed; the
+bound of 128 still applies to identity links without one. Relation instances
+and absence statements are still refused with `membership_missing`, and a
+catalog without the extension still refuses every graph member. `ResourceAnchor`
+gains the optional member `scheme`, present exactly when the basis is
+`native_identity` and omitted otherwise, so records without it keep their
+canonical bytes. A pack validator may implement `GraphFactValidator`; a
+graph-enforced registry then calls `ValidateGraphFact` with the subject the
+catalog declares. The thermal, PV, storage, EVSE and infrastructure validators
+implement it: the field's one text dimension becomes exactly the declared
+resource dimension carrying an opaque resource identifier plus the declared
+qualifier dimensions. Without the catalog every validator and kernel behaves
+as before. No pack, fixture or contract version is raised.
+
 Graph enforcement is now a property of the kernel registry. The root package
 defines the interface `GraphCatalog` (digest, pack coverage, disposition and
 planes of a pack definition and of a resource kind, kind of a dimension and of

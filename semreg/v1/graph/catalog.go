@@ -434,6 +434,14 @@ type Catalog struct {
 	lenses    []Lens
 	byRef     map[ElementRef]int
 	coreByID  map[semreg.DefinitionID][]int
+	byPackID  map[packIDKey][]int
+}
+
+// packIDKey names the pack-owned entries with one identifier, whatever their
+// version: a fact key and its dimensions carry no definition version.
+type packIDKey struct {
+	pack semreg.PackRef
+	id   semreg.DefinitionID
 }
 
 // Load accepts exactly the pinned catalog bytes, decodes them and validates
@@ -846,7 +854,7 @@ func Decode(raw []byte) (*Catalog, error) {
 	}
 	c := &Catalog{
 		raw: append([]byte(nil), raw...), digest: digestOf(raw), status: Status(doc.Status),
-		byRef: map[ElementRef]int{}, coreByID: map[semreg.DefinitionID][]int{},
+		byRef: map[ElementRef]int{}, coreByID: map[semreg.DefinitionID][]int{}, byPackID: map[packIDKey][]int{},
 	}
 	var err error
 	if c.planes, err = decodePlanes(doc.Planes); err != nil {
@@ -876,6 +884,10 @@ func Decode(raw []byte) (*Catalog, error) {
 		}
 		if element.Ref.Owner.Kind == OwnerCore {
 			c.coreByID[element.Ref.ID] = append(c.coreByID[element.Ref.ID], i)
+		}
+		if element.Ref.Owner.Kind == OwnerPack {
+			key := packIDKey{element.Ref.Owner.Pack, element.Ref.ID}
+			c.byPackID[key] = append(c.byPackID[key], i)
 		}
 	}
 	return c, nil

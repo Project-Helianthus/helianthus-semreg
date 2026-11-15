@@ -389,3 +389,84 @@ func samePlaneNames(got []semreg.GraphPlane, want []graph.PlaneID) bool {
 	}
 	return true
 }
+
+// The resource lookups answer from the catalog's own entries: the anchor
+// class of every resource kind, the subject and disposition of every pack
+// fact and the role of every pack dimension, keyed without a version. Any
+// other key, an entry of another kind and a nil catalog answer false.
+func TestGraphEnforcementResourceLookupsAgreeWithTheCatalog(t *testing.T) {
+	catalog := committedCatalog(t)
+	var asInterface semreg.GraphResourceCatalog = catalog
+	kinds, facts, dimensions, unknown := 0, 0, 0, 0
+	for _, element := range catalog.Elements() {
+		switch {
+		case element.ElementKind == graph.KindResourceKind:
+			kinds++
+			class, ok := asInterface.ResourceKindClass(element.Ref.ID)
+			if !ok || class != element.ResourceKind.AnchorClass {
+				t.Fatalf("ResourceKindClass(%s) = %s %v", element.Ref.ID, class, ok)
+			}
+		case element.ElementKind == graph.KindFact:
+			facts++
+			subject, ok := asInterface.FactSubject(element.Ref.Owner.Pack, element.Ref.ID)
+			want := element.Fact.Subject
+			if !ok || string(subject.Disposition) != string(element.Disposition) || subject.Resolved != (want.Status == graph.SubjectResolved) || subject.Kind != want.Kind {
+				t.Fatalf("FactSubject(%s) = %#v %v", element.Ref, subject, ok)
+			}
+			if want.Dimension != nil && subject.Dimension != want.Dimension.ID || want.Dimension == nil && subject.Dimension != "" {
+				t.Fatalf("FactSubject(%s) dimension %s", element.Ref, subject.Dimension)
+			}
+			if want.QualifierDimension != nil {
+				unknown++
+				if !reflect.DeepEqual(subject.Qualifiers, []semreg.DefinitionID{want.QualifierDimension.ID}) {
+					t.Fatalf("FactSubject(%s) qualifiers %v", element.Ref, subject.Qualifiers)
+				}
+				subject.Qualifiers[0] = "mutated"
+				if again, _ := asInterface.FactSubject(element.Ref.Owner.Pack, element.Ref.ID); again.Qualifiers[0] == "mutated" {
+					t.Fatal("FactSubject returned shared qualifiers")
+				}
+			} else if len(subject.Qualifiers) != 0 {
+				t.Fatalf("FactSubject(%s) qualifiers %v", element.Ref, subject.Qualifiers)
+			}
+			if _, ok := asInterface.PackDimension(element.Ref.Owner.Pack, element.Ref.ID); ok {
+				t.Fatalf("PackDimension answered for fact %s", element.Ref)
+			}
+		case element.ElementKind == graph.KindDimension && element.Ref.Owner.Kind == graph.OwnerPack:
+			dimensions++
+			role, ok := asInterface.PackDimension(element.Ref.Owner.Pack, element.Ref.ID)
+			resource := element.Dimension.Role == graph.RoleResource
+			if !ok || role.Resource != resource || role.Kind != element.Dimension.ResourceKind {
+				t.Fatalf("PackDimension(%s) = %#v %v", element.Ref, role, ok)
+			}
+			if _, ok := asInterface.FactSubject(element.Ref.Owner.Pack, element.Ref.ID); ok {
+				t.Fatalf("FactSubject answered for dimension %s", element.Ref)
+			}
+		}
+	}
+	if kinds == 0 || facts == 0 || dimensions == 0 || unknown == 0 {
+		t.Fatalf("catalog exercised %d kinds, %d facts, %d dimensions, %d unresolved subjects", kinds, facts, dimensions, unknown)
+	}
+	pv := semreg.PackRef{ID: "helianthus.pack.pv", Version: "1.0.0"}
+	otherVersion := semreg.PackRef{ID: "helianthus.pack.pv", Version: "9.0.0"}
+	for name, ok := range map[string]bool{
+		"class of an unlisted kind":       func() bool { _, ok := asInterface.ResourceKindClass("resource.unlisted"); return ok }(),
+		"class of a dimension identifier": func() bool { _, ok := asInterface.ResourceKindClass("pv.dimension.inverter"); return ok }(),
+		"subject of an unlisted fact":     func() bool { _, ok := asInterface.FactSubject(pv, "pv.unlisted"); return ok }(),
+		"subject in another pack version": func() bool { _, ok := asInterface.FactSubject(otherVersion, "pv.ac.frequency"); return ok }(),
+		"dimension in another version":    func() bool { _, ok := asInterface.PackDimension(otherVersion, "pv.dimension.inverter"); return ok }(),
+	} {
+		if ok {
+			t.Fatalf("%s answered", name)
+		}
+	}
+	var nilCatalog *graph.Catalog
+	if _, ok := nilCatalog.ResourceKindClass("resource.inverter"); ok {
+		t.Fatal("nil catalog has a resource kind")
+	}
+	if _, ok := nilCatalog.FactSubject(pv, "pv.ac.frequency"); ok {
+		t.Fatal("nil catalog has a fact subject")
+	}
+	if _, ok := nilCatalog.PackDimension(pv, "pv.dimension.inverter"); ok {
+		t.Fatal("nil catalog has a dimension")
+	}
+}

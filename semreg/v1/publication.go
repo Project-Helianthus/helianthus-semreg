@@ -615,14 +615,24 @@ func publicationRetainedSourceOwnershipError(current *Snapshot, batch Publicatio
 }
 
 type componentChanges struct {
-	identity, facts, services, capabilities bool
+	identity, facts, services, capabilities, structure bool
 }
 
+// nextRevisionVector advances the revision vector. Structure is set to 1 on
+// the asset's first accepted structural change and increments on every later
+// one; it stays omitted until then.
 func nextRevisionVector(old RevisionVector, first bool, changed componentChanges) RevisionVector {
 	if first {
-		return RevisionVector{Semantic: "1", Identity: "1", Facts: "1", Services: "1", Capabilities: "1"}
+		result := RevisionVector{Semantic: "1", Identity: "1", Facts: "1", Services: "1", Capabilities: "1"}
+		if changed.structure {
+			result.Structure = "1"
+		}
+		return result
 	}
 	result := old
+	if changed.structure {
+		result.Structure = increment(old.Structure)
+	}
 	result.Semantic = increment(old.Semantic)
 	if changed.identity {
 		result.Identity = increment(old.Identity)
@@ -678,7 +688,7 @@ func cursorMap(snapshot *Snapshot) map[cursorKey]PublicationCursor {
 func (s Snapshot) publicationContentErrors() error {
 	var failure error
 	check := func(err error) { failure = bestError(failure, err) }
-	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || len(s.IdentityLinks) > maxSnapshotIdentity || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotRetained || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors {
+	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || identityLinkBoundsExceeded(s.IdentityLinks) || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotRetained || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors || len(s.Resources) > maxSnapshotResources {
 		check(errID(BoundsExceeded, "snapshot collection"))
 	}
 	currentSources := make(map[SourceID]int)

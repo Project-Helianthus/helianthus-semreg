@@ -67,11 +67,47 @@ type GraphCatalog interface {
 	SchemeListed(id DefinitionID) bool
 }
 
+// GraphFactSubject is the subject a catalog declares for one fact definition,
+// with the definition's disposition. A resolved subject names its resource
+// dimension and that dimension's resource kind. Qualifiers lists the
+// qualifier dimensions declared for the field; an unresolved subject names no
+// resource dimension.
+type GraphFactSubject struct {
+	Disposition GraphDisposition
+	Resolved    bool
+	Dimension   DefinitionID
+	Kind        DefinitionID
+	Qualifiers  []DefinitionID
+}
+
+// GraphDimension is the role of a pack dimension: a resource dimension of a
+// resource kind, or a qualifier dimension (Resource false, Kind empty).
+type GraphDimension struct {
+	Resource bool
+	Kind     DefinitionID
+}
+
+// GraphResourceCatalog is a GraphCatalog with the lookups the resource
+// publication rules read: the anchor class of a resource kind, the subject of
+// a fact and the role of a dimension. A fact key and its dimensions carry no
+// definition version, so the last two are keyed by the pack and the
+// identifier; a catalog answers false unless exactly one entry of the pack
+// has that identifier. A graph-enforced registry whose catalog lacks these
+// lookups refuses every graph member with membership_missing.
+type GraphResourceCatalog interface {
+	GraphCatalog
+	ResourceKindClass(kind DefinitionID) (AnchorClass, bool)
+	FactSubject(pack PackRef, fact DefinitionID) (GraphFactSubject, bool)
+	PackDimension(pack PackRef, dimension DefinitionID) (GraphDimension, bool)
+}
+
 // graphState is the graph enforcement of a registry, fixed at construction.
-// A registry without it is not graph-enforced.
+// A registry without it is not graph-enforced. resources is the catalog when
+// it provides the resource lookups, nil otherwise.
 type graphState struct {
 	digest       Digest
 	inadmissible map[inadmissibleKey]struct{}
+	resources    GraphResourceCatalog
 }
 
 type inadmissibleKey struct {
@@ -83,7 +119,10 @@ type inadmissibleKey struct {
 // pinned catalog and must cover every registered pack; otherwise construction
 // fails with membership_missing. Validator registration errors are reported
 // as NewRegistry reports them. Every operation and effect rule whose catalog
-// disposition is not member is recorded as inadmissible.
+// disposition is not member is recorded as inadmissible. When the catalog
+// provides the resource lookups, the registry keeps it for the resource
+// publication rules and passes each fact's declared subject to the pack
+// validators.
 func NewGraphRegistry(catalog GraphCatalog, validators ...PackValidator) (*Registry, error) {
 	if catalog == nil || reflect.ValueOf(catalog).Kind() == reflect.Ptr && reflect.ValueOf(catalog).IsNil() {
 		return nil, errID(MembershipMissing, "graph-enforced registry without the element catalog")
@@ -107,6 +146,9 @@ func NewGraphRegistry(catalog GraphCatalog, validators ...PackValidator) (*Regis
 		return strings.Compare(string(packs[i].Version), string(packs[j].Version)) < 0
 	})
 	state := &graphState{digest: digest, inadmissible: map[inadmissibleKey]struct{}{}}
+	if resources, ok := catalog.(GraphResourceCatalog); ok {
+		state.resources = resources
+	}
 	for _, pack := range packs {
 		index := registry.indexes[pack]
 		if err := catalog.Covers(cloneIndex(index)); err != nil {
@@ -127,15 +169,27 @@ func NewGraphRegistry(catalog GraphCatalog, validators ...PackValidator) (*Regis
 			}
 		}
 	}
+	if state.resources != nil {
+		for pack, validator := range registry.validators {
+			if frozen, ok := validator.(frozenValidator); ok {
+				frozen.subjects = state.resources
+				registry.validators[pack] = frozen
+			}
+		}
+	}
 	registry.graph = state
 	return registry, nil
 }
 
 // NewGraphPublicationKernel is NewPublicationKernel with a graph-enforced
-// registry built by NewGraphRegistry. Until the graph publication rules
-// exist, it refuses every graph member of a batch with membership_missing,
-// like a kernel without the catalog, and publishes every other batch exactly
-// as that kernel does.
+// registry built by NewGraphRegistry. With a catalog that provides the
+// resource lookups it publishes resources, the resource members of identity
+// links and services, and fact subjects under the resource rules; it refuses
+// relation instances and absence statements with membership_missing until
+// their publication rules exist. With any other catalog it refuses every
+// graph member with membership_missing. A batch without graph members whose
+// facts, services and capabilities need no resource is published exactly as
+// a kernel without the catalog publishes it.
 func NewGraphPublicationKernel(asset AssetID, catalog GraphCatalog, validators ...PackValidator) (*PublicationKernel, error) {
 	if err := asset.Validate(); err != nil {
 		return nil, err
@@ -182,16 +236,33 @@ func (r *Registry) GraphAdmissionError(operation, effectRule DefinitionRef) erro
 	return nil
 }
 
-// graphPublicationError refuses the graph members of a batch. A kernel
-// without the catalog refuses them as before; a graph-enforced kernel refuses
-// them until the graph publication rules exist, so no partially validated
-// graph record enters a snapshot.
+// graphPublicationError refuses the graph members that no publication rule
+// covers yet. A kernel without the catalog refuses every graph member as
+// before. A graph-enforced kernel refuses relation instances and absence
+// statements until their rules exist, and every graph member when its
+// catalog has no resource lookups, so no partially validated graph record
+// enters a snapshot.
 func (k *PublicationKernel) graphPublicationError(batch PublicationBatch) error {
 	if !k.registry.GraphEnforced() {
 		return batch.graphMembershipError()
 	}
-	if batch.graphMembers() {
-		return errID(MembershipMissing, "graph member before the graph publication rules")
+	if k.registry.graph.resources == nil {
+		if batch.graphMembers() {
+			return errID(MembershipMissing, "graph member without the resource lookups of the catalog")
+		}
+		return nil
+	}
+	if len(batch.RelationUpserts) != 0 || len(batch.RelationWithdrawals) != 0 || len(batch.AbsenceUpserts) != 0 || len(batch.AbsenceWithdrawals) != 0 {
+		return errID(MembershipMissing, "relation instance or absence statement before their publication rules")
 	}
 	return nil
+}
+
+// graphResources returns the catalog of a registry that publishes resources,
+// nil for every other registry.
+func (r *Registry) graphResources() GraphResourceCatalog {
+	if r == nil || r.graph == nil {
+		return nil
+	}
+	return r.graph.resources
 }
