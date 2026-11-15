@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+`semreg/v1/catalog` decodes and validates the optional family-row member
+`further_semantic_packs`, an in-place edit of `family-catalog/v1` before the
+0.7 release: 1 through 4 exact `PackRef` strings, omitted when empty, allowed
+only with a non-empty `semantic_pack`, unique, none equal to `semantic_pack`
+and in ascending byte order after it. A present empty array, `null`, a
+repeated or malformed entry, an entry equal to or sorting before
+`semantic_pack`, an unsorted list, more than four entries and a list on a row
+with an empty `semantic_pack` are rejected. `Family.Packs` returns
+`semantic_pack` followed by the further packs. The `Family` fields follow the
+fixture's member order, and `TestExistingRowsKeepTheirBytes` re-encodes every
+row and the whole document to the committed bytes. The fixture, its
+`semantic_pack` values, states, compositions and reasons are unchanged; no row
+carries the new member yet, and the cross-check of a row's packs against the
+accepted mapping gates of its family is still to come.
+
 `fixtures/v1/graph-acceptance-vectors.json` is a byte copy of the graph
 acceptance vectors of docs-semantic, pinned by SHA-256 in `fixtures/README.md`
 and in `TestGraphAcceptanceVectorsPin`; the element catalog copy, its digest

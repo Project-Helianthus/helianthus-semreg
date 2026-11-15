@@ -251,6 +251,23 @@ vocabulary defined on the page: `offline_profile_only`,
 values (families, reasons, compositions, evidence kinds) are allowed; a new
 `state` value, removals, renames, new members or changed meanings need v2.
 
+A family row may carry the optional member `further_semantic_packs`, added in
+place before the 0.7 release: 1 through 4 exact `PackRef` strings naming the
+family's other accepted packs. It is omitted when empty (a present empty array
+or `null` is rejected), is allowed only with a non-empty `semantic_pack`, holds
+no repeated entry and no entry equal to `semantic_pack`, and is in ascending
+byte order with `semantic_pack` sorting before every entry; a row in any other
+order is rejected, not reordered. No pack of a row is primary, and
+`Family.Packs` lists `semantic_pack` followed by the further packs. No row of
+this fixture carries the member yet, so every row keeps its bytes, which
+`TestExistingRowsKeepTheirBytes` checks by re-encoding the decoded document.
+The check that a row's packs include the pack of every accepted mapping gate of
+its family is not in place yet: the gateway rows of the hybrid inverter family
+set have accepted gates into the PV, Storage and Infrastructure packs, and in
+canonical order
+`helianthus.pack.infrastructure@1.0.0` sorts before their current
+`semantic_pack`.
+
 [`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a
 byte-for-byte copy of `api/v1/element-catalog-v1.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as accepted in

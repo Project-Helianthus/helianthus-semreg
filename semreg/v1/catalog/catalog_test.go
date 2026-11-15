@@ -98,8 +98,10 @@ func TestSemanticPacksExist(t *testing.T) {
 	}
 	c, _ := load(t)
 	for _, f := range c.Families {
-		if f.SemanticPack != "" && !packs[f.SemanticPack] {
-			t.Errorf("%s: pack %s is not a built-in pack", f.FamilyID, f.SemanticPack)
+		for _, p := range f.Packs() {
+			if !packs[p] {
+				t.Errorf("%s: pack %s is not a built-in pack", f.FamilyID, p)
+			}
 		}
 	}
 }
