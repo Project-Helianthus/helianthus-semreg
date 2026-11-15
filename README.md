@@ -31,10 +31,15 @@ pinned by SHA-256 in `graph.PinnedDigest`.
 | `Check`, `Validate` | Apply CAT-1 to CAT-9 against the metadata and definition indexes of the given packs; `Validate` returns the first finding as a stable error. |
 | `Load` | Accepts only the pinned bytes, then decodes and validates them against the five accepted packs. |
 | `Catalog` lookups | Entry by exact `DefinitionRef` or core `DefinitionID`; planes and disposition of an entry; kind of a dimension and a service; core type, orientation, endpoint kinds, cardinality, basis classes and medium of a relation definition; identification schemes and lenses. Every result is a detached copy. |
+| `AssembleCut` | Reads at most 256 snapshots of distinct assets together as one graph cut, with a caller-asserted `complete` or `partial` completeness. It rejects only invalid input: a snapshot that fails validation, two snapshots of one asset (`duplicate_key`) or more than 256 (`bounds_exceeded`). The cut identifier is `sha256:` over the JCS bytes of `{contract:"helianthus.semantic.graph-cut/v1", members}`, the `(asset_id, snapshot_id)` vector sorted by asset; there is no global revision. |
+| `Cut` findings and coherence | `duplicate_identity` excludes both members and makes the cut `partial`; `same_unit`, `contradicted_absence`, `anchor_parent_unresolved` and `ungraphed` are reported without blocking the read. Every relation instance of a kept member is `coherent`, `stale`, `dangling`, `outside_cut`, `excluded` or `conflict`, including cardinality, forest and cycle violations across members and a far end of a kind the definition does not admit. |
+| `Cut.PlanesOfResource`, `PlanesOfRelation`, `PlanesOfFact` | Plane membership over the cut (PLN-2, PLN-3): a relation instance only when qualified and coherent, a fact, service or capability when its definition is a member and its subject is current, and a current resource only in the planes its kind admits. |
+| `Cut.CanonicalJSON` | The one encoder of the cut's output: members by asset, findings by kind and canonical subject, relation instances by canonical definition, `from` and `to`; identical inputs give identical bytes. |
 
-The package imports the root package and the pack packages only, and no
-package imports it yet. It records membership and admission; it publishes,
-evaluates and admits nothing.
+The package imports the root package and the pack packages only, and neither
+the root package nor the operation package imports it. It records membership
+and admission and reads snapshots together; it publishes, evaluates and
+admits nothing.
 
 ## Storage/BMS capability pack v1.1
 
