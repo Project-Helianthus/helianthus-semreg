@@ -10,7 +10,11 @@
 // states and families. Each family has family_id, name, native_owner,
 // semantic_pack, state, composition, composition_verified, reason and
 // evidence (owner, kind, locator, statement). native_owner and semantic_pack
-// may be empty when no owner or pack exists. state is exactly one of the
+// may be empty when no owner or pack exists. The optional member
+// further_semantic_packs names the family's other accepted packs; it is
+// omitted when empty, needs a non-empty semantic_pack, and holds unique exact
+// PackRef strings in ascending byte order after semantic_pack, so Packs lists
+// every pack of the row in canonical order. state is exactly one of the
 // semantic Qualification values (candidate, qualified, unsupported, unknown,
 // rejected) and the declared states member must equal that set. composition is
 // composed, composed_legacy, provider_local or not_composed. A claimed
@@ -20,8 +24,10 @@
 // gateway_composition evidence. reason is one of the Reason constants below.
 //
 // Compatibility rule: within v1 only additive values (new families, reasons,
-// compositions or evidence kinds) may be added; removing or renaming a value,
-// changing a member's meaning, or adding a member requires v2. The document
+// compositions or evidence kinds) may be added; from the 0.7 release on,
+// removing or renaming a value, changing a member's meaning, or adding a
+// member requires v2, and before it such a change is an in-place edit. The
+// optional further_semantic_packs member is such an in-place edit. The document
 // rejects duplicate and unknown members at every object level. The
 // contract page is api/v1/family-catalog-v1.md in
 // Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e; the page is authoritative.
@@ -141,19 +147,39 @@ type Evidence struct {
 	Statement string `json:"statement"`
 }
 
-// Family is one catalog row.
+// Family is one catalog row. Its fields are declared in the member order of
+// the fixture, so a decoded row re-encodes to the same bytes.
 type Family struct {
-	FamilyID     string               `json:"family_id"`
-	Name         string               `json:"name"`
-	NativeOwner  string               `json:"native_owner"`
-	SemanticPack string               `json:"semantic_pack"`
-	State        semreg.Qualification `json:"state"`
-	Composition  Composition          `json:"composition"`
+	FamilyID     string `json:"family_id"`
+	Name         string `json:"name"`
+	NativeOwner  string `json:"native_owner"`
+	SemanticPack string `json:"semantic_pack"`
+	// FurtherSemanticPacks names the other accepted packs the family maps to.
+	// It is omitted when empty; when present it holds 1 through
+	// MaxFurtherSemanticPacks exact PackRef strings in ascending byte order,
+	// each sorting after SemanticPack. No pack of a row is primary.
+	FurtherSemanticPacks []string             `json:"further_semantic_packs,omitempty"`
+	State                semreg.Qualification `json:"state"`
+	Composition          Composition          `json:"composition"`
+	Reason               Reason               `json:"reason"`
+	Evidence             []Evidence           `json:"evidence"`
 	// CompositionVerified is true only when gateway code at a pinned revision
 	// is cited as gateway_composition evidence for a claimed composition.
-	CompositionVerified bool       `json:"composition_verified"`
-	Reason              Reason     `json:"reason"`
-	Evidence            []Evidence `json:"evidence"`
+	CompositionVerified bool `json:"composition_verified"`
+}
+
+// MaxFurtherSemanticPacks bounds FurtherSemanticPacks: with five accepted
+// capability packs, a row names at most four besides SemanticPack.
+const MaxFurtherSemanticPacks = 4
+
+// Packs returns the row's packs in canonical order: SemanticPack followed by
+// FurtherSemanticPacks. It is empty when the row names no pack. The returned
+// slice is a copy.
+func (f Family) Packs() []string {
+	if f.SemanticPack == "" {
+		return nil
+	}
+	return append([]string{f.SemanticPack}, f.FurtherSemanticPacks...)
 }
 
 // Catalog is the decoded family catalog.
@@ -354,6 +380,9 @@ func (f Family) validate(allowed map[semreg.Qualification]struct{}) error {
 	if _, ok := reasons[f.Reason]; !ok {
 		return fmt.Errorf("reason %q is not allowed", f.Reason)
 	}
+	if err := f.validatePacks(); err != nil {
+		return err
+	}
 	if len(f.Evidence) == 0 {
 		return errors.New("evidence reference is required")
 	}
@@ -377,6 +406,56 @@ func (f Family) validate(allowed map[semreg.Qualification]struct{}) error {
 	}
 	if f.CompositionVerified && !gateway {
 		return errors.New("composition_verified needs gateway composition evidence")
+	}
+	return nil
+}
+
+// validatePacks checks further_semantic_packs: absent, or 1 through
+// MaxFurtherSemanticPacks exact PackRef strings after a non-empty
+// semantic_pack, unique, none equal to semantic_pack and in ascending byte
+// order. A row in any other order is rejected, never reordered.
+func (f Family) validatePacks() error {
+	if f.FurtherSemanticPacks == nil {
+		return nil
+	}
+	if len(f.FurtherSemanticPacks) == 0 {
+		return errors.New("further_semantic_packs is present but empty")
+	}
+	if len(f.FurtherSemanticPacks) > MaxFurtherSemanticPacks {
+		return fmt.Errorf("further_semantic_packs holds %d entries, not 1 through %d", len(f.FurtherSemanticPacks), MaxFurtherSemanticPacks)
+	}
+	if f.SemanticPack == "" {
+		return errors.New("further_semantic_packs needs a non-empty semantic_pack, got an empty semantic_pack")
+	}
+	seen := map[string]struct{}{}
+	prev := f.SemanticPack
+	for _, p := range f.FurtherSemanticPacks {
+		if err := validPackRef(p); err != nil {
+			return fmt.Errorf("further_semantic_packs entry %q: %w", p, err)
+		}
+		if p == f.SemanticPack {
+			return fmt.Errorf("further_semantic_packs entry %q equals semantic_pack", p)
+		}
+		if _, dup := seen[p]; dup {
+			return fmt.Errorf("further_semantic_packs repeats %q", p)
+		}
+		seen[p] = struct{}{}
+		if p < prev {
+			return fmt.Errorf("further_semantic_packs entry %q is not in canonical order after %q", p, prev)
+		}
+		prev = p
+	}
+	return nil
+}
+
+// validPackRef accepts the exact <id>@<version> form of a PackRef.
+func validPackRef(s string) error {
+	id, version, ok := strings.Cut(s, "@")
+	if !ok {
+		return errors.New("not an exact PackRef")
+	}
+	if err := (semreg.PackRef{ID: semreg.DefinitionID(id), Version: semreg.SemanticVersion(version)}).Validate(); err != nil {
+		return fmt.Errorf("not an exact PackRef: %w", err)
 	}
 	return nil
 }
