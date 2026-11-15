@@ -814,6 +814,13 @@ func TestGraphRecordCanonicalOrderAndDuplicates(t *testing.T) {
 	}
 	snapshotError := func(change func(*Snapshot)) error {
 		snapshot := graphSnapshot(t, false)
+		// Every starting end and absence resource resolves in the snapshot;
+		// resource:z is a far end homed in another asset.
+		second := graphSlotResource("resource:b")
+		slot := "slot-2"
+		second.Anchor.Slot = &slot
+		snapshot.Resources = []Resource{graphSlotResource("resource:a"), second}
+		snapshot.Revisions.Structure = "1"
 		change(&snapshot)
 		graphReseal(&snapshot)
 		return snapshot.Validate()

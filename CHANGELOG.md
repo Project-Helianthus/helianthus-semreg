@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+A graph-enforced publication kernel with the resource lookups publishes
+relation instances and absence statements, keyed by `(definition, from, to)`
+and `(definition, resource, side)`, under REL-1 to REL-7 and the bounds of the
+graph contract. A record names a relation definition with disposition `member`
+(`membership_missing`). Its starting end, or the resource of an absence
+statement, is a current resource of the asset (`dangling_reference`) of a kind
+the definition admits at that end (`identity_drift`). Its basis class is
+admitted by the definition and agrees with the origin kind: `configuration`
+with an operator origin, `native_observation` and `gate_rule` with a native
+origin (`relation_not_qualified`). A native origin resolves to a binding of the
+asset and is a current binding of the batch's own source, epoch and generation.
+A far end the asset holds is current (`stale_relation`) and of an admitted kind
+(`identity_drift`); a far end the asset holds no record of is homed in another
+asset and stays unresolved until a graph cut, unless the asset's own records
+name it as a starting end or an absence resource (`dangling_reference`). An
+instance and an absence statement for one definition, resource and side are
+never both current, and one key is never upserted and withdrawn in one batch
+(`invalid_value`). A withdrawal names a record of the current snapshot
+(`dangling_reference`); a native record is replaced or withdrawn only by its
+own source (`invalid_value`). After every batch the kernel sets to `conflict`
+every qualified instance in a cardinality violation of its definition, two
+`contains` or two `hosts` instances with one far end across definitions, or a
+cycle of `contains`, `groups`, `hosts` or `relays` across definitions; it never
+chooses one instance, a conflict ends with its cause, and a publisher-supplied
+`conflict` stays `invalid_value`. A generation fence or a source retirement
+removes every instance and absence statement with a native basis of that
+generation in the same snapshot; configuration records stay until they are
+withdrawn, and a batch that fences its own generation publishes no relation
+record (`stale_driver_generation`). A resource named by a current relation
+record is neither withdrawn nor retired. Relation records are revisioned like
+the other objects, including a derived change of state, and the `structure`
+revision counts their changes. Per asset, 8192 relation instances and 1024
+absence statements are allowed (`bounds_exceeded`). Snapshot validation
+resolves every relation and absence reference inside the snapshot except a far
+end homed in another asset, and checks the basis class against the origin and
+the origin binding of a native record. Kernels without the catalog, or with a
+catalog without the resource lookups, still refuse every relation record. No
+pack, fixture or contract version is raised.
+
 A graph-enforced publication kernel publishes resources. The catalog
 interface gains the optional extension `GraphResourceCatalog`
 (`ResourceKindClass`, `FactSubject` and `PackDimension`, the last two keyed by
@@ -31,9 +70,8 @@ are never rewritten by a source epoch, a fence or a retirement. The `structure`
 revision is set to 1 on the first accepted resource change and increments on
 every later one; a snapshot without graph content keeps its bytes. Per asset,
 4096 resources and 1024 identity links that carry `resource` are allowed; the
-bound of 128 still applies to identity links without one. Relation instances
-and absence statements are still refused with `membership_missing`, and a
-catalog without the extension still refuses every graph member. `ResourceAnchor`
+bound of 128 still applies to identity links without one. A catalog without
+the extension still refuses every graph member. `ResourceAnchor`
 gains the optional member `scheme`, present exactly when the basis is
 `native_identity` and omitted otherwise, so records without it keep their
 canonical bytes. A pack validator may implement `GraphFactValidator`; a
