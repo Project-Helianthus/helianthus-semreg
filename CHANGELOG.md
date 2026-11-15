@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+`semreg/v1/graph` assembles graph cuts. `AssembleCut` reads at most 256
+snapshots of distinct assets together with the element catalog and a
+caller-asserted completeness, `complete` or `partial`. It is pure and
+deterministic and rejects only invalid input: an invalid completeness
+(`invalid_enum`), no catalog (`invalid_value`), more than 256 snapshots
+(`bounds_exceeded`), a snapshot that fails its own validation, or two
+snapshots of one asset (`duplicate_key`). The cut identifier is `sha256:` over
+the JCS bytes of `{contract:"helianthus.semantic.graph-cut/v1", members}`,
+where `members` is the `(asset_id, snapshot_id)` vector sorted by asset; there
+is no global revision. Problems inside or between members are findings: one
+`ResourceID` current in two members, or retired in one and current in another,
+is `duplicate_identity`, excludes both members and makes the cut `partial`;
+current resources of one kind with one anchor key, native or parent and slot,
+in two members are `same_unit` and both stay; an absence statement that
+denies a qualified instance of another member is `contradicted_absence` and
+makes the instance `conflict`; a resource whose anchor parent is not the
+whole of a qualified, coherent `contains`, `groups` or `hosts` instance to it
+is `anchor_parent_unresolved`; and a member that holds facts of `member`
+definitions but no resource, relation instance or absence statement is
+`ungraphed`, while facts of `unknown` definitions do not count. Every relation
+instance of a kept member is `coherent`, `stale`, `dangling`, `outside_cut`,
+`excluded` or `conflict`; conflict covers a stored conflict, cardinality,
+forest and cycle violations across members, a definition that is not a
+member relation of the catalog and an endpoint of a kind the definition does
+not admit. `PlanesOfResource`, `PlanesOfRelation` and
+`PlanesOfFact` derive plane membership over the cut: a relation instance only
+when qualified and coherent, a fact, service or capability when its definition
+is a member and its subject is current, and a current resource only in the
+planes its kind admits, where it is physical equipment or a component, the
+subject of an instance in that plane or an endpoint of a relation instance in
+that plane. `Cut.CanonicalJSON` is the one encoder of the result, with members
+by asset, findings by kind and canonical subject and relation instances by
+canonical definition, `from` and `to`. Neither the root package nor the
+operation package imports `semreg/v1/graph`. No pack, fixture or contract
+version is raised.
+
 A graph-enforced publication kernel with the resource lookups publishes
 relation instances and absence statements, keyed by `(definition, from, to)`
 and `(definition, resource, side)`, under REL-1 to REL-7 and the bounds of the
