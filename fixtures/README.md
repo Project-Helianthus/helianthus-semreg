@@ -266,6 +266,23 @@ the relation and Portal entries against the copied pack vectors above. The
 fixture creates no resource, relation instance, membership record, route or
 authority.
 
+[`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is a
+byte-for-byte copy of `api/v1/graph-acceptance-vectors.json` from
+`Project-Helianthus/helianthus-docs-semantic`, the
+`helianthus.semantic.graph.acceptance/v1` document of the graph contract. Its
+SHA-256 is
+`e8c7de1c5ce29b5e38ef1cc88917ce67a1a5b45013a59d7ae5657605b1de43f4`;
+`TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
+bytes and checks the element catalog digest the document records against
+`graph.PinnedDigest`. Every in-place edit of the source document moves the
+copy and both pins together. The document holds 60 vectors over 22 prior
+states, the seven coverage areas and the operations `construct_registry`,
+`register_catalog`, `apply`, `assemble_cut` and `admit`.
+`TestGraphAcceptanceVectors` executes every vector by identifier through the
+public API; it adds only members the document leaves out and decodes every
+record strictly. All records are synthetic: they prove no native fact,
+qualification, route or authority.
+
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must
 identify each donor contract and immutable source revision, preserve native

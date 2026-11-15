@@ -41,6 +41,52 @@ the root package nor the operation package imports it. It records membership
 and admission and reads snapshots together; it publishes, evaluates and
 admits nothing.
 
+### Graph conformance
+
+The implementation conforms to the graph contract only when every positive
+and negative vector of
+[`fixtures/v1/graph-acceptance-vectors.json`](fixtures/v1/graph-acceptance-vectors.json)
+passes with the element catalog registered, and every kernel vector passes
+without it. The two commands are:
+
+```sh
+GOWORK=off go test -count=1 -v -run 'TestGraphAcceptanceVectors' ./semreg/v1/graph/
+GOWORK=off go test -count=1 ./semreg/v1/ ./semreg/v1/operation/ ./semreg/v1/projection/
+```
+
+The first runs every graph vector by identifier through `construct_registry`,
+`register_catalog`, `apply`, `assemble_cut` and `admit` on the public API; no
+vector is skipped or selected by identifier, and a vector whose operation the
+harness does not implement fails. The harness completes the abbreviated
+records of the document only by adding absent members (the kernel contract,
+times, empty required collections, a source descriptor for a new source epoch,
+a fact candidate's time axes and freshness policy, derivation source paths
+read from the referenced candidate, the batch digest, and an intent's
+arguments, causal context, revisions, idempotency key and deadline), then
+decodes them with the kernel's strict decoders. The second runs the kernel
+vector copies, which carry no graph record. `TestOperationDoesNotImportGraph`
+in `semreg/v1/operation` checks that admission cannot read the graph (AUT-1,
+ACT-4).
+
+Each vector ends in one of three outcomes. It passes; it fails, for an
+operation or assertion the harness does not implement or for any outcome the
+vector does not expect; or it ends as a document finding. A document finding
+is recorded only when the harness, before and independently of the kernel,
+finds that a record of the document breaks a named contract rule and the
+kernel refuses that record with exactly the stable error and detail of that
+rule. A refusal no rule explains fails, and so does a record that breaks a
+rule but is accepted. The test log lists every finding by rule and vector.
+
+Conformance is not reached yet: it requires every vector to pass. The
+registry and catalog vectors pass. The publication, cut and admission vectors
+end as document findings on four rules: relation definitions are written as
+owner-tagged catalog references instead of a definition reference; operator
+origins carry native source fields; decimals are not canonical; and snapshot
+identifiers digest an empty retained-observation list the kernel omits. Each
+finding is resolved by an in-place edit of the vector document, of the
+contract or of the kernel; behind the first refusal further disagreements may
+remain, and they surface as findings or failures once the first is resolved.
+
 ## Storage/BMS capability pack v1.1
 
 `semreg/v1/packs/storage` implements the read-only
