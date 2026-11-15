@@ -1102,32 +1102,6 @@ func TestResourcePublicationStructureRevision(t *testing.T) {
 	}
 }
 
-// Relation instances and absence statements are not yet published.
-func TestResourcePublicationRelationsAndAbsencesStillRefused(t *testing.T) {
-	definition := resourceTestRef("relation.test")
-	for name, change := range map[string]func(*PublicationBatch){
-		"relation upsert": func(b *PublicationBatch) {
-			b.RelationUpserts = []RelationInstance{graphRelation(definition, "resource:inverter:01", "resource:dc-input:01")}
-		},
-		"relation withdrawal": func(b *PublicationBatch) {
-			b.RelationWithdrawals = []RelationKey{{Definition: definition, From: "resource:inverter:01", To: "resource:dc-input:01"}}
-		},
-		"absence upsert": func(b *PublicationBatch) {
-			b.AbsenceUpserts = []RelationAbsence{graphAbsence(definition, "resource:inverter:01", AbsenceFrom)}
-		},
-		"absence withdrawal": func(b *PublicationBatch) {
-			b.AbsenceWithdrawals = []RelationAbsenceKey{{Definition: definition, Resource: "resource:inverter:01", Side: AbsenceTo}}
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			kernel := pvBaseKernel(t, nil)
-			batch := resourceConfigBatch("2", "2")
-			change(&batch)
-			rejectResourceBatch(t, kernel, batch, MembershipMissing)
-		})
-	}
-}
-
 // A graph-enforced registry passes the catalog's fact subject to a pack
 // validator that validates facts under enforcement; without the catalog the
 // same validator is called as before.

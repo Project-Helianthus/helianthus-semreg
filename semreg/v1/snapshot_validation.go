@@ -32,6 +32,7 @@ func (s Snapshot) Validate() error {
 	v.checkIdentityLinks()
 	v.checkServices()
 	v.checkCapabilities()
+	v.checkRelations()
 	v.collectFactCandidates()
 	v.checkRetainedObservations()
 	v.checkCandidateGraph()
@@ -216,6 +217,68 @@ func (v *snapshotValidation) checkCapabilities() {
 			v.add(errID(DanglingReference, "capability tombstone"))
 		}
 	}
+}
+
+// checkRelations resolves every relation instance and absence statement
+// inside the snapshot: a starting end and an absence statement's resource are
+// current resources of the asset, a far end the asset holds is current, and a
+// far end it holds no record of is homed in another asset and resolves in a
+// graph cut. A native basis has a native origin whose binding is current, an
+// operator origin goes with a configuration basis, and no absence statement
+// names an end of an instance of its definition.
+func (v *snapshotValidation) checkRelations() {
+	s := v.snapshot
+	if len(s.Relations) == 0 && len(s.RelationAbsences) == 0 {
+		return
+	}
+	resources := make(map[ResourceID]Resource, len(s.Resources))
+	for _, resource := range s.Resources {
+		resources[resource.ResourceID] = resource
+	}
+	current := func(id ResourceID) bool {
+		resource, ok := resources[id]
+		return ok && resource.State == ResourceCurrent
+	}
+	ends := make(map[string]struct{}, 2*len(s.Relations))
+	for _, relation := range s.Relations {
+		if !current(relation.From) {
+			v.add(errID(DanglingReference, "relation starting end"))
+		}
+		if _, held := resources[relation.To]; held && !current(relation.To) {
+			v.add(errID(DanglingReference, "relation far end"))
+		}
+		v.add(v.relationOriginError(relation.BasisClass, relation.Origin))
+		for _, end := range []RelationAbsenceKey{{relation.Definition, relation.From, AbsenceFrom}, {relation.Definition, relation.To, AbsenceTo}} {
+			if key, ok := absenceGraphKey(end); ok {
+				ends[key] = struct{}{}
+			}
+		}
+	}
+	for _, absence := range s.RelationAbsences {
+		if !current(absence.Resource) {
+			v.add(errID(DanglingReference, "absence statement resource"))
+		}
+		v.add(v.relationOriginError(absence.BasisClass, absence.Origin))
+		if key, ok := absenceStatementGraphKey(absence); ok {
+			if _, both := ends[key]; both {
+				v.add(errID(InvalidValue, "relation instance and absence statement for one end"))
+			}
+		}
+	}
+}
+
+func (v *snapshotValidation) relationOriginError(class RelationBasis, origin OriginRef) error {
+	var errs []error
+	if !relationBasisAgrees(class, origin.Kind) {
+		errs = append(errs, errID(RelationNotQualified, "relation basis class against its origin"))
+	}
+	if origin.Kind == OriginNativeObservation && origin.BindingID != nil && origin.SourceID != nil && origin.SourceEpochID != nil {
+		binding, ok := v.bindings[*origin.BindingID]
+		if !ok || binding.SourceID != *origin.SourceID || binding.SourceEpochID != *origin.SourceEpochID || binding.State != BindingCurrent {
+			errs = append(errs, errID(DanglingReference, "relation origin binding"))
+		}
+	}
+	return bestError(errs...)
 }
 
 func (v *snapshotValidation) collectFactCandidates() {

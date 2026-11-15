@@ -27,16 +27,22 @@ type applyState struct {
 	candidates   map[CandidateID]FactCandidate
 	retained     map[string]RetainedObservationRecord
 	resources    map[ResourceID]Resource
+	relations    map[string]RelationInstance
+	absences     map[string]RelationAbsence
 
 	originalBindings     map[NativeBindingID]NativeBinding
 	originalServices     map[ServiceInstanceID]ServiceInstance
 	originalCapabilities map[CapabilityInstanceID]CapabilityInstance
 	originalCandidates   map[CandidateID]FactCandidate
 	originalResources    map[ResourceID]Resource
+	originalRelations    map[string]RelationInstance
+	originalAbsences     map[string]RelationAbsence
 
 	retirements          map[SourceEpochID]struct{}
 	transitionedBindings map[NativeBindingID]NativeBinding
 	upsertedCandidates   map[CandidateID]struct{}
+	upsertedRelations    map[string]struct{}
+	upsertedAbsences     map[string]struct{}
 	factEnvelopes        []FactEnvelope
 }
 
@@ -45,9 +51,11 @@ func (k *PublicationKernel) applyTo(snapshot *Snapshot, batch PublicationBatch, 
 	state.validateInput()
 	state.resolveBindings()
 	state.upsertResources()
+	state.upsertRelations()
 	state.evaluate()
 	state.assembleFacts()
 	state.checkResourceGraph()
+	state.checkRelationGraph()
 	changed := state.commit()
 	return changed, state.failure
 }
@@ -89,6 +97,7 @@ func newApplyState(registry *Registry, snapshot *Snapshot, batch PublicationBatc
 		s.resources[resource.ResourceID] = resource
 	}
 	s.originalResources = cloneMap(s.resources)
+	s.loadRelations(snapshot)
 	s.originalBindings = cloneMap(s.bindings)
 	s.originalServices = cloneMap(s.services)
 	s.originalCapabilities = cloneMap(s.capabilities)
@@ -208,19 +217,24 @@ func (s *applyState) validateGenerationTransition() {
 	}
 	// Fact lifecycle is checked against the transitioned bindings and complete
 	// typed dependency graph below. An inferred fact has no header dependency.
+	// A relation record of any basis is published through its source's batch
+	// sequence, so a batch that fences its own generation publishes none.
 	if containsFence(batch.GenerationFences, batch.SourceID, batch.SourceEpochID, batch.DriverGeneration) &&
-		(len(batch.BindingUpserts) != 0 || len(batch.IdentityLinkUpserts) != 0 || len(batch.ServiceUpserts) != 0 || len(batch.CapabilityUpserts) != 0) {
+		(len(batch.BindingUpserts) != 0 || len(batch.IdentityLinkUpserts) != 0 || len(batch.ServiceUpserts) != 0 || len(batch.CapabilityUpserts) != 0 || len(batch.RelationUpserts) != 0 || len(batch.AbsenceUpserts) != 0) {
 		s.check(errID(StaleDriverGeneration, "fenced header generation upsert"))
 	}
 }
 
 // resolveBindings is the binding-resolution phase. It applies the narrower
 // generation transition first; if the same batch also retires the epoch,
-// retirement is the stronger final tombstone state. Binding and identity-link
-// upserts then resolve against the transitioned bindings.
+// retirement is the stronger final tombstone state. Relation records with a
+// native basis leave with their binding generation in the same post-state.
+// Binding and identity-link upserts then resolve against the transitioned
+// bindings.
 func (s *applyState) resolveBindings() {
 	s.applyGenerationFences()
 	s.applySourceRetirements()
+	s.removeEndedRelations()
 	s.transitionedBindings = cloneMap(s.bindings)
 	s.upsertBindings()
 	s.upsertIdentityLinks()
@@ -584,7 +598,7 @@ func (s *applyState) commit() componentChanges {
 		facts:        !reflect.DeepEqual(before.Facts, snapshot.Facts) || !reflect.DeepEqual(before.Retained, snapshot.Retained),
 		services:     !reflect.DeepEqual(before.Services, snapshot.Services),
 		capabilities: !reflect.DeepEqual(before.Capabilities, snapshot.Capabilities),
-		structure:    !reflect.DeepEqual(before.Resources, snapshot.Resources),
+		structure:    !reflect.DeepEqual(before.Resources, snapshot.Resources) || !reflect.DeepEqual(before.Relations, snapshot.Relations) || !reflect.DeepEqual(before.RelationAbsences, snapshot.RelationAbsences),
 	}
 	s.check(snapshot.publicationContentErrors())
 	return changed
@@ -598,6 +612,7 @@ func (s *applyState) normalizeRevisions() {
 	normalizeObjectRevisions(s.before.IdentityLinks, s.links, func(value IdentityLink) NativeBindingID { return value.BindingID })
 	normalizeObjectRevisions(s.before.Services, s.services, func(value ServiceInstance) ServiceInstanceID { return value.InstanceID })
 	normalizeObjectRevisions(s.before.Capabilities, s.capabilities, func(value CapabilityInstance) CapabilityInstanceID { return value.InstanceID })
+	s.normalizeRelationRevisions()
 }
 
 func (s *applyState) writeSnapshot() {
@@ -626,4 +641,5 @@ func (s *applyState) writeSnapshot() {
 	} else {
 		snapshot.Resources = sortedMapValues(s.resources, func(a, z Resource) int { return strings.Compare(string(a.ResourceID), string(z.ResourceID)) })
 	}
+	s.writeRelations()
 }

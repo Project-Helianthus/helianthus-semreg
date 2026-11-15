@@ -364,7 +364,7 @@ func (k *PublicationKernel) Apply(batch PublicationBatch, publicationMonotonic M
 }
 
 func (k *PublicationKernel) applyLocked(batch PublicationBatch, publicationMonotonic MonotonicPoint, admission bool) (Snapshot, []byte, error) {
-	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch), k.graphPublicationError(batch))
+	structureError := bestError(batch.validateStructure(false), batch.BatchDigest.Validate(), publicationMonotonic.Validate(), publicationHeaderOwnershipError(k.asset, batch), k.graphRecordGateError(batch))
 	// Local member validation ranks malformed/missing fields, invalid values,
 	// bounds and collection order before reference/lifecycle semantics. Higher-
 	// ranked malformed records need no retained lookup at all.
@@ -688,7 +688,7 @@ func cursorMap(snapshot *Snapshot) map[cursorKey]PublicationCursor {
 func (s Snapshot) publicationContentErrors() error {
 	var failure error
 	check := func(err error) { failure = bestError(failure, err) }
-	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || identityLinkBoundsExceeded(s.IdentityLinks) || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotRetained || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors || len(s.Resources) > maxSnapshotResources {
+	if len(s.Sources) > maxSnapshotSources || len(s.Bindings) > maxSnapshotBindings || identityLinkBoundsExceeded(s.IdentityLinks) || len(s.Facts) > maxSnapshotEnvelopes || len(s.Retained) > maxSnapshotRetained || len(s.Services) > maxSnapshotServices || len(s.Capabilities) > maxSnapshotCapabilities || len(s.Fences) > maxSnapshotFences || len(s.Cursors) > maxSnapshotCursors || len(s.Resources) > maxSnapshotResources || len(s.Relations) > maxSnapshotRelations || len(s.RelationAbsences) > maxSnapshotAbsences {
 		check(errID(BoundsExceeded, "snapshot collection"))
 	}
 	currentSources := make(map[SourceID]int)
