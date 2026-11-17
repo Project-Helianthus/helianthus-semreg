@@ -50,7 +50,7 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 		metadata := source.Metadata
 		index := source.Validator.Definitions()
 		want := map[semreg.DefinitionID]struct{ units, fields, services, capabilities, operations int }{
-			"helianthus.pack.thermal":        {4, 13, 5, 7, 2},
+			"helianthus.pack.thermal":        {7, 32, 10, 12, 2},
 			"helianthus.pack.pv":             {7, 21, 6, 8, 2},
 			"helianthus.pack.storage":        {7, 20, 7, 5, 2},
 			"helianthus.pack.evse":           {5, 15, 5, 6, 1},
@@ -159,7 +159,7 @@ func TestPackMetadataFailsClosedAndCopies(t *testing.T) {
 
 	*sources[0].Metadata.Fields[1].CanonicalUnit = semreg.DefinitionRef{}
 	thermalDemand := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.demand.level", Version: "1.0.0"}
-	if got, ok := registry.CanonicalUnit(thermalDemand); !ok || got.ID != "unit.percent" {
+	if got, ok := registry.CanonicalUnit(thermalDemand); !ok || got.ID != "unit.ratio" {
 		t.Fatalf("input mutation changed accepted registry: %v, %t", got, ok)
 	}
 	returned := registry.Packs()
@@ -255,7 +255,7 @@ func TestPackMetadataProviderReturnsFreshAuthoritativeSnapshot(t *testing.T) {
 	first := provider.Metadata()
 	*first.Fields[1].CanonicalUnit = semreg.DefinitionRef{}
 	second := provider.Metadata()
-	if second.Fields[1].CanonicalUnit == nil || second.Fields[1].CanonicalUnit.ID != "unit.percent" {
+	if second.Fields[1].CanonicalUnit == nil || second.Fields[1].CanonicalUnit.ID != "unit.ratio" {
 		t.Fatalf("provider snapshot mutation leaked: %+v", second.Fields[1])
 	}
 }

@@ -85,7 +85,7 @@ var registryAssertions = map[string]func(*vectorCase, registryResult) error{
 		return nil
 	},
 	"every_registered_pack_covered": func(c *vectorCase, r registryResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		for _, validator := range r.validators {
 			if err := catalog.Covers(validator.Definitions()); err != nil {
 				return fmt.Errorf("pack %s: %v", validator.Pack().ID, err)
@@ -97,7 +97,7 @@ var registryAssertions = map[string]func(*vectorCase, registryResult) error{
 		return nil
 	},
 	"non_member_operations_registered_inadmissible": func(c *vectorCase, r registryResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		want := map[semreg.DefinitionRef]bool{}
 		for _, ref := range c.expect.InadmissibleOperations {
 			want[ref.packRef(c.t)] = true
@@ -122,7 +122,9 @@ var registryAssertions = map[string]func(*vectorCase, registryResult) error{
 				}
 			}
 		}
-		if operations == 0 || len(want) == 0 || !gvDeepEqual(got, want) {
+		// Every operation is checked against its catalog membership above;
+		// the vector's list may be empty when every operation is a member.
+		if operations == 0 || !gvDeepEqual(got, want) {
 			return fmt.Errorf("inadmissible operations %v, the vector lists %v (of %d operations)", got, want, operations)
 		}
 		return nil
@@ -225,6 +227,21 @@ func gvMutateCatalog(c *vectorCase, doc map[string]any, mutation map[string]json
 				planes[i] = plane
 			}
 			elements[find(change.Ref)].(map[string]any)["planes"] = planes
+		case "set_disposition":
+			var change struct {
+				Ref         json.RawMessage `json:"ref"`
+				Disposition string          `json:"disposition"`
+				Reason      string          `json:"reason"`
+				Tracking    string          `json:"tracking"`
+			}
+			if err := gvStrict(body, &change); err != nil {
+				c.t.Fatalf("set_disposition: %v", err)
+			}
+			entry := elements[find(change.Ref)].(map[string]any)
+			if change.Disposition != "unknown" || entry["disposition"] != "member" {
+				c.t.Fatalf("set_disposition %s of a %v entry", change.Disposition, entry["disposition"])
+			}
+			entry["disposition"], entry["planes"], entry["reason"], entry["tracking"] = change.Disposition, []any{}, change.Reason, change.Tracking
 		default:
 			c.t.Fatalf("mutation %q is not implemented", kind)
 		}
@@ -371,7 +388,7 @@ func gvNativeBasis(class semreg.RelationBasis) bool {
 
 // gvCoreType is the core type of a relation definition in the catalog.
 func gvCoreType(c *vectorCase, ref semreg.DefinitionRef) string {
-	definition, ok := gvEmbedded(c.t).RelationDefinition(ref)
+	definition, ok := c.registeredCatalog().RelationDefinition(ref)
 	if !ok {
 		return ""
 	}
@@ -702,7 +719,7 @@ var applyAssertions = map[string]func(*vectorCase, applyResult) error{
 		return nil
 	},
 	"derived_fact_subject_is_inverter": func(c *vectorCase, r applyResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		for _, upsert := range r.batch.FactUpserts {
 			if upsert.Derivation == nil {
 				continue
@@ -898,7 +915,7 @@ func runAssembleCut(c *vectorCase) {
 	var cut *graph.Cut
 	if err == nil {
 		inputs := gvCanonicalSnapshots(c, snapshots)
-		cut, err = graph.AssembleCut(snapshots, gvEmbedded(c.t), graph.Completeness(input.Completeness))
+		cut, err = graph.AssembleCut(snapshots, c.registeredCatalog(), graph.Completeness(input.Completeness))
 		if !bytes.Equal(inputs, gvCanonicalSnapshots(c, snapshots)) {
 			c.t.Fatal("AssembleCut changed its input")
 		}
@@ -1178,7 +1195,7 @@ var cutAssertions = map[string]func(*vectorCase, cutResult) error{
 	},
 	"relation_conflict": gvAnyCoherence(graph.CoherenceConflict),
 	"to_kind_not_admitted": func(c *vectorCase, r cutResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		for _, relation := range r.cut.Relations() {
 			if relation.Coherence != graph.CoherenceConflict {
 				continue
@@ -1277,7 +1294,7 @@ var cutAssertions = map[string]func(*vectorCase, cutResult) error{
 		return nil
 	},
 	"unknown_facts_not_counted": func(c *vectorCase, r cutResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		facts := 0
 		for _, snapshot := range r.snapshots {
 			for _, envelope := range snapshot.Facts {
@@ -1348,7 +1365,7 @@ var cutAssertions = map[string]func(*vectorCase, cutResult) error{
 		return fmt.Errorf("no coherent relation whose to is homed in another member")
 	},
 	"relation_in_its_planes": func(c *vectorCase, r cutResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		edges := 0
 		for _, relation := range r.cut.Relations() {
 			if relation.Coherence != graph.CoherenceCoherent || relation.State != semreg.LinkQualified {
@@ -1412,7 +1429,7 @@ var cutAssertions = map[string]func(*vectorCase, cutResult) error{
 		return fmt.Errorf("no resource that only relays")
 	},
 	"kind_planes_only_bound_membership": func(c *vectorCase, r cutResult) error {
-		catalog := gvEmbedded(c.t)
+		catalog := c.registeredCatalog()
 		bounded := false
 		for _, snapshot := range r.snapshots {
 			for _, resource := range snapshot.Resources {
@@ -1529,7 +1546,7 @@ func runAdmit(c *vectorCase) {
 // value of the fact's resource dimension in the catalog.
 func gvEffectSubject(c *vectorCase, intent operation.Intent) (semreg.ResourceID, error) {
 	key := intent.ExpectedEffect.Fact
-	subject, ok := gvEmbedded(c.t).FactSubject(semreg.PackRef{ID: key.PackID, Version: key.PackVersion}, key.FactID)
+	subject, ok := c.registeredCatalog().FactSubject(semreg.PackRef{ID: key.PackID, Version: key.PackVersion}, key.FactID)
 	if !ok || !subject.Resolved {
 		return "", fmt.Errorf("fact %s has no resolved subject", key.FactID)
 	}

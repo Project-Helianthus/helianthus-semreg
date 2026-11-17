@@ -38,12 +38,18 @@ or live authority.
 
 [`v1/thermal-hvac-pack-vectors.json`](v1/thermal-hvac-pack-vectors.json) is a
 byte-for-byte copy of `api/v1/packs/thermal-hvac-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic@4fc56613a521dd2549cc81b1178f248dbcfd5164`.
-Its SHA-256 is
-`6fc20eaa6965e2073c38fba943b401e0b10673c16cef97286575dca083431576`.
-The thermal pack tests execute all twelve static catalog vectors. The fixture
-does not create a native mapping, topology instance, Portal implementation,
-route, consumer API, or live authority.
+`Project-Helianthus/helianthus-docs-semantic`, as edited in place for the
+accepted thermal placement. Its SHA-256 is
+`b5541b56b0d6038a44e5dad00ad8c08f1d67227ca59eb2f3faff2553a3ec0c89`;
+`TestThermalMachineFixtureVectors` compares the digest of the copy with the
+digest of the approved preimage it holds. The fixture declares 32 fields, each
+with exactly one resource dimension (its subject) and an SI unit, ten resource
+dimensions, ten services, twelve capabilities and five relation definitions.
+The thermal pack tests execute all seventeen static catalog vectors and compare
+every field, dimension, service, relation and capability with the validator
+tables. The fixture does not create a native mapping, topology instance,
+relation instance, Portal implementation, route, consumer API, or live
+authority.
 
 [`v1/infrastructure-pack-vectors.json`](v1/infrastructure-pack-vectors.json)
 is a byte-for-byte copy of
@@ -271,12 +277,16 @@ canonical order
 [`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a
 byte-for-byte copy of `api/v1/element-catalog-v1.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as accepted in
-docs-semantic #76. Its SHA-256 is
-`14c36bfcf1fafd22149e05f3ad4b11ecc4b8ba54723c1dc16a78f571c2713d17`; the
+docs-semantic #76 and edited in place for the accepted thermal placement. Its
+SHA-256 is
+`17a741942cfa778fabc5e4eb6e79aa69a7557df17cf578924768445def86f4e8`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
-digest and the constant together. The catalog lists six planes, seven core
-relation types and 307 entries, with no identification scheme and no lens yet.
+digest, the constant, the root package's pinned catalog digest and the catalog
+bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
+seven core relation types and 353 entries, with no identification scheme, no
+lens and no entry of disposition `unknown`; a test that needs an unknown entry
+sets one by a stated mutation.
 `semreg/v1/graph` decodes it strictly and checks rules CAT-1 to CAT-9 against
 the accepted packs. Its tests apply one rejected mutation per rule and match
 the relation and Portal entries against the copied pack vectors above. The
@@ -288,13 +298,16 @@ byte-for-byte copy of `api/v1/graph-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, the
 `helianthus.semantic.graph.acceptance/v1` document of the graph contract. Its
 SHA-256 is
-`e8c7de1c5ce29b5e38ef1cc88917ce67a1a5b45013a59d7ae5657605b1de43f4`;
+`be2b0b033e7806520f360f8203635f478ffc2f2b622c6762c386a0a8b2634f91`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
 bytes and checks the element catalog digest the document records against
 `graph.PinnedDigest`. Every in-place edit of the source document moves the
-copy and both pins together. The document holds 60 vectors over 22 prior
+copy and both pins together. The document holds 62 vectors over 24 prior
 states, the seven coverage areas and the operations `construct_registry`,
-`register_catalog`, `apply`, `assemble_cut` and `admit`.
+`register_catalog`, `apply`, `assemble_cut` and `admit`. Three prior states
+register the catalog with stated `set_disposition` mutations, each setting
+one member entry to `unknown` with no plane, a reason and a tracking issue;
+the harness applies them to a copy of the pinned catalog.
 `TestGraphAcceptanceVectors` executes every vector by identifier through the
 public API; it adds only members the document leaves out and decodes every
 record strictly. All records are synthetic: they prove no native fact,

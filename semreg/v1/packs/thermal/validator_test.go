@@ -20,7 +20,7 @@ func TestDefinitionIndexRegistryAndImmutability(t *testing.T) {
 	if err := first.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if first.Pack != pack || len(first.Fields) != 13 || len(first.Services) != 5 || len(first.Capabilities) != 7 || len(first.Operations) != 2 || len(first.EffectRules) != 2 {
+	if first.Pack != pack || len(first.Fields) != 32 || len(first.Services) != 10 || len(first.Capabilities) != 12 || len(first.Operations) != 2 || len(first.EffectRules) != 2 {
 		t.Fatalf("index: %+v", first)
 	}
 	first.Fields[0].ID = "thermal.mutated.field"
@@ -71,7 +71,7 @@ func TestAllFieldContracts(t *testing.T) {
 				bad := value
 				unit := semreg.DefinitionID("unit.watt")
 				if unit == spec.unit {
-					unit = "unit.celsius"
+					unit = "unit.kilowatt"
 				}
 				bad.Quantity = &semreg.Quantity{Number: value.Quantity.Number, Unit: unit}
 				requireID(t, validator.ValidateFact(key, &bad), semreg.InvalidValue)
@@ -117,7 +117,8 @@ func TestServicesCapabilitiesAndConcurrentAccess(t *testing.T) {
 	t.Run("operation argument must admit published constraint", func(t *testing.T) {
 		capability := validCapability("thermal.capability.set_temperature")
 		argument := copyFields(capability.Constraints)
-		argument[0].Value.Quantity.Number = semreg.Decimal{Coefficient: "0"}
+		// A fresh quantity: the copied constraint shares the capability's one.
+		argument[0].Value.Quantity = &semreg.Quantity{Number: mustField("thermal.setpoint.temperature_setpoint").maximum.decimal(), Unit: argument[0].Value.Quantity.Unit}
 		requireID(t, validator.MatchConstraints(capability, argument), semreg.InvalidValue)
 	})
 	var group sync.WaitGroup
@@ -187,18 +188,27 @@ func evidence() semreg.EvidenceRef {
 func copyFields(fields []semreg.TypedField) []semreg.TypedField {
 	return append([]semreg.TypedField{}, fields...)
 }
+
+// requireID requires an error with the stable identifier want. A nil error
+// fails: ErrorIdentifier reports invalid_value for any error that is not a
+// semreg error, including nil.
 func requireID(t *testing.T, err error, want semreg.ErrorID) {
 	t.Helper()
+	if err == nil {
+		t.Fatalf("error = nil, want %q", want)
+	}
 	if actual := semreg.ErrorIdentifier(err); actual != want {
 		t.Fatalf("error = %q, want %q (%v)", actual, want, err)
 	}
 }
 
-// Under graph enforcement the field's dimension is the dimension the catalog
-// declares: as a resource dimension it carries an opaque resource identifier,
-// as a qualifier dimension it keeps its shape, and no undeclared dimension is
-// accepted. Without the catalog ValidateFact is unchanged.
-func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
+// Under graph enforcement the field's one dimension is its resource
+// dimension: the catalog declares it as the resolved subject of the field with
+// no qualifier dimension, and its value is an opaque resource identifier. A
+// subject that names another dimension, an unresolved subject and a declared
+// qualifier dimension are refused. Without the catalog ValidateFact is
+// unchanged.
+func TestValidateGraphFactUsesTheResourceDimension(t *testing.T) {
 	var graphValidator semreg.GraphFactValidator = New().(semreg.GraphFactValidator)
 	for _, spec := range fields {
 		key, value := validKey(spec), validValue(spec)
@@ -208,27 +218,25 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 			return changed
 		}
 		resource := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment"}
-		qualifier := semreg.GraphFactSubject{Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{spec.dimension}}
 		if err := graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, resource); err != nil {
 			t.Fatalf("%s: resource identifier refused: %v", spec.id, err)
 		}
-		if got := semreg.ErrorIdentifier(graphValidator.ValidateGraphFact(withText("unit 01"), &value, resource)); got != semreg.InvalidValue {
-			t.Fatalf("%s: resource dimension text accepted: %s", spec.id, got)
-		}
-		if err := graphValidator.ValidateGraphFact(withText("unit 01"), &value, qualifier); err != nil {
-			t.Fatalf("%s: qualifier dimension refused: %v", spec.id, err)
-		}
+		requireID(t, graphValidator.ValidateGraphFact(withText("unit 01"), &value, resource), semreg.InvalidValue)
 		if err := New().ValidateFact(withText("unit 01"), &value); err != nil {
 			t.Fatalf("%s: text dimension refused without the catalog: %v", spec.id, err)
 		}
+		extra := withText("resource:unit:01")
+		extra.Dimensions = append(extra.Dimensions, semreg.Dimension{ID: "zz.dimension.role", Value: extra.Dimensions[0].Value})
+		requireID(t, graphValidator.ValidateGraphFact(extra, &value, resource), semreg.InvalidValue)
 		for subjectName, subject := range map[string]semreg.GraphFactSubject{
-			"another resource dimension":      {Disposition: semreg.GraphMember, Resolved: true, Dimension: "zz.dimension.other", Kind: "resource.equipment"},
-			"an undeclared extra qualifier":   {Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment", Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
-			"no declared dimension":           {Disposition: semreg.GraphUnknown},
-			"another declared qualifier only": {Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
+			"another resource dimension":         {Disposition: semreg.GraphMember, Resolved: true, Dimension: "zz.dimension.other", Kind: "resource.equipment"},
+			"a declared qualifier":               {Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment", Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
+			"the field dimension as a qualifier": {Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{spec.dimension}},
+			"no declared dimension":              {Disposition: semreg.GraphUnknown},
+			"an unresolved subject":              {Disposition: semreg.GraphUnknown, Dimension: spec.dimension, Kind: "resource.equipment"},
 		} {
-			if got := semreg.ErrorIdentifier(graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, subject)); got != semreg.InvalidValue {
-				t.Fatalf("%s with %s: %s", spec.id, subjectName, got)
+			if err := graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, subject); err == nil || semreg.ErrorIdentifier(err) != semreg.InvalidValue {
+				t.Fatalf("%s with %s: %v", spec.id, subjectName, err)
 			}
 		}
 	}

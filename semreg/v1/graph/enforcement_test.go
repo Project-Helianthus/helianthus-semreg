@@ -184,23 +184,43 @@ func TestGraphEnforcementRejectsAnotherCatalog(t *testing.T) {
 	}
 }
 
-// ACT-4 and G-NEG-ACT-3 over the committed catalog: the thermal temperature
-// operation and its effect rule are unknown and therefore inadmissible; the
-// mode operation is a member.
+// ACT-4 and G-NEG-ACT-3: under the committed catalog every thermal operation
+// and effect rule is a member and admissible. With the temperature operation
+// and its effect rule set to unknown by a stated catalog mutation, as a prior
+// state of the graph vectors registers it, they are inadmissible and the mode
+// operation stays a member.
 func TestGraphEnforcementRecordsUnknownOperationsInadmissible(t *testing.T) {
 	index := thermal.New().Definitions()
 	setTemperature := refByID(t, index.Operations, "thermal.operation.set_temperature")
 	temperatureEffect := refByID(t, index.EffectRules, "thermal.effect.set_temperature")
 	setMode := refByID(t, index.Operations, "thermal.operation.set_mode")
 	modeEffect := refByID(t, index.EffectRules, "thermal.effect.set_mode")
-	catalog := committedCatalog(t)
+	committed, err := graph.Enforced(acceptedValidators()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, pair := range [][2]semreg.DefinitionRef{{setTemperature, temperatureEffect}, {setMode, modeEffect}} {
+		if disposition, _ := committedCatalog(t).DispositionOf(graph.PackElement(pair[0])); disposition != graph.DispositionMember {
+			t.Fatalf("%s disposition %s in the committed catalog", pair[0].ID, disposition)
+		}
+		if err := committed.GraphAdmissionError(pair[0], pair[1]); err != nil {
+			t.Fatalf("%s admission under the committed catalog = %v", pair[0].ID, err)
+		}
+	}
+
+	doc := decodeDocument(t)
+	setUnknown(element(t, doc, "thermal.operation.set_temperature"))
+	setUnknown(element(t, doc, "thermal.effect.set_temperature"))
+	catalog, err := graph.Decode(encode(t, doc))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, ref := range []semreg.DefinitionRef{setTemperature, temperatureEffect} {
 		if disposition, _ := catalog.DispositionOf(graph.PackElement(ref)); disposition != graph.DispositionUnknown {
 			t.Fatalf("%s disposition %s; the vector needs an unknown operation", ref.ID, disposition)
 		}
 	}
-
-	registry, err := graph.Enforced(acceptedValidators()...)
+	registry, err := semreg.NewGraphRegistry(gvMutatedCatalog{catalog}, acceptedValidators()...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +264,7 @@ func TestGraphEnforcementRecordsUnknownOperationsInadmissible(t *testing.T) {
 
 	// The operation kernel refuses the intent before any route is resolved.
 	options := operation.KernelOptions{MaxRetainedOperations: operation.DefaultMaxRetainedOperations}
-	enforced, err := operation.NewGraphKernel(options, catalog, thermal.New())
+	enforced, err := operation.NewGraphKernel(options, gvMutatedCatalog{catalog}, thermal.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,8 +463,32 @@ func TestGraphEnforcementResourceLookupsAgreeWithTheCatalog(t *testing.T) {
 			}
 		}
 	}
-	if kinds == 0 || facts == 0 || dimensions == 0 || unknown == 0 {
+	if kinds == 0 || facts == 0 || dimensions == 0 || unknown != 0 {
 		t.Fatalf("catalog exercised %d kinds, %d facts, %d dimensions, %d unresolved subjects", kinds, facts, dimensions, unknown)
+	}
+	// The committed catalog resolves every subject. An unresolved subject
+	// with a qualifier dimension, set by a mutation, answers its disposition
+	// and a detached qualifier list.
+	doc := decodeDocument(t)
+	entry := element(t, doc, "thermal.demand.level")
+	setUnknown(entry)
+	entry["attributes"].(document)["subject"] = document{
+		"status":              "unresolved",
+		"qualifier_dimension": elementRef(packOwner(semreg.PackRef{ID: "helianthus.pack.thermal", Version: "1.0.0"}), "thermal.dimension.ventilation"),
+	}
+	mutated, err := graph.Decode(encode(t, doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	thermalPack := semreg.PackRef{ID: "helianthus.pack.thermal", Version: "1.0.0"}
+	subject, ok := mutated.FactSubject(thermalPack, "thermal.demand.level")
+	if !ok || subject.Resolved || subject.Dimension != "" || subject.Kind != "" || subject.Disposition != semreg.GraphUnknown ||
+		!reflect.DeepEqual(subject.Qualifiers, []semreg.DefinitionID{"thermal.dimension.ventilation"}) {
+		t.Fatalf("FactSubject(unresolved) = %#v %v", subject, ok)
+	}
+	subject.Qualifiers[0] = "mutated"
+	if again, _ := mutated.FactSubject(thermalPack, "thermal.demand.level"); again.Qualifiers[0] == "mutated" {
+		t.Fatal("FactSubject returned shared qualifiers")
 	}
 	pv := semreg.PackRef{ID: "helianthus.pack.pv", Version: "1.0.0"}
 	otherVersion := semreg.PackRef{ID: "helianthus.pack.pv", Version: "9.0.0"}

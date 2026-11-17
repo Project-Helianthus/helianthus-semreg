@@ -46,6 +46,10 @@ func TestAvailabilityStructureConstraints(t *testing.T) {
 								value = semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "0"}, Unit: field.CanonicalUnit.ID}}
 							}
 						}
+						if operation.Argument.ID == "thermal.setpoint.temperature_setpoint" {
+							// The setpoint is in kelvin; 0 K is outside its bounds, so use 293.15 K.
+							value.Quantity.Number = semreg.Decimal{Coefficient: "29315", Exponent10: -2}
+						}
 						if operation.Argument.ID == "thermal.mode.system" {
 							value = semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: operation.Argument.ID, Token: "off", Known: true}}
 						}
