@@ -233792,6 +233792,93 @@
       "emitted_name": "storage.energy.discharged"
     },
     {
+      "identity": "semreg/v1/packs/storage/definitions.go::definition_literal::storage.energy.nominal_capacity",
+      "owning_file": "semreg/v1/packs/storage/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "storage.energy.nominal_capacity",
+      "target": "storage.energy.nominal_capacity",
+      "role_decomposition": [
+        "storage",
+        "energy",
+        "nominal_capacity"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/storage/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/storage-bms-contract-tables.json",
+        "fixtures/v1/storage-bms-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/storage/validator_test.go"
+      ],
+      "emitted_name": "storage.energy.nominal_capacity"
+    },
+    {
+      "identity": "semreg/v1/packs/storage/definitions.go::definition_literal::storage.energy.remaining",
+      "owning_file": "semreg/v1/packs/storage/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "storage.energy.remaining",
+      "target": "storage.energy.remaining",
+      "role_decomposition": [
+        "storage",
+        "energy",
+        "remaining"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/storage/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/storage-bms-contract-tables.json",
+        "fixtures/v1/storage-bms-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/storage/validator_test.go"
+      ],
+      "emitted_name": "storage.energy.remaining"
+    },
+    {
+      "identity": "semreg/v1/packs/storage/definitions.go::definition_literal::storage.energy.usable_capacity",
+      "owning_file": "semreg/v1/packs/storage/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "storage.energy.usable_capacity",
+      "target": "storage.energy.usable_capacity",
+      "role_decomposition": [
+        "storage",
+        "energy",
+        "usable_capacity"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/storage/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/storage-bms-contract-tables.json",
+        "fixtures/v1/storage-bms-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/storage/validator_test.go"
+      ],
+      "emitted_name": "storage.energy.usable_capacity"
+    },
+    {
       "identity": "semreg/v1/packs/storage/definitions.go::definition_literal::storage.capacity.charge",
       "owning_file": "semreg/v1/packs/storage/definitions.go",
       "kind": "definition_literal",

@@ -9026,6 +9026,138 @@
             "version": "1.1.0"
           }
         },
+        "id": "storage.energy.nominal_capacity",
+        "version": "1.1.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/storage-bms-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.storage",
+                "version": "1.1.0"
+              }
+            },
+            "id": "storage.dimension.pack",
+            "version": "1.1.0"
+          },
+          "kind": "resource.battery_pack"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.storage",
+            "version": "1.1.0"
+          }
+        },
+        "id": "storage.energy.remaining",
+        "version": "1.1.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/storage-bms-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.storage",
+                "version": "1.1.0"
+              }
+            },
+            "id": "storage.dimension.pack",
+            "version": "1.1.0"
+          },
+          "kind": "resource.battery_pack"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.storage",
+            "version": "1.1.0"
+          }
+        },
+        "id": "storage.energy.usable_capacity",
+        "version": "1.1.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/storage-bms-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.storage",
+                "version": "1.1.0"
+              }
+            },
+            "id": "storage.dimension.pack",
+            "version": "1.1.0"
+          },
+          "kind": "resource.battery_pack"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.storage",
+            "version": "1.1.0"
+          }
+        },
         "id": "storage.limit.charge_power",
         "version": "1.1.0"
       },
