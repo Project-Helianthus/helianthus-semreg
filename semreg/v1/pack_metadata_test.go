@@ -113,11 +113,11 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 
 	storagePack := semreg.PackRef{ID: "helianthus.pack.storage", Version: "1.1.0"}
 	soc := semreg.DefinitionRef{Pack: storagePack, ID: "storage.state.soc", Version: "1.1.0"}
-	percent := semreg.DefinitionRef{Pack: storagePack, ID: "unit.percent", Version: "1.1.0"}
-	if got, ok := registry.CanonicalUnit(soc); !ok || got != percent {
+	ratio := semreg.DefinitionRef{Pack: storagePack, ID: "unit.ratio", Version: "1.1.0"}
+	if got, ok := registry.CanonicalUnit(soc); !ok || got != ratio {
 		t.Fatalf("storage SOC unit = %v, %t", got, ok)
 	}
-	for _, stale := range []semreg.DefinitionRef{{Pack: storagePack, ID: "storage.state_of_charge", Version: "1.1.0"}, {Pack: storagePack, ID: "storage.unit.percent", Version: "1.1.0"}} {
+	for _, stale := range []semreg.DefinitionRef{{Pack: storagePack, ID: "storage.state_of_charge", Version: "1.1.0"}, {Pack: storagePack, ID: "storage.unit.ratio", Version: "1.1.0"}, {Pack: storagePack, ID: "storage.unit.percent", Version: "1.1.0"}, {Pack: storagePack, ID: "unit.percent", Version: "1.1.0"}} {
 		if registry.HasDefinition(stale) {
 			t.Fatalf("stale storage alias exported: %v", stale)
 		}
