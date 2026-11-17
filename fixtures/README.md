@@ -5,8 +5,13 @@ for protocol-neutral semantic contracts.
 
 [`v1/pv-inverter-pack-vectors.json`](v1/pv-inverter-pack-vectors.json) is a
 byte-for-byte copy of `api/v1/packs/pv-inverter-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083`; its
-SHA-256 is `78540d3492ed11ebcb87f8d05bb6cc8227a650349b8e9e65946915917695b384`.
+`Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
+units; its SHA-256 is
+`2bb878623c9de8693cb6e9fac9b0ed9b881917a776fad95dd6ede5c2615d924d`.
+The generated energy is in `unit.joule` with a maximum of 3.6 × 10^18 and the
+inverter temperature in `unit.kelvin` from 223.15 to 473.15. The PV pack tests
+compare every field of the copy (identifier, kind, unit, dimension, bounds and
+symbols) with the validator table.
 Its five relation definitions use the shared encoding (`from`, `to`,
 `cardinality`, `order`) and each declares `one_to_many`.
 It defines static semantic evidence only and does not create a native mapping,
@@ -16,10 +21,16 @@ route, authority, or live operation.
 [`v1/storage-bms-contract-tables.json`](v1/storage-bms-contract-tables.json)
 are byte-for-byte copies of `api/v1/packs/storage-bms-acceptance-vectors.json`
 and `api/v1/packs/storage-bms-contract-tables.json` from
-`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083` for
-`helianthus.pack.storage@1.1.0`; their SHA-256 values are respectively
-`8907aeeaa9f2d942fe66d683764a7bcab5a43433068c6b5a97d58c7076490cb4` and
-`b599b8aa50eecba2d350d370aef96ffb3178bf5dd1dfe929147f297f17f8eafc`.
+`Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
+units, for `helianthus.pack.storage@1.1.0`; their SHA-256 values are
+respectively
+`66b71f9cb079ace0d2ce3472a97629e0d4fa19ce39cde2e50fd1894cadd1a6f3` and
+`0927120826bdabb71276ec1d2c44bae0d0109a9b272f707edf362baa966796dd`.
+State of charge and state of health are in `unit.ratio` from 0 to 1, the two
+energy counters in `unit.joule`, the pack and cell temperatures in
+`unit.kelvin` with a lower bound of 0, and the two capacities stay in
+`unit.ampere_hour`. The storage pack tests compare every field of both copies
+with the validator table.
 The six relation definitions of the contract tables use the shared encoding
 (`from`, `to`, `cardinality`, `order`).
 They define semantic evidence only and do not create native qualification,
@@ -27,9 +38,12 @@ mapping, a route, authority, or live operation.
 
 [`v1/evse-pack-vectors.json`](v1/evse-pack-vectors.json) is a byte-for-byte
 copy of `api/v1/packs/evse-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083`.
-Its SHA-256 is
-`edc827128a5ef5700d3f82fac792084868a6155b705e08df69148e400226ccdd`.
+`Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
+units. Its SHA-256 is
+`60855489020d6903b3592c31798eabdcdd767f94564a550d050bc434bbb1b025`.
+The session and lifetime energy are in `unit.joule` with a maximum of
+3.6 × 10^18, and the EVSE pack tests compare every field of the copy with the
+validator table.
 The EVSE pack tests execute all twelve static catalog vectors, including the
 five-domain catalog, relation and Portal metadata, operation safety, Tesla,
 eeBUS, Matter, and counter-policy boundaries. The fixture does not create a
@@ -54,9 +68,11 @@ authority.
 [`v1/infrastructure-pack-vectors.json`](v1/infrastructure-pack-vectors.json)
 is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic@989ec3de7f18247c07a36d2650e63d0742e55083`.
-Its SHA-256 is
-`0aa59e1ef9197d6b24348bfecaa791f9c86123f02ceba4f964433d1d0c5a7472`.
+`Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
+units. Its SHA-256 is
+`5558daac28b5971d501ede0a4c9e7095c029ed399ac6e7a04ac4e4f08ea693cf`.
+The import and export energy are in `unit.joule` with a maximum of
+3.6 × 10^18.
 The infrastructure pack tests pin its source and execute every accepted static
 catalog vector. The fixture is documentation-derived contract metadata only;
 it does not create relation instances, Portal composition, routes, native
@@ -133,6 +149,11 @@ with loss and legacy-path rollback treatment. The pinned producer witness
 freezes the three withheld native IDs as aggregate current plus events 1 and 2;
 it does not synthesize aggregate current or event semantics. It creates no native mapping,
 route, authority, persistence, gateway output, or consumer cutover.
+The mapper witness keeps its bytes and the donor's units, kilowatt-hour and
+degree Celsius. The harness converts them exactly to the SI units of the PV
+pack before validation (a kilowatt-hour times 3 600 000 is a joule, a degree
+Celsius plus 273.15 is a kelvin), checks that the conversion returns the donor
+value, and requires the PV pack to refuse both donor units.
 
 [`v1/operation-vectors.json`](v1/operation-vectors.json) mechanically copies all
 29 vectors whose coverage includes `operation` from the accepted

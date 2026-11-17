@@ -267,9 +267,10 @@ func canonicalPVTime(ns string) TimePoint {
 
 func canonicalPVCandidate(f canonicalPVFactFixture, index int, source SourceID, epoch SourceEpochID, binding NativeBindingID, generation Uint64, fixture canonicalPVFixture) FactCandidate {
 	dimension := f.DimensionValue
-	value := Value{Kind: ValueQuantity, Quantity: &Quantity{Number: Decimal{Coefficient: f.Coefficient, Exponent10: f.Exponent10}, Unit: DefinitionID(f.Unit)}}
-	if f.Symbol != "" {
-		value = Value{Kind: ValueSymbol, Symbol: &Symbol{Namespace: DefinitionID(f.Target), Token: f.Symbol, Known: true}}
+	value := Value{Kind: ValueSymbol, Symbol: &Symbol{Namespace: DefinitionID(f.Target), Token: f.Symbol, Known: true}}
+	if f.Symbol == "" {
+		quantity := canonicalPVSIQuantity(f)
+		value = Value{Kind: ValueQuantity, Quantity: &quantity}
 	}
 	return FactCandidate{
 		CandidateID:     CandidateID("candidate:canonical-pv:" + string(rune('a'+index))),
@@ -282,6 +283,44 @@ func canonicalPVCandidate(f canonicalPVFactFixture, index int, source SourceID, 
 		Origin:   OriginRef{OriginID: OriginID("origin:canonical-pv:" + string(rune('a'+index))), Kind: OriginNativeObservation, SourceID: &source, SourceEpochID: &epoch, BindingID: &binding, Evidence: []EvidenceRef{canonicalPVEvidence(fixture.Provenance.ObservationDigest)}},
 		Evidence: []EvidenceRef{canonicalPVEvidence(fixture.Provenance.EvidenceDigest)}, Revision: "1",
 	}
+}
+
+// canonicalPVSIQuantity converts a quantity of the retained donor witness,
+// whose bytes stay unchanged, to the SI unit the PV pack declares: a
+// kilowatt-hour times 3 600 000 is a joule and a degree Celsius plus 273.15 is
+// a kelvin. Every other unit is already the pack unit. The result is the
+// normalized exact decimal.
+func canonicalPVSIQuantity(f canonicalPVFactFixture) Quantity {
+	coefficient, ok := new(big.Int).SetString(f.Coefficient, 10)
+	if !ok {
+		panic("fixture decimal is invalid")
+	}
+	exponent, unit := f.Exponent10, DefinitionID(f.Unit)
+	powerOfTen := func(n int32) *big.Int { return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(n)), nil) }
+	switch unit {
+	case "unit.kilowatt_hour":
+		coefficient.Mul(coefficient, big.NewInt(36))
+		exponent, unit = exponent+5, "unit.joule"
+	case "unit.celsius":
+		if exponent > -2 {
+			coefficient.Mul(coefficient, powerOfTen(exponent+2))
+			exponent = -2
+		}
+		coefficient.Add(coefficient, new(big.Int).Mul(big.NewInt(27315), powerOfTen(-2-exponent)))
+		unit = "unit.kelvin"
+	}
+	ten, remainder := big.NewInt(10), new(big.Int)
+	for coefficient.Sign() != 0 {
+		quotient, rest := new(big.Int).QuoRem(coefficient, ten, remainder)
+		if rest.Sign() != 0 {
+			break
+		}
+		coefficient, exponent = quotient, exponent+1
+	}
+	if coefficient.Sign() == 0 {
+		exponent = 0
+	}
+	return Quantity{Number: Decimal{Coefficient: coefficient.String(), Exponent10: exponent}, Unit: unit}
 }
 
 func canonicalPVBatch(t *testing.T, fixture canonicalPVFixture, sequence, expected Uint64) PublicationBatch {
@@ -822,7 +861,16 @@ func TestCanonicalPVV1ComparatorPipelineAndAccounting(t *testing.T) {
 	}
 	energy := fixture.Facts[2]
 	if canonicalPVRational(energy.LegacyCoefficient, energy.LegacyScale).Cmp(new(big.Rat).Mul(canonicalPVRational(energy.Coefficient, energy.Exponent10), big.NewRat(1000, 1))) != 0 {
-		t.Fatal("Wh-to-kWh transform is not exact and reversible")
+		t.Fatal("donor Wh-to-kWh transform is not exact and reversible")
+	}
+	joule := energyCandidate.Value.Quantity
+	if energy.LegacyUnit != "Wh" || joule.Unit != "unit.joule" || joule.Number != (Decimal{Coefficient: "1512", Exponent10: 2}) || new(big.Rat).Quo(canonicalPVRational(joule.Number.Coefficient, joule.Number.Exponent10), big.NewRat(3600, 1)).Cmp(canonicalPVRational(energy.LegacyCoefficient, energy.LegacyScale)) != 0 {
+		t.Fatalf("Wh-to-joule transform is not exact and reversible: %+v", joule)
+	}
+	temperature := fixture.Facts[3]
+	kelvin := batch.FactUpserts[3].Value.Quantity
+	if temperature.Target != "pv.temperature.inverter" || kelvin.Unit != "unit.kelvin" || kelvin.Number != (Decimal{Coefficient: "29965", Exponent10: -2}) || new(big.Rat).Sub(canonicalPVRational(kelvin.Number.Coefficient, kelvin.Number.Exponent10), big.NewRat(27315, 100)).Cmp(canonicalPVRational(temperature.Coefficient, temperature.Exponent10)) != 0 {
+		t.Fatalf("Celsius-to-kelvin transform is not exact and reversible: %+v", kelvin)
 	}
 }
 
@@ -859,6 +907,15 @@ func TestCanonicalPVV1ComparatorRejectsMutationAndReplays(t *testing.T) {
 	unitValue.Quantity = &unitQuantity
 	unitDrift.FactUpserts[0].Value = &unitValue
 	assertCanonicalPVRejectedUnchanged(t, kernel, unitDrift, InvalidValue, monotonic)
+	for index, fact := range fixture.Facts[2:4] {
+		donorUnit := canonicalPVBatch(t, fixture, "2", "1")
+		donorUnit.FactUpserts = append([]FactCandidate(nil), donorUnit.FactUpserts...)
+		donorValue := *donorUnit.FactUpserts[2+index].Value
+		donorValue.Quantity = &Quantity{Number: Decimal{Coefficient: fact.Coefficient, Exponent10: fact.Exponent10}, Unit: DefinitionID(fact.Unit)}
+		donorUnit.FactUpserts[2+index].Value = &donorValue
+		sealCanonicalPVBatch(t, &donorUnit)
+		assertCanonicalPVRejectedUnchanged(t, kernel, donorUnit, InvalidValue, monotonic)
+	}
 	wrongDimension := canonicalPVBatch(t, fixture, "2", "1")
 	wrongDimension.FactUpserts = append([]FactCandidate(nil), wrongDimension.FactUpserts...)
 	wrongDimension.FactUpserts[0].Key.Dimensions = append([]Dimension(nil), wrongDimension.FactUpserts[0].Key.Dimensions...)

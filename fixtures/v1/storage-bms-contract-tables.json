@@ -396,7 +396,7 @@
       "bounds": {
         "maximum": {
           "coefficient": "1",
-          "exponent10": 2
+          "exponent10": 0
         },
         "minimum": {
           "coefficient": "0",
@@ -407,13 +407,13 @@
       "id": "storage.state.soc",
       "kind": "quantity",
       "optional": true,
-      "unit": "unit.percent"
+      "unit": "unit.ratio"
     },
     {
       "bounds": {
         "maximum": {
           "coefficient": "1",
-          "exponent10": 2
+          "exponent10": 0
         },
         "minimum": {
           "coefficient": "0",
@@ -424,7 +424,7 @@
       "id": "storage.state.soh",
       "kind": "quantity",
       "optional": true,
-      "unit": "unit.percent"
+      "unit": "unit.ratio"
     },
     {
       "bounds": {
@@ -474,7 +474,7 @@
       "id": "storage.energy.charged",
       "kind": "quantity",
       "optional": true,
-      "unit": "unit.kilowatt_hour"
+      "unit": "unit.joule"
     },
     {
       "bounds": {
@@ -488,7 +488,7 @@
       "id": "storage.energy.discharged",
       "kind": "quantity",
       "optional": true,
-      "unit": "unit.kilowatt_hour"
+      "unit": "unit.joule"
     },
     {
       "bounds": {
@@ -521,24 +521,30 @@
     {
       "bounds": {
         "maximum": null,
-        "minimum": null
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
       },
       "dimension": "storage.dimension.pack",
       "id": "storage.temperature.pack",
       "kind": "quantity",
       "optional": true,
-      "unit": "unit.celsius"
+      "unit": "unit.kelvin"
     },
     {
       "bounds": {
         "maximum": null,
-        "minimum": null
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
       },
       "dimension": "storage.dimension.cell",
       "id": "storage.temperature.cell",
       "kind": "quantity",
       "optional": true,
-      "unit": "unit.celsius"
+      "unit": "unit.kelvin"
     },
     {
       "bounds": {

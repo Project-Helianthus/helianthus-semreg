@@ -447,7 +447,7 @@
             "version": "1.0.0"
           },
           "kind": "quantity",
-          "unit": "unit.kilowatt_hour",
+          "unit": "unit.joule",
           "dimension": "infrastructure.dimension.meter",
           "bounds": {
             "minimum": {
@@ -455,8 +455,8 @@
               "exponent10": 0
             },
             "maximum": {
-              "coefficient": "1",
-              "exponent10": 12
+              "coefficient": "36",
+              "exponent10": 17
             }
           },
           "optional": true,
@@ -473,7 +473,7 @@
             "version": "1.0.0"
           },
           "kind": "quantity",
-          "unit": "unit.kilowatt_hour",
+          "unit": "unit.joule",
           "dimension": "infrastructure.dimension.meter",
           "bounds": {
             "minimum": {
@@ -481,8 +481,8 @@
               "exponent10": 0
             },
             "maximum": {
-              "coefficient": "1",
-              "exponent10": 12
+              "coefficient": "36",
+              "exponent10": 17
             }
           },
           "optional": true,

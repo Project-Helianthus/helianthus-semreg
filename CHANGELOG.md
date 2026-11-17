@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+Breaking, in place before the 0.7 release: the typed PV, EVSE, infrastructure
+and storage packs follow the SI units of their pack contracts in
+docs-semantic. Every energy field is in `unit.joule` (`pv.energy.generated`,
+`evse.energy.session`, `evse.energy.lifetime`, `infrastructure.energy.import`,
+`infrastructure.energy.export`, `storage.energy.charged` and
+`storage.energy.discharged`); the bounded energy fields keep a minimum of 0
+and their maximum of 10^12 kilowatt-hour becomes 3.6 × 10^18 joule.
+`pv.temperature.inverter` is in `unit.kelvin` from 223.15 to 473.15, and
+`storage.temperature.pack` and `storage.temperature.cell` are in `unit.kelvin`
+with a lower bound of 0. `storage.state.soc` and `storage.state.soh` are in
+`unit.ratio` from 0 to 1. `storage.capacity.charge` and
+`storage.capacity.discharge` stay in `unit.ampere_hour`. Fields, dimensions,
+services, capabilities and operations are otherwise unchanged; no quantity
+moves to another pack, and the earlier units have no alias, shim or dual
+acceptance. The PV, EVSE, infrastructure and storage vectors and the storage
+contract tables are re-copied byte for byte, and their SHA-256 pins in
+`fixtures/README.md` and the contract tests move in place. The PV, EVSE and
+storage tests now compare every field of the copied contracts (identifier,
+kind, unit, dimension, minimum, maximum and symbols) with the validator
+tables, as the infrastructure test already did. The pack metadata test
+expects `unit.ratio` as the canonical unit of the storage state of charge and
+refuses `unit.percent`. The canonical-PV comparator keeps the bytes of its
+retained mapper witness, which states the donor's kilowatt-hour and degree
+Celsius, and converts them exactly in the test (times 3 600 000 to joule,
+plus 273.15 to kelvin) before PV validation. The rows of
+`naming-inventory.json` and their bindings in `naming-consumers.json` follow:
+the removed unit literals are dropped, the added ones are provisional, and the
+unit metadata of the affected rows names the SI unit. Unit rule: canonical
+units in the registry are SI and a customary unit appears only at display, in
+a consumer; the strict reading used here is a working reading not yet
+confirmed by the project owner. No pack or contract version is raised.
+Gateway follow-up: the PV, EVSE, infrastructure meter and storage
+publications move to these SI units (kilowatt-hour times 3 600 000 to joule,
+degree Celsius plus 273.15 to kelvin, percent divided by 100 to ratio), keep
+the native value and unit in the evidence, and move their pinned semantic
+revision with it.
+
 Breaking, in place before the 0.7 release: `semreg/v1/packs/thermal` follows
 the accepted thermal placement of the thermal pack in docs-semantic. Every
 thermal field declares exactly one fact dimension, the resource dimension of

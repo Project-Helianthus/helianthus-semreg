@@ -33,17 +33,17 @@ type fieldSpec struct {
 }
 
 var fields = []fieldSpec{
-	{"storage.state.soc", semreg.ValueQuantity, "unit.percent", "storage.dimension.pack", bound("0", 0), bound("1", 2), nil},
-	{"storage.state.soh", semreg.ValueQuantity, "unit.percent", "storage.dimension.pack", bound("0", 0), bound("1", 2), nil},
+	{"storage.state.soc", semreg.ValueQuantity, "unit.ratio", "storage.dimension.pack", bound("0", 0), bound("1", 0), nil},
+	{"storage.state.soh", semreg.ValueQuantity, "unit.ratio", "storage.dimension.pack", bound("0", 0), bound("1", 0), nil},
 	{"storage.pack.voltage", semreg.ValueQuantity, "unit.volt", "storage.dimension.pack", bound("0", 0), nil, nil},
 	{"storage.pack.current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
 	{"storage.pack.power", semreg.ValueQuantity, "unit.watt", "storage.dimension.pack", nil, nil, nil},
-	{"storage.energy.charged", semreg.ValueQuantity, "unit.kilowatt_hour", "storage.dimension.pack", bound("0", 0), nil, nil},
-	{"storage.energy.discharged", semreg.ValueQuantity, "unit.kilowatt_hour", "storage.dimension.pack", bound("0", 0), nil, nil},
+	{"storage.energy.charged", semreg.ValueQuantity, "unit.joule", "storage.dimension.pack", bound("0", 0), nil, nil},
+	{"storage.energy.discharged", semreg.ValueQuantity, "unit.joule", "storage.dimension.pack", bound("0", 0), nil, nil},
 	{"storage.capacity.charge", semreg.ValueQuantity, "unit.ampere_hour", "storage.dimension.pack", bound("0", 0), nil, nil},
 	{"storage.capacity.discharge", semreg.ValueQuantity, "unit.ampere_hour", "storage.dimension.pack", bound("0", 0), nil, nil},
-	{"storage.temperature.pack", semreg.ValueQuantity, "unit.celsius", "storage.dimension.pack", nil, nil, nil},
-	{"storage.temperature.cell", semreg.ValueQuantity, "unit.celsius", "storage.dimension.cell", nil, nil, nil},
+	{"storage.temperature.pack", semreg.ValueQuantity, "unit.kelvin", "storage.dimension.pack", bound("0", 0), nil, nil},
+	{"storage.temperature.cell", semreg.ValueQuantity, "unit.kelvin", "storage.dimension.cell", bound("0", 0), nil, nil},
 	{"storage.cell.voltage_minimum", semreg.ValueQuantity, "unit.volt", "storage.dimension.cell", bound("0", 0), nil, nil},
 	{"storage.cell.voltage_maximum", semreg.ValueQuantity, "unit.volt", "storage.dimension.cell", bound("0", 0), nil, nil},
 	{"storage.limit.charge_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.interface", bound("0", 0), nil, nil},

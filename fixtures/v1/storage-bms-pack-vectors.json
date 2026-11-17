@@ -57,13 +57,13 @@
           "dimension": "storage.dimension.pack",
           "id": "storage.state.soc",
           "kind": "quantity",
-          "unit": "unit.percent"
+          "unit": "unit.ratio"
         },
         {
           "dimension": "storage.dimension.pack",
           "id": "storage.state.soh",
           "kind": "quantity",
-          "unit": "unit.percent"
+          "unit": "unit.ratio"
         },
         {
           "dimension": "storage.dimension.pack",
@@ -87,13 +87,13 @@
           "dimension": "storage.dimension.pack",
           "id": "storage.energy.charged",
           "kind": "quantity",
-          "unit": "unit.kilowatt_hour"
+          "unit": "unit.joule"
         },
         {
           "dimension": "storage.dimension.pack",
           "id": "storage.energy.discharged",
           "kind": "quantity",
-          "unit": "unit.kilowatt_hour"
+          "unit": "unit.joule"
         },
         {
           "dimension": "storage.dimension.pack",
@@ -111,13 +111,13 @@
           "dimension": "storage.dimension.pack",
           "id": "storage.temperature.pack",
           "kind": "quantity",
-          "unit": "unit.celsius"
+          "unit": "unit.kelvin"
         },
         {
           "dimension": "storage.dimension.cell",
           "id": "storage.temperature.cell",
           "kind": "quantity",
-          "unit": "unit.celsius"
+          "unit": "unit.kelvin"
         },
         {
           "dimension": "storage.dimension.cell",
