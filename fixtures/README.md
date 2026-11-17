@@ -24,12 +24,16 @@ and `api/v1/packs/storage-bms-contract-tables.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units, for `helianthus.pack.storage@1.1.0`; their SHA-256 values are
 respectively
-`66b71f9cb079ace0d2ce3472a97629e0d4fa19ce39cde2e50fd1894cadd1a6f3` and
-`0927120826bdabb71276ec1d2c44bae0d0109a9b272f707edf362baa966796dd`.
-State of charge and state of health are in `unit.ratio` from 0 to 1, the two
-energy counters in `unit.joule`, the pack and cell temperatures in
-`unit.kelvin` with a lower bound of 0, and the two capacities stay in
-`unit.ampere_hour`. The storage pack tests compare every field of both copies
+`1053437bd12237026f9ceedfbe3d4fe3fba4622586ec626cf0b3ee573d827d82` and
+`ea918b7a4d98376d8d715d4b6e11cd62856c3e148ee9ab9b2444368587c56903`.
+State of charge and state of health are in `unit.ratio` from 0 to 1. The two
+energy counters and the three energy capacities (`storage.energy.remaining`,
+`storage.energy.usable_capacity` and `storage.energy.nominal_capacity`) are in
+`unit.joule` on `storage.dimension.pack`, each with a minimum of 0 and no
+maximum. The pack and cell temperatures are in `unit.kelvin` with a lower
+bound of 0, and the two capacities stay in `unit.ampere_hour`. Nothing in the
+pack derives a joule capacity from an ampere-hour capacity. The storage pack
+tests compare every field of both copies
 with the validator table.
 The six relation definitions of the contract tables use the shared encoding
 (`from`, `to`, `cardinality`, `order`).
@@ -300,12 +304,12 @@ byte-for-byte copy of `api/v1/element-catalog-v1.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as accepted in
 docs-semantic #76 and edited in place for the accepted thermal placement. Its
 SHA-256 is
-`17a741942cfa778fabc5e4eb6e79aa69a7557df17cf578924768445def86f4e8`; the
+`b630656362d6ca1a4047a474c07c6da0201cb882cc4ef96260dc9fa92cfba133`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types and 353 entries, with no identification scheme, no
+seven core relation types and 356 entries, with no identification scheme, no
 lens and no entry of disposition `unknown`; a test that needs an unknown entry
 sets one by a stated mutation.
 `semreg/v1/graph` decodes it strictly and checks rules CAT-1 to CAT-9 against
@@ -319,7 +323,7 @@ byte-for-byte copy of `api/v1/graph-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, the
 `helianthus.semantic.graph.acceptance/v1` document of the graph contract. Its
 SHA-256 is
-`be2b0b033e7806520f360f8203635f478ffc2f2b622c6762c386a0a8b2634f91`;
+`7227793db8a35d829619c9199f28fca42a1a519a93cf9ccfc542693fe654f933`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
 bytes and checks the element catalog digest the document records against
 `graph.PinnedDigest`. Every in-place edit of the source document moves the

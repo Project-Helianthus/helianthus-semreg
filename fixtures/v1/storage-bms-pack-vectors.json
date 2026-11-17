@@ -97,6 +97,24 @@
         },
         {
           "dimension": "storage.dimension.pack",
+          "id": "storage.energy.nominal_capacity",
+          "kind": "quantity",
+          "unit": "unit.joule"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.energy.remaining",
+          "kind": "quantity",
+          "unit": "unit.joule"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.energy.usable_capacity",
+          "kind": "quantity",
+          "unit": "unit.joule"
+        },
+        {
+          "dimension": "storage.dimension.pack",
           "id": "storage.capacity.charge",
           "kind": "quantity",
           "unit": "unit.ampere_hour"
@@ -395,7 +413,7 @@
         "mutations": [
           {
             "op": "set",
-            "path": "definitions.fields.19.symbols.1",
+            "path": "definitions.fields.22.symbols.1",
             "value": "storage.status.interlock.active"
           }
         ]

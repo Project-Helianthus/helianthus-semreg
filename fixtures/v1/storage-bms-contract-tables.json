@@ -9,6 +9,9 @@
         "storage.pack.power",
         "storage.energy.charged",
         "storage.energy.discharged",
+        "storage.energy.nominal_capacity",
+        "storage.energy.remaining",
+        "storage.energy.usable_capacity",
         "storage.capacity.charge",
         "storage.capacity.discharge",
         "storage.temperature.pack",
@@ -169,6 +172,30 @@
       },
       {
         "id": "storage.energy.discharged",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.energy.nominal_capacity",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.energy.remaining",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.energy.usable_capacity",
         "pack": {
           "id": "helianthus.pack.storage",
           "version": "1.1.0"
@@ -499,6 +526,48 @@
         }
       },
       "dimension": "storage.dimension.pack",
+      "id": "storage.energy.nominal_capacity",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.joule"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.energy.remaining",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.joule"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.energy.usable_capacity",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.joule"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
       "id": "storage.capacity.charge",
       "kind": "quantity",
       "optional": true,
@@ -779,6 +848,9 @@
         "storage.pack.power",
         "storage.energy.charged",
         "storage.energy.discharged",
+        "storage.energy.nominal_capacity",
+        "storage.energy.remaining",
+        "storage.energy.usable_capacity",
         "storage.capacity.charge",
         "storage.capacity.discharge",
         "storage.temperature.pack",

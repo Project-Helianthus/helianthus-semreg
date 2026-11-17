@@ -20,7 +20,7 @@ func TestStorageDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 20 || len(index.Services) != 7 || len(index.Capabilities) != 5 || len(index.Operations) != 2 || len(index.EffectRules) != 2 {
+	if len(index.Fields) != 23 || len(index.Services) != 7 || len(index.Capabilities) != 5 || len(index.Operations) != 2 || len(index.EffectRules) != 2 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {
@@ -131,6 +131,48 @@ func require(t *testing.T, err error, want semreg.ErrorID) {
 	t.Helper()
 	if got := semreg.ErrorIdentifier(err); got != want {
 		t.Fatalf("error %v, want %s", err, want)
+	}
+}
+
+// TestStorageEnergyCapacitiesStayJoule requires the three pack energy
+// capacities in joule and keeps the two ampere-hour capacities in ampere-hour.
+// Removing a capacity from the field table, or changing its kind, unit,
+// dimension, minimum, maximum or symbols, fails the lookup for that identifier.
+func TestStorageEnergyCapacitiesStayJoule(t *testing.T) {
+	for _, id := range []semreg.DefinitionID{
+		"storage.energy.remaining",
+		"storage.energy.usable_capacity",
+		"storage.energy.nominal_capacity",
+	} {
+		spec, ok := findField(id)
+		if !ok {
+			t.Errorf("%s is absent", id)
+			continue
+		}
+		if spec.kind != semreg.ValueQuantity {
+			t.Errorf("%s kind %s", id, spec.kind)
+		}
+		if spec.unit != "unit.joule" {
+			t.Errorf("%s unit %s", id, spec.unit)
+		}
+		if spec.dimension != "storage.dimension.pack" {
+			t.Errorf("%s dimension %s", id, spec.dimension)
+		}
+		if spec.minimum == nil || spec.minimum.coefficient != "0" || spec.minimum.exponent10 != 0 {
+			t.Errorf("%s minimum %+v", id, spec.minimum)
+		}
+		if spec.maximum != nil {
+			t.Errorf("%s maximum %+v", id, spec.maximum)
+		}
+		if len(spec.symbols) != 0 {
+			t.Errorf("%s symbols %v", id, spec.symbols)
+		}
+	}
+	for _, id := range []semreg.DefinitionID{"storage.capacity.charge", "storage.capacity.discharge"} {
+		spec, ok := findField(id)
+		if !ok || spec.kind != semreg.ValueQuantity || spec.unit != "unit.ampere_hour" || spec.dimension != "storage.dimension.pack" {
+			t.Errorf("%s = %+v present %v", id, spec, ok)
+		}
 	}
 }
 

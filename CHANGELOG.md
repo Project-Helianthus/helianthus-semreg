@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+Breaking, in place before the 0.7 release: `helianthus.pack.storage` at 1.1.0
+gains `storage.energy.remaining`, `storage.energy.usable_capacity` and
+`storage.energy.nominal_capacity` on `storage.dimension.pack`. Each is a
+quantity in `unit.joule` with a minimum of 0 and no maximum, the same kind as
+`storage.energy.charged` and `storage.energy.discharged`.
+`storage.capacity.charge` and `storage.capacity.discharge` stay in
+`unit.ampere_hour`. Nothing in the pack derives a joule capacity from an
+ampere-hour capacity. No service, capability, operation, pack version or
+catalog version is added. The storage vectors, the storage contract tables and
+the element catalog are edited in place, and their SHA-256 pins in
+`fixtures/README.md`, the storage contract test, `graph.PinnedDigest` and the
+root package's pinned catalog digest move together with the catalog bytes
+embedded in `semreg/v1/graph`. The graph acceptance vectors record the same
+catalog digest, and that document's own pin moves with the recorded digest.
+Field-count checks that these three fields change go from 20 to 23, and the
+catalog counts go from 107 facts and 353 entries to 110 facts and 356
+entries. The rows of
+`naming-inventory.json` and their bindings in `naming-consumers.json` for the
+three identifiers are provisional. No alias, shim or dual acceptance is added.
+docs-semantic follows with the same three field definitions and the same
+catalog bytes.
+
 Breaking, in place before the 0.7 release: the typed PV, EVSE, infrastructure
 and storage packs follow the SI units of their pack contracts in
 docs-semantic. Every energy field is in `unit.joule` (`pv.energy.generated`,

@@ -212871,6 +212871,33 @@
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
       "matter-binding/docs/target-profile/storage.md"
     ],
+    "semreg/v1/packs/storage/definitions.go::definition_literal::storage.energy.nominal_capacity": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/storage-bms-contract-tables.json",
+      "fixtures/v1/storage-bms-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/storage/validator_test.go"
+    ],
+    "semreg/v1/packs/storage/definitions.go::definition_literal::storage.energy.remaining": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/storage-bms-contract-tables.json",
+      "fixtures/v1/storage-bms-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/storage/validator_test.go"
+    ],
+    "semreg/v1/packs/storage/definitions.go::definition_literal::storage.energy.usable_capacity": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/storage-bms-contract-tables.json",
+      "fixtures/v1/storage-bms-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/storage/validator_test.go"
+    ],
     "semreg/v1/packs/storage/definitions.go::definition_literal::storage.limit.charge_power": [
       "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.json",
       "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.md",

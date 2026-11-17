@@ -52,7 +52,7 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 		want := map[semreg.DefinitionID]struct{ units, fields, services, capabilities, operations int }{
 			"helianthus.pack.thermal":        {7, 32, 10, 12, 2},
 			"helianthus.pack.pv":             {7, 21, 6, 8, 2},
-			"helianthus.pack.storage":        {7, 20, 7, 5, 2},
+			"helianthus.pack.storage":        {7, 23, 7, 5, 2},
 			"helianthus.pack.evse":           {5, 15, 5, 6, 1},
 			"helianthus.pack.infrastructure": {8, 19, 6, 6, 0},
 		}[metadata.Pack.ID]
