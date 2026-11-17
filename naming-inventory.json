@@ -246165,10 +246165,10 @@
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
-      "value_class": "ValueSymbol",
+      "value_class": "ValueText",
       "unit_metadata": "unknown",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
         "docs-ebus/architecture/b524-semantic-mapping.md",
         "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
@@ -246328,9 +246328,9 @@
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.percent",
+      "unit_metadata": "unit.ratio",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
         "docs-ebus/architecture/zone-valve-action-cutover.md",
         "docs-ebus/deployment/prometheus-semantic-coverage.md",
@@ -246353,93 +246353,182 @@
       "emitted_name": "thermal.demand.level"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.percent",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.ratio",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "unit.percent",
-      "target": "unit.percent",
+      "current_name": "unit.ratio",
+      "target": "unit.ratio",
       "role_decomposition": [
         "unit",
-        "percent"
-      ],
-      "public_evidence": [
-        "semreg/v1/packs/thermal/definitions.go"
-      ],
-      "value_class": "ValueQuantity",
-      "unit_metadata": "unit.percent",
-      "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
-      "consumer_files": [
-        "docs-ebus/api/semantic-snapshot-read.md",
-        "docs-ebus/architecture/humidity-semreg-cutover.md",
-        "docs-semantic/api/v1/mappings/growatt-bms-rs485-v202-storage-v1.json",
-        "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.json",
-        "docs-semantic/api/v1/pack-metadata-v1.json",
-        "docs-semantic/api/v1/pack-metadata-v1.md",
-        "docs-semantic/api/v1/packs/storage-bms-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/storage-bms-contract-tables.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "docs-semantic/scripts/validate_growatt_bms_rs485_v202_storage_mapping.py",
-        "docs-semantic/scripts/validate_huawei_luna2000_storage_mapping.py",
-        "ebusgateway/author-evidence/issue973-portal-catalog-admission/REPORT.md",
-        "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
-        "ebusgateway/cmd/gateway/portal_catalog_v1.go",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/mcp_storage.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/portal_catalog.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/prometheus_semantic.txt",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current_at.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/mcp_publish4.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.canonical.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.public.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.canonical.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.public.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.canonical.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.public.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/m2m/storage.json",
-        "ebusgateway/cmd/gateway/thermal_humidity_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_humidity_mapping_test.go",
-        "ebusgateway/internal/semanticmetrics/metrics.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go",
-        "ebusgateway/portal/web/test/portal-catalog-v1.test.mjs",
-        "ebusgateway/semantic_prometheus.go",
-        "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
-        "ha-integration/custom_components/helianthus/storage_m2m.py",
-        "ha-integration/tests/test_semantic_snapshot_sensors.py",
-        "ha-integration/tests/test_storage_m2m.py"
-      ],
-      "emitted_name": "unit.percent"
-    },
-    {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.ratio",
-      "owning_file": "semreg/v1/packs/thermal/definitions.go",
-      "kind": "definition_literal",
-      "current_name": "thermal.dimension.ratio",
-      "target": "thermal.dimension.ratio",
-      "role_decomposition": [
-        "thermal",
-        "dimension",
         "ratio"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.percent",
+      "unit_metadata": "unit.ratio",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/graph-acceptance-vectors.json",
+        "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.json",
+        "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.md",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/infrastructure-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/architecture/naming-contract.md",
+        "docs-semantic/author-evidence/issue-16-infrastructure-pack-v1/REPORT.md",
+        "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+        "docs-semantic/scripts/test_validate_huawei_gateway_meter_infrastructure_mapping.py",
+        "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_evse_pack_v1.py",
+        "docs-semantic/scripts/validate_huawei_gateway_meter_infrastructure_mapping.py",
+        "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "unit.ratio"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.ventilation",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.ventilation",
+      "target": "thermal.dimension.ventilation",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "ventilation"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
       "status": "provisional",
       "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
       "consumer_files": [
-        "docs-ebus/architecture/humidity-semreg-cutover.md",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.dimension.ventilation"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.energy.heat_output",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.energy.heat_output",
+      "target": "thermal.energy.heat_output",
+      "role_decomposition": [
+        "thermal",
+        "energy",
+        "heat_output"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
         "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
         "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go"
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "thermal.dimension.ratio"
+      "emitted_name": "thermal.energy.heat_output"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.joule",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "unit.joule",
+      "target": "unit.joule",
+      "role_decomposition": [
+        "unit",
+        "joule"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/CHANGELOG.md",
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.json",
+        "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.md",
+        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.json",
+        "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.md",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.md",
+        "docs-semantic/api/v1/packs/evse-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/infrastructure-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+        "docs-semantic/scripts/test_validate_huawei_gateway_meter_infrastructure_mapping.py",
+        "docs-semantic/scripts/test_validate_huawei_sun2000_pv_mapping.py",
+        "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_evse_pack_v1.py",
+        "docs-semantic/scripts/validate_huawei_gateway_meter_infrastructure_mapping.py",
+        "docs-semantic/scripts/validate_huawei_sun2000_pv_mapping.py",
+        "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "unit.joule"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.heat_generator",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.heat_generator",
+      "target": "thermal.dimension.heat_generator",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "heat_generator"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_element_catalog_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.dimension.heat_generator"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.air_temperature",
@@ -246456,9 +246545,9 @@
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.celsius",
+      "unit_metadata": "unit.kelvin",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
         "docs-ebus/api/semantic-snapshot-read.md",
         "docs-ebus/architecture/b524-semantic-mapping.md",
@@ -246492,153 +246581,309 @@
       "emitted_name": "thermal.measurement.air_temperature"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.celsius",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.kelvin",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "unit.celsius",
-      "target": "unit.celsius",
+      "current_name": "unit.kelvin",
+      "target": "unit.kelvin",
       "role_decomposition": [
         "unit",
-        "celsius"
+        "kelvin"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.celsius",
+      "unit_metadata": "unit.kelvin",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
-        "docs-ebus/api/semantic-snapshot-read.md",
-        "docs-ebus/architecture/b524-semantic-mapping.md",
-        "docs-ebus/architecture/boiler-temperature-semreg-mapping.md",
-        "docs-ebus/architecture/circuit-temperature-cutover.md",
-        "docs-ebus/architecture/cylinder-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-setpoint-semreg-cutover.md",
-        "docs-ebus/architecture/fixtures/dhw-setpoint-semreg-cutover-v1.json",
-        "docs-ebus/architecture/fixtures/vaillant-semreg-thermal-map-v1.json",
-        "docs-ebus/architecture/outdoor-temperature-semreg-cutover.md",
-        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
-        "docs-ebus/architecture/zone-room-temperature-cutover.md",
-        "docs-ebus/architecture/zone-setpoint-semreg-cutover.md",
-        "docs-ebus/author-evidence/issue519-vaillant-semreg-thermal-map/REPORT.md",
-        "docs-ebus/scripts/validate_vaillant_semreg_thermal_map.py",
-        "docs-ebus/tests/semreg_thermal_map_contract/dhw_setpoint_test.go",
-        "docs-ebus/tests/semreg_thermal_map_contract/thermal_map_test.go",
-        "docs-ebus/tests/test_dhw_setpoint_semreg_cutover.py",
-        "docs-ebus/tests/test_vaillant_semreg_thermal_map.py",
-        "docs-semantic/api/v1/mappings/growatt-bms-rs485-v202-storage-v1.json",
+        "docs-semantic/CHANGELOG.md",
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/graph-acceptance-vectors.json",
         "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.md",
         "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/storage-bms-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/storage-bms-contract-tables.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "docs-semantic/scripts/validate_growatt_bms_rs485_v202_storage_mapping.py",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/architecture/naming-contract.md",
+        "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+        "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_evse_pack_v1.py",
+        "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
         "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
-        "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
-        "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/mcp_pv.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/mcp_storage.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/portal_catalog.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/portal_source_capture.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/prometheus_semantic.txt",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current_at.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/mcp_publish4.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.canonical.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.public.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.canonical.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.public.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.canonical.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.public.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/m2m/pv.json",
-        "ebusgateway/cmd/gateway/testdata/characterization/m2m/storage.json",
-        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-        "ebusgateway/cmd/gateway/thermal_cylinder_temperature_candidate.go",
-        "ebusgateway/cmd/gateway/thermal_cylinder_temperature_candidate_test.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_measured_temperature_candidate.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_measured_temperature_candidate_test.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_room_temperature_candidate.go",
-        "ebusgateway/cmd/gateway/thermal_zone_room_temperature_candidate_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
-        "ebusgateway/docs/architecture/dhw-measured-temperature-candidate.md",
-        "ebusgateway/internal/modbusadapter/semreg_pv_publication_core.go",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/publish1.canonical.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/publish2.canonical.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/read1.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/read2.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/single_at.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/1_generation1_first.canonical.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/2_generation1_refresh.canonical.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/3_generation2_replacement.canonical.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/4_generation2_refresh.canonical.json",
-        "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/5_epoch_replacement.canonical.json",
-        "ebusgateway/internal/semanticmetrics/metrics.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go",
-        "ebusgateway/internal/semanticmetrics/o21_slot_store_test.go",
-        "ebusgateway/internal/semanticmetrics/slot_file_store_test.go",
-        "ebusgateway/semantic_prometheus.go",
-        "ha-integration/custom_components/helianthus/pv_m2m.py",
-        "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
-        "ha-integration/custom_components/helianthus/storage_m2m.py",
-        "ha-integration/tests/test_storage_m2m.py"
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "unit.celsius"
+      "emitted_name": "unit.kelvin"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.temperature",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.zone",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "thermal.dimension.temperature",
-      "target": "thermal.dimension.temperature",
+      "current_name": "thermal.dimension.zone",
+      "target": "thermal.dimension.zone",
       "role_decomposition": [
         "thermal",
         "dimension",
-        "temperature"
+        "zone"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
-      "value_class": "ValueQuantity",
-      "unit_metadata": "unit.celsius",
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
-        "docs-ebus/api/semantic-snapshot-read.md",
-        "docs-ebus/architecture/b524-semantic-mapping.md",
-        "docs-ebus/architecture/boiler-temperature-semreg-mapping.md",
-        "docs-ebus/architecture/circuit-temperature-cutover.md",
-        "docs-ebus/architecture/cylinder-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-setpoint-semreg-cutover.md",
-        "docs-ebus/architecture/fixtures/dhw-setpoint-semreg-cutover-v1.json",
-        "docs-ebus/architecture/fixtures/vaillant-semreg-thermal-map-v1.json",
-        "docs-ebus/architecture/outdoor-temperature-semreg-cutover.md",
-        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
+        "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
+        "docs-ebus/architecture/humidity-semreg-cutover.md",
+        "docs-ebus/architecture/zone-mode-semreg-cutover.md",
         "docs-ebus/architecture/zone-room-temperature-cutover.md",
         "docs-ebus/architecture/zone-setpoint-semreg-cutover.md",
-        "docs-ebus/scripts/validate_vaillant_semreg_thermal_map.py",
-        "docs-ebus/tests/semreg_thermal_map_contract/thermal_map_test.go",
-        "docs-ebus/tests/test_dhw_setpoint_semreg_cutover.py",
+        "docs-ebus/architecture/zone-valve-action-cutover.md",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
         "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
         "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
         "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
-        "matter-binding/docs/target-profile/heating.md"
+        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping_test.go",
+        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go"
       ],
-      "emitted_name": "thermal.dimension.temperature"
+      "emitted_name": "thermal.dimension.zone"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.circuit_flow_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.circuit_flow_temperature",
+      "target": "thermal.measurement.circuit_flow_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "circuit_flow_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/graph-acceptance-vectors.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.circuit_flow_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.circuit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.circuit",
+      "target": "thermal.dimension.circuit",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "circuit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "consumer_files": [
+        "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
+        "docs-ebus/architecture/circuit-pump-semreg-cutover.md",
+        "docs-ebus/architecture/circuit-temperature-cutover.md",
+        "docs-ebus/architecture/humidity-semreg-cutover.md",
+        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
+        "ebusgateway/cmd/gateway/thermal_circuit_pump_mapping_test.go"
+      ],
+      "emitted_name": "thermal.dimension.circuit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.compressor_speed",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.compressor_speed",
+      "target": "thermal.measurement.compressor_speed",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "compressor_speed"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.reciprocal_second",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.compressor_speed"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.reciprocal_second",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "unit.reciprocal_second",
+      "target": "unit.reciprocal_second",
+      "role_decomposition": [
+        "unit",
+        "reciprocal_second"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.reciprocal_second",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+        "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_evse_pack_v1.py",
+        "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "unit.reciprocal_second"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.compressor",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.compressor",
+      "target": "thermal.dimension.compressor",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "compressor"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.dimension.compressor"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.dhw_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.dhw_temperature",
+      "target": "thermal.measurement.dhw_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "dhw_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.dhw_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.dhw",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.dhw",
+      "target": "thermal.dimension.dhw",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "dhw"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "consumer_files": [
+        "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
+        "docs-ebus/architecture/cylinder-temperature-cutover.md",
+        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
+        "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
+        "docs-ebus/architecture/dhw-setpoint-semreg-cutover.md",
+        "docs-ebus/architecture/fixtures/dhw-setpoint-semreg-cutover-v1.json",
+        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
+        "docs-ebus/tests/test_dhw_setpoint_semreg_cutover.py",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
+        "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping.go",
+        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go"
+      ],
+      "emitted_name": "thermal.dimension.dhw"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.flow_rate",
@@ -246655,9 +246900,9 @@
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.litre_per_minute",
+      "unit_metadata": "unit.cubic_metre_per_second",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
         "docs-ebus/deployment/prometheus-semantic-coverage.md",
         "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
@@ -246678,59 +246923,100 @@
       "emitted_name": "thermal.measurement.flow_rate"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.litre_per_minute",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.cubic_metre_per_second",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "unit.litre_per_minute",
-      "target": "unit.litre_per_minute",
+      "current_name": "unit.cubic_metre_per_second",
+      "target": "unit.cubic_metre_per_second",
       "role_decomposition": [
         "unit",
-        "litre_per_minute"
+        "cubic_metre_per_second"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.litre_per_minute",
+      "unit_metadata": "unit.cubic_metre_per_second",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
+        "docs-semantic/api/README.md",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/internal/semanticmetrics/metrics.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go"
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+        "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_evse_pack_v1.py",
+        "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "unit.litre_per_minute"
+      "emitted_name": "unit.cubic_metre_per_second"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.volumetric_flow",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.heat_generator_flow_temperature",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "thermal.dimension.volumetric_flow",
-      "target": "thermal.dimension.volumetric_flow",
+      "current_name": "thermal.measurement.heat_generator_flow_temperature",
+      "target": "thermal.measurement.heat_generator_flow_temperature",
       "role_decomposition": [
         "thermal",
-        "dimension",
-        "volumetric_flow"
+        "measurement",
+        "heat_generator_flow_temperature"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.litre_per_minute",
+      "unit_metadata": "unit.kelvin",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
         "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
         "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go"
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "thermal.dimension.volumetric_flow"
+      "emitted_name": "thermal.measurement.heat_generator_flow_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.heat_generator_return_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.heat_generator_return_temperature",
+      "target": "thermal.measurement.heat_generator_return_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "heat_generator_return_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.heat_generator_return_temperature"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.humidity_relative",
@@ -246747,7 +247033,7 @@
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "quantity",
-      "unit_metadata": "unit.percent",
+      "unit_metadata": "unit.ratio",
       "status": "adopted",
       "evidence_class": "Hypothesis",
       "open_question": "",
@@ -246777,18 +247063,329 @@
       ],
       "emitted_name": "thermal.measurement.humidity",
       "naming_evidence": "Proven: bounded public semantic naming correspondence; native qualification is independent.",
-      "dimension": "thermal.dimension.ratio"
+      "dimension": "thermal.dimension.zone"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.power",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.outdoor_air_temperature",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "thermal.measurement.power",
-      "target": "thermal.measurement.power",
+      "current_name": "thermal.measurement.outdoor_air_temperature",
+      "target": "thermal.measurement.outdoor_air_temperature",
       "role_decomposition": [
         "thermal",
         "measurement",
-        "power"
+        "outdoor_air_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.outdoor_air_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_condensing_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.refrigerant_condensing_temperature",
+      "target": "thermal.measurement.refrigerant_condensing_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "refrigerant_condensing_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.refrigerant_condensing_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.refrigerant_circuit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.refrigerant_circuit",
+      "target": "thermal.dimension.refrigerant_circuit",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "refrigerant_circuit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.dimension.refrigerant_circuit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_evaporating_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.refrigerant_evaporating_temperature",
+      "target": "thermal.measurement.refrigerant_evaporating_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "refrigerant_evaporating_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.refrigerant_evaporating_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_high_side_pressure",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.refrigerant_high_side_pressure",
+      "target": "thermal.measurement.refrigerant_high_side_pressure",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "refrigerant_high_side_pressure"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.pascal",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.refrigerant_high_side_pressure"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.pascal",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "unit.pascal",
+      "target": "unit.pascal",
+      "role_decomposition": [
+        "unit",
+        "pascal"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.pascal",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+        "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_evse_pack_v1.py",
+        "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+        "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "unit.pascal"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_low_side_pressure",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.refrigerant_low_side_pressure",
+      "target": "thermal.measurement.refrigerant_low_side_pressure",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "refrigerant_low_side_pressure"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.pascal",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.refrigerant_low_side_pressure"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.store_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.store_temperature",
+      "target": "thermal.measurement.store_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "store_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.store_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.thermal_store",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.thermal_store",
+      "target": "thermal.dimension.thermal_store",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "thermal_store"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.dimension.thermal_store"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.system_flow_temperature",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.system_flow_temperature",
+      "target": "thermal.measurement.system_flow_temperature",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "system_flow_temperature"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.measurement.system_flow_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.thermal_power",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.thermal_power",
+      "target": "thermal.measurement.thermal_power",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "thermal_power"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
@@ -246796,27 +247393,20 @@
       "value_class": "ValueQuantity",
       "unit_metadata": "unit.watt",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
-        "docs-ebus/deployment/prometheus-semantic-coverage.md",
-        "docs-ebus/development/prometheus-validation-scope.md",
-        "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
-        "docs-ebus/tests/test_prometheus_semantic_coverage.py",
+        "docs-semantic/api/README.md",
+        "docs-semantic/api/v1/element-catalog-v1.json",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
         "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
         "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
         "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
-        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
-        "ebusgateway/docs/metrics-inventory.json",
-        "ebusgateway/docs/observability/semantic-prometheus-coverage.md",
-        "ebusgateway/internal/semanticmetrics/metrics.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go"
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "thermal.measurement.power"
+      "emitted_name": "thermal.measurement.thermal_power"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.watt",
@@ -246904,82 +247494,35 @@
       "emitted_name": "unit.watt"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.power",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.water_pressure",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "thermal.dimension.power",
-      "target": "thermal.dimension.power",
-      "role_decomposition": [
-        "thermal",
-        "dimension",
-        "power"
-      ],
-      "public_evidence": [
-        "semreg/v1/packs/thermal/definitions.go"
-      ],
-      "value_class": "ValueQuantity",
-      "unit_metadata": "unit.watt",
-      "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
-      "consumer_files": [
-        "docs-semantic/api/v1/pack-metadata-v1.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
-        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go"
-      ],
-      "emitted_name": "thermal.dimension.power"
-    },
-    {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.water_temperature",
-      "owning_file": "semreg/v1/packs/thermal/definitions.go",
-      "kind": "definition_literal",
-      "current_name": "thermal.measurement.water_temperature",
-      "target": "thermal.measurement.water_temperature",
+      "current_name": "thermal.measurement.water_pressure",
+      "target": "thermal.measurement.water_pressure",
       "role_decomposition": [
         "thermal",
         "measurement",
-        "water_temperature"
+        "water_pressure"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "ValueQuantity",
-      "unit_metadata": "unit.celsius",
+      "unit_metadata": "unit.pascal",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
-        "docs-ebus/architecture/b524-semantic-mapping.md",
-        "docs-ebus/architecture/boiler-temperature-semreg-mapping.md",
-        "docs-ebus/architecture/circuit-temperature-cutover.md",
-        "docs-ebus/architecture/cylinder-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-        "docs-ebus/architecture/fixtures/vaillant-semreg-thermal-map-v1.json",
-        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
-        "docs-ebus/deployment/prometheus-semantic-coverage.md",
-        "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
-        "docs-ebus/scripts/validate_vaillant_semreg_thermal_map.py",
+        "docs-semantic/api/v1/element-catalog-v1.json",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
         "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
         "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
-        "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-        "ebusgateway/docs/architecture/dhw-measured-temperature-candidate.md",
-        "ebusgateway/docs/metrics-inventory.json",
-        "ebusgateway/docs/observability/semantic-prometheus-coverage.md",
-        "ebusgateway/internal/semanticmetrics/metrics.go",
-        "ebusgateway/internal/semanticmetrics/metrics_test.go",
-        "ebusgateway/internal/semanticmetrics/o21_slot_store_test.go",
-        "ebusgateway/internal/semanticmetrics/slot_file_store_test.go",
-        "matter-binding/docs/target-profile/air-conditioning.md",
-        "matter-binding/docs/target-profile/heating.md"
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "thermal.measurement.water_temperature"
+      "emitted_name": "thermal.measurement.water_pressure"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.system",
@@ -247125,6 +247668,217 @@
       "emitted_name": "thermal.mode.system.off"
     },
     {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit",
+      "target": "thermal.mode.terminal_unit",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.terminal_unit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.terminal_unit",
+      "target": "thermal.dimension.terminal_unit",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "terminal_unit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.dimension.terminal_unit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.auto",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit.auto",
+      "target": "thermal.mode.terminal_unit.auto",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit",
+        "auto"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit.auto"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.cool",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit.cool",
+      "target": "thermal.mode.terminal_unit.cool",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit",
+        "cool"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit.cool"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.dry",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit.dry",
+      "target": "thermal.mode.terminal_unit.dry",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit",
+        "dry"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit.dry"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.fan_only",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit.fan_only",
+      "target": "thermal.mode.terminal_unit.fan_only",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit",
+        "fan_only"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit.fan_only"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.heat",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit.heat",
+      "target": "thermal.mode.terminal_unit.heat",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit",
+        "heat"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit.heat"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.off",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.mode.terminal_unit.off",
+      "target": "thermal.mode.terminal_unit.off",
+      "role_decomposition": [
+        "thermal",
+        "mode",
+        "terminal_unit",
+        "off"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.mode.terminal_unit.off"
+    },
+    {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.zone",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
@@ -247165,44 +247919,6 @@
         "matter-binding/docs/target-profile/heating.md"
       ],
       "emitted_name": "thermal.mode.zone"
-    },
-    {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.zone",
-      "owning_file": "semreg/v1/packs/thermal/definitions.go",
-      "kind": "definition_literal",
-      "current_name": "thermal.dimension.zone",
-      "target": "thermal.dimension.zone",
-      "role_decomposition": [
-        "thermal",
-        "dimension",
-        "zone"
-      ],
-      "public_evidence": [
-        "semreg/v1/packs/thermal/definitions.go"
-      ],
-      "value_class": "ValueSymbol",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
-      "consumer_files": [
-        "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
-        "docs-ebus/architecture/humidity-semreg-cutover.md",
-        "docs-ebus/architecture/zone-mode-semreg-cutover.md",
-        "docs-ebus/architecture/zone-room-temperature-cutover.md",
-        "docs-ebus/architecture/zone-setpoint-semreg-cutover.md",
-        "docs-ebus/architecture/zone-valve-action-cutover.md",
-        "docs-semantic/api/v1/pack-metadata-v1.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
-        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-        "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_zone_mode_mapping_test.go",
-        "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go"
-      ],
-      "emitted_name": "thermal.dimension.zone"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.zone.auto",
@@ -247318,7 +248034,7 @@
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "quantity",
-      "unit_metadata": "unit.celsius",
+      "unit_metadata": "unit.kelvin",
       "status": "adopted",
       "evidence_class": "Hypothesis",
       "open_question": "",
@@ -247346,7 +248062,7 @@
       ],
       "emitted_name": "thermal.setpoint.dhw_temperature_setpoint",
       "naming_evidence": "Proven: bounded public semantic naming correspondence; native qualification is independent.",
-      "dimension": "thermal.dimension.temperature"
+      "dimension": "thermal.dimension.dhw"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.temperature",
@@ -247363,7 +248079,7 @@
         "semreg/v1/packs/thermal/definitions.go"
       ],
       "value_class": "quantity",
-      "unit_metadata": "unit.celsius",
+      "unit_metadata": "unit.kelvin",
       "status": "adopted",
       "evidence_class": "Hypothesis",
       "open_question": "",
@@ -247392,7 +248108,7 @@
       ],
       "emitted_name": "thermal.setpoint.temperature_setpoint",
       "naming_evidence": "Proven: bounded public semantic naming correspondence; native qualification is independent.",
-      "dimension": "thermal.dimension.temperature"
+      "dimension": "thermal.dimension.zone"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.fault",
@@ -247481,6 +248197,249 @@
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json"
       ],
       "emitted_name": "thermal.status.fault.present"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_fault",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.heat_generator_fault",
+      "target": "thermal.status.heat_generator_fault",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "heat_generator_fault"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.status.heat_generator_fault"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_fault.clear",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.heat_generator_fault.clear",
+      "target": "thermal.status.heat_generator_fault.clear",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "heat_generator_fault",
+        "clear"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.heat_generator_fault.clear"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_fault.present",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.heat_generator_fault.present",
+      "target": "thermal.status.heat_generator_fault.present",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "heat_generator_fault",
+        "present"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.heat_generator_fault.present"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_operation",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.heat_generator_operation",
+      "target": "thermal.status.heat_generator_operation",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "heat_generator_operation"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.status.heat_generator_operation"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_operation.active",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.heat_generator_operation.active",
+      "target": "thermal.status.heat_generator_operation.active",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "heat_generator_operation",
+        "active"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.heat_generator_operation.active"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_operation.idle",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.heat_generator_operation.idle",
+      "target": "thermal.status.heat_generator_operation.idle",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "heat_generator_operation",
+        "idle"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.heat_generator_operation.idle"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.maintenance",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.maintenance",
+      "target": "thermal.status.maintenance",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "maintenance"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.status.maintenance"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.maintenance.clear",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.maintenance.clear",
+      "target": "thermal.status.maintenance.clear",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "maintenance",
+        "clear"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.maintenance.clear"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.maintenance.due",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.maintenance.due",
+      "target": "thermal.status.maintenance.due",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "maintenance",
+        "due"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.maintenance.due"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.operation",
@@ -247577,98 +248536,166 @@
       "emitted_name": "thermal.status.operation.idle"
     },
     {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.circuit",
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_fault",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
-      "current_name": "thermal.dimension.circuit",
-      "target": "thermal.dimension.circuit",
+      "current_name": "thermal.status.terminal_unit_fault",
+      "target": "thermal.status.terminal_unit_fault",
       "role_decomposition": [
         "thermal",
-        "dimension",
-        "circuit"
+        "status",
+        "terminal_unit_fault"
       ],
       "public_evidence": [
         "semreg/v1/packs/thermal/definitions.go"
       ],
-      "value_class": "ValueText",
+      "value_class": "ValueSymbol",
       "unit_metadata": "unknown",
       "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
       "consumer_files": [
-        "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
-        "docs-ebus/architecture/circuit-pump-semreg-cutover.md",
-        "docs-ebus/architecture/circuit-temperature-cutover.md",
-        "docs-ebus/architecture/humidity-semreg-cutover.md",
-        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
+        "docs-semantic/api/v1/element-catalog-v1.json",
         "docs-semantic/api/v1/pack-metadata-v1.json",
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
         "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-        "ebusgateway/cmd/gateway/thermal_circuit_pump_mapping_test.go"
-      ],
-      "emitted_name": "thermal.dimension.circuit"
-    },
-    {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.dhw",
-      "owning_file": "semreg/v1/packs/thermal/definitions.go",
-      "kind": "definition_literal",
-      "current_name": "thermal.dimension.dhw",
-      "target": "thermal.dimension.dhw",
-      "role_decomposition": [
-        "thermal",
-        "dimension",
-        "dhw"
-      ],
-      "public_evidence": [
-        "semreg/v1/packs/thermal/definitions.go"
-      ],
-      "value_class": "ValueText",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
-      "consumer_files": [
-        "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
-        "docs-ebus/architecture/cylinder-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-        "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
-        "docs-ebus/architecture/dhw-setpoint-semreg-cutover.md",
-        "docs-ebus/architecture/fixtures/dhw-setpoint-semreg-cutover-v1.json",
-        "docs-ebus/architecture/solar-loop-temperature-cutover.md",
-        "docs-ebus/tests/test_dhw_setpoint_semreg_cutover.py",
-        "docs-semantic/api/v1/pack-metadata-v1.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-        "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping.go",
-        "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go"
-      ],
-      "emitted_name": "thermal.dimension.dhw"
-    },
-    {
-      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.ventilation",
-      "owning_file": "semreg/v1/packs/thermal/definitions.go",
-      "kind": "definition_literal",
-      "current_name": "thermal.dimension.ventilation",
-      "target": "thermal.dimension.ventilation",
-      "role_decomposition": [
-        "thermal",
-        "dimension",
-        "ventilation"
-      ],
-      "public_evidence": [
-        "semreg/v1/packs/thermal/definitions.go"
-      ],
-      "value_class": "ValueText",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
-      "consumer_files": [
-        "docs-semantic/api/v1/pack-metadata-v1.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
         "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
-      "emitted_name": "thermal.dimension.ventilation"
+      "emitted_name": "thermal.status.terminal_unit_fault"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_fault.clear",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.terminal_unit_fault.clear",
+      "target": "thermal.status.terminal_unit_fault.clear",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "terminal_unit_fault",
+        "clear"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.terminal_unit_fault.clear"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_fault.present",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.terminal_unit_fault.present",
+      "target": "thermal.status.terminal_unit_fault.present",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "terminal_unit_fault",
+        "present"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.terminal_unit_fault.present"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_operation",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.terminal_unit_operation",
+      "target": "thermal.status.terminal_unit_operation",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "terminal_unit_operation"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json",
+        "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+        "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+      ],
+      "emitted_name": "thermal.status.terminal_unit_operation"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_operation.active",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.terminal_unit_operation.active",
+      "target": "thermal.status.terminal_unit_operation.active",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "terminal_unit_operation",
+        "active"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.terminal_unit_operation.active"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_operation.idle",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.status.terminal_unit_operation.idle",
+      "target": "thermal.status.terminal_unit_operation.idle",
+      "role_decomposition": [
+        "thermal",
+        "status",
+        "terminal_unit_operation",
+        "idle"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.status.terminal_unit_operation.idle"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.system",
@@ -247837,6 +248864,146 @@
         "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
       "emitted_name": "thermal.service.ventilation"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.heat_generator",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.service.heat_generator",
+      "target": "thermal.service.heat_generator",
+      "role_decomposition": [
+        "thermal",
+        "service",
+        "heat_generator"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.service.heat_generator"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.thermal_store",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.service.thermal_store",
+      "target": "thermal.service.thermal_store",
+      "role_decomposition": [
+        "thermal",
+        "service",
+        "thermal_store"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.service.thermal_store"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.terminal_unit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.service.terminal_unit",
+      "target": "thermal.service.terminal_unit",
+      "role_decomposition": [
+        "thermal",
+        "service",
+        "terminal_unit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.service.terminal_unit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.refrigerant_circuit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.service.refrigerant_circuit",
+      "target": "thermal.service.refrigerant_circuit",
+      "role_decomposition": [
+        "thermal",
+        "service",
+        "refrigerant_circuit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.service.refrigerant_circuit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.compressor",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.service.compressor",
+      "target": "thermal.service.compressor",
+      "role_decomposition": [
+        "thermal",
+        "service",
+        "compressor"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.service.compressor"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.system",
@@ -248068,6 +249235,156 @@
         "matter-binding/docs/target-profile/air-conditioning.md"
       ],
       "emitted_name": "thermal.capability.set_mode"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.heat_generator",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.capability.read.heat_generator",
+      "target": "thermal.capability.read.heat_generator",
+      "role_decomposition": [
+        "thermal",
+        "capability",
+        "read",
+        "heat_generator"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.capability.read.heat_generator"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.thermal_store",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.capability.read.thermal_store",
+      "target": "thermal.capability.read.thermal_store",
+      "role_decomposition": [
+        "thermal",
+        "capability",
+        "read",
+        "thermal_store"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.capability.read.thermal_store"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.terminal_unit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.capability.read.terminal_unit",
+      "target": "thermal.capability.read.terminal_unit",
+      "role_decomposition": [
+        "thermal",
+        "capability",
+        "read",
+        "terminal_unit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.capability.read.terminal_unit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.refrigerant_circuit",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.capability.read.refrigerant_circuit",
+      "target": "thermal.capability.read.refrigerant_circuit",
+      "role_decomposition": [
+        "thermal",
+        "capability",
+        "read",
+        "refrigerant_circuit"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.capability.read.refrigerant_circuit"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.compressor",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.capability.read.compressor",
+      "target": "thermal.capability.read.compressor",
+      "role_decomposition": [
+        "thermal",
+        "capability",
+        "read",
+        "compressor"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "docs-semantic/api/v1/element-catalog-v1.json",
+        "docs-semantic/api/v1/pack-metadata-v1.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+        "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+        "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+        "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+        "docs-semantic/architecture/naming-contract.json"
+      ],
+      "emitted_name": "thermal.capability.read.compressor"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.operation.set_temperature",

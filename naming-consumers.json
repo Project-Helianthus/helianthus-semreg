@@ -223761,6 +223761,15 @@
       "ebusgateway/cmd/gateway/thermal_circuit_capability_mapping.go",
       "ebusgateway/cmd/gateway/thermal_circuit_capability_mapping_test.go"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.compressor": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.dhw": [
       "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
       "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
@@ -223779,6 +223788,24 @@
       "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping.go",
       "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping_test.go"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.heat_generator": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.refrigerant_circuit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.system": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
@@ -223788,6 +223815,24 @@
       "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
       "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
       "ebusgateway/portal/contributionv1/testdata/five-domain-catalog.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.terminal_unit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.thermal_store": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.ventilation": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -223864,6 +223909,16 @@
       "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
       "ebusgateway/cmd/gateway/thermal_circuit_pump_mapping_test.go"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.compressor": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.dhw": [
       "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
       "docs-ebus/architecture/cylinder-temperature-cutover.md",
@@ -223880,22 +223935,26 @@
       "ebusgateway/cmd/gateway/thermal_dhw_mode_mapping.go",
       "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.power": [
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.heat_generator": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
       "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go"
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_element_catalog_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.ratio": [
-      "docs-ebus/architecture/humidity-semreg-cutover.md",
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.refrigerant_circuit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
       "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go"
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.system": [
       "docs-ebus/architecture/b524-semantic-mapping.md",
@@ -223914,48 +223973,31 @@
       "ebusgateway/cmd/gateway/thermal_maintenance_mapping_test.go",
       "matter-binding/docs/target-profile/heating.md"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.temperature": [
-      "docs-ebus/api/semantic-snapshot-read.md",
-      "docs-ebus/architecture/b524-semantic-mapping.md",
-      "docs-ebus/architecture/boiler-temperature-semreg-mapping.md",
-      "docs-ebus/architecture/circuit-temperature-cutover.md",
-      "docs-ebus/architecture/cylinder-temperature-cutover.md",
-      "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-      "docs-ebus/architecture/dhw-setpoint-semreg-cutover.md",
-      "docs-ebus/architecture/fixtures/dhw-setpoint-semreg-cutover-v1.json",
-      "docs-ebus/architecture/fixtures/vaillant-semreg-thermal-map-v1.json",
-      "docs-ebus/architecture/outdoor-temperature-semreg-cutover.md",
-      "docs-ebus/architecture/solar-loop-temperature-cutover.md",
-      "docs-ebus/architecture/zone-room-temperature-cutover.md",
-      "docs-ebus/architecture/zone-setpoint-semreg-cutover.md",
-      "docs-ebus/scripts/validate_vaillant_semreg_thermal_map.py",
-      "docs-ebus/tests/semreg_thermal_map_contract/thermal_map_test.go",
-      "docs-ebus/tests/test_dhw_setpoint_semreg_cutover.py",
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.terminal_unit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
       "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-      "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-      "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping.go",
-      "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-      "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
-      "matter-binding/docs/target-profile/heating.md"
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.thermal_store": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.ventilation": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
-    ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.volumetric_flow": [
-      "docs-semantic/api/v1/pack-metadata-v1.json",
-      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
-      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.zone": [
       "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
@@ -223990,6 +224032,17 @@
       "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
       "matter-binding/docs/target-profile/air-conditioning.md"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.energy.heat_output": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.air_temperature": [
       "docs-ebus/api/semantic-snapshot-read.md",
       "docs-ebus/architecture/b524-semantic-mapping.md",
@@ -224020,6 +224073,42 @@
       "matter-binding/docs/target-profile/heating.md",
       "matter-binding/docs/target-profile/thermostats.md"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.circuit_flow_temperature": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/graph-acceptance-vectors.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.compressor_speed": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.dhw_temperature": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.flow_rate": [
       "docs-ebus/deployment/prometheus-semantic-coverage.md",
       "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
@@ -224036,6 +224125,28 @@
       "ebusgateway/internal/semanticmetrics/metrics.go",
       "ebusgateway/internal/semanticmetrics/metrics_test.go",
       "matter-binding/docs/target-profile/b524-device-types.md"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.heat_generator_flow_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.heat_generator_return_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.humidity_relative": [
       "docs-ebus/api/semantic-snapshot-read.md",
@@ -224061,54 +224172,105 @@
       "matter-binding/docs/target-profile/heating.md",
       "matter-binding/docs/target-profile/thermostats.md"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.power": [
-      "docs-ebus/deployment/prometheus-semantic-coverage.md",
-      "docs-ebus/development/prometheus-validation-scope.md",
-      "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
-      "docs-ebus/tests/test_prometheus_semantic_coverage.py",
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.outdoor_air_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
       "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
       "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
-      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
-      "ebusgateway/docs/metrics-inventory.json",
-      "ebusgateway/docs/observability/semantic-prometheus-coverage.md",
-      "ebusgateway/internal/semanticmetrics/metrics.go",
-      "ebusgateway/internal/semanticmetrics/metrics_test.go"
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.water_temperature": [
-      "docs-ebus/architecture/b524-semantic-mapping.md",
-      "docs-ebus/architecture/boiler-temperature-semreg-mapping.md",
-      "docs-ebus/architecture/circuit-temperature-cutover.md",
-      "docs-ebus/architecture/cylinder-temperature-cutover.md",
-      "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-      "docs-ebus/architecture/fixtures/vaillant-semreg-thermal-map-v1.json",
-      "docs-ebus/architecture/solar-loop-temperature-cutover.md",
-      "docs-ebus/deployment/prometheus-semantic-coverage.md",
-      "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
-      "docs-ebus/scripts/validate_vaillant_semreg_thermal_map.py",
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_condensing_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
       "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
-      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
-      "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-      "ebusgateway/docs/architecture/dhw-measured-temperature-candidate.md",
-      "ebusgateway/docs/metrics-inventory.json",
-      "ebusgateway/docs/observability/semantic-prometheus-coverage.md",
-      "ebusgateway/internal/semanticmetrics/metrics.go",
-      "ebusgateway/internal/semanticmetrics/metrics_test.go",
-      "ebusgateway/internal/semanticmetrics/o21_slot_store_test.go",
-      "ebusgateway/internal/semanticmetrics/slot_file_store_test.go",
-      "matter-binding/docs/target-profile/air-conditioning.md",
-      "matter-binding/docs/target-profile/heating.md"
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_evaporating_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_high_side_pressure": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_low_side_pressure": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.store_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.system_flow_temperature": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.thermal_power": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.water_pressure": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.system": [
       "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
@@ -224148,6 +224310,41 @@
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.system.off": [
       "docs-ebus/architecture/maintenance-system-state-cutover.md",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.auto": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.cool": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.dry": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.fan_only": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.heat": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.terminal_unit.off": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.mode.zone": [
       "docs-ebus/architecture/dhw-mode-semreg-cutover.md",
@@ -224228,6 +224425,14 @@
       "ebusgateway/cmd/gateway/thermal_circuit_pump_mapping.go",
       "ebusgateway/cmd/gateway/thermal_circuit_pump_mapping_test.go"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.compressor": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.dhw": [
       "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
       "docs-ebus/architecture/cylinder-temperature-cutover.md",
@@ -224248,6 +224453,22 @@
       "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
       "ebusgateway/docs/architecture/dhw-measured-temperature-candidate.md"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.heat_generator": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.refrigerant_circuit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.system": [
       "docs-ebus/architecture/b524-semantic-mapping.md",
       "docs-ebus/architecture/maintenance-system-state-cutover.md",
@@ -224260,6 +224481,22 @@
       "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
       "ebusgateway/portal/contributionv1/testdata/five-domain-catalog.json",
       "matter-binding/docs/target-profile/heating.md"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.terminal_unit": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.thermal_store": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/architecture/naming-contract.json"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.ventilation": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -224352,6 +224589,63 @@
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.fault.present": [
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_fault": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_fault.clear": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_fault.present": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_operation": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_operation.active": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.heat_generator_operation.idle": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.maintenance": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.maintenance.clear": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.maintenance.due": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.operation": [
       "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
       "docs-ebus/architecture/circuit-pump-semreg-cutover.md",
@@ -224384,135 +224678,160 @@
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.operation.idle": [
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.celsius": [
-      "docs-ebus/api/semantic-snapshot-read.md",
-      "docs-ebus/architecture/b524-semantic-mapping.md",
-      "docs-ebus/architecture/boiler-temperature-semreg-mapping.md",
-      "docs-ebus/architecture/circuit-temperature-cutover.md",
-      "docs-ebus/architecture/cylinder-temperature-cutover.md",
-      "docs-ebus/architecture/dhw-measured-temperature-cutover.md",
-      "docs-ebus/architecture/dhw-setpoint-semreg-cutover.md",
-      "docs-ebus/architecture/fixtures/dhw-setpoint-semreg-cutover-v1.json",
-      "docs-ebus/architecture/fixtures/vaillant-semreg-thermal-map-v1.json",
-      "docs-ebus/architecture/outdoor-temperature-semreg-cutover.md",
-      "docs-ebus/architecture/solar-loop-temperature-cutover.md",
-      "docs-ebus/architecture/zone-room-temperature-cutover.md",
-      "docs-ebus/architecture/zone-setpoint-semreg-cutover.md",
-      "docs-ebus/author-evidence/issue519-vaillant-semreg-thermal-map/REPORT.md",
-      "docs-ebus/scripts/validate_vaillant_semreg_thermal_map.py",
-      "docs-ebus/tests/semreg_thermal_map_contract/dhw_setpoint_test.go",
-      "docs-ebus/tests/semreg_thermal_map_contract/thermal_map_test.go",
-      "docs-ebus/tests/test_dhw_setpoint_semreg_cutover.py",
-      "docs-ebus/tests/test_vaillant_semreg_thermal_map.py",
-      "docs-semantic/api/v1/mappings/growatt-bms-rs485-v202-storage-v1.json",
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_fault": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
-      "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
-      "docs-semantic/api/v1/packs/storage-bms-acceptance-vectors.json",
-      "docs-semantic/api/v1/packs/storage-bms-contract-tables.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-      "docs-semantic/scripts/validate_growatt_bms_rs485_v202_storage_mapping.py",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_fault.clear": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_fault.present": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_operation": [
+      "docs-semantic/api/v1/element-catalog-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
+      "docs-semantic/api/v1/targets/matter-1.7-ballot-0.9-v1.json",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_operation.active": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.terminal_unit_operation.idle": [
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.cubic_metre_per_second": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+      "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_evse_pack_v1.py",
+      "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
       "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
-      "ebusgateway/cmd/gateway/composition_projection_acceptance_test.go",
-      "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/mcp_pv.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/mcp_storage.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/portal_catalog.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/portal_source_capture.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/prometheus_semantic.txt",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current_at.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/mcp_publish4.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.canonical.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.public.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.canonical.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.public.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.canonical.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.public.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/m2m/pv.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/m2m/storage.json",
-      "ebusgateway/cmd/gateway/thermal_boiler_publication.go",
-      "ebusgateway/cmd/gateway/thermal_cylinder_temperature_candidate.go",
-      "ebusgateway/cmd/gateway/thermal_cylinder_temperature_candidate_test.go",
-      "ebusgateway/cmd/gateway/thermal_dhw_measured_temperature_candidate.go",
-      "ebusgateway/cmd/gateway/thermal_dhw_measured_temperature_candidate_test.go",
-      "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping.go",
-      "ebusgateway/cmd/gateway/thermal_dhw_setpoint_mapping_test.go",
-      "ebusgateway/cmd/gateway/thermal_zone_room_temperature_candidate.go",
-      "ebusgateway/cmd/gateway/thermal_zone_room_temperature_candidate_test.go",
-      "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping.go",
-      "ebusgateway/cmd/gateway/thermal_zone_setpoint_mapping_test.go",
-      "ebusgateway/docs/architecture/dhw-measured-temperature-candidate.md",
-      "ebusgateway/internal/modbusadapter/semreg_pv_publication_core.go",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/publish1.canonical.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/publish2.canonical.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/read1.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/read2.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_first_incarnation/single_at.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/1_generation1_first.canonical.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/2_generation1_refresh.canonical.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/3_generation2_replacement.canonical.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/4_generation2_refresh.canonical.json",
-      "ebusgateway/internal/modbusadapter/testdata/characterization/pv_generation_replacement/5_epoch_replacement.canonical.json",
-      "ebusgateway/internal/semanticmetrics/metrics.go",
-      "ebusgateway/internal/semanticmetrics/metrics_test.go",
-      "ebusgateway/internal/semanticmetrics/o21_slot_store_test.go",
-      "ebusgateway/internal/semanticmetrics/slot_file_store_test.go",
-      "ebusgateway/semantic_prometheus.go",
-      "ha-integration/custom_components/helianthus/pv_m2m.py",
-      "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
-      "ha-integration/custom_components/helianthus/storage_m2m.py",
-      "ha-integration/tests/test_storage_m2m.py"
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
     ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.litre_per_minute": [
-      "docs-semantic/api/v1/pack-metadata-v1.json",
-      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
-      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-      "ebusgateway/internal/semanticmetrics/metrics.go",
-      "ebusgateway/internal/semanticmetrics/metrics_test.go"
-    ],
-    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.percent": [
-      "docs-ebus/api/semantic-snapshot-read.md",
-      "docs-ebus/architecture/humidity-semreg-cutover.md",
-      "docs-semantic/api/v1/mappings/growatt-bms-rs485-v202-storage-v1.json",
-      "docs-semantic/api/v1/mappings/huawei-luna2000-storage-v1.json",
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.joule": [
+      "docs-semantic/CHANGELOG.md",
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.json",
+      "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.md",
+      "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.json",
+      "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.md",
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.md",
-      "docs-semantic/api/v1/packs/storage-bms-acceptance-vectors.json",
-      "docs-semantic/api/v1/packs/storage-bms-contract-tables.json",
+      "docs-semantic/api/v1/packs/evse-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/infrastructure-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
-      "docs-semantic/scripts/validate_growatt_bms_rs485_v202_storage_mapping.py",
-      "docs-semantic/scripts/validate_huawei_luna2000_storage_mapping.py",
-      "ebusgateway/author-evidence/issue973-portal-catalog-admission/REPORT.md",
-      "ebusgateway/cmd/gateway/growatt_storage_semreg.go",
-      "ebusgateway/cmd/gateway/portal_catalog_v1.go",
-      "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/mcp_storage.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/portal_catalog.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/consumers/prometheus_semantic.txt",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/current_at.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/mcp_publish4.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.canonical.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish1.public.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.canonical.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish2.public.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.canonical.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/growatt_first_incarnation/publish3_soft_starting.public.json",
-      "ebusgateway/cmd/gateway/testdata/characterization/m2m/storage.json",
-      "ebusgateway/cmd/gateway/thermal_humidity_mapping.go",
-      "ebusgateway/cmd/gateway/thermal_humidity_mapping_test.go",
-      "ebusgateway/internal/semanticmetrics/metrics.go",
-      "ebusgateway/internal/semanticmetrics/metrics_test.go",
-      "ebusgateway/portal/web/test/portal-catalog-v1.test.mjs",
-      "ebusgateway/semantic_prometheus.go",
-      "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
-      "ha-integration/custom_components/helianthus/storage_m2m.py",
-      "ha-integration/tests/test_semantic_snapshot_sensors.py",
-      "ha-integration/tests/test_storage_m2m.py"
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+      "docs-semantic/scripts/test_validate_huawei_gateway_meter_infrastructure_mapping.py",
+      "docs-semantic/scripts/test_validate_huawei_sun2000_pv_mapping.py",
+      "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_evse_pack_v1.py",
+      "docs-semantic/scripts/validate_huawei_gateway_meter_infrastructure_mapping.py",
+      "docs-semantic/scripts/validate_huawei_sun2000_pv_mapping.py",
+      "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.kelvin": [
+      "docs-semantic/CHANGELOG.md",
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/graph-acceptance-vectors.json",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/pack-metadata-v1.md",
+      "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/architecture/naming-contract.md",
+      "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+      "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_evse_pack_v1.py",
+      "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.pascal": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+      "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_evse_pack_v1.py",
+      "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.ratio": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/graph-acceptance-vectors.json",
+      "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.json",
+      "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.md",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/infrastructure-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/architecture/naming-contract.md",
+      "docs-semantic/author-evidence/issue-16-infrastructure-pack-v1/REPORT.md",
+      "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+      "docs-semantic/scripts/test_validate_huawei_gateway_meter_infrastructure_mapping.py",
+      "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_evse_pack_v1.py",
+      "docs-semantic/scripts/validate_huawei_gateway_meter_infrastructure_mapping.py",
+      "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.reciprocal_second": [
+      "docs-semantic/api/README.md",
+      "docs-semantic/api/v1/pack-metadata-v1.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json",
+      "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
+      "docs-semantic/architecture/naming-contract.json",
+      "docs-semantic/scripts/test_validate_evse_pack_v1.py",
+      "docs-semantic/scripts/test_validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/test_validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
+      "docs-semantic/scripts/validate_evse_pack_v1.py",
+      "docs-semantic/scripts/validate_infrastructure_pack_v1.py",
+      "docs-semantic/scripts/validate_pv_inverter_pack_v1.py",
+      "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.watt": [
       "docs-ebus/api/semantic-snapshot-read.md",

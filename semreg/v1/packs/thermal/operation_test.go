@@ -29,18 +29,8 @@ func TestBothOperationsEffectsAndReadback(t *testing.T) {
 			if err != nil || relation != operation.ReadbackConfirms {
 				t.Fatalf("confirm: %s %v", relation, err)
 			}
-			candidate.Value = &semreg.Value{Kind: intent.ExpectedEffect.Expected.Kind, Quantity: intent.ExpectedEffect.Expected.Quantity, Symbol: intent.ExpectedEffect.Expected.Symbol}
-			if candidate.Value.Quantity != nil {
-				candidate.Value.Quantity = &semreg.Quantity{Number: semreg.Decimal{Coefficient: "0"}, Unit: candidate.Value.Quantity.Unit}
-				if reflect.DeepEqual(*candidate.Value, intent.ExpectedEffect.Expected) {
-					candidate.Value.Quantity = &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: candidate.Value.Quantity.Unit}
-				}
-			} else {
-				candidate.Value.Symbol = &semreg.Symbol{Namespace: intent.ExpectedEffect.Expected.Symbol.Namespace, Token: "off", Known: true}
-				if reflect.DeepEqual(*candidate.Value, intent.ExpectedEffect.Expected) {
-					candidate.Value.Symbol.Token = "auto"
-				}
-			}
+			other := alternativeValue(intent.ExpectedEffect.Expected)
+			candidate.Value = &other
 			relation, err = validator.EvaluateReadback(intent, candidate)
 			if err != nil || relation != operation.ReadbackContradicts {
 				t.Fatalf("contradiction: %s %v", relation, err)
@@ -76,7 +66,8 @@ func TestOperationRejectsIncorrectEffectAndArguments(t *testing.T) {
 		{"wrong effect fact", func(v *operation.Intent) { v.ExpectedEffect.Fact.FactID = "thermal.setpoint.dhw_temperature_setpoint" }, semreg.InvalidValue},
 		{"wrong effect operator", func(v *operation.Intent) { v.ExpectedEffect.Operator = semreg.PredicateNotEqual }, semreg.InvalidValue},
 		{"wrong effect value", func(v *operation.Intent) {
-			v.ExpectedEffect.Expected.Quantity.Number = semreg.Decimal{Coefficient: "0"}
+			// A fresh quantity: the argument and the expected effect share one.
+			v.ExpectedEffect.Expected.Quantity = &semreg.Quantity{Number: mustField("thermal.setpoint.temperature_setpoint").maximum.decimal(), Unit: v.ExpectedEffect.Expected.Quantity.Unit}
 		}, semreg.InvalidValue},
 		{"wrong required capability", func(v *operation.Intent) { v.RequiredCapability.DefinitionID = "thermal.capability.set_mode" }, semreg.InvalidValue},
 		{"wrong required capability pack", func(v *operation.Intent) { v.RequiredCapability.Pack.ID = "helianthus.pack.evse" }, semreg.InvalidValue},
@@ -378,12 +369,17 @@ func updateThermalReadback(t *testing.T, fixture thermalFixture, value semreg.Va
 func thermalReadback(snapshot semreg.Snapshot, relation operation.ReadbackRelation) *operation.Readback {
 	return &operation.Readback{SnapshotID: snapshot.SnapshotID, Revisions: snapshot.Revisions, CandidateID: "candidate:thermal", CandidateRevision: "2", BindingID: "binding:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", Relation: relation, Evaluation: semreg.EvaluationContext{EvaluatedAt: thermalTime("240"), EvaluateMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock-epoch:1", Nanoseconds: "240"}}, Evidence: []semreg.EvidenceRef{evidence()}}
 }
+
+// alternativeValue returns another valid value of an operation argument. The
+// only quantity argument is the zone temperature setpoint, so a quantity moves
+// between the setpoint's bounds in kelvin.
 func alternativeValue(value semreg.Value) semreg.Value {
 	result := value
 	if result.Quantity != nil {
-		result.Quantity = &semreg.Quantity{Number: semreg.Decimal{Coefficient: "0"}, Unit: result.Quantity.Unit}
+		setpoint := mustField(operations["thermal.operation.set_temperature"].argument)
+		result.Quantity = &semreg.Quantity{Number: setpoint.maximum.decimal(), Unit: result.Quantity.Unit}
 		if reflect.DeepEqual(result, value) {
-			result.Quantity = &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: result.Quantity.Unit}
+			result.Quantity = &semreg.Quantity{Number: setpoint.minimum.decimal(), Unit: result.Quantity.Unit}
 		}
 	} else {
 		result.Symbol = &semreg.Symbol{Namespace: value.Symbol.Namespace, Token: "off", Known: true}

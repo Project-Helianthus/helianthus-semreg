@@ -83,6 +83,9 @@ type gvRegistry struct {
 	ElementCatalog        string           `json:"element_catalog"`
 	Packs                 []semreg.PackRef `json:"packs"`
 	IdentificationSchemes []string         `json:"identification_schemes,omitempty"`
+	// CatalogMutations are the stated set_disposition mutations with which
+	// the prior state registers the element catalog.
+	CatalogMutations []map[string]json.RawMessage `json:"catalog_mutations,omitempty"`
 }
 
 type gvAdmissionContext struct {
@@ -225,7 +228,7 @@ func (c *vectorCase) checkHeader() {
 			c.t.Fatalf("coverage %q is not listed", area)
 		}
 	}
-	catalog := gvEmbedded(c.t)
+	catalog := c.registeredCatalog()
 	for _, definition := range c.vector.Definitions {
 		ref := definition.Ref.element(c.t)
 		disposition, ok := catalog.DispositionOf(ref)
@@ -307,7 +310,7 @@ func gvEmbedded(t *testing.T) *graph.Catalog {
 // schemes a prior state registers: the seed lists no scheme, and the vector
 // document declares the synthetic ones its native anchors use.
 type gvSchemeCatalog struct {
-	*graph.Catalog
+	semreg.GraphResourceCatalog
 	schemes map[semreg.DefinitionID]struct{}
 }
 
@@ -315,12 +318,57 @@ func (c gvSchemeCatalog) SchemeListed(id semreg.DefinitionID) bool {
 	if _, ok := c.schemes[id]; ok {
 		return true
 	}
-	return c.Catalog.SchemeListed(id)
+	return c.GraphResourceCatalog.SchemeListed(id)
+}
+
+// gvMutatedCatalog is the pinned catalog as a prior state registers it with
+// stated catalog mutations: the decoded mutated document, presented under the
+// pinned digest because the kernel admits no other catalog and the document
+// states the mutations as part of the registration.
+type gvMutatedCatalog struct{ *graph.Catalog }
+
+func (gvMutatedCatalog) Digest() semreg.Digest { return graph.PinnedDigest }
+
+// registeredCatalog is the catalog the vector's prior state registers: the
+// pinned catalog, with the prior state's catalog mutations applied.
+func (c *vectorCase) registeredCatalog() *graph.Catalog {
+	c.t.Helper()
+	if c.state.Registry == nil {
+		return gvEmbedded(c.t)
+	}
+	return c.mutatedCatalog(c.state.Registry)
+}
+
+// mutatedCatalog applies the registry's catalog mutations to a copy of the
+// pinned catalog. Each mutation names one member entry once.
+func (c *vectorCase) mutatedCatalog(registry *gvRegistry) *graph.Catalog {
+	c.t.Helper()
+	if len(registry.CatalogMutations) == 0 {
+		return gvEmbedded(c.t)
+	}
+	if registry.ElementCatalog != "registered" {
+		c.t.Fatal("catalog mutations need a registered element catalog")
+	}
+	doc := gvObject(c.t, gvEmbedded(c.t).Bytes())
+	for _, mutation := range registry.CatalogMutations {
+		if _, ok := mutation["set_disposition"]; !ok || len(mutation) != 1 {
+			c.t.Fatalf("catalog mutation %v is not one set_disposition", gvSortedKeys(mutation))
+		}
+		gvMutateCatalog(c, doc, mutation)
+	}
+	catalog, err := graph.Decode(gvMarshal(c.t, doc))
+	if err != nil {
+		c.t.Fatalf("decode the mutated catalog: %v", err)
+	}
+	return catalog
 }
 
 func (c *vectorCase) catalogFor(registry *gvRegistry) semreg.GraphCatalog {
 	c.t.Helper()
-	catalog := gvEmbedded(c.t)
+	var catalog semreg.GraphResourceCatalog = gvEmbedded(c.t)
+	if len(registry.CatalogMutations) != 0 {
+		catalog = gvMutatedCatalog{c.mutatedCatalog(registry)}
+	}
 	if len(registry.IdentificationSchemes) == 0 {
 		return catalog
 	}
@@ -331,7 +379,7 @@ func (c *vectorCase) catalogFor(registry *gvRegistry) semreg.GraphCatalog {
 		}
 		schemes[semreg.DefinitionID(scheme)] = struct{}{}
 	}
-	return gvSchemeCatalog{Catalog: catalog, schemes: schemes}
+	return gvSchemeCatalog{GraphResourceCatalog: catalog, schemes: schemes}
 }
 
 func gvAcceptedValidators() []semreg.PackValidator {

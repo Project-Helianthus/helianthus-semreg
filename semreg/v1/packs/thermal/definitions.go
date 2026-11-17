@@ -26,6 +26,8 @@ func bound(coefficient string, exponent10 int32) *decimalBound {
 	return &decimalBound{coefficient, exponent10}
 }
 
+// fieldSpec is one thermal field. dimension is the field's only fact
+// dimension: the resource dimension of its subject.
 type fieldSpec struct {
 	id               semreg.DefinitionID
 	kind             semreg.ValueKind
@@ -34,31 +36,85 @@ type fieldSpec struct {
 	symbols          []string
 }
 
+// The canonical units are SI: kelvin for temperatures, a 0 to 1 ratio for
+// dimensionless quantities, cubic metre per second, pascal, reciprocal second,
+// watt and joule.
+const (
+	kelvin               semreg.DefinitionID = "unit.kelvin"
+	ratio                semreg.DefinitionID = "unit.ratio"
+	cubicMetrePerSecond  semreg.DefinitionID = "unit.cubic_metre_per_second"
+	pascal               semreg.DefinitionID = "unit.pascal"
+	reciprocalSecond     semreg.DefinitionID = "unit.reciprocal_second"
+	watt                 semreg.DefinitionID = "unit.watt"
+	joule                semreg.DefinitionID = "unit.joule"
+	systemDimension      semreg.DefinitionID = "thermal.dimension.system"
+	zoneDimension        semreg.DefinitionID = "thermal.dimension.zone"
+	circuitDimension     semreg.DefinitionID = "thermal.dimension.circuit"
+	dhwDimension         semreg.DefinitionID = "thermal.dimension.dhw"
+	ventilationDimension semreg.DefinitionID = "thermal.dimension.ventilation"
+	generatorDimension   semreg.DefinitionID = "thermal.dimension.heat_generator"
+	storeDimension       semreg.DefinitionID = "thermal.dimension.thermal_store"
+	terminalDimension    semreg.DefinitionID = "thermal.dimension.terminal_unit"
+	refrigerantDimension semreg.DefinitionID = "thermal.dimension.refrigerant_circuit"
+	compressorDimension  semreg.DefinitionID = "thermal.dimension.compressor"
+)
+
+// Temperature bounds in kelvin: 173.15 to 473.15 for a measurement and 223.15
+// to 423.15 for a setpoint.
+var (
+	temperatureMinimum, temperatureMaximum = bound("17315", -2), bound("47315", -2)
+	setpointMinimum, setpointMaximum       = bound("22315", -2), bound("42315", -2)
+)
+
 var fields = []fieldSpec{
-	{"thermal.action.state", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.action.state.cooling", "thermal.action.state.dhw", "thermal.action.state.heating", "thermal.action.state.idle", "thermal.action.state.ventilating"}},
-	{"thermal.demand.level", semreg.ValueQuantity, "unit.percent", "thermal.dimension.ratio", bound("0", 0), bound("1", 2), nil},
-	{"thermal.measurement.air_temperature", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-1", 2), bound("2", 2), nil},
-	{"thermal.measurement.flow_rate", semreg.ValueQuantity, "unit.litre_per_minute", "thermal.dimension.volumetric_flow", bound("0", 0), bound("1", 4), nil},
-	{"thermal.measurement.humidity", semreg.ValueQuantity, "unit.percent", "thermal.dimension.ratio", bound("0", 0), bound("1", 2), nil},
-	{"thermal.measurement.power", semreg.ValueQuantity, "unit.watt", "thermal.dimension.power", bound("-1", 6), bound("1", 6), nil},
-	{"thermal.measurement.water_temperature", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-1", 2), bound("2", 2), nil},
-	{"thermal.mode.system", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.mode.system.auto", "thermal.mode.system.cool", "thermal.mode.system.heat", "thermal.mode.system.off"}},
-	{"thermal.mode.zone", semreg.ValueSymbol, "", "thermal.dimension.zone", nil, nil, []string{"thermal.mode.zone.auto", "thermal.mode.zone.comfort", "thermal.mode.zone.eco", "thermal.mode.zone.off"}},
-	{"thermal.setpoint.dhw_temperature_setpoint", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-5", 1), bound("15", 1), nil},
-	{"thermal.setpoint.temperature_setpoint", semreg.ValueQuantity, "unit.celsius", "thermal.dimension.temperature", bound("-5", 1), bound("15", 1), nil},
-	{"thermal.status.fault", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.status.fault.clear", "thermal.status.fault.present"}},
-	{"thermal.status.operation", semreg.ValueSymbol, "", "thermal.dimension.system", nil, nil, []string{"thermal.status.operation.active", "thermal.status.operation.idle"}},
+	{"thermal.action.state", semreg.ValueSymbol, "", systemDimension, nil, nil, []string{"thermal.action.state.cooling", "thermal.action.state.dhw", "thermal.action.state.heating", "thermal.action.state.idle", "thermal.action.state.ventilating"}},
+	{"thermal.demand.level", semreg.ValueQuantity, ratio, ventilationDimension, bound("0", 0), bound("1", 0), nil},
+	{"thermal.energy.heat_output", semreg.ValueQuantity, joule, generatorDimension, bound("0", 0), bound("36", 17), nil},
+	{"thermal.measurement.air_temperature", semreg.ValueQuantity, kelvin, zoneDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.circuit_flow_temperature", semreg.ValueQuantity, kelvin, circuitDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.compressor_speed", semreg.ValueQuantity, reciprocalSecond, compressorDimension, bound("0", 0), bound("1", 3), nil},
+	{"thermal.measurement.dhw_temperature", semreg.ValueQuantity, kelvin, dhwDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.flow_rate", semreg.ValueQuantity, cubicMetrePerSecond, circuitDimension, bound("0", 0), bound("2", -1), nil},
+	{"thermal.measurement.heat_generator_flow_temperature", semreg.ValueQuantity, kelvin, generatorDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.heat_generator_return_temperature", semreg.ValueQuantity, kelvin, generatorDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.humidity", semreg.ValueQuantity, ratio, zoneDimension, bound("0", 0), bound("1", 0), nil},
+	{"thermal.measurement.outdoor_air_temperature", semreg.ValueQuantity, kelvin, systemDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.refrigerant_condensing_temperature", semreg.ValueQuantity, kelvin, refrigerantDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.refrigerant_evaporating_temperature", semreg.ValueQuantity, kelvin, refrigerantDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.refrigerant_high_side_pressure", semreg.ValueQuantity, pascal, refrigerantDimension, bound("0", 0), bound("1", 8), nil},
+	{"thermal.measurement.refrigerant_low_side_pressure", semreg.ValueQuantity, pascal, refrigerantDimension, bound("0", 0), bound("1", 8), nil},
+	{"thermal.measurement.store_temperature", semreg.ValueQuantity, kelvin, storeDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.system_flow_temperature", semreg.ValueQuantity, kelvin, systemDimension, temperatureMinimum, temperatureMaximum, nil},
+	{"thermal.measurement.thermal_power", semreg.ValueQuantity, watt, generatorDimension, bound("-1", 6), bound("1", 6), nil},
+	{"thermal.measurement.water_pressure", semreg.ValueQuantity, pascal, generatorDimension, bound("-101325", 0), bound("1", 7), nil},
+	{"thermal.mode.system", semreg.ValueSymbol, "", systemDimension, nil, nil, []string{"thermal.mode.system.auto", "thermal.mode.system.cool", "thermal.mode.system.heat", "thermal.mode.system.off"}},
+	{"thermal.mode.terminal_unit", semreg.ValueSymbol, "", terminalDimension, nil, nil, []string{"thermal.mode.terminal_unit.auto", "thermal.mode.terminal_unit.cool", "thermal.mode.terminal_unit.dry", "thermal.mode.terminal_unit.fan_only", "thermal.mode.terminal_unit.heat", "thermal.mode.terminal_unit.off"}},
+	{"thermal.mode.zone", semreg.ValueSymbol, "", zoneDimension, nil, nil, []string{"thermal.mode.zone.auto", "thermal.mode.zone.comfort", "thermal.mode.zone.eco", "thermal.mode.zone.off"}},
+	{"thermal.setpoint.dhw_temperature_setpoint", semreg.ValueQuantity, kelvin, dhwDimension, setpointMinimum, setpointMaximum, nil},
+	{"thermal.setpoint.temperature_setpoint", semreg.ValueQuantity, kelvin, zoneDimension, setpointMinimum, setpointMaximum, nil},
+	{"thermal.status.fault", semreg.ValueSymbol, "", systemDimension, nil, nil, []string{"thermal.status.fault.clear", "thermal.status.fault.present"}},
+	{"thermal.status.heat_generator_fault", semreg.ValueSymbol, "", generatorDimension, nil, nil, []string{"thermal.status.heat_generator_fault.clear", "thermal.status.heat_generator_fault.present"}},
+	{"thermal.status.heat_generator_operation", semreg.ValueSymbol, "", generatorDimension, nil, nil, []string{"thermal.status.heat_generator_operation.active", "thermal.status.heat_generator_operation.idle"}},
+	{"thermal.status.maintenance", semreg.ValueSymbol, "", systemDimension, nil, nil, []string{"thermal.status.maintenance.clear", "thermal.status.maintenance.due"}},
+	{"thermal.status.operation", semreg.ValueSymbol, "", systemDimension, nil, nil, []string{"thermal.status.operation.active", "thermal.status.operation.idle"}},
+	{"thermal.status.terminal_unit_fault", semreg.ValueSymbol, "", terminalDimension, nil, nil, []string{"thermal.status.terminal_unit_fault.clear", "thermal.status.terminal_unit_fault.present"}},
+	{"thermal.status.terminal_unit_operation", semreg.ValueSymbol, "", terminalDimension, nil, nil, []string{"thermal.status.terminal_unit_operation.active", "thermal.status.terminal_unit_operation.idle"}},
 }
 
+// dimensions are the ten resource dimensions; each value names one resource.
 var dimensions = map[semreg.DefinitionID]semreg.ValueKind{
-	"thermal.dimension.system": semreg.ValueText, "thermal.dimension.zone": semreg.ValueText,
-	"thermal.dimension.circuit": semreg.ValueText, "thermal.dimension.dhw": semreg.ValueText,
-	"thermal.dimension.ventilation": semreg.ValueText,
+	systemDimension: semreg.ValueText, zoneDimension: semreg.ValueText,
+	circuitDimension: semreg.ValueText, dhwDimension: semreg.ValueText,
+	ventilationDimension: semreg.ValueText, generatorDimension: semreg.ValueText,
+	storeDimension: semreg.ValueText, terminalDimension: semreg.ValueText,
+	refrigerantDimension: semreg.ValueText, compressorDimension: semreg.ValueText,
 }
 var services = map[semreg.DefinitionID]semreg.DefinitionID{
-	"thermal.service.system": "thermal.dimension.system", "thermal.service.zone": "thermal.dimension.zone",
-	"thermal.service.circuit": "thermal.dimension.circuit", "thermal.service.dhw": "thermal.dimension.dhw",
-	"thermal.service.ventilation": "thermal.dimension.ventilation",
+	"thermal.service.system": systemDimension, "thermal.service.zone": zoneDimension,
+	"thermal.service.circuit": circuitDimension, "thermal.service.dhw": dhwDimension,
+	"thermal.service.ventilation": ventilationDimension, "thermal.service.heat_generator": generatorDimension,
+	"thermal.service.thermal_store": storeDimension, "thermal.service.terminal_unit": terminalDimension,
+	"thermal.service.refrigerant_circuit": refrigerantDimension, "thermal.service.compressor": compressorDimension,
 }
 
 type capabilitySpec struct {
@@ -69,9 +125,14 @@ type capabilitySpec struct {
 var capabilities = map[semreg.DefinitionID]capabilitySpec{
 	"thermal.capability.read.system": {"thermal.service.system", nil}, "thermal.capability.read.zone": {"thermal.service.zone", nil},
 	"thermal.capability.read.circuit": {"thermal.service.circuit", nil}, "thermal.capability.read.dhw": {"thermal.service.dhw", nil},
-	"thermal.capability.read.ventilation": {"thermal.service.ventilation", nil},
-	"thermal.capability.set_temperature":  {"thermal.service.zone", []semreg.DefinitionID{"thermal.setpoint.temperature_setpoint"}},
-	"thermal.capability.set_mode":         {"thermal.service.system", []semreg.DefinitionID{"thermal.mode.system"}},
+	"thermal.capability.read.ventilation":         {"thermal.service.ventilation", nil},
+	"thermal.capability.read.heat_generator":      {"thermal.service.heat_generator", nil},
+	"thermal.capability.read.thermal_store":       {"thermal.service.thermal_store", nil},
+	"thermal.capability.read.terminal_unit":       {"thermal.service.terminal_unit", nil},
+	"thermal.capability.read.refrigerant_circuit": {"thermal.service.refrigerant_circuit", nil},
+	"thermal.capability.read.compressor":          {"thermal.service.compressor", nil},
+	"thermal.capability.set_temperature":          {"thermal.service.zone", []semreg.DefinitionID{"thermal.setpoint.temperature_setpoint"}},
+	"thermal.capability.set_mode":                 {"thermal.service.system", []semreg.DefinitionID{"thermal.mode.system"}},
 }
 
 type operationSpec struct{ capability, argument, effect semreg.DefinitionID }
@@ -84,19 +145,22 @@ var operations = map[semreg.DefinitionID]operationSpec{
 func definition(id semreg.DefinitionID) semreg.DefinitionRef {
 	return semreg.DefinitionRef{Pack: pack, ID: id, Version: packVersion}
 }
+func sortedRefs[V any](table map[semreg.DefinitionID]V) []semreg.DefinitionRef {
+	ids := make([]semreg.DefinitionID, 0, len(table))
+	for id := range table {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	refs := make([]semreg.DefinitionRef, 0, len(ids))
+	for _, id := range ids {
+		refs = append(refs, definition(id))
+	}
+	return refs
+}
 func index() semreg.DefinitionIndex {
-	result := semreg.DefinitionIndex{Pack: pack, Fields: make([]semreg.DefinitionRef, 0, len(fields)), Services: make([]semreg.DefinitionRef, 0, len(services)), Capabilities: make([]semreg.DefinitionRef, 0, len(capabilities)), Operations: make([]semreg.DefinitionRef, 0, len(operations)), EffectRules: []semreg.DefinitionRef{definition("thermal.effect.set_mode"), definition("thermal.effect.set_temperature")}}
+	result := semreg.DefinitionIndex{Pack: pack, Fields: make([]semreg.DefinitionRef, 0, len(fields)), Services: sortedRefs(services), Capabilities: sortedRefs(capabilities), Operations: sortedRefs(operations), EffectRules: []semreg.DefinitionRef{definition("thermal.effect.set_mode"), definition("thermal.effect.set_temperature")}}
 	for _, spec := range fields {
 		result.Fields = append(result.Fields, definition(spec.id))
-	}
-	for _, id := range []semreg.DefinitionID{"thermal.service.circuit", "thermal.service.dhw", "thermal.service.system", "thermal.service.ventilation", "thermal.service.zone"} {
-		result.Services = append(result.Services, definition(id))
-	}
-	for _, id := range []semreg.DefinitionID{"thermal.capability.read.circuit", "thermal.capability.read.dhw", "thermal.capability.read.system", "thermal.capability.read.ventilation", "thermal.capability.read.zone", "thermal.capability.set_mode", "thermal.capability.set_temperature"} {
-		result.Capabilities = append(result.Capabilities, definition(id))
-	}
-	for _, id := range []semreg.DefinitionID{"thermal.operation.set_mode", "thermal.operation.set_temperature"} {
-		result.Operations = append(result.Operations, definition(id))
 	}
 	return result
 }

@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+Breaking, in place before the 0.7 release: `semreg/v1/packs/thermal` follows
+the accepted thermal placement of the thermal pack in docs-semantic. Every
+thermal field declares exactly one fact dimension, the resource dimension of
+its subject; there is no qualifier dimension, and the four quantity dimensions
+are removed. The pack has 32 fields, ten resource dimensions (system, zone,
+circuit, domestic hot water, ventilation, heat generator, thermal store,
+terminal unit, refrigerant circuit and compressor), ten services, twelve
+capabilities and the same two operations. Every quantity is in an SI unit:
+kelvin for temperatures, a 0 to 1 ratio for humidity and demand, cubic metre
+per second, pascal, reciprocal second, watt and joule. The bounds of earlier
+fields are their earlier bounds converted exactly (degree Celsius plus 273.15,
+percent divided by 100, the flow bound restated as 0.2 cubic metre per
+second); `thermal.operation.set_temperature` keeps its argument
+`thermal.setpoint.temperature_setpoint`, now in kelvin from 223.15 to 423.15.
+The water temperature is replaced by the circuit flow temperature and the
+hot-water temperature, and the power by the heat generator's
+`thermal.measurement.thermal_power`; the removed identifiers have no alias,
+shim or dual acceptance. Without the catalog `ValidateFact` keeps the rule of
+one text dimension per fact, now the field's resource dimension; under graph
+enforcement `ValidateGraphFact` accepts that dimension only when the catalog
+declares it as the field's resolved subject with no qualifier, and only with a
+resource identifier as its value. The five pack relation definitions,
+`thermal.relation.<name>` with their endpoint dimensions and cardinality, are
+checked against the copied vectors in the contract test, as the other typed
+packs check theirs. The thermal pack vectors, the element catalog and the graph
+vectors are re-copied byte for byte, and their SHA-256 pins in
+`fixtures/README.md`, `TestGraphAcceptanceVectorsPin` and `graph.PinnedDigest`
+move in place. The graph vector harness applies the `set_disposition`
+catalog mutations of a prior state to a copy of the pinned catalog, and the
+graph tests that need an `unknown` entry set one by a stated mutation, since
+the committed catalog has none left. The thermal rows of `naming-inventory.json`
+and their bindings in `naming-consumers.json` follow the naming contract: the
+removed identifiers are dropped, the added ones are provisional and the three
+proven renames carry their new unit and subject. Unit rule: canonical units in
+the registry are SI and a customary unit appears only at display, in a
+consumer; the strict reading used here is a working reading not yet confirmed
+by the project owner. No pack or contract version is raised. Gateway
+follow-up: the eBUS thermal family publication moves every thermal fact to the
+renamed fields, the resource dimension of its subject and the SI unit
+(degree Celsius plus 273.15 to kelvin, percent divided by 100 to ratio,
+litre per minute divided by 60 000 to cubic metre per second with the
+declared rounding, bar times 100 000 to pascal, kilowatt-hour times 3 600 000
+to joule), keeps the native value and unit in the evidence, and moves its
+pinned semantic revision with it.
+
 `semreg/v1/catalog` decodes and validates the optional family-row member
 `further_semantic_packs`, an in-place edit of `family-catalog/v1` before the
 0.7 release: 1 through 4 exact `PackRef` strings, omitted when empty, allowed

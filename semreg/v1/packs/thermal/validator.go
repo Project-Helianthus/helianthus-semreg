@@ -3,7 +3,6 @@ package thermal
 import (
 	"math/big"
 	"reflect"
-	"sort"
 	"strings"
 
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
@@ -30,10 +29,10 @@ func (validator) ValidateFact(key semreg.FactKey, value *semreg.Value) error {
 	return validateFact(key, value, validateDimensions)
 }
 
-// ValidateGraphFact validates a fact under graph enforcement: the dimensions
-// are exactly the ones the catalog declares for the field, the resource
-// dimension carries an opaque resource identifier and every qualifier
-// dimension keeps the shape it has without the catalog.
+// ValidateGraphFact validates a fact under graph enforcement: its one
+// dimension is the field's resource dimension, the catalog declares that
+// dimension as the resolved subject of the field with no qualifier dimension,
+// and its value is an opaque resource identifier.
 func (validator) ValidateGraphFact(key semreg.FactKey, value *semreg.Value, subject semreg.GraphFactSubject) error {
 	return validateFact(key, value, func(values []semreg.Dimension, expected semreg.DefinitionID) error {
 		return graphDimensionsOK(values, expected, subject)
@@ -299,31 +298,19 @@ func contains(values []string, expected string) bool {
 }
 func failure(id semreg.ErrorID, detail string) error { return &semreg.Error{ID: id, Detail: detail} }
 
-// graphDimensionsOK replaces the single text dimension of a field under graph
-// enforcement: exactly the declared resource dimension, whose value is an
-// opaque identifier, plus the declared qualifier dimensions. The field's own
-// dimension is one of them.
+// graphDimensionsOK keeps the single dimension of a field under graph
+// enforcement: it is the field's resource dimension, the catalog declares it as
+// the field's resolved subject without a qualifier dimension, and its value
+// names a resource.
 func graphDimensionsOK(values []semreg.Dimension, expected semreg.DefinitionID, subject semreg.GraphFactSubject) error {
-	declared := append([]semreg.DefinitionID{}, subject.Qualifiers...)
-	if subject.Resolved {
-		declared = append(declared, subject.Dimension)
+	if err := validateDimensions(values, expected); err != nil {
+		return err
 	}
-	sort.Slice(declared, func(i, j int) bool { return declared[i] < declared[j] })
-	if len(values) != len(declared) {
-		return failure(semreg.InvalidValue, "thermal fact dimensions")
+	if !subject.Resolved || subject.Dimension != expected || len(subject.Qualifiers) != 0 {
+		return failure(semreg.InvalidValue, "thermal fact subject")
 	}
-	own := false
-	for i, d := range values {
-		if d.ID != declared[i] || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
-			return failure(semreg.InvalidValue, "thermal fact dimension")
-		}
-		if subject.Resolved && d.ID == subject.Dimension && semreg.ResourceID(*d.Value.Text).Validate() != nil {
-			return failure(semreg.InvalidValue, "thermal fact resource dimension")
-		}
-		own = own || d.ID == expected
-	}
-	if !own {
-		return failure(semreg.InvalidValue, "thermal fact dimension")
+	if semreg.ResourceID(*values[0].Value.Text).Validate() != nil {
+		return failure(semreg.InvalidValue, "thermal fact resource dimension")
 	}
 	return nil
 }

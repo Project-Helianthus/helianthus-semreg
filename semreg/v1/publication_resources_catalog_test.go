@@ -41,6 +41,49 @@ func catalogKernel(t *testing.T, validators ...semreg.PackValidator) *semreg.Pub
 	return kernel
 }
 
+// pinnedMutation is the pinned catalog as a registry registers it with one
+// stated catalog mutation: the decoded mutated document under the pinned
+// digest, with the synthetic scheme listed.
+type pinnedMutation struct{ listedSchemes }
+
+func (pinnedMutation) Digest() semreg.Digest { return graph.PinnedDigest }
+
+// mutatedCatalogKernel registers the catalog with one member entry set to
+// unknown: no plane, a reason and a tracking issue.
+func mutatedCatalogKernel(t *testing.T, id, reason string, validators ...semreg.PackValidator) *semreg.PublicationKernel {
+	t.Helper()
+	embedded, err := graph.Embedded()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(embedded.Bytes(), &doc); err != nil {
+		t.Fatal(err)
+	}
+	found := 0
+	for _, item := range doc["elements"].([]any) {
+		entry := item.(map[string]any)
+		if entry["ref"].(map[string]any)["id"] == id {
+			found++
+			entry["disposition"], entry["planes"], entry["reason"] = "unknown", []any{}, reason
+			entry["tracking"] = "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"
+		}
+	}
+	raw, err := json.Marshal(doc)
+	if err != nil || found != 1 {
+		t.Fatalf("mutation of %s: %d entries, %v", id, found, err)
+	}
+	catalog, err := graph.Decode(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := semreg.NewGraphPublicationKernel("asset:pv:01", pinnedMutation{listedSchemes{catalog}}, validators...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return kernel
+}
+
 func catalogEvidence(n int) []semreg.EvidenceRef {
 	return []semreg.EvidenceRef{{Owner: "owner.test", Kind: "evidence.test", Digest: semreg.Digest(fmt.Sprintf("sha256:%064x", n)), Contract: "test.contract/v1", Access: semreg.EvidenceAccessPublic, Redaction: semreg.RedactionNone}}
 }
@@ -254,7 +297,10 @@ func TestResourcePublicationAgainstTheElementCatalog(t *testing.T) {
 	})
 
 	t.Run("G-NEG-RES-1 and PLN-7 with the thermal pack", func(t *testing.T) {
-		kernel := catalogKernel(t, thermal.New())
+		// The committed catalog has no unknown entry. As the graph vector
+		// does, the catalog is registered with the thermal circuit kind set
+		// to unknown by one stated mutation.
+		kernel := mutatedCatalogKernel(t, "resource.thermal_circuit", "catalog.reason.no_fact_or_relation", thermal.New())
 		system := catalogBatch("source:configuration:01", "source-epoch:configuration:01", "1", "0")
 		system.ResourceUpserts = []semreg.Resource{catalogOperatorResource("resource:thermal-system:01", "resource.thermal_system", semreg.AnchorFunction, "thermal-system-1", nil)}
 		catalogApply(t, kernel, system, "")
@@ -264,11 +310,24 @@ func TestResourcePublicationAgainstTheElementCatalog(t *testing.T) {
 		circuit.ResourceUpserts = []semreg.Resource{catalogOperatorResource("resource:thermal-circuit:01", "resource.thermal_circuit", semreg.AnchorFunction, "circuit-1", &parent)}
 		catalogApply(t, kernel, circuit, semreg.MembershipMissing)
 
-		// A fact of an unknown definition names no resource and is published.
-		driver := catalogBatch("source:pv:01", "source-epoch:pv:01", "1", "1")
-		driver.BindingUpserts = []semreg.NativeBinding{{BindingID: "binding:pv:01", AssetID: "asset:pv:01", SourceID: "source:pv:01", SourceEpochID: "source-epoch:pv:01", DriverGeneration: "1", NativeResource: catalogEvidence(2)[0], State: semreg.BindingCurrent, Revision: "1"}}
-		driver.IdentityLinkUpserts = []semreg.IdentityLink{{AssetID: "asset:pv:01", BindingID: "binding:pv:01", State: semreg.LinkQualified, Basis: catalogEvidence(3), Revision: "1"}}
-		driver.FactUpserts = []semreg.FactCandidate{catalogFact("candidate:air:01", catalogThermal, "thermal.measurement.air_temperature", "thermal.dimension.temperature", "room", "21", 0, "unit.celsius", "binding:pv:01")}
-		catalogApply(t, kernel, driver, "")
+		// A thermal fact names the resource it describes in its one resource
+		// dimension: text that is no resource identifier, a resource that
+		// does not exist and a resource of another kind are refused.
+		for _, tc := range []struct {
+			text string
+			want semreg.ErrorID
+		}{
+			{"zone 1", semreg.InvalidValue},
+			{"resource:zone:01", semreg.DanglingReference},
+			{"resource:thermal-system:01", semreg.IdentityDrift},
+		} {
+			driver := catalogBatch("source:pv:01", "source-epoch:pv:01", "1", "1")
+			driver.BindingUpserts = []semreg.NativeBinding{{BindingID: "binding:pv:01", AssetID: "asset:pv:01", SourceID: "source:pv:01", SourceEpochID: "source-epoch:pv:01", DriverGeneration: "1", NativeResource: catalogEvidence(2)[0], State: semreg.BindingCurrent, Revision: "1"}}
+			// The binding observes the thermal system, so only the subject of
+			// the fact is at fault.
+			driver.IdentityLinkUpserts = []semreg.IdentityLink{{AssetID: "asset:pv:01", BindingID: "binding:pv:01", State: semreg.LinkQualified, Basis: catalogEvidence(3), Revision: "1", Resource: &parent}}
+			driver.FactUpserts = []semreg.FactCandidate{catalogFact("candidate:air:01", catalogThermal, "thermal.measurement.air_temperature", "thermal.dimension.zone", tc.text, "29415", -2, "unit.kelvin", "binding:pv:01")}
+			catalogApply(t, kernel, driver, tc.want)
+		}
 	})
 }

@@ -1,7 +1,7 @@
 {
   "contract": "helianthus.semantic.graph.acceptance/v1",
   "kernel_contract": "helianthus.semantic.kernel/v1",
-  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:14c36bfcf1fafd22149e05f3ad4b11ecc4b8ba54723c1dc16a78f571c2713d17"},
+  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:17a741942cfa778fabc5e4eb6e79aa69a7557df17cf578924768445def86f4e8"},
   "synthetic_identification_schemes": ["synthetic.serial"],
   "error_ids": [
     "ambiguous_route",
@@ -33,6 +33,22 @@
       "name": "catalog-registered-for-cut-assembly",
       "registry": {
         "element_catalog": "registered",
+        "packs": [
+          {"id": "helianthus.pack.infrastructure", "version": "1.0.0"},
+          {"id": "helianthus.pack.pv", "version": "1.0.0"},
+          {"id": "helianthus.pack.thermal", "version": "1.0.0"}
+        ],
+        "identification_schemes": ["synthetic.serial"]
+      },
+      "batches": []
+    },
+    {
+      "name": "catalog-registered-with-an-unknown-fact-for-cut-assembly",
+      "registry": {
+        "element_catalog": "registered",
+        "catalog_mutations": [
+          {"set_disposition": {"ref": {"owner": {"kind": "pack", "pack": {"id": "helianthus.pack.thermal", "version": "1.0.0"}}, "id": "thermal.demand.level", "version": "1.0.0"}, "disposition": "unknown", "reason": "catalog.reason.subject_unresolved", "tracking": "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"}}
+        ],
         "packs": [
           {"id": "helianthus.pack.infrastructure", "version": "1.0.0"},
           {"id": "helianthus.pack.pv", "version": "1.0.0"},
@@ -3708,6 +3724,9 @@
       "name": "thermal-system-without-circuits",
       "registry": {
         "element_catalog": "registered",
+        "catalog_mutations": [
+          {"set_disposition": {"ref": {"owner": {"kind": "core", "contract": "helianthus.semantic.kernel/v1"}, "id": "resource.thermal_circuit", "version": "1.0.0"}, "disposition": "unknown", "reason": "catalog.reason.no_fact_or_relation", "tracking": "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"}}
+        ],
         "packs": [{"id": "helianthus.pack.thermal", "version": "1.0.0"}]
       },
       "batches": [
@@ -3765,6 +3784,9 @@
       "name": "thermal-zone-with-qualified-setpoint-capability",
       "registry": {
         "element_catalog": "registered",
+        "catalog_mutations": [
+          {"set_disposition": {"ref": {"owner": {"kind": "pack", "pack": {"id": "helianthus.pack.thermal", "version": "1.0.0"}}, "id": "thermal.operation.set_temperature", "version": "1.0.0"}, "disposition": "unknown", "reason": "catalog.reason.argument_unresolved", "tracking": "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"}}
+        ],
         "packs": [{"id": "helianthus.pack.thermal", "version": "1.0.0"}]
       },
       "batches": [
@@ -4384,6 +4406,270 @@
         }
       ],
       "admission_context": {"authority_resolves": true, "deadline_open": true}
+    },
+    {
+      "name": "thermal-heat-generator-supplying-one-circuit",
+      "registry": {
+        "element_catalog": "registered",
+        "packs": [
+          {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "batches": [
+        {
+          "batch_id": "batch:thermal:02:configuration:01:1",
+          "asset_id": "asset:thermal:02",
+          "source_id": "source:configuration:01",
+          "source_epoch_id": "source-epoch:configuration:01",
+          "driver_generation": "1",
+          "sequence": "1",
+          "expected_semantic_revision": "0",
+          "resource_upserts": [
+            {
+              "resource_id": "resource:thermal-system:02",
+              "kind": "resource.thermal_system",
+              "anchor": {
+                "class": "function",
+                "basis": "operator_slot",
+                "slot": "thermal-system-2",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:3c8466913566e1f7bf1d8c31bca1893073459f7be653edf9fe0af926bf038b11",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "state": "current",
+              "origin": {
+                "origin_id": "origin:operator:thermal-system-2",
+                "kind": "operator",
+                "source_id": "source:configuration:01",
+                "source_epoch_id": "source-epoch:configuration:01",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:6a8559fd07cb281dc7668d1cbfb069b7226fe26d99e9fb0c5b85d47cb772f18d",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "revision": "1"
+            },
+            {
+              "resource_id": "resource:heat-generator:01",
+              "kind": "resource.heat_generator",
+              "anchor": {
+                "class": "equipment",
+                "basis": "operator_slot",
+                "slot": "heat-generator-1",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:17b8ce96c49c632a15fe631160c3b3d4e3578a7e5e2b928bcff5cf505135205c",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "state": "current",
+              "origin": {
+                "origin_id": "origin:operator:heat-generator-1",
+                "kind": "operator",
+                "source_id": "source:configuration:01",
+                "source_epoch_id": "source-epoch:configuration:01",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:35d3200566d1b8ef1d12e38d425afbe14393691aacf0d8a4074a27e68131dcba",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "revision": "1"
+            },
+            {
+              "resource_id": "resource:thermal-circuit:02",
+              "kind": "resource.thermal_circuit",
+              "anchor": {
+                "class": "function",
+                "basis": "operator_slot",
+                "parent": "resource:thermal-system:02",
+                "slot": "circuit-2",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:01be146e0a0cf09970dd5fcb1da2d44f1894294ae60e31a7b9a1322cea1c13d2",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "state": "current",
+              "origin": {
+                "origin_id": "origin:operator:circuit-2",
+                "kind": "operator",
+                "source_id": "source:configuration:01",
+                "source_epoch_id": "source-epoch:configuration:01",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:17cdfda5d1517de9ef8812c77186f86dc111c2841f9840834ccdc1d0430f5074",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "revision": "1"
+            }
+          ],
+          "relation_upserts": [
+            {
+              "definition": {
+                "owner": {
+                  "kind": "pack",
+                  "pack": {
+                    "id": "helianthus.pack.thermal",
+                    "version": "1.0.0"
+                  }
+                },
+                "id": "thermal.relation.fluid_supply",
+                "version": "1.0.0"
+              },
+              "from": "resource:heat-generator:01",
+              "to": "resource:thermal-circuit:02",
+              "state": "qualified",
+              "basis_class": "configuration",
+              "basis": [
+                {
+                  "owner": "helianthus.example",
+                  "kind": "evidence.synthetic",
+                  "digest": "sha256:e006b169145e8b257910f61531d9c3d070995f432992df1b25758d8ca8c9e553",
+                  "contract": "helianthus.example.evidence/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ],
+              "origin": {
+                "origin_id": "origin:operator:fluid-supply-1",
+                "kind": "operator",
+                "source_id": "source:configuration:01",
+                "source_epoch_id": "source-epoch:configuration:01",
+                "evidence": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:41a74c9265afbec23216b1701323a96c482b9c953d44dc911a0e151c5881ddcb",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ]
+              },
+              "revision": "1"
+            }
+          ]
+        },
+        {
+          "batch_id": "batch:thermal:02:thermal:01:1",
+          "asset_id": "asset:thermal:02",
+          "source_id": "source:thermal:01",
+          "source_epoch_id": "source-epoch:thermal:01",
+          "driver_generation": "1",
+          "sequence": "1",
+          "expected_semantic_revision": "1",
+          "binding_upserts": [
+            {
+              "binding_id": "binding:thermal:02",
+              "asset_id": "asset:thermal:02",
+              "source_id": "source:thermal:01",
+              "source_epoch_id": "source-epoch:thermal:01",
+              "driver_generation": "1",
+              "native_resource": {
+                "owner": "helianthus.example",
+                "kind": "evidence.synthetic",
+                "digest": "sha256:ff42e3dc8acfb739feb6a1b7f07fd6c211876f3a180cc95c287e191e782f8f2b",
+                "contract": "helianthus.example.evidence/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "state": "current",
+              "revision": "1"
+            },
+            {
+              "binding_id": "binding:thermal:03",
+              "asset_id": "asset:thermal:02",
+              "source_id": "source:thermal:01",
+              "source_epoch_id": "source-epoch:thermal:01",
+              "driver_generation": "1",
+              "native_resource": {
+                "owner": "helianthus.example",
+                "kind": "evidence.synthetic",
+                "digest": "sha256:d88add8b8aeabbe1c190f9a0dd5c23b7c8924250e4eaf3da5890c8a22fc5a638",
+                "contract": "helianthus.example.evidence/v1",
+                "access": "public",
+                "redaction": "none"
+              },
+              "state": "current",
+              "revision": "1"
+            }
+          ],
+          "identity_link_upserts": [
+            {
+              "asset_id": "asset:thermal:02",
+              "binding_id": "binding:thermal:02",
+              "state": "qualified",
+              "basis": [
+                {
+                  "owner": "helianthus.example",
+                  "kind": "evidence.synthetic",
+                  "digest": "sha256:ca0673a64a48e2d59441c55bc5736e982ee86e3b74b652ccbe8f30def1896f61",
+                  "contract": "helianthus.example.evidence/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ],
+              "revision": "1",
+              "resource": "resource:thermal-circuit:02"
+            },
+            {
+              "asset_id": "asset:thermal:02",
+              "binding_id": "binding:thermal:03",
+              "state": "qualified",
+              "basis": [
+                {
+                  "owner": "helianthus.example",
+                  "kind": "evidence.synthetic",
+                  "digest": "sha256:6b7e1b18385a8dd3d02d246a6f12c18e5c3059fc0034a038eb1e0f975c520403",
+                  "contract": "helianthus.example.evidence/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ],
+              "revision": "1",
+              "resource": "resource:heat-generator:01"
+            }
+          ]
+        }
+      ]
     }
   ],
   "vectors": [
@@ -4412,25 +4698,10 @@
           "every_registered_pack_covered",
           "non_member_operations_registered_inadmissible"
         ],
-        "inadmissible_operations": [
-          {
-            "owner": {"kind": "pack", "pack": {"id": "helianthus.pack.thermal", "version": "1.0.0"}},
-            "id": "thermal.operation.set_temperature",
-            "version": "1.0.0"
-          }
-        ]
+        "inadmissible_operations": []
       },
-      "definitions": [
-        {
-          "ref": {
-            "owner": {"kind": "pack", "pack": {"id": "helianthus.pack.thermal", "version": "1.0.0"}},
-            "id": "thermal.operation.set_temperature",
-            "version": "1.0.0"
-          },
-          "disposition": "unknown"
-        }
-      ],
-      "criterion": "A registry constructed with the pinned catalog and five covered packs is graph-enforced and flags exactly the operations without disposition member as inadmissible."
+      "definitions": [],
+      "criterion": "A registry constructed with the pinned catalog and five covered packs is graph-enforced and flags exactly the operations without disposition member as inadmissible; under the accepted thermal placement every operation is a member, so none is flagged."
     },
     {
       "id": "G-NEG-ACT-1",
@@ -6555,6 +6826,188 @@
       "criterion": "A resource dimension value resolves to a current resource of the dimension's kind in the same snapshot."
     },
     {
+      "id": "G-NEG-RES-3",
+      "polarity": "negative",
+      "record_type": "PublicationBatch",
+      "operation": "apply",
+      "coverage": [
+        "resource"
+      ],
+      "prior_state": "thermal-heat-generator-supplying-one-circuit",
+      "input": {
+        "batch_id": "batch:thermal:02:thermal:01:2",
+        "asset_id": "asset:thermal:02",
+        "source_id": "source:thermal:01",
+        "source_epoch_id": "source-epoch:thermal:01",
+        "driver_generation": "1",
+        "sequence": "2",
+        "expected_semantic_revision": "2",
+        "fact_upserts": [
+          {
+            "candidate_id": "candidate:circuit-flow-temperature:03",
+            "key": {
+              "pack_id": "helianthus.pack.thermal",
+              "pack_version": "1.0.0",
+              "fact_id": "thermal.measurement.circuit_flow_temperature",
+              "dimensions": [
+                {
+                  "id": "thermal.dimension.circuit",
+                  "value": {
+                    "kind": "text",
+                    "text": "resource:heat-generator:01"
+                  }
+                }
+              ]
+            },
+            "value": {
+              "kind": "quantity",
+              "quantity": {
+                "number": {
+                  "coefficient": "31815",
+                  "exponent10": -2
+                },
+                "unit": "unit.kelvin"
+              }
+            },
+            "quality": {
+              "assertion": "observed",
+              "qualification": "qualified",
+              "promotion": "promoted",
+              "validity": "good"
+            },
+            "binding_id": "binding:thermal:03",
+            "source_epoch_id": "source-epoch:thermal:01",
+            "driver_generation": "1",
+            "origin": {
+              "origin_id": "origin:binding:thermal:03",
+              "kind": "native_observation",
+              "source_id": "source:thermal:01",
+              "source_epoch_id": "source-epoch:thermal:01",
+              "binding_id": "binding:thermal:03",
+              "evidence": [
+                {
+                  "owner": "helianthus.example",
+                  "kind": "evidence.synthetic",
+                  "digest": "sha256:3ee50ac4ab9f1b70a61477c1880f29b336502c9c4e12dfe4d52b6ba6cea833b1",
+                  "contract": "helianthus.example.evidence/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ]
+            },
+            "evidence": [
+              {
+                "owner": "helianthus.example",
+                "kind": "evidence.synthetic",
+                "digest": "sha256:99a53f2188a49b8aec103dc5f34140123d18a828cedf88e3bbabafd571f5984e",
+                "contract": "helianthus.example.evidence/v1",
+                "access": "public",
+                "redaction": "none"
+              }
+            ],
+            "revision": "1"
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "identity_drift",
+        "state_unchanged": true
+      },
+      "definitions": [
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.thermal_system",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.heat_generator",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.thermal_circuit",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.relation.fluid_supply",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "energy",
+            "hydraulic"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.measurement.circuit_flow_temperature",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "energy",
+            "hydraulic"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.circuit",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "physical",
+            "energy",
+            "hydraulic",
+            "control"
+          ]
+        }
+      ],
+      "criterion": "A thermal fact is published only on a resource of its subject kind: a circuit flow temperature whose circuit dimension names a current heat generator is rejected (RES-5)."
+    },
+    {
       "id": "G-POS-REL-1",
       "polarity": "positive",
       "record_type": "PublicationBatch",
@@ -7086,6 +7539,193 @@
         }
       ],
       "criterion": "An evidenced absence statement says the inverter has no array relation of this definition; without it the relation would be unknown."
+    },
+    {
+      "id": "G-POS-REL-6",
+      "polarity": "positive",
+      "record_type": "PublicationBatch",
+      "operation": "apply",
+      "coverage": [
+        "relation",
+        "plane_membership"
+      ],
+      "prior_state": "thermal-heat-generator-supplying-one-circuit",
+      "input": {
+        "batch_id": "batch:thermal:02:thermal:01:2",
+        "asset_id": "asset:thermal:02",
+        "source_id": "source:thermal:01",
+        "source_epoch_id": "source-epoch:thermal:01",
+        "driver_generation": "1",
+        "sequence": "2",
+        "expected_semantic_revision": "2",
+        "fact_upserts": [
+          {
+            "candidate_id": "candidate:circuit-flow-temperature:02",
+            "key": {
+              "pack_id": "helianthus.pack.thermal",
+              "pack_version": "1.0.0",
+              "fact_id": "thermal.measurement.circuit_flow_temperature",
+              "dimensions": [
+                {
+                  "id": "thermal.dimension.circuit",
+                  "value": {
+                    "kind": "text",
+                    "text": "resource:thermal-circuit:02"
+                  }
+                }
+              ]
+            },
+            "value": {
+              "kind": "quantity",
+              "quantity": {
+                "number": {
+                  "coefficient": "31815",
+                  "exponent10": -2
+                },
+                "unit": "unit.kelvin"
+              }
+            },
+            "quality": {
+              "assertion": "observed",
+              "qualification": "qualified",
+              "promotion": "promoted",
+              "validity": "good"
+            },
+            "binding_id": "binding:thermal:02",
+            "source_epoch_id": "source-epoch:thermal:01",
+            "driver_generation": "1",
+            "origin": {
+              "origin_id": "origin:binding:thermal:02",
+              "kind": "native_observation",
+              "source_id": "source:thermal:01",
+              "source_epoch_id": "source-epoch:thermal:01",
+              "binding_id": "binding:thermal:02",
+              "evidence": [
+                {
+                  "owner": "helianthus.example",
+                  "kind": "evidence.synthetic",
+                  "digest": "sha256:6e62cf8a50a0fef3cf939485bc38d0cbd46d7701a74ef42d739a867eb3f051ca",
+                  "contract": "helianthus.example.evidence/v1",
+                  "access": "public",
+                  "redaction": "none"
+                }
+              ]
+            },
+            "evidence": [
+              {
+                "owner": "helianthus.example",
+                "kind": "evidence.synthetic",
+                "digest": "sha256:bd5dbcb97d9b510c518ea896f544da2bb6a4a7939b2c709d0923772b886daf52",
+                "contract": "helianthus.example.evidence/v1",
+                "access": "public",
+                "redaction": "none"
+              }
+            ],
+            "revision": "1"
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "fact_stored",
+          "subject_resolves_to_dimension_kind",
+          "relation_instance_stored",
+          "endpoints_resolve_in_asset"
+        ]
+      },
+      "definitions": [
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.thermal_system",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.heat_generator",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.thermal_circuit",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.relation.fluid_supply",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "energy",
+            "hydraulic"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.measurement.circuit_flow_temperature",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "energy",
+            "hydraulic"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.circuit",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "physical",
+            "energy",
+            "hydraulic",
+            "control"
+          ]
+        }
+      ],
+      "criterion": "A circuit flow temperature on its thermal circuit is a hydraulic fact instance, and the heat generator's qualified fluid-supply instance to that circuit is a hydraulic relation instance; both definitions are members of the hydraulic and energy planes."
     },
     {
       "id": "G-NEG-REL-1",
@@ -11832,13 +12472,13 @@
       "record_type": "GraphCut",
       "operation": "assemble_cut",
       "coverage": ["graph_cut", "activation"],
-      "prior_state": "catalog-registered-for-cut-assembly",
+      "prior_state": "catalog-registered-with-an-unknown-fact-for-cut-assembly",
       "input": {
         "completeness": "complete",
         "snapshots": [
           {
             "contract": "helianthus.semantic.kernel/v1",
-            "snapshot_id": "sha256:9b838207e900ac447758fc402ea5868b2664d190dc77f6fa9fe5e89322b810c4",
+            "snapshot_id": "sha256:b04d98ad847f8db6b99e3ae65fc1e5bd16461042d432596deb333d6d115b9622",
             "asset_id": "asset:thermal:01",
             "revisions": {
               "semantic": "1",
@@ -11925,7 +12565,7 @@
                   "pack_version": "1.0.0",
                   "fact_id": "thermal.demand.level",
                   "dimensions": [
-                    {"id": "thermal.dimension.ratio", "value": {"kind": "text", "text": "demand"}}
+                    {"id": "thermal.dimension.ventilation", "value": {"kind": "text", "text": "resource:ventilation:01"}}
                   ]
                 },
                 "candidates": [
@@ -11937,16 +12577,16 @@
                       "fact_id": "thermal.demand.level",
                       "dimensions": [
                         {
-                          "id": "thermal.dimension.ratio",
-                          "value": {"kind": "text", "text": "demand"}
+                          "id": "thermal.dimension.ventilation",
+                          "value": {"kind": "text", "text": "resource:ventilation:01"}
                         }
                       ]
                     },
                     "value": {
                       "kind": "quantity",
                       "quantity": {
-                        "number": {"coefficient": "40", "exponent10": 0},
-                        "unit": "unit.percent"
+                        "number": {"coefficient": "4", "exponent10": -1},
+                        "unit": "unit.ratio"
                       }
                     },
                     "quality": {
@@ -12043,12 +12683,12 @@
         "result": "accept",
         "assertions": ["no_ungraphed_finding", "unknown_facts_not_counted"],
         "cut": {
-          "cut_id": "sha256:94b6fd73aa64431eaea964fd620531b374e6815b1b10646c4421857fe72557c2",
+          "cut_id": "sha256:bf3f94c5b31c662ae392d3266c9bb32f83f738b09b5107ba31f5b54d0199282f",
           "completeness": "complete",
           "members": [
             {
               "asset_id": "asset:thermal:01",
-              "snapshot_id": "sha256:9b838207e900ac447758fc402ea5868b2664d190dc77f6fa9fe5e89322b810c4"
+              "snapshot_id": "sha256:b04d98ad847f8db6b99e3ae65fc1e5bd16461042d432596deb333d6d115b9622"
             }
           ],
           "excluded_members": [],
@@ -12075,10 +12715,10 @@
               "kind": "pack",
               "pack": {"id": "helianthus.pack.thermal", "version": "1.0.0"}
             },
-            "id": "thermal.dimension.ratio",
+            "id": "thermal.dimension.ventilation",
             "version": "1.0.0"
           },
-          "disposition": "unknown"
+          "disposition": "member"
         }
       ],
       "criterion": "A member that publishes only facts of unknown definitions is not reported ungraphed."

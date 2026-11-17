@@ -17,9 +17,12 @@ func TestCanonicalThermalNamesAndNoAliases(t *testing.T) {
 		old, canonical, unit, dimension semreg.DefinitionID
 		min, max                        semreg.Decimal
 	}{
-		{"thermal.measurement.humidity_relative", "thermal.measurement.humidity", "unit.percent", "thermal.dimension.ratio", semreg.Decimal{Coefficient: "0"}, semreg.Decimal{Coefficient: "1", Exponent10: 2}},
-		{"thermal.setpoint.temperature", "thermal.setpoint.temperature_setpoint", "unit.celsius", "thermal.dimension.temperature", semreg.Decimal{Coefficient: "-5", Exponent10: 1}, semreg.Decimal{Coefficient: "15", Exponent10: 1}},
-		{"thermal.setpoint.dhw_temperature", "thermal.setpoint.dhw_temperature_setpoint", "unit.celsius", "thermal.dimension.temperature", semreg.Decimal{Coefficient: "-5", Exponent10: 1}, semreg.Decimal{Coefficient: "15", Exponent10: 1}},
+		{"thermal.measurement.humidity_relative", "thermal.measurement.humidity", "unit.ratio", "thermal.dimension.zone", semreg.Decimal{Coefficient: "0"}, semreg.Decimal{Coefficient: "1"}},
+		{"thermal.setpoint.temperature", "thermal.setpoint.temperature_setpoint", "unit.kelvin", "thermal.dimension.zone", semreg.Decimal{Coefficient: "22315", Exponent10: -2}, semreg.Decimal{Coefficient: "42315", Exponent10: -2}},
+		{"thermal.setpoint.dhw_temperature", "thermal.setpoint.dhw_temperature_setpoint", "unit.kelvin", "thermal.dimension.dhw", semreg.Decimal{Coefficient: "22315", Exponent10: -2}, semreg.Decimal{Coefficient: "42315", Exponent10: -2}},
+		{"thermal.measurement.water_temperature", "thermal.measurement.circuit_flow_temperature", "unit.kelvin", "thermal.dimension.circuit", semreg.Decimal{Coefficient: "17315", Exponent10: -2}, semreg.Decimal{Coefficient: "47315", Exponent10: -2}},
+		{"thermal.measurement.water_temperature", "thermal.measurement.dhw_temperature", "unit.kelvin", "thermal.dimension.dhw", semreg.Decimal{Coefficient: "17315", Exponent10: -2}, semreg.Decimal{Coefficient: "47315", Exponent10: -2}},
+		{"thermal.measurement.power", "thermal.measurement.thermal_power", "unit.watt", "thermal.dimension.heat_generator", semreg.Decimal{Coefficient: "-1", Exponent10: 6}, semreg.Decimal{Coefficient: "1", Exponent10: 6}},
 	} {
 		t.Run(string(tc.canonical), func(t *testing.T) {
 			spec, ok := findField(tc.canonical)
@@ -83,7 +86,7 @@ func TestCanonicalSetpointReadbackIdentityAxes(t *testing.T) {
 		{"pack_id", func(k *semreg.FactKey) { k.PackID = "other.pack" }},
 		{"pack_version", func(k *semreg.FactKey) { k.PackVersion = "1.0.1" }},
 		{"fact_id", func(k *semreg.FactKey) { k.FactID = "thermal.setpoint.dhw_temperature_setpoint" }},
-		{"dimension_id", func(k *semreg.FactKey) { k.Dimensions[0].ID = "thermal.dimension.zone" }},
+		{"dimension_id", func(k *semreg.FactKey) { k.Dimensions[0].ID = "thermal.dimension.dhw" }},
 		{"dimension_value", func(k *semreg.FactKey) { other := "other"; k.Dimensions[0].Value.Text = &other }},
 		{"dimension_kind", func(k *semreg.FactKey) {
 			v := true

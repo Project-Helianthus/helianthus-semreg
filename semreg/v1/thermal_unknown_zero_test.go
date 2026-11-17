@@ -15,6 +15,9 @@ import (
 // Contract sources: fixtures/v1/thermal-hvac-pack-vectors.json (thermal v1,
 // pack 1.0.0), and the public kernel/projection v1 APIs. All observations are
 // synthetic. Thermal status fields are symbols; the pack has no boolean fact.
+// Every thermal quantity is in its SI unit and each fact has the one resource
+// dimension of its subject: the exact zero is a demand level of 0 (a 0 to 1
+// ratio), since 0 kelvin is outside every thermal temperature bound.
 func TestK14ZeroUnknownProjection(t *testing.T) {
 	kernel, batch := k14Initial(t)
 	snapshot, raw := k14Apply(t, kernel, batch)
@@ -23,8 +26,8 @@ func TestK14ZeroUnknownProjection(t *testing.T) {
 		t.Fatalf("snapshot round trip: %v", err)
 	}
 	zero := decoded.Facts[0].Candidates[0].Value
-	if zero == nil || zero.Kind != semreg.ValueQuantity || zero.Quantity == nil || zero.Quantity.Number != (semreg.Decimal{Coefficient: "0", Exponent10: 0}) || zero.Quantity.Unit != "unit.celsius" {
-		t.Fatalf("valid zero temperature lost: %+v", zero)
+	if zero == nil || zero.Kind != semreg.ValueQuantity || zero.Quantity == nil || zero.Quantity.Number != (semreg.Decimal{Coefficient: "0", Exponent10: 0}) || zero.Quantity.Unit != "unit.ratio" {
+		t.Fatalf("valid zero demand level lost: %+v", zero)
 	}
 	unknown := semreg.DefinitionID("thermal.measurement.humidity")
 	reason := semreg.DefinitionID("reason.value_unknown")
@@ -96,24 +99,34 @@ func TestK14InvalidNumericPartialObservation(t *testing.T) {
 		value semreg.Value
 		want  semreg.ErrorID
 	}{
-		{"wrong-unit", k14Temperature("23", 0, "unit.watt"), semreg.InvalidValue},
-		{"noncanonical-zero-scale", k14Temperature("0", -1, "unit.celsius"), semreg.InvalidDecimal},
-		{"scale-outside-kernel", k14Temperature("1", 19, "unit.celsius"), semreg.InvalidDecimal},
-		{"malformed-number", k14Temperature("NaN", 0, "unit.celsius"), semreg.InvalidDecimal},
-		{"noncanonical-number", k14Temperature("230", -1, "unit.celsius"), semreg.InvalidDecimal},
-		{"scaled-value-outside-pack", k14Temperature("3", 2, "unit.celsius"), semreg.BoundsExceeded},
+		{"wrong-unit", k14Quantity("29615", -2, "unit.watt"), semreg.InvalidValue},
+		{"customary-unit", k14Quantity("23", 0, "unit.celsius"), semreg.InvalidValue},
+		{"noncanonical-zero-scale", k14Quantity("0", -1, "unit.kelvin"), semreg.InvalidDecimal},
+		{"scale-outside-kernel", k14Quantity("1", 19, "unit.kelvin"), semreg.InvalidDecimal},
+		{"malformed-number", k14Quantity("NaN", 0, "unit.kelvin"), semreg.InvalidDecimal},
+		{"noncanonical-number", k14Quantity("29610", -2, "unit.kelvin"), semreg.InvalidDecimal},
+		{"scaled-value-outside-pack", k14Quantity("5", 2, "unit.kelvin"), semreg.BoundsExceeded},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			kernel, initial := k14Initial(t)
-			// Exercise renamed setpoints through atomic failure and permitted partial retention.
-			for i, id := range []semreg.DefinitionID{"thermal.setpoint.dhw_temperature_setpoint", "thermal.setpoint.temperature_setpoint"} {
-				initial.FactUpserts[i].Key.FactID = id
+			// Exercise renamed setpoints, each on its own subject, through
+			// atomic failure and permitted partial retention.
+			for i, setpoint := range []struct {
+				id, dimension semreg.DefinitionID
+				value         semreg.Value
+			}{
+				{"thermal.setpoint.dhw_temperature_setpoint", "thermal.dimension.dhw", k14Quantity("32315", -2, "unit.kelvin")},
+				{"thermal.setpoint.temperature_setpoint", "thermal.dimension.zone", k14Quantity("29315", -2, "unit.kelvin")},
+			} {
+				initial.FactUpserts[i].Key = k14Key(setpoint.id, setpoint.dimension)
+				value := setpoint.value
+				initial.FactUpserts[i].Value = &value
 			}
 			before, beforeRaw := k14Apply(t, kernel, initial)
 			partial := k14Batch(initial, "2", "1")
 			good, bad := initial.FactUpserts[0], initial.FactUpserts[1]
 			good.Revision, bad.Revision = "2", "2"
-			goodValue := k14Temperature("1", 0, "unit.celsius")
+			goodValue := k14Quantity("27415", -2, "unit.kelvin")
 			good.Value, bad.Value = &goodValue, &tc.value
 			registry, err := semreg.NewRegistry(thermal.New())
 			if err != nil {
@@ -152,8 +165,15 @@ func TestK14InvalidNumericPartialObservation(t *testing.T) {
 	}
 }
 
-func k14Temperature(coefficient string, exponent int32, unit semreg.DefinitionID) semreg.Value {
+func k14Quantity(coefficient string, exponent int32, unit semreg.DefinitionID) semreg.Value {
 	return semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: coefficient, Exponent10: exponent}, Unit: unit}}
+}
+
+// k14Key is a thermal fact key with the one resource dimension of the
+// field's subject.
+func k14Key(id, dimension semreg.DefinitionID) semreg.FactKey {
+	text := "synthetic"
+	return semreg.FactKey{PackID: thermal.New().Pack().ID, PackVersion: "1.0.0", FactID: id, Dimensions: []semreg.Dimension{{ID: dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}}}}
 }
 
 func k14Initial(t *testing.T) (*semreg.PublicationKernel, semreg.PublicationBatch) {
@@ -187,13 +207,18 @@ func k14Initial(t *testing.T) (*semreg.PublicationKernel, semreg.PublicationBatc
 	}
 	batch := k14Batch(semreg.PublicationBatch{AssetID: template.AssetID, SourceID: template.Sources[0].SourceID, SourceEpochID: template.Sources[0].SourceEpochID, DriverGeneration: "1", ObservedAt: template.EvaluatedAt}, "1", "0")
 	batch.SourceUpserts, batch.BindingUpserts, batch.IdentityLinkUpserts = template.Sources, template.Bindings, template.IdentityLinks
-	for i, id := range []semreg.DefinitionID{"thermal.measurement.air_temperature", "thermal.measurement.water_temperature"} {
+	for _, fact := range []struct {
+		id, dimension semreg.DefinitionID
+		value         semreg.Value
+	}{
+		{"thermal.demand.level", "thermal.dimension.ventilation", k14Quantity("0", 0, "unit.ratio")},
+		{"thermal.measurement.air_temperature", "thermal.dimension.zone", k14Quantity("29615", -2, "unit.kelvin")},
+	} {
 		candidate := template.Facts[0].Candidates[0]
-		candidate.CandidateID = semreg.CandidateID("candidate:" + string(id))
+		candidate.CandidateID = semreg.CandidateID("candidate:" + string(fact.id))
 		candidate.Revision = "1"
-		dimension := "synthetic"
-		candidate.Key = semreg.FactKey{PackID: thermal.New().Pack().ID, PackVersion: "1.0.0", FactID: id, Dimensions: []semreg.Dimension{{ID: "thermal.dimension.temperature", Value: semreg.Value{Kind: semreg.ValueText, Text: &dimension}}}}
-		value := k14Temperature([]string{"0", "23"}[i], 0, "unit.celsius")
+		candidate.Key = k14Key(fact.id, fact.dimension)
+		value := fact.value
 		candidate.Value = &value
 		batch.FactUpserts = append(batch.FactUpserts, candidate)
 	}
@@ -221,8 +246,13 @@ func k14Apply(t *testing.T, kernel *semreg.PublicationKernel, batch semreg.Publi
 	return snapshot, raw
 }
 
+// k14Error requires an error with the stable identifier want; a nil error
+// fails, since ErrorIdentifier reports invalid_value for nil.
 func k14Error(t *testing.T, err error, want semreg.ErrorID) {
 	t.Helper()
+	if err == nil {
+		t.Fatalf("error = nil, want %s", want)
+	}
 	if got := semreg.ErrorIdentifier(err); got != want {
 		t.Fatalf("error = %s (%v), want %s", got, err, want)
 	}

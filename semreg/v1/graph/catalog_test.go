@@ -87,17 +87,17 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 		counts[element.ElementKind]++
 	}
 	want := map[graph.ElementKind]int{
-		graph.KindResourceKind: 28, graph.KindRelation: 22, graph.KindDimension: 34, graph.KindService: 29,
-		graph.KindFact: 88, graph.KindCapability: 32, graph.KindOperation: 7, graph.KindEffectRule: 7,
-		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 35,
+		graph.KindResourceKind: 33, graph.KindRelation: 28, graph.KindDimension: 35, graph.KindService: 34,
+		graph.KindFact: 107, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
+		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 40,
 	}
 	for kind, n := range want {
 		if counts[kind] != n {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 307 {
-		t.Errorf("entries = %d, want 307", n)
+	if n := len(catalog.Elements()); n != 353 {
+		t.Errorf("entries = %d, want 353", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)
@@ -153,9 +153,14 @@ func TestLookups(t *testing.T) {
 		t.Fatalf("DimensionKind(evse asset) = %q %v", kind, ok)
 	}
 	if kind, ok := catalog.DimensionKind(semreg.DefinitionRef{
-		Pack: semreg.PackRef{ID: "helianthus.pack.thermal", Version: "1.0.0"}, ID: "thermal.dimension.power", Version: "1.0.0",
-	}); ok {
-		t.Fatalf("a qualifier dimension has no kind, got %q", kind)
+		Pack: semreg.PackRef{ID: "helianthus.pack.thermal", Version: "1.0.0"}, ID: "thermal.dimension.heat_generator", Version: "1.0.0",
+	}); !ok || kind != "resource.heat_generator" {
+		t.Fatalf("DimensionKind(thermal heat generator) = %q %v", kind, ok)
+	}
+	for _, entry := range catalog.Elements() {
+		if entry.ElementKind == graph.KindDimension && (entry.Dimension == nil || entry.Dimension.Role != graph.RoleResource) {
+			t.Fatalf("dimension %s is not a resource dimension", entry.Ref.ID)
+		}
 	}
 	if kind, ok := catalog.ServiceSubjectKind(evseRef("evse.service.connector")); !ok || kind != "resource.connector" {
 		t.Fatalf("ServiceSubjectKind(connector) = %q %v", kind, ok)
@@ -166,7 +171,7 @@ func TestLookups(t *testing.T) {
 		t.Fatalf("CoreEntry(relation.relays) = %+v %v", core, ok)
 	}
 	if disposition, ok := catalog.DispositionOf(graph.CoreElement("resource.domestic_hot_water", "1.0.0")); !ok ||
-		disposition != graph.DispositionUnknown {
+		disposition != graph.DispositionMember {
 		t.Fatalf("DispositionOf(domestic_hot_water) = %q %v", disposition, ok)
 	}
 	if disposition, ok := catalog.DispositionOf(graph.CoreElement("kernel.item_kind", "1.0.0")); !ok ||
@@ -360,6 +365,15 @@ func findingsOf(t *testing.T, doc document) []graph.Finding {
 	return findings
 }
 
+// setUnknown makes a member entry unknown as a stated catalog mutation does:
+// no plane, a reason and a tracking issue. The committed catalog has no
+// unknown entry.
+func setUnknown(entry document) {
+	entry["disposition"], entry["planes"] = "unknown", []any{}
+	entry["reason"] = "catalog.reason.subject_unresolved"
+	entry["tracking"] = "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"
+}
+
 func requireFinding(t *testing.T, findings []graph.Finding, rule, clause string, id semreg.ErrorID, entry string) {
 	t.Helper()
 	for _, finding := range findings {
@@ -510,8 +524,14 @@ func TestCAT3Dispositions(t *testing.T) {
 		"member with a reason": {"evse.ac.voltage", func(entry document) {
 			entry["reason"] = "catalog.reason.synthetic"
 		}},
-		"unknown without tracking": {"resource.domestic_hot_water", func(entry document) { delete(entry, "tracking") }},
-		"unknown in a plane":       {"resource.domestic_hot_water", func(entry document) { entry["planes"] = []any{"physical"} }},
+		"unknown without tracking": {"thermal.demand.level", func(entry document) {
+			setUnknown(entry)
+			delete(entry, "tracking")
+		}},
+		"unknown in a plane": {"thermal.demand.level", func(entry document) {
+			setUnknown(entry)
+			entry["planes"] = []any{"control"}
+		}},
 		"unsupported with tracking": {"kernel.item_kind", func(entry document) {
 			entry["tracking"] = "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"
 		}},
@@ -560,6 +580,7 @@ func TestCAT4Closure(t *testing.T) {
 	})
 	t.Run("LNS-1 root kind with disposition unknown", func(t *testing.T) {
 		doc := decodeDocument(t)
+		setUnknown(element(t, doc, "resource.domestic_hot_water"))
 		doc["lenses"] = []any{document{
 			"id": "lens.synthetic", "question": "What does the synthetic lens show?", "planes": []any{"physical"},
 			"root_kinds": []any{"resource.domestic_hot_water"}, "max_depth": 2,
@@ -884,7 +905,7 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 	catalog := committedCatalog(t)
 	type relationSpec struct {
 		ref         semreg.DefinitionRef
-		from, to    semreg.DefinitionRef
+		from, to    []semreg.DefinitionRef
 		cardinality string
 	}
 	var relations []relationSpec
@@ -900,8 +921,8 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 					} `json:"fact_dimensions"`
 					Relations []struct {
 						Ref         semreg.DefinitionRef `json:"ref"`
-						From        semreg.DefinitionID  `json:"from"`
-						To          semreg.DefinitionID  `json:"to"`
+						From        json.RawMessage      `json:"from"`
+						To          json.RawMessage      `json:"to"`
 						Cardinality string               `json:"cardinality"`
 					} `json:"relations"`
 					Portal []struct {
@@ -923,8 +944,29 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 			}
 			return semreg.DefinitionRef{Pack: pack, ID: id, Version: version}
 		}
+		// A pack relation endpoint is one dimension or a non-empty list of
+		// distinct dimensions.
+		endpoint := func(raw json.RawMessage) []semreg.DefinitionRef {
+			var ids []semreg.DefinitionID
+			var one semreg.DefinitionID
+			if err := json.Unmarshal(raw, &one); err == nil {
+				ids = []semreg.DefinitionID{one}
+			} else if err := json.Unmarshal(raw, &ids); err != nil || len(ids) == 0 {
+				t.Fatalf("%s: relation endpoint %s is neither a dimension nor a list", name, raw)
+			}
+			refs := []semreg.DefinitionRef{}
+			seen := map[semreg.DefinitionID]bool{}
+			for _, id := range ids {
+				if seen[id] {
+					t.Fatalf("%s: relation endpoint %s repeats %s", name, raw, id)
+				}
+				seen[id] = true
+				refs = append(refs, dimension(id))
+			}
+			return refs
+		}
 		for _, item := range vectors.Catalog.Definitions.Relations {
-			relations = append(relations, relationSpec{item.Ref, dimension(item.From), dimension(item.To), item.Cardinality})
+			relations = append(relations, relationSpec{item.Ref, endpoint(item.From), endpoint(item.To), item.Cardinality})
 		}
 		for _, item := range vectors.Catalog.Definitions.Portal {
 			portals = append(portals, item.Ref)
@@ -954,26 +996,52 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 		serviceDimension[item.ID] = storageRef(item.Dimension)
 	}
 	for _, item := range tables.Relations {
-		relations = append(relations, relationSpec{storageRef(item.ID), serviceDimension[item.From], serviceDimension[item.To], item.Cardinality})
+		relations = append(relations, relationSpec{storageRef(item.ID), []semreg.DefinitionRef{serviceDimension[item.From]}, []semreg.DefinitionRef{serviceDimension[item.To]}, item.Cardinality})
 	}
 	for _, item := range tables.Portal {
 		portals = append(portals, storageRef(item.ID))
 	}
 
-	if len(relations) != 21 || len(portals) != 32 {
-		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 21 and 32", len(relations), len(portals))
+	if len(relations) != 26 || len(portals) != 37 {
+		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 26 and 37", len(relations), len(portals))
 	}
 	declared := map[semreg.DefinitionRef]bool{}
 	for _, spec := range relations {
 		declared[spec.ref] = true
 		entry, ok := catalog.PackEntry(spec.ref)
-		if !ok || entry.ElementKind != graph.KindRelation || entry.Relation == nil || entry.Relation.EndpointDimensions == nil {
+		if !ok || entry.ElementKind != graph.KindRelation || entry.Relation == nil {
 			t.Errorf("relation %s has no relation entry", spec.ref.ID)
 			continue
 		}
+		// The entry names its endpoint dimensions only when each side has
+		// exactly one; each side's endpoint kinds are the kinds of the
+		// dimensions the pack names there.
 		ends := entry.Relation.EndpointDimensions
-		if ends.From != graph.PackElement(spec.from) || ends.To != graph.PackElement(spec.to) {
-			t.Errorf("relation %s endpoints %+v, pack declares %s -> %s", spec.ref.ID, ends, spec.from.ID, spec.to.ID)
+		if len(spec.from) == 1 && len(spec.to) == 1 {
+			if ends == nil || ends.From != graph.PackElement(spec.from[0]) || ends.To != graph.PackElement(spec.to[0]) {
+				t.Errorf("relation %s endpoints %+v, pack declares %s -> %s", spec.ref.ID, ends, spec.from[0].ID, spec.to[0].ID)
+			}
+		} else if ends != nil {
+			t.Errorf("relation %s names endpoint dimensions %+v for a side with several kinds", spec.ref.ID, ends)
+		}
+		for _, side := range []struct {
+			dimensions []semreg.DefinitionRef
+			kinds      []semreg.DefinitionID
+		}{{spec.from, entry.Relation.FromKinds}, {spec.to, entry.Relation.ToKinds}} {
+			want := []string{}
+			for _, dimension := range side.dimensions {
+				kind, _ := catalog.DimensionKind(dimension)
+				want = append(want, string(kind))
+			}
+			got := []string{}
+			for _, kind := range side.kinds {
+				got = append(got, string(kind))
+			}
+			sort.Strings(want)
+			sort.Strings(got)
+			if strings.Join(got, ",") != strings.Join(want, ",") {
+				t.Errorf("relation %s endpoint kinds %v, the pack endpoint dimensions have %v", spec.ref.ID, got, want)
+			}
 		}
 		cardinality := strings.TrimSuffix(spec.cardinality, "_over_time")
 		overTime := cardinality != spec.cardinality
