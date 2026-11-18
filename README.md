@@ -35,11 +35,15 @@ pinned by SHA-256 in `graph.PinnedDigest`.
 | `Cut` findings and coherence | `duplicate_identity` excludes both members and makes the cut `partial`; `same_unit`, `contradicted_absence`, `anchor_parent_unresolved` and `ungraphed` are reported without blocking the read. Every relation instance of a kept member is `coherent`, `stale`, `dangling`, `outside_cut`, `excluded` or `conflict`, including cardinality, forest and cycle violations across members and a far end of a kind the definition does not admit. |
 | `Cut.PlanesOfResource`, `PlanesOfRelation`, `PlanesOfFact` | Plane membership over the cut (PLN-2, PLN-3): a relation instance only when qualified and coherent, a fact, service or capability when its definition is a member and its subject is current, and a current resource only in the planes its kind admits. |
 | `Cut.CanonicalJSON` | The one encoder of the cut's output: members by asset, findings by kind and canonical subject, relation instances by canonical definition, `from` and `to`; identical inputs give identical bytes. |
+| `CutStore` | Retains the newest cut and every cut an unexpired page token names, at most 8 cuts and at most 120 seconds after a cut stops being the newest (CUT-3). A pin the store does not retain is `revision_conflict`. The store is the only state. |
+| `ListResources` | Lists the current resources of one cut, optionally by kind and plane, in resource id order, in pages of at most 4096 (ENT-2). Every page carries the served cut. |
+| `Traverse` | Walks qualified coherent instances from one entry (a current resource, the roots of a lens, or installation sites), by a lens or by planes and an optional set of relation definitions, in one direction and to a bounded depth (ENT-1, TRV-1 to TRV-8). Planes alone follow every member relation of those planes. A resource reached twice is listed once, at its smallest depth. Depth and fan-out stop with frontier entries and counts. A page token is bound to the cut and the request. |
 
 The package imports the root package and the pack packages only, and neither
 the root package nor the operation package imports it. It records membership
-and admission and reads snapshots together; it publishes, evaluates and
-admits nothing.
+and admission, reads snapshots together, and serves a listing and a bounded
+traversal of one cut. Those reads are pure functions of the cut. `CutStore`
+is the only state. The package publishes, evaluates and admits nothing.
 
 ### Graph conformance
 
