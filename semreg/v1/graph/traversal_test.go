@@ -57,6 +57,30 @@ func TestTraverse(t *testing.T) {
 		t.Fatal("traversal result has a path member")
 	}
 
+	t.Run("planes without definitions", func(t *testing.T) {
+		planesOnly := energy
+		planesOnly.Definitions = nil
+		page, err := graph.Traverse(cut, snaps, catalog, planesOnly)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := reachedDepths(page.Resources); !samePairs(got, []pair{{"resource:a", 0}, {"resource:b", 1}, {"resource:c", 1}, {"resource:d", 2}}) {
+			t.Fatalf("energy planes = %v", got)
+		}
+		if len(page.Relations) != 4 {
+			t.Fatalf("relations = %d", len(page.Relations))
+		}
+		physical := planesOnly
+		physical.Planes = []graph.PlaneID{graph.PlanePhysical}
+		page, err = graph.Traverse(cut, snaps, catalog, physical)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := reachedDepths(page.Resources); !samePairs(got, []pair{{"resource:a", 0}}) {
+			t.Fatalf("physical planes = %v", got)
+		}
+	})
+
 	t.Run("smallest depth", func(t *testing.T) {
 		shortcut := diamond
 		shortcut.relations = append(append([]semreg.RelationInstance{}, diamond.relations...), qualified(relSupplies, "resource:a", "resource:d"))

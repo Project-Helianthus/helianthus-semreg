@@ -10,17 +10,17 @@ returns the current resources of that cut, optionally by kind and plane, in
 resource id order, in pages of at most 4096 (ENT-2). `Traverse` walks
 qualified coherent instances from one entry (a current resource, the roots of
 a lens, or an installation site of kind `resource.site`), by a lens or by
-planes and definitions, in one direction and to a bounded depth (ENT-1,
-TRV-1 to TRV-8). A page token of another cut or request, and a pin of a cut
-the store does not retain, are `revision_conflict`. A malformed token is
-`invalid_value`. A non-current entry resource is `dangling_reference`. A
-definition outside the requested planes is `membership_missing`. Depth and
-fan-out stop with frontier entries and counts; a frontier or a page past its
-bound is `bounds_exceeded`. A resource reached twice is listed once, at its
-smallest depth. Identical inputs produce identical bytes. No pack, catalog
-or contract version is raised, and no lock moves. The root package and the
-operation package still do not import this package. Lens results, sums and
-target reports remain later slices.
+planes and an optional set of relation definitions, in one direction and to a
+bounded depth (ENT-1, TRV-1 to TRV-8). A page token of another cut or request,
+and a pin of a cut the store does not retain, are `revision_conflict`. A
+malformed token is `invalid_value`. A non-current entry resource is
+`dangling_reference`. A definition outside the requested planes is
+`membership_missing`. Depth and fan-out stop with frontier entries and counts;
+a frontier or a page past its bound is `bounds_exceeded`. A resource reached
+twice is listed once, at its smallest depth. Identical inputs produce
+identical bytes. No pack, catalog or contract version is raised, and no lock
+moves. The root package and the operation package still do not import this
+package. Lens results, sums and target reports remain later slices.
 
 Breaking, in place before the 0.7 release: `helianthus.pack.storage` at 1.1.0
 gains `storage.energy.remaining`, `storage.energy.usable_capacity` and

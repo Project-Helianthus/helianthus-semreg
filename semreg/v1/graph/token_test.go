@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"testing"
+	"time"
 
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 )
@@ -46,6 +48,64 @@ func TestTraverseTokenFields(t *testing.T) {
 	}
 	if _, err := parsePageToken("nope"); semreg.ErrorIdentifier(err) != semreg.InvalidValue {
 		t.Fatalf("prefix = %v", err)
+	}
+}
+
+func TestExpiredPageTokensAreDropped(t *testing.T) {
+	var now time.Time
+	now = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	store := NewCutStore(func() time.Time { return now })
+	id := digestLabel("retained-cut")
+	held := &retainedCut{cut: &Cut{result: CutResult{CutID: id}}}
+	store.newest = id
+	store.cuts[id] = held
+
+	const issued = 32
+	issue := func(label string) {
+		t.Helper()
+		for i := 0; i < issued; i++ {
+			token, err := mintPageToken(id, digestLabel(fmt.Sprintf("%s-%02d", label, i)), i)
+			if err != nil {
+				t.Fatal(err)
+			}
+			store.note(held, token)
+		}
+	}
+	issue("page")
+	if len(held.tokens) != issued {
+		t.Fatalf("live tokens = %d, want %d", len(held.tokens), issued)
+	}
+
+	store.dropExpired(now)
+	if len(held.tokens) != issued {
+		t.Fatalf("live tokens dropped: %d", len(held.tokens))
+	}
+	if store.cuts[id] != held {
+		t.Fatal("newest cut dropped")
+	}
+
+	now = now.Add(CutRetention)
+	store.dropExpired(now)
+	if len(held.tokens) != 0 {
+		t.Fatalf("expired tokens kept on the newest cut: %d", len(held.tokens))
+	}
+	if store.cuts[id] != held {
+		t.Fatal("newest cut dropped with its tokens")
+	}
+
+	issue("again")
+	now = now.Add(CutRetention)
+	fresh, err := mintPageToken(id, digestLabel("fresh"), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.note(held, fresh)
+	if len(held.tokens) != 1 || held.tokens[0].request != digestLabel("fresh") {
+		t.Fatalf("note kept expired tokens: %d", len(held.tokens))
+	}
+	store.note(held, fresh)
+	if len(held.tokens) != 1 {
+		t.Fatalf("refreshed token duplicated: %d", len(held.tokens))
 	}
 }
 

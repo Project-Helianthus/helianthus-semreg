@@ -83,8 +83,9 @@ type TraversalPage struct {
 	NextPage     string            `json:"next_page,omitempty"`
 }
 
-// TraversalRequest is one walk: an entry, either a lens or planes with the
-// definitions to follow, a direction, a depth and a page size (ENT-1, TRV-1).
+// TraversalRequest is one walk: an entry, either a lens or planes with an
+// optional set of relation definitions, a direction, a depth and a page size
+// (ENT-1, TRV-1). Planes alone follow every member relation of those planes.
 type TraversalRequest struct {
 	CutID       *semreg.Digest         `json:"cut_id,omitempty"`
 	Entry       EntryPoint             `json:"entry"`
@@ -463,7 +464,7 @@ func lensDefinitions(catalog *Catalog, lens Lens) ([]semreg.DefinitionRef, error
 
 func planeDefinitions(catalog *Catalog, planes []PlaneID, requested []semreg.DefinitionRef) ([]semreg.DefinitionRef, error) {
 	if len(requested) == 0 {
-		return nil, readError(semreg.InvalidValue, "planes without definitions")
+		return relationsOnPlanes(catalog, planes), nil
 	}
 	for _, definition := range sortDefinitions(requested) {
 		element, ok := memberRelation(catalog, definition)

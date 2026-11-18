@@ -17,8 +17,9 @@ type Clock func() time.Time
 
 // CutStore retains graph cuts for reads. It keeps the newest cut and every
 // cut an unexpired page token names, at most MaxRetainedCuts, and drops a
-// cut at most CutRetention after it stops being the newest (CUT-3). The
-// store is the only state; listing and traversal are pure functions of a cut.
+// cut at most CutRetention after it stops being the newest (CUT-3). Expired
+// token records are dropped, including on the newest cut. The store is the
+// only state; listing and traversal are pure functions of a cut.
 type CutStore struct {
 	now    Clock
 	mu     sync.Mutex
@@ -148,7 +149,9 @@ func (s *CutStore) note(held *retainedCut, token string) {
 	if err != nil || body.CutID != held.cut.ID() {
 		return
 	}
-	expires := s.now().Add(CutRetention)
+	now := s.now()
+	pruneExpiredTokens(held, now)
+	expires := now.Add(CutRetention)
 	for i := range held.tokens {
 		if held.tokens[i].request == body.Request && held.tokens[i].cursor == body.Cursor {
 			held.tokens[i].expires = expires
@@ -158,8 +161,32 @@ func (s *CutStore) note(held *retainedCut, token string) {
 	held.tokens = append(held.tokens, issuedToken{request: body.Request, cursor: body.Cursor, expires: expires})
 }
 
+// pruneExpiredTokens drops token records whose expiry has passed. The newest
+// cut is never removed, so this is what keeps its token list bounded.
+func pruneExpiredTokens(held *retainedCut, now time.Time) {
+	if held == nil || len(held.tokens) == 0 {
+		return
+	}
+	n := 0
+	for _, token := range held.tokens {
+		if now.Before(token.expires) {
+			held.tokens[n] = token
+			n++
+		}
+	}
+	for i := n; i < len(held.tokens); i++ {
+		held.tokens[i] = issuedToken{}
+	}
+	if n == 0 {
+		held.tokens = nil
+		return
+	}
+	held.tokens = held.tokens[:n]
+}
+
 func (s *CutStore) dropExpired(now time.Time) {
 	for id, held := range s.cuts {
+		pruneExpiredTokens(held, now)
 		if id == s.newest || held.demoted.IsZero() {
 			continue
 		}
