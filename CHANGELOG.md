@@ -27,8 +27,11 @@ A scope with no groups or contains instance, a
 whose fact is unavailable, stale or in conflict, mixed sign references, and
 a `native_convention` fact added across assets are `withheld` with that
 reason, never a partial total and never zero for an empty scope. A
-source-reported aggregate on the scope is returned beside the sum, labelled
-as observed (SUM-1 to SUM-6). The element catalog copy is re-copied in
+frontier entry on the scope or on a reached member, or a later page that
+leaves one of those resources out of the result, is `member_unavailable`
+rather than the sum of the subset that was reached. A source-reported
+aggregate on the scope is returned beside the sum, labelled as observed
+(SUM-1 to SUM-6). The element catalog copy is re-copied in
 place. It now carries the four lenses and marks `resource.site` as the
 installation root. Its SHA-256 pin in `fixtures/README.md`,
 `graph.PinnedDigest`, the root package's pinned catalog digest, the catalog

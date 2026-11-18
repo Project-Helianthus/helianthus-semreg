@@ -36,7 +36,8 @@ type MemberSum struct {
 // When those facts name a subject kind, only reached resources of that kind
 // are summands, so a container of another kind does not withhold the sum.
 // An aggregate is never added. The scope's own aggregate is returned beside
-// the sum.
+// the sum. A frontier or a later page that omits resources the scope would
+// reach withholds the sum instead of returning the reached subset (SUM-4).
 func SumMembers(result LensResult, fact semreg.DefinitionRef, scope semreg.ResourceID) (MemberSum, error) {
 	if err := fact.Validate(); err != nil {
 		return MemberSum{}, err
@@ -54,6 +55,9 @@ func SumMembers(result LensResult, fact semreg.DefinitionRef, scope semreg.Resou
 	}
 	if sameUnitMembers(result, members) {
 		return withheldSum(SumSameUnit, observed), nil
+	}
+	if reachOmits(result, scope, members) {
+		return withheldSum(SumMemberUnavailable, observed), nil
 	}
 	subjects := sumSubjects(result, fact, members)
 	quantities := make([]semreg.Quantity, 0, len(subjects))
@@ -152,6 +156,43 @@ func sumSubjects(result LensResult, fact semreg.DefinitionRef, members []semreg.
 		return members
 	}
 	return subjects
+}
+
+// reachOmits reports that result leaves out resources scope would reach, so
+// the reached subset is not a total (SUM-4). A frontier entry on the scope
+// or on a reached member stopped before every instance was followed. A later
+// page that does not list the scope or a reached member leaves out the
+// instances anchored on the missing resource.
+func reachOmits(result LensResult, scope semreg.ResourceID, members []semreg.ResourceID) bool {
+	closure := make(map[semreg.ResourceID]struct{}, 1+len(members))
+	closure[scope] = struct{}{}
+	for _, id := range members {
+		closure[id] = struct{}{}
+	}
+	for _, entry := range result.Frontier {
+		if entry.NotFollowed <= 0 {
+			continue
+		}
+		if _, ok := closure[entry.ResourceID]; ok {
+			return true
+		}
+	}
+	if result.NextPage == nil || *result.NextPage == "" {
+		return false
+	}
+	listed := make(map[semreg.ResourceID]struct{}, len(result.Resources))
+	for _, resource := range result.Resources {
+		if resource.Resource.ResourceID == "" {
+			continue
+		}
+		listed[resource.Resource.ResourceID] = struct{}{}
+	}
+	for id := range closure {
+		if _, ok := listed[id]; !ok {
+			return true
+		}
+	}
+	return false
 }
 
 func scopeMembers(result LensResult, scope semreg.ResourceID) []semreg.ResourceID {

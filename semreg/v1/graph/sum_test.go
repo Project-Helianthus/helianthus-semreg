@@ -150,6 +150,47 @@ func observedValue(facts []graph.LensFact, subject string) (string, bool) {
 	return "", false
 }
 
+// identifiedMembers is threeMemberResult with resource ids and kinds, so a
+// sum can tell a reached member from a resource the page did not list.
+func identifiedMembers() graph.LensResult {
+	result := threeMemberResult()
+	result.Resources = []graph.LensResource{
+		nestedResource("resource:system", "resource.system", 0),
+		nestedResource("resource:a", "resource.inverter", 1),
+		nestedResource("resource:b", "resource.inverter", 1),
+		nestedResource("resource:c", "resource.inverter", 1),
+	}
+	return result
+}
+
+func dropSubject(result *graph.LensResult, id string, keepRelation bool) {
+	var resources []graph.LensResource
+	for _, resource := range result.Resources {
+		if string(resource.Resource.ResourceID) != id {
+			resources = append(resources, resource)
+		}
+	}
+	result.Resources = resources
+	if !keepRelation {
+		var relations []graph.LensRelation
+		for _, relation := range result.Relations {
+			if string(relation.From) == id || string(relation.To) == id {
+				continue
+			}
+			relations = append(relations, relation)
+		}
+		result.Relations = relations
+	}
+	var facts []graph.LensFact
+	for _, fact := range result.Facts {
+		if string(fact.Subject) == id && fact.Aggregation == graph.AggregationMember {
+			continue
+		}
+		facts = append(facts, fact)
+	}
+	result.Facts = facts
+}
+
 func TestSumMembers(t *testing.T) {
 	fact := sumRef("sum.fact.power")
 	scope := semreg.ResourceID("resource:system")
@@ -369,6 +410,111 @@ func TestSumMembers(t *testing.T) {
 			t.Fatal(err)
 		}
 		requireWithheld(t, got, graph.SumNativeConvention)
+	})
+
+	t.Run("frontier omits a member the scope would reach", func(t *testing.T) {
+		full, err := graph.SumMembers(identifiedMembers(), fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, full, "9", 0)
+		bounded := identifiedMembers()
+		dropSubject(&bounded, "resource:c", false)
+		bounded.Frontier = []graph.FrontierEntry{{
+			ResourceID: "resource:system", Reason: graph.FrontierFanoutLimit, NotFollowed: 1,
+		}}
+		got, err := graph.SumMembers(bounded, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireWithheld(t, got, graph.SumMemberUnavailable)
+		if coefficient, ok := observedValue(got.Observed, "resource:system"); !ok || coefficient != "20" {
+			t.Fatalf("observed = %+v", got.Observed)
+		}
+	})
+
+	t.Run("depth limit on a reached member", func(t *testing.T) {
+		full, err := graph.SumMembers(nestedMemberResult(), sumRef("sum.fact.inverter_power"), scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, full, "33", 0)
+		bounded := nestedMemberResult()
+		var resources []graph.LensResource
+		for _, resource := range bounded.Resources {
+			if resource.Resource.Kind == "resource.phase" {
+				continue
+			}
+			resources = append(resources, resource)
+		}
+		bounded.Resources = resources
+		var relations []graph.LensRelation
+		for _, relation := range bounded.Relations {
+			if relation.From == "resource:inv-a" || relation.From == "resource:inv-b" {
+				continue
+			}
+			relations = append(relations, relation)
+		}
+		bounded.Relations = relations
+		var facts []graph.LensFact
+		for _, item := range bounded.Facts {
+			if item.Definition.ID == "sum.fact.power" {
+				continue
+			}
+			facts = append(facts, item)
+		}
+		bounded.Facts = facts
+		bounded.Frontier = []graph.FrontierEntry{{
+			ResourceID: "resource:inv-a", Reason: graph.FrontierDepthLimit, NotFollowed: 2,
+		}}
+		got, err := graph.SumMembers(bounded, sumRef("sum.fact.inverter_power"), scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireWithheld(t, got, graph.SumMemberUnavailable)
+	})
+
+	t.Run("later page omits a member the scope would reach", func(t *testing.T) {
+		full, err := graph.SumMembers(identifiedMembers(), fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, full, "9", 0)
+		paged := identifiedMembers()
+		dropSubject(&paged, "resource:c", true)
+		token := "later-page"
+		paged.NextPage = &token
+		got, err := graph.SumMembers(paged, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireWithheld(t, got, graph.SumMemberUnavailable)
+		if coefficient, ok := observedValue(got.Observed, "resource:system"); !ok || coefficient != "20" {
+			t.Fatalf("observed = %+v", got.Observed)
+		}
+	})
+
+	t.Run("frontier outside the scope is summed", func(t *testing.T) {
+		result := identifiedMembers()
+		result.Frontier = []graph.FrontierEntry{{
+			ResourceID: "resource:meter", Reason: graph.FrontierDepthLimit, NotFollowed: 2,
+		}}
+		got, err := graph.SumMembers(result, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, got, "9", 0)
+	})
+
+	t.Run("later page that lists the scope and its members is summed", func(t *testing.T) {
+		result := identifiedMembers()
+		token := "later-page"
+		result.NextPage = &token
+		got, err := graph.SumMembers(result, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, got, "9", 0)
 	})
 }
 
