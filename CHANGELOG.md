@@ -8,15 +8,21 @@ with the canonical lens result (`helianthus.semantic.lens-result/v1`): the
 resources reached, with depth and the lens planes they are in; the relation
 instances among them, including a candidate, rejected, conflicting or
 non-coherent instance marked `in_plane: false` and not followed; the absence
-statements of the followed definitions; the facts, services and capabilities
-whose subject they are and whose definition is in a lens plane; the cut
+statements of the followed definitions, in absence-key order (definition,
+resource, side); the facts, services and capabilities whose subject they
+are and whose definition is in a lens plane; the cut
 findings that name a reached resource or a member that holds one; and the
 frontier. Facts carry the kernel evaluation view unchanged. A lens whose
 roots are absent returns an empty result and the cut reference, not an error
 (LRS-1 to LRS-6). `SumMembers` adds only facts whose catalog aggregation is
 `member`. It does not add an aggregate to the members or to another
 aggregate. The members of a scope are the resources reached from it through
-coherent `groups` or `contains` instances. A scope with no such instance, a
+coherent `groups` or `contains` instances. When member facts of the summed
+definition name a subject kind, only reached resources of that kind are
+summands, so a container of another kind does not withhold the sum; a subject
+with no fact of the definition still withholds with `member_unavailable`.
+With no member fact of the definition, every reached resource stays a summand.
+A scope with no groups or contains instance, a
 `same_unit` pair, a partial cut that lists a not-included asset, a member
 whose fact is unavailable, stale or in conflict, mixed sign references, and
 a `native_convention` fact added across assets are `withheld` with that

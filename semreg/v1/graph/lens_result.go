@@ -646,6 +646,11 @@ type heldAbsence struct {
 	absence semreg.RelationAbsence
 }
 
+// absenceResultKey is the absence key: canonical definition, resource, side.
+func absenceResultKey(absence semreg.RelationAbsence) string {
+	return canonicalKey(absence.Definition) + "\x00" + string(absence.Resource) + "\x00" + string(absence.Side)
+}
+
 func lensAbsences(snapshots []semreg.Snapshot, excluded map[semreg.AssetID]struct{}, followed map[string]struct{}, depth map[semreg.ResourceID]int) []semreg.RelationAbsence {
 	var held []heldAbsence
 	for _, snapshot := range snapshots {
@@ -663,8 +668,8 @@ func lensAbsences(snapshots []semreg.Snapshot, excluded map[semreg.AssetID]struc
 		}
 	}
 	sort.Slice(held, func(i, j int) bool {
-		left := absenceLookupKey(canonicalKey(held[i].absence.Definition), held[i].absence.Side, held[i].absence.Resource)
-		right := absenceLookupKey(canonicalKey(held[j].absence.Definition), held[j].absence.Side, held[j].absence.Resource)
+		left := absenceResultKey(held[i].absence)
+		right := absenceResultKey(held[j].absence)
 		if left != right {
 			return left < right
 		}

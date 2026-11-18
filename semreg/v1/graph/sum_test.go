@@ -78,6 +78,51 @@ func threeMemberResult() graph.LensResult {
 	}
 }
 
+func nestedResource(id, kind string, depth int) graph.LensResource {
+	return graph.LensResource{
+		Resource: semreg.Resource{ResourceID: semreg.ResourceID(id), Kind: semreg.DefinitionID(kind)},
+		Depth:    depth, AssetID: semreg.AssetID("asset:" + id),
+	}
+}
+
+func nestedFact(definition, subject, coefficient string) graph.LensFact {
+	fact := sumFact(subject, coefficient, 0, graph.AggregationMember)
+	fact.Definition = sumRef(definition)
+	fact.Key.FactID = semreg.DefinitionID(definition)
+	return fact
+}
+
+// nestedMemberResult is a system that groups two inverters, each of which
+// contains phases. Phase power is 2, 3 and 4. Inverter power is 11 and 22.
+func nestedMemberResult() graph.LensResult {
+	return graph.LensResult{
+		Contract: graph.LensResultContract, Lens: "lens.sum",
+		Cut: graph.CutRef{CutID: sumCutID(), Completeness: graph.CutComplete, Members: []graph.CutMember{}},
+		Resources: []graph.LensResource{
+			nestedResource("resource:system", "resource.system", 0),
+			nestedResource("resource:inv-a", "resource.inverter", 1),
+			nestedResource("resource:inv-b", "resource.inverter", 1),
+			nestedResource("resource:phase-a1", "resource.phase", 2),
+			nestedResource("resource:phase-a2", "resource.phase", 2),
+			nestedResource("resource:phase-b1", "resource.phase", 2),
+		},
+		Relations: []graph.LensRelation{
+			sumContains("resource:system", "resource:inv-a", graph.CoreGroups, graph.OrientationAsCore),
+			sumContains("resource:system", "resource:inv-b", graph.CoreGroups, graph.OrientationAsCore),
+			sumContains("resource:inv-a", "resource:phase-a1", graph.CoreContains, graph.OrientationAsCore),
+			sumContains("resource:inv-a", "resource:phase-a2", graph.CoreContains, graph.OrientationAsCore),
+			sumContains("resource:inv-b", "resource:phase-b1", graph.CoreContains, graph.OrientationAsCore),
+		},
+		Facts: []graph.LensFact{
+			nestedFact("sum.fact.power", "resource:phase-a1", "2"),
+			nestedFact("sum.fact.power", "resource:phase-a2", "3"),
+			nestedFact("sum.fact.power", "resource:phase-b1", "4"),
+			nestedFact("sum.fact.inverter_power", "resource:inv-a", "11"),
+			nestedFact("sum.fact.inverter_power", "resource:inv-b", "22"),
+		},
+	}
+}
+
 func requireSum(t *testing.T, got graph.MemberSum, coefficient string, exponent int32) {
 	t.Helper()
 	if got.Withheld || got.Reason != "" || got.Value == nil {
@@ -277,6 +322,37 @@ func TestSumMembers(t *testing.T) {
 			t.Fatal(err)
 		}
 		requireSum(t, got, "9", 0)
+	})
+
+	t.Run("nested subjects skip another kind", func(t *testing.T) {
+		result := nestedMemberResult()
+		phases, err := graph.SumMembers(result, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, phases, "9", 0)
+		inverters, err := graph.SumMembers(result, sumRef("sum.fact.inverter_power"), scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, inverters, "33", 0)
+	})
+
+	t.Run("missing nested subject withholds", func(t *testing.T) {
+		result := nestedMemberResult()
+		kept := make([]graph.LensFact, 0, len(result.Facts))
+		for _, item := range result.Facts {
+			if item.Subject == "resource:phase-b1" {
+				continue
+			}
+			kept = append(kept, item)
+		}
+		result.Facts = kept
+		got, err := graph.SumMembers(result, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireWithheld(t, got, graph.SumMemberUnavailable)
 	})
 
 	t.Run("native convention across assets", func(t *testing.T) {

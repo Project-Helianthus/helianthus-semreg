@@ -33,6 +33,8 @@ type MemberSum struct {
 
 // SumMembers adds the member facts of one definition on the resources reached
 // from scope through coherent contains or groups instances (SUM-1, SUM-2).
+// When those facts name a subject kind, only reached resources of that kind
+// are summands, so a container of another kind does not withhold the sum.
 // An aggregate is never added. The scope's own aggregate is returned beside
 // the sum.
 func SumMembers(result LensResult, fact semreg.DefinitionRef, scope semreg.ResourceID) (MemberSum, error) {
@@ -53,11 +55,12 @@ func SumMembers(result LensResult, fact semreg.DefinitionRef, scope semreg.Resou
 	if sameUnitMembers(result, members) {
 		return withheldSum(SumSameUnit, observed), nil
 	}
-	quantities := make([]semreg.Quantity, 0, len(members))
-	chosen := make([]LensFact, 0, len(members))
+	subjects := sumSubjects(result, fact, members)
+	quantities := make([]semreg.Quantity, 0, len(subjects))
+	chosen := make([]LensFact, 0, len(subjects))
 	conflict := false
 	unavailable := false
-	for _, id := range members {
+	for _, id := range subjects {
 		facts := memberFacts(result, fact, id)
 		quantity, reason, err := classifyMember(facts)
 		if err != nil {
@@ -104,6 +107,51 @@ func observedAggregates(result LensResult, scope semreg.ResourceID) []LensFact {
 		}
 	}
 	return out
+}
+
+// sumSubjects returns the reached members that are summands of fact.
+// With no member fact of that definition, or with a member whose kind is
+// unnamed, every reached member stays a summand. Otherwise the facts name
+// the subject kinds, and a reached resource of another kind is left out.
+func sumSubjects(result LensResult, fact semreg.DefinitionRef, members []semreg.ResourceID) []semreg.ResourceID {
+	kindOf := make(map[semreg.ResourceID]semreg.DefinitionID, len(result.Resources))
+	for _, resource := range result.Resources {
+		kindOf[resource.Resource.ResourceID] = resource.Resource.Kind
+	}
+	for _, id := range members {
+		if kindOf[id] == "" {
+			return members
+		}
+	}
+	memberSet := make(map[semreg.ResourceID]struct{}, len(members))
+	for _, id := range members {
+		memberSet[id] = struct{}{}
+	}
+	kinds := map[semreg.DefinitionID]struct{}{}
+	for _, item := range result.Facts {
+		if item.Aggregation != AggregationMember || item.Definition != fact {
+			continue
+		}
+		if _, ok := memberSet[item.Subject]; !ok {
+			continue
+		}
+		if kind := kindOf[item.Subject]; kind != "" {
+			kinds[kind] = struct{}{}
+		}
+	}
+	if len(kinds) == 0 {
+		return members
+	}
+	subjects := make([]semreg.ResourceID, 0, len(members))
+	for _, id := range members {
+		if _, ok := kinds[kindOf[id]]; ok {
+			subjects = append(subjects, id)
+		}
+	}
+	if len(subjects) == 0 {
+		return members
+	}
+	return subjects
 }
 
 func scopeMembers(result LensResult, scope semreg.ResourceID) []semreg.ResourceID {

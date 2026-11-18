@@ -349,6 +349,48 @@ func TestLensResult(t *testing.T) {
 		}
 	})
 
+	t.Run("absences follow the absence key", func(t *testing.T) {
+		// One definition, interleaved sides and resources: equip/to must
+		// precede part-b/from. Those ends are free of the contains instances.
+		// A later definition on the earlier resource stays after both.
+		plant := cutAsset{
+			id:        "asset:plant",
+			resources: []semreg.Resource{equip, partA, partB},
+			relations: []semreg.RelationInstance{
+				qualified(relDevicePart, "resource:equip", "resource:part-a"),
+				qualified(relDevicePart, "resource:equip", "resource:part-b"),
+			},
+			absences: []semreg.RelationAbsence{
+				absence(cutRef("cut.relation.part_nest"), "resource:equip", semreg.AbsenceFrom),
+				absence(relDevicePart, "resource:part-b", semreg.AbsenceFrom),
+				absence(relDevicePart, "resource:equip", semreg.AbsenceTo),
+			},
+		}
+		cut, snaps := mustCut(t, catalog, graph.CutComplete, plant)
+		result, err := graph.RetrieveLens(lensStore(t, catalog, cut, snaps), catalog, compositionRequest(snaps), ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result.Absences) != 3 {
+			t.Fatalf("absences = %+v", result.Absences)
+		}
+		want := []struct {
+			definition semreg.DefinitionRef
+			resource   semreg.ResourceID
+			side       semreg.AbsenceSide
+		}{
+			{relDevicePart, "resource:equip", semreg.AbsenceTo},
+			{relDevicePart, "resource:part-b", semreg.AbsenceFrom},
+			{cutRef("cut.relation.part_nest"), "resource:equip", semreg.AbsenceFrom},
+		}
+		for i, absence := range want {
+			got := result.Absences[i]
+			if got.Definition != absence.definition || got.Resource != absence.resource || got.Side != absence.side {
+				t.Fatalf("absence %d = %s %s %s", i, got.Definition.ID, got.Resource, got.Side)
+			}
+		}
+	})
+
 	t.Run("frontier", func(t *testing.T) {
 		plant := cutAsset{
 			id:        "asset:plant",
