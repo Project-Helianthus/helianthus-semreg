@@ -330,20 +330,22 @@ authority.
 [`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is the
 `helianthus.semantic.graph.acceptance/v1` document exercised by this module.
 Its SHA-256 is
-`153e223f421bf1fffda8ad11ba408105aae15378683cf9fdd7cffc824bb54358`;
+`b5afbd8d5f546c9178a72ae037515cfe581f8cef3c75bb65ba98bb3266508ba5`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
-bytes and checks the element catalog digest the document records against
-`graph.PinnedDigest`. The recorded catalog digest is the pinned catalog, and
-this document's own pin moves with that recorded digest. The document holds
-62 vectors over 24 prior states, the seven coverage areas and the operations
+bytes. The document records the catalog digest of the seed it was written
+against. The element catalog copy and `graph.PinnedDigest` are a separate
+lock and stay as they are. The document holds
+85 vectors over 24 prior states, the coverage areas it lists and the operations
 `construct_registry`,
-`register_catalog`, `apply`, `assemble_cut` and `admit`. Three prior states
+`register_catalog`, `apply`, `assemble_cut`, `admit`, `list_resources`,
+`traverse`, `retrieve_lens`, `sum_members` and `project`. Three prior states
 register the catalog with stated `set_disposition` mutations, each setting
 one member entry to `unknown` with no plane, a reason and a tracking issue;
 the harness applies them to a copy of the pinned catalog.
 `TestGraphAcceptanceVectors` executes every vector by identifier through the
-public API; it adds only members the document leaves out and decodes every
-record strictly. All records are synthetic: they prove no native fact,
+public API; it adds only members the document leaves out, omits a present
+empty graph collection, and decodes every record strictly. All records are
+synthetic: they prove no native fact,
 qualification, route or authority.
 
 Fixtures must run from a standalone clone without private data, sibling

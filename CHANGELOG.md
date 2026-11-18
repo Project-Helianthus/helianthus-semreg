@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+In place before the 0.7 release: the pack availability view is retired.
+`semreg/v1/projection` holds target records and imports no pack (TGT-6).
+Nothing in that package replaces the view. An asset outside the graph is
+`ungraphed` on the cut, and availability of an element is read from a lens
+result. The graph acceptance vector copy is re-copied in place and its
+SHA-256 pin moves with that copy. The document records the catalog digest
+of the seed it was written against. The element catalog copy and
+`graph.PinnedDigest` stay. The vector harness executes
+`list_resources`, `traverse`, `retrieve_lens`, `sum_members` and `project`
+for every vector; no vector is skipped or selected by identifier. No pack,
+catalog or contract version is raised. Gateway follow-up: the gateway
+internal view, the consumer of the retired view, reads availability from
+the lens result when it takes the next SemReg pin
+(helianthus-ebusgateway#1540).
+
 In place before the 0.7 release: a projection report may name the catalog
 lens it accounts for and cite the resources and relation instances a
 disposition was made from. The manifest member `lens` and the disposition

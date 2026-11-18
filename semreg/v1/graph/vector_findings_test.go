@@ -40,10 +40,11 @@ func (f gvFinding) explains(err error) bool {
 }
 
 const (
-	gvRuleOrigin     = "kernel.md OriginRef: operator, automation and projection origins omit native source fields"
-	gvRuleDefinition = "graph.md section 7.2: a relation instance or absence statement names its definition by a DefinitionRef (pack, id, version), not by an owner-tagged catalog reference"
-	gvRuleDecimal    = "serialization.md canonical decimal: a non-zero coefficient has no leading zero and does not end in zero"
-	gvRuleSnapshotID = "kernel.md Snapshot identity: the snapshot identifier digests an empty retained_observations member that the kernel wire form and every kernel acceptance vector omit"
+	gvRuleOrigin      = "kernel.md OriginRef: operator, automation and projection origins omit native source fields"
+	gvRuleDefinition  = "graph.md section 7.2: a relation instance or absence statement names its definition by a DefinitionRef (pack, id, version), not by an owner-tagged catalog reference"
+	gvRuleDecimal     = "serialization.md canonical decimal: a non-zero coefficient has no leading zero and does not end in zero"
+	gvRuleSnapshotID  = "kernel.md Snapshot identity: the snapshot identifier digests an empty retained_observations member that the kernel wire form and every kernel acceptance vector omit"
+	gvRuleAbbreviated = "kernel.md Snapshot identity: a read snapshot that omits the kernel contract identifies the abbreviated object, which is not the kernel snapshot the identifier must digest"
 )
 
 // gvRecordFindings walks one document record (a batch, a snapshot or an
@@ -121,8 +122,33 @@ func gvObjectFindings(t *testing.T, object map[string]any, path string) []gvFind
 					error: semreg.DigestMismatch, detail: "snapshot identity"})
 			}
 		}
+		// A read snapshot with no contract member, no retained observations
+		// and an identifier over that abbreviated object. The kernel digest
+		// is of the completed snapshot, so the two identifiers differ.
+		if gvAbbreviatedRead(object) && string(gvDigestJSON(t, gvWithout(object, "snapshot_id"))) == id {
+			out = append(out, gvFinding{rule: gvRuleAbbreviated, path: path + ".snapshot_id",
+				error: semreg.DigestMismatch, detail: "snapshot identity"})
+		}
 	}
 	return out
+}
+
+// gvAbbreviatedRead is a read snapshot the document identifies without the
+// kernel contract and without retained observations. The empty
+// retained_observations rule owns that other shape.
+func gvAbbreviatedRead(object map[string]any) bool {
+	if _, present := object["contract"]; present {
+		return false
+	}
+	if _, present := object["retained_observations"]; present {
+		return false
+	}
+	for _, name := range []string{"resources", "relations", "facts"} {
+		if _, present := object[name]; present {
+			return true
+		}
+	}
+	return false
 }
 
 // gvCanonicalCoefficient is the coefficient rule of serialization.md: "0", or
@@ -242,6 +268,89 @@ func TestGraphVectorDocumentRules(t *testing.T) {
 		filled["snapshot_id"] = string(gvDigestJSON(t, filled))
 		if findings := gvRecordFindings(t, gvMarshal(t, filled)); len(findings) != 0 {
 			t.Fatalf("non-empty retained observations: %v", findings)
+		}
+	})
+
+	// Each case changes one field gvRuleAbbreviated reads. The production
+	// mutation the case catches is named in the subtest.
+	t.Run("abbreviated snapshot identity", func(t *testing.T) {
+		body := map[string]any{
+			"asset_id":  "asset:a",
+			"resources": []any{map[string]any{"resource_id": "resource:a"}},
+			"relations": []any{},
+			"facts":     []any{},
+		}
+		identified := func(object map[string]any) map[string]any {
+			object["snapshot_id"] = string(gvDigestJSON(t, object))
+			return object
+		}
+		rulesOf := func(object map[string]any) []string {
+			var got []string
+			for _, finding := range gvRecordFindings(t, gvMarshal(t, object)) {
+				got = append(got, finding.rule)
+			}
+			return got
+		}
+		if got := rulesOf(identified(body)); !gvEqualStrings(got, []string{gvRuleAbbreviated}) {
+			t.Fatalf("abbreviated identity: %v", got)
+		}
+		// snapshot_id: one nibble changed, so the identifier is not the digest.
+		changedID := identified(map[string]any{
+			"asset_id": "asset:a", "resources": []any{map[string]any{"resource_id": "resource:a"}},
+			"relations": []any{}, "facts": []any{},
+		})
+		identifier := changedID["snapshot_id"].(string)
+		replacement := "1"
+		if identifier[len(identifier)-1] == '1' {
+			replacement = "0"
+		}
+		changedID["snapshot_id"] = identifier[:len(identifier)-1] + replacement
+		if got := rulesOf(changedID); len(got) != 0 {
+			t.Fatalf("snapshot_id nibble: %v", got)
+		}
+		// asset_id: a digested member changed after the identifier was fixed.
+		changedAsset := identified(map[string]any{
+			"asset_id": "asset:a", "resources": []any{map[string]any{"resource_id": "resource:a"}},
+			"relations": []any{}, "facts": []any{},
+		})
+		changedAsset["asset_id"] = "asset:b"
+		if got := rulesOf(changedAsset); len(got) != 0 {
+			t.Fatalf("asset_id: %v", got)
+		}
+		// relations: a digested collection changed after the identifier was fixed.
+		changedRelations := identified(map[string]any{
+			"asset_id": "asset:a", "resources": []any{map[string]any{"resource_id": "resource:a"}},
+			"relations": []any{}, "facts": []any{},
+		})
+		changedRelations["relations"] = []any{map[string]any{"from": "resource:a"}}
+		if got := rulesOf(changedRelations); len(got) != 0 {
+			t.Fatalf("relations: %v", got)
+		}
+		// contract: present, and the identifier is recomputed over that object,
+		// so only the contract gate keeps the rule from firing.
+		withContract := map[string]any{
+			"asset_id": "asset:a", "contract": string(semreg.ContractKernelV1),
+			"resources": []any{map[string]any{"resource_id": "resource:a"}},
+			"relations": []any{}, "facts": []any{},
+		}
+		if got := rulesOf(identified(withContract)); len(got) != 0 {
+			t.Fatalf("contract: %v", got)
+		}
+		// retained_observations: present and empty, identifier recomputed.
+		// That shape belongs to the retained-observations rule only.
+		withRetained := map[string]any{
+			"asset_id": "asset:a", "retained_observations": []any{},
+			"resources": []any{map[string]any{"resource_id": "resource:a"}},
+			"relations": []any{}, "facts": []any{},
+		}
+		if got := rulesOf(identified(withRetained)); !gvEqualStrings(got, []string{gvRuleSnapshotID}) {
+			t.Fatalf("retained_observations: %v", got)
+		}
+		// resources, relations and facts: all absent, identifier recomputed
+		// over what remains, so only the read-body gate keeps the rule from firing.
+		withoutBody := map[string]any{"asset_id": "asset:a"}
+		if got := rulesOf(identified(withoutBody)); len(got) != 0 {
+			t.Fatalf("read body: %v", got)
 		}
 	})
 

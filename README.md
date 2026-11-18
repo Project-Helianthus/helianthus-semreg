@@ -38,12 +38,15 @@ pinned by SHA-256 in `graph.PinnedDigest`.
 | `CutStore` | Retains the newest cut and every cut an unexpired page token names, at most 8 cuts and at most 120 seconds after a cut stops being the newest (CUT-3). A pin the store does not retain is `revision_conflict`. The store is the only state. |
 | `ListResources` | Lists the current resources of one cut, optionally by kind and plane, in resource id order, in pages of at most 4096 (ENT-2). Every page carries the served cut. |
 | `Traverse` | Walks qualified coherent instances from one entry (a current resource, the roots of a lens, or installation sites), by a lens or by planes and an optional set of relation definitions, in one direction and to a bounded depth (ENT-1, TRV-1 to TRV-8). Planes alone follow every member relation of those planes. A resource reached twice is listed once, at its smallest depth. Depth and fan-out stop with frontier entries and counts. A page token is bound to the cut and the request. |
+| `RetrieveLens` | Retrieves one lens over a retained cut: the resources reached, the relation instances among them, the absence statements, the facts, services and capabilities in the lens planes, the cut findings and the frontier (LRS-1 to LRS-6). A lens whose roots are absent returns an empty result and the cut reference. |
+| `SumMembers` | Sums the member facts of one definition on the resources reached from a scope. A sum that cannot be formed is withheld with a reason and is never a partial total (SUM-1 to SUM-6). |
 
 The package imports the root package and the pack packages only, and neither
 the root package nor the operation package imports it. It records membership
-and admission, reads snapshots together, and serves a listing and a bounded
-traversal of one cut. Those reads are pure functions of the cut. `CutStore`
-is the only state. The package publishes, evaluates and admits nothing.
+and admission, reads snapshots together, and serves a listing, a bounded
+traversal and a lens retrieval of one cut. Those reads are pure functions of
+the cut. `CutStore` is the only state. The package publishes, evaluates and
+admits nothing. There is no pack availability view.
 
 ### Graph conformance
 
@@ -59,18 +62,22 @@ GOWORK=off go test -count=1 ./semreg/v1/ ./semreg/v1/operation/ ./semreg/v1/proj
 ```
 
 The first runs every graph vector by identifier through `construct_registry`,
-`register_catalog`, `apply`, `assemble_cut` and `admit` on the public API; no
+`register_catalog`, `apply`, `assemble_cut`, `admit`, `list_resources`,
+`traverse`, `retrieve_lens`, `sum_members` and `project` on the public API; no
 vector is skipped or selected by identifier, and a vector whose operation the
 harness does not implement fails. The harness completes the abbreviated
 records of the document only by adding absent members (the kernel contract,
 times, empty required collections, a source descriptor for a new source epoch,
 a fact candidate's time axes and freshness policy, derivation source paths
-read from the referenced candidate, the batch digest, and an intent's
-arguments, causal context, revisions, idempotency key and deadline), then
-decodes them with the kernel's strict decoders. The second runs the kernel
-vector copies, which carry no graph record. `TestOperationDoesNotImportGraph`
+read from the referenced candidate, the batch digest, an intent's
+arguments, causal context, revisions, idempotency key and deadline, and a
+read snapshot's contract, revisions, evaluation time, synthetic source and
+the origin, revision and anchor evidence it omits). A present empty graph
+collection is omitted, which is the kernel wire form. The harness then
+decodes the records with the kernel's strict decoders. The second runs the
+kernel vector copies, which carry no graph record. `TestOperationDoesNotImportGraph`
 in `semreg/v1/operation` checks that admission cannot read the graph (AUT-1,
-ACT-4).
+ACT-4). `semreg/v1/projection` imports no pack.
 
 Each vector ends in one of three outcomes. It passes; it fails, for an
 operation or assertion the harness does not implement or for any outcome the
@@ -81,15 +88,22 @@ kernel refuses that record with exactly the stable error and detail of that
 rule. A refusal no rule explains fails, and so does a record that breaks a
 rule but is accepted. The test log lists every finding by rule and vector.
 
-Conformance is not reached yet: it requires every vector to pass. The
-registry and catalog vectors pass. The publication, cut and admission vectors
-end as document findings on four rules: relation definitions are written as
-owner-tagged catalog references instead of a definition reference; operator
-origins carry native source fields; decimals are not canonical; and snapshot
-identifiers digest an empty retained-observation list the kernel omits. Each
-finding is resolved by an in-place edit of the vector document, of the
-contract or of the kernel; behind the first refusal further disagreements may
-remain, and they surface as findings or failures once the first is resolved.
+Conformance is not reached yet: it requires every vector to pass. 85
+vectors execute and none are skipped. 6 pass: `G-NEG-ACT-2`, `G-NEG-CAT-1`,
+`G-NEG-CAT-2`, `G-POS-ACT-1`, `G-POS-CAT-1` and `G-POS-CAT-2`. None fail.
+The copied document records the element-catalog digest of the seed it was
+written against. `catalog_digest_exposed` and `digest_equals_pinned_digest`
+require the loaded catalog digest to equal `graph.PinnedDigest`; the recorded
+citation is not an input to either assertion. The pinned catalog is unchanged.
+The other 79 vectors end as document findings: relation definitions are
+written as owner-tagged catalog references instead of a definition reference
+(34); operator origins carry native source fields (33); decimals are not
+canonical (2); snapshot identifiers digest an empty retained-observation list
+the kernel omits (3); and a read snapshot's identifier is of the abbreviated
+object rather than the kernel snapshot (7). Each finding is resolved by an
+in-place edit of the vector document, of the contract, of the kernel or of
+the catalog copy; behind the first refusal further disagreements may remain,
+and they surface as findings or failures once the first is resolved.
 
 ## Storage/BMS capability pack v1.1
 
@@ -209,7 +223,10 @@ It provides:
   compatibility-alias records. `Project` is a pure detached report constructor:
   it validates complete tuple accounting and explicit loss/reason semantics but
   creates no semantic facts, capabilities, authority, intents, bindings, or
-  routes. Compatibility aliases remain non-routable.
+  routes. Compatibility aliases remain non-routable. The package holds target
+  records and imports no pack (TGT-6). The pack availability view is retired;
+  nothing in this package replaces it. Availability of an element is read
+  from a lens result, and an asset outside the graph is `ungraphed` on the cut.
 
 `NewKernelWithOptions` selects the bounded in-memory idempotency capacity;
 `RecordRejection` retains structurally valid rejected intent bytes without
