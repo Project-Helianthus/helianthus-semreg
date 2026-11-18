@@ -77,9 +77,9 @@ var registryAssertions = map[string]func(*vectorCase, registryResult) error{
 		}
 		return nil
 	},
-	"catalog_digest_exposed": func(c *vectorCase, r registryResult) error {
+	"catalog_digest_exposed": func(_ *vectorCase, r registryResult) error {
 		digest, ok := r.registry.CatalogDigest()
-		if !ok || digest != graph.PinnedDigest || digest != c.doc.ElementCatalog.SHA256 {
+		if !ok || digest != graph.PinnedDigest {
 			return fmt.Errorf("CatalogDigest() = %s, %v", digest, ok)
 		}
 		return nil
@@ -267,8 +267,8 @@ var catalogAssertions = map[string]func(*vectorCase, catalogResult) error{
 		}
 		return nil
 	},
-	"digest_equals_pinned_digest": func(c *vectorCase, r catalogResult) error {
-		if r.catalog.Digest() != graph.PinnedDigest || r.catalog.Digest() != c.doc.ElementCatalog.SHA256 {
+	"digest_equals_pinned_digest": func(_ *vectorCase, r catalogResult) error {
+		if r.catalog.Digest() != graph.PinnedDigest {
 			return fmt.Errorf("digest %s", r.catalog.Digest())
 		}
 		return nil

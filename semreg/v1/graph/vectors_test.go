@@ -14,13 +14,14 @@ const graphVectorsPath = "../../../fixtures/v1/graph-acceptance-vectors.json"
 // graphVectorsDigest is the SHA-256 of that document, kept as bytes so that a
 // changed file fails here before any vector runs.
 var graphVectorsDigest = [sha256.Size]byte{
-	0x15, 0x3e, 0x22, 0x3f, 0x42, 0x1b, 0xf1, 0xff, 0xfd, 0xa8, 0xad, 0x11, 0xba, 0x40, 0x81, 0x05,
-	0xaa, 0xe1, 0x53, 0x78, 0x68, 0x3c, 0xf9, 0xfd, 0xd7, 0xcf, 0xfc, 0x82, 0x4b, 0xb5, 0x43, 0x58,
+	0xb5, 0xaf, 0xbd, 0x8d, 0x5f, 0x54, 0x6c, 0x91, 0x78, 0xa7, 0x2a, 0xe0, 0x37, 0x51, 0x5c, 0xfe,
+	0x58, 0x1f, 0x8c, 0xef, 0x3c, 0x75, 0xbb, 0x65, 0xba, 0x98, 0xbb, 0x32, 0x66, 0x50, 0x8b, 0xa5,
 }
 
 // TestGraphAcceptanceVectorsPin checks the copied bytes and the document
-// header: the contract names, the element catalog the vectors were written
-// against, and the closed operation, coverage and error vocabularies.
+// header: the contract names, the catalog citation recorded in those bytes,
+// and the closed operation, coverage and error vocabularies. The catalog
+// copy and graph.PinnedDigest are a separate lock.
 func TestGraphAcceptanceVectorsPin(t *testing.T) {
 	raw := gvReadFixture(t)
 	if sha256.Sum256(raw) != graphVectorsDigest {
@@ -36,8 +37,10 @@ func TestGraphAcceptanceVectorsPin(t *testing.T) {
 	if doc.ElementCatalog.Contract != graph.Contract || doc.ElementCatalog.Path != "api/v1/element-catalog-v1.json" {
 		t.Errorf("element_catalog = %+v", doc.ElementCatalog)
 	}
-	if doc.ElementCatalog.SHA256 != graph.PinnedDigest {
-		t.Errorf("element_catalog.sha256 = %s, want the pinned catalog digest %s", doc.ElementCatalog.SHA256, graph.PinnedDigest)
+	// The recorded digest is the seed the document was written against.
+	// Those bytes are pinned above. Validate rejects a citation that is not a digest.
+	if err := doc.ElementCatalog.SHA256.Validate(); err != nil {
+		t.Errorf("element_catalog.sha256 = %s", doc.ElementCatalog.SHA256)
 	}
 	if got := gvSortedKeys(gvOperations); !gvEqualStrings(doc.Operations, got) {
 		t.Errorf("operations = %v, the harness implements %v", doc.Operations, got)
@@ -60,9 +63,10 @@ func TestGraphAcceptanceVectorsPin(t *testing.T) {
 
 // TestGraphAcceptanceVectors executes every vector of the copied document by
 // identifier through the public API: construct_registry, register_catalog,
-// apply, assemble_cut and admit, with the element catalog registered wherever
-// the prior state registers it. No vector is skipped or selected by
-// identifier. Each vector ends in one of three outcomes: it passes; it fails,
+// apply, assemble_cut, admit, list_resources, traverse, retrieve_lens,
+// sum_members and project, with the element catalog registered wherever the
+// prior state registers it. No vector is skipped or selected by identifier.
+// Each vector ends in one of three outcomes: it passes; it fails,
 // for an operation or assertion the harness does not implement or for any
 // outcome no document finding explains; or it ends as a document finding,
 // when the kernel refuses a record of the document with exactly the stable

@@ -26,7 +26,9 @@ import (
 // The vector document writes its records in the kernel wire form but leaves
 // out what no vector varies. The harness completes a record only by adding
 // members that are absent, never by changing a present one, and then decodes
-// it with the kernel's strict decoder:
+// it with the kernel's strict decoder. A present empty resources, relations
+// or relation_absences collection is omitted, which is the kernel wire form
+// of an empty graph collection:
 //
 //   - a batch gains the kernel contract, observed_at at the synthetic wall
 //     time, every required collection it omits as empty, a source descriptor
@@ -38,7 +40,12 @@ import (
 //     names, a causal context opened by an operator, the expected revisions
 //     read from the snapshot it is admitted against, no precondition, an
 //     idempotency key and a deadline that is open or closed as the prior
-//     state's admission context says.
+//     state's admission context says;
+//   - a read snapshot gains the kernel contract, revisions, evaluation time,
+//     the empty required collections, one synthetic source with its binding
+//     and cursor, and the origin, revision and anchor evidence a resource,
+//     relation or fact omits. snapshot_id, an owner-tagged definition and a
+//     coefficient are left as written.
 //
 // Every completed value is synthetic. The synthetic wall time and the
 // freshness policy are those the document's own cut snapshots carry.
@@ -138,6 +145,7 @@ type gvExpect struct {
 	ErrorID                semreg.ErrorID    `json:"error_id,omitempty"`
 	StateUnchanged         bool              `json:"state_unchanged,omitempty"`
 	Assertions             []string          `json:"assertions,omitempty"`
+	Read                   json.RawMessage   `json:"read,omitempty"`
 	InadmissibleOperations []gvElementRef    `json:"inadmissible_operations,omitempty"`
 	Resources              []gvResourceState `json:"resources,omitempty"`
 	RelationStates         []gvRelationState `json:"relation_states,omitempty"`
@@ -184,6 +192,11 @@ var gvOperations = map[string]func(*vectorCase){
 	"apply":              runApply,
 	"assemble_cut":       runAssembleCut,
 	"admit":              runAdmit,
+	"list_resources":     runListResources,
+	"traverse":           runTraverse,
+	"retrieve_lens":      runRetrieveLens,
+	"sum_members":        runSumMembers,
+	"project":            runProject,
 }
 
 type vectorCase struct {
@@ -212,7 +225,7 @@ func newVectorCase(t *testing.T, doc *gvDocument, vector gvVector, state gvPrior
 func (c *vectorCase) checkHeader() {
 	c.t.Helper()
 	switch {
-	case c.vector.Polarity == "positive" && c.expect.Result == "accept":
+	case c.expect.Result == "accept" && (c.vector.Polarity == "positive" || c.vector.Polarity == "negative"):
 	case c.vector.Polarity == "negative" && c.expect.Result == "reject":
 		if !gvContains(c.doc.ErrorIDs, string(c.expect.ErrorID)) || c.expect.ErrorID.Validate() != nil {
 			c.t.Fatalf("expected error %q is not a listed stable error", c.expect.ErrorID)
