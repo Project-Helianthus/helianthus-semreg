@@ -107,7 +107,7 @@ remains `unknown_pending_normative_source`.
 
 `semreg/v1/packs/pv` implements the read-only
 `helianthus.pack.pv@1.0.0` validator from accepted semantic documentation. It
-indexes 21 fields, six services, eight capabilities, and the active-power and
+indexes 24 fields, six services, eight capabilities, and the active-power and
 export limit operation/effect pairs. It preserves the fixture's native mapping
 and live-authority exclusions and adds no transport, gateway, persistence, or
 live-I/O behavior.
@@ -117,7 +117,7 @@ live-I/O behavior.
 `semreg/v1/packs/evse` implements the read-only
 `helianthus.pack.evse@1.0.0` validator from
 [`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
-It indexes 15 field contracts, six static dimensions, five services, six
+It indexes 16 field contracts, six static dimensions, five services, six
 capabilities, one allocated-current operation/effect pair, five static
 relation definitions, and six Portal descriptors. It validates exact qualified,
 available capability constraints and exact allocated-current argument matching
@@ -148,7 +148,7 @@ only an opaque service-instance ID.
 `semreg/v1/packs/infrastructure` provides the read-only validator for
 `helianthus.pack.infrastructure@1.0.0`, accepted from
 [`helianthus-docs-semantic@4fc5661`](https://github.com/Project-Helianthus/helianthus-docs-semantic/tree/4fc56613a521dd2549cc81b1178f248dbcfd5164/api/v1/packs).
-It indexes 19 electrical facts, six services, and six read capabilities. It
+It indexes 20 electrical facts, seven services, and six read capabilities. It
 checks canonical text dimensions, units, Decimal bounds, and status symbols
 through the existing semantic registry only. It indexes no operations or effect
 rules and exports no native mapping, route, Portal, consumer, or control API;

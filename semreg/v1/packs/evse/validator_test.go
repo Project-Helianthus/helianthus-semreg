@@ -20,7 +20,7 @@ func TestEVSEDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 15 || len(index.Services) != 5 || len(index.Capabilities) != 6 || len(index.Operations) != 1 || len(index.EffectRules) != 1 {
+	if len(index.Fields) != 16 || len(index.Services) != 5 || len(index.Capabilities) != 6 || len(index.Operations) != 1 || len(index.EffectRules) != 1 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {

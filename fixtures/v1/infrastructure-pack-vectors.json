@@ -582,6 +582,32 @@
           ],
           "optional": true,
           "order": 200
+        },
+        {
+          "id": "infrastructure.ac.voltage_line_line",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.voltage_line_line",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt",
+          "dimension": "infrastructure.dimension.line_pair",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 3
+            }
+          },
+          "optional": true,
+          "order": 210
         }
       ],
       "fact_dimensions": [
@@ -662,6 +688,19 @@
           },
           "value_kind": "text",
           "order": 60
+        },
+        {
+          "id": "infrastructure.dimension.line_pair",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.line_pair",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 70
         }
       ],
       "services": [
@@ -742,6 +781,19 @@
           },
           "fact_key_dimension": "infrastructure.dimension.meter",
           "order": 60
+        },
+        {
+          "id": "infrastructure.service.line_pair",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.line_pair",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.line_pair",
+          "order": 70
         }
       ],
       "relations": [
@@ -1023,6 +1075,23 @@
             "infrastructure.energy.import"
           ],
           "order": 60
+        },
+        {
+          "id": "infrastructure.portal.read.line_pair",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.line_pair",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.line_pair",
+          "fields": [
+            "infrastructure.ac.voltage_line_line"
+          ],
+          "order": 70
         }
       ]
     },

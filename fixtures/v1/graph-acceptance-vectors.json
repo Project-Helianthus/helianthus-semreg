@@ -1,7 +1,7 @@
 {
   "contract": "helianthus.semantic.graph.acceptance/v1",
   "kernel_contract": "helianthus.semantic.kernel/v1",
-  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:b630656362d6ca1a4047a474c07c6da0201cb882cc4ef96260dc9fa92cfba133"},
+  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:6084c0f1aed4ddc34095fe342b5791e6d1f056ac2709a0465cd04a3cb6183fd8"},
   "synthetic_identification_schemes": ["synthetic.serial"],
   "error_ids": [
     "ambiguous_route",

@@ -42,6 +42,7 @@ var fields = []fieldSpec{
 	{"evse.limit.actual_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.connector", bound("0", 0), bound("1", 3), nil},
 	{"evse.limit.advertised_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.connector", bound("0", 0), bound("1", 3), nil},
 	{"evse.limit.allocated_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.connector", bound("0", 0), bound("1", 3), nil},
+	{"evse.limit.allocated_current_phase", semreg.ValueQuantity, "unit.ampere", "evse.dimension.phase", bound("0", 0), bound("1", 3), nil},
 	{"evse.limit.configured_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.evse", bound("0", 0), bound("1", 3), nil},
 	{"evse.status.charging", semreg.ValueSymbol, "", "evse.dimension.connector", nil, nil, []string{"evse.status.charging.charging", "evse.status.charging.complete", "evse.status.charging.idle"}},
 	{"evse.status.connection", semreg.ValueSymbol, "", "evse.dimension.connector", nil, nil, []string{"evse.status.connection.connected", "evse.status.connection.disconnected"}},
