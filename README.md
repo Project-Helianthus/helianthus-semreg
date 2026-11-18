@@ -88,19 +88,22 @@ kernel refuses that record with exactly the stable error and detail of that
 rule. A refusal no rule explains fails, and so does a record that breaks a
 rule but is accepted. The test log lists every finding by rule and vector.
 
-Conformance is not reached yet: it requires every vector to pass. Eighty-five
-vectors execute and none are skipped. Four pass. `G-POS-ACT-1` and
-`G-POS-CAT-1` fail because the copied document records an element-catalog
-digest other than `graph.PinnedDigest`; the pinned catalog is unchanged.
-The other vectors end as document findings: relation definitions are written
-as owner-tagged catalog references instead of a definition reference;
-operator origins carry native source fields; decimals are not canonical;
-snapshot identifiers digest an empty retained-observation list the kernel
-omits; and a read snapshot's identifier is of the abbreviated object rather
-than the kernel snapshot. Each finding is resolved by an in-place edit of
-the vector document, of the contract, of the kernel or of the catalog copy;
-behind the first refusal further disagreements may remain, and they surface
-as findings or failures once the first is resolved.
+Conformance is not reached yet: it requires every vector to pass. 85
+vectors execute and none are skipped. 6 pass: `G-NEG-ACT-2`, `G-NEG-CAT-1`,
+`G-NEG-CAT-2`, `G-POS-ACT-1`, `G-POS-CAT-1` and `G-POS-CAT-2`. None fail.
+The copied document records the element-catalog digest of the seed it was
+written against. `catalog_digest_exposed` and `digest_equals_pinned_digest`
+require the loaded catalog digest to equal `graph.PinnedDigest`; the recorded
+citation is not an input to either assertion. The pinned catalog is unchanged.
+The other 79 vectors end as document findings: relation definitions are
+written as owner-tagged catalog references instead of a definition reference
+(34); operator origins carry native source fields (33); decimals are not
+canonical (2); snapshot identifiers digest an empty retained-observation list
+the kernel omits (3); and a read snapshot's identifier is of the abbreviated
+object rather than the kernel snapshot (7). Each finding is resolved by an
+in-place edit of the vector document, of the contract, of the kernel or of
+the catalog copy; behind the first refusal further disagreements may remain,
+and they surface as findings or failures once the first is resolved.
 
 ## Storage/BMS capability pack v1.1
 

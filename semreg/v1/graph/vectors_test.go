@@ -148,4 +148,5 @@ func TestGraphAcceptanceVectors(t *testing.T) {
 		sort.Strings(byRule[rule])
 		t.Logf("document finding, %d vectors: %s: %v", len(byRule[rule]), rule, byRule[rule])
 	}
+	gvCheckConformanceReport(t, outcomes, byRule)
 }
