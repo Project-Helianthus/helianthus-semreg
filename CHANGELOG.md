@@ -30,8 +30,10 @@ reason, never a partial total and never zero for an empty scope. A
 frontier entry on the scope or on a reached member, or a later page that
 leaves one of those resources out of the result, is `member_unavailable`
 rather than the sum of the subset that was reached. A source-reported
-aggregate on the scope is returned beside the sum, labelled as observed
-(SUM-1 to SUM-6). The element catalog copy is re-copied in
+aggregate on the scope is returned beside the sum, labelled as observed,
+when it is the summed definition or its values carry a unit of that
+definition's member facts; an aggregate of another quantity is not
+returned (SUM-1 to SUM-6). The element catalog copy is re-copied in
 place. It now carries the four lenses and marks `resource.site` as the
 installation root. Its SHA-256 pin in `fixtures/README.md`,
 `graph.PinnedDigest`, the root package's pinned catalog digest, the catalog

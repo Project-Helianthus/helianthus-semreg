@@ -22,8 +22,8 @@ const (
 )
 
 // MemberSum is a sum of member facts or a withheld reason. Observed carries
-// a source-reported aggregate of the scope and is never merged into Value
-// (SUM-6).
+// the source-reported aggregates of the scope that are comparable with the
+// summed definition and is never merged into Value (SUM-6).
 type MemberSum struct {
 	Withheld bool             `json:"withheld"`
 	Reason   SumReason        `json:"reason,omitempty"`
@@ -45,7 +45,7 @@ func SumMembers(result LensResult, fact semreg.DefinitionRef, scope semreg.Resou
 	if err := scope.Validate(); err != nil {
 		return MemberSum{}, err
 	}
-	observed := observedAggregates(result, scope)
+	observed := observedAggregates(result, fact, scope)
 	if result.Cut.Completeness == CutPartial && len(result.Cut.NotIncluded) > 0 {
 		return withheldSum(SumPartialCut, observed), nil
 	}
@@ -103,14 +103,50 @@ func withheldSum(reason SumReason, observed []LensFact) MemberSum {
 	return MemberSum{Withheld: true, Reason: reason, Observed: observed}
 }
 
-func observedAggregates(result LensResult, scope semreg.ResourceID) []LensFact {
+// observedAggregates returns the aggregates on scope that are comparable with
+// the summed definition (SUM-6): the definition itself, or an aggregate whose
+// quantity values all carry a unit that the member facts of the definition
+// carry in result. An aggregate of another quantity, such as energy beside a
+// power sum, is not returned.
+func observedAggregates(result LensResult, fact semreg.DefinitionRef, scope semreg.ResourceID) []LensFact {
+	units := map[semreg.DefinitionID]struct{}{}
+	for _, item := range result.Facts {
+		if item.Aggregation != AggregationMember || item.Definition != fact {
+			continue
+		}
+		for _, candidate := range item.Candidates {
+			if candidate.Value != nil && candidate.Value.Quantity != nil {
+				units[candidate.Value.Quantity.Unit] = struct{}{}
+			}
+		}
+	}
 	var out []LensFact
-	for _, fact := range result.Facts {
-		if fact.Subject == scope && fact.Aggregation == AggregationAggregate {
-			out = append(out, fact)
+	for _, item := range result.Facts {
+		if item.Subject != scope || item.Aggregation != AggregationAggregate {
+			continue
+		}
+		if item.Definition == fact || sameQuantityUnits(item, units) {
+			out = append(out, item)
 		}
 	}
 	return out
+}
+
+func sameQuantityUnits(fact LensFact, units map[semreg.DefinitionID]struct{}) bool {
+	matched := false
+	for _, candidate := range fact.Candidates {
+		if candidate.Value == nil {
+			continue
+		}
+		if candidate.Value.Quantity == nil {
+			return false
+		}
+		if _, ok := units[candidate.Value.Quantity.Unit]; !ok {
+			return false
+		}
+		matched = true
+	}
+	return matched
 }
 
 // sumSubjects returns the reached members that are summands of fact.

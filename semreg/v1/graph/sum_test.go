@@ -212,6 +212,43 @@ func TestSumMembers(t *testing.T) {
 		}
 	})
 
+	t.Run("observed holds only aggregates of the summed quantity", func(t *testing.T) {
+		result := threeMemberResult()
+		energy := sumFact("resource:system", "500", 0, graph.AggregationAggregate)
+		energy.Definition = sumRef("sum.fact.energy")
+		energy.Key.FactID = "sum.fact.energy"
+		energy.Candidates[0].Value.Quantity.Unit = "unit.joule"
+		total := sumFact("resource:system", "21", 0, graph.AggregationAggregate)
+		total.Definition = sumRef("sum.fact.total_power")
+		total.Key.FactID = "sum.fact.total_power"
+		result.Facts = append(result.Facts, energy, total)
+		got, err := graph.SumMembers(result, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireSum(t, got, "9", 0)
+		if len(got.Observed) != 2 {
+			t.Fatalf("observed = %+v, want the power aggregates only", got.Observed)
+		}
+		for _, item := range got.Observed {
+			if item.Definition == sumRef("sum.fact.energy") {
+				t.Fatalf("energy aggregate returned beside a power sum: %+v", got.Observed)
+			}
+		}
+		withheld := result
+		withheld.Relations = nil
+		got, err = graph.SumMembers(withheld, fact, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		requireWithheld(t, got, graph.SumNoCoverage)
+		for _, item := range got.Observed {
+			if item.Definition == sumRef("sum.fact.energy") {
+				t.Fatalf("energy aggregate returned beside a withheld power sum: %+v", got.Observed)
+			}
+		}
+	})
+
 	t.Run("aggregate on a member is not added", func(t *testing.T) {
 		got, err := graph.SumMembers(threeMemberResult(), fact, scope)
 		if err != nil {
