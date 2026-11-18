@@ -74,14 +74,16 @@ const (
 
 // ProjectionManifest identifies the target, its version, the kernel contract
 // (always semreg.ContractKernelV1), the exact pack versions sorted by ID and
-// version without duplicates, and the mapping revision a report was produced
-// with.
+// version without duplicates, the mapping revision a report was produced
+// with, and the optional catalog lens the report accounts for (TGT-1).
+// Lens is omitted when absent.
 type ProjectionManifest struct {
 	TargetID        semreg.TargetID        `json:"target_id"`
 	TargetVersion   semreg.VersionLabel    `json:"target_version"`
 	KernelVersion   semreg.ContractVersion `json:"kernel_version"`
 	PackVersions    []semreg.PackRef       `json:"pack_versions"`
 	MappingRevision semreg.Uint64          `json:"mapping_revision"`
+	Lens            *semreg.DefinitionID   `json:"lens,omitempty"`
 }
 
 // RequestedItem is one (kind, item ID) tuple a projection target asked for.
@@ -103,8 +105,10 @@ type LossDetail struct {
 
 // ProjectionDisposition is the result for one requested (kind, item ID) tuple:
 // its outcome, the sorted unique source fact keys (at most 32), the sorted
-// unique loss details (at most 32) and an optional reason, which the withheld,
-// unrepresentable, unsupported and unknown outcomes require.
+// unique loss details (at most 32), an optional reason, which the withheld,
+// unrepresentable, unsupported and unknown outcomes require, and the optional
+// resources and relation instances the disposition was made from (TGT-2).
+// Resources and Relations are omitted when empty.
 type ProjectionDisposition struct {
 	Kind       ItemKind             `json:"kind"`
 	ItemID     semreg.DefinitionID  `json:"item_id"`
@@ -112,6 +116,8 @@ type ProjectionDisposition struct {
 	SourceKeys []semreg.FactKey     `json:"source_keys"`
 	Loss       []LossDetail         `json:"loss"`
 	Reason     *semreg.DefinitionID `json:"reason,omitempty"`
+	Resources  []semreg.ResourceID  `json:"resources,omitempty"`
+	Relations  []semreg.RelationKey `json:"relations,omitempty"`
 }
 
 // ProjectionReport is the ContractProjectionV1 record of one projection of one

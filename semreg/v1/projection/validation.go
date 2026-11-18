@@ -51,13 +51,14 @@ var errorRank = map[semreg.ErrorID]int{
 	semreg.SequenceConflict: 19, semreg.RevisionConflict: 20,
 	semreg.IncomparableClockEpoch: 21, semreg.GenerationTransitionIncomplete: 22,
 	semreg.DefinitionOwnerConflict: 23, semreg.DefinitionOwnerMissing: 24,
-	semreg.IdentityNotQualified: 25, semreg.CapabilityNotQualified: 26,
-	semreg.CapabilityUnavailable: 27, semreg.AuthorityMissing: 28,
-	semreg.DeadlineExpired: 29, semreg.PreconditionFailed: 30,
-	semreg.RouteSelectionForbidden: 31, semreg.AmbiguousRoute: 32,
-	semreg.RetryForbidden: 33, semreg.InvalidOutcome: 34,
-	semreg.EchoSuppressed: 35, semreg.CausalBudgetExceeded: 36,
-	semreg.ProjectionIncomplete: 37, semreg.AliasNotRoutable: 38,
+	semreg.MembershipMissing:    25,
+	semreg.IdentityNotQualified: 26, semreg.CapabilityNotQualified: 27,
+	semreg.CapabilityUnavailable: 28, semreg.AuthorityMissing: 29,
+	semreg.DeadlineExpired: 30, semreg.PreconditionFailed: 31,
+	semreg.RouteSelectionForbidden: 32, semreg.AmbiguousRoute: 33,
+	semreg.RetryForbidden: 34, semreg.InvalidOutcome: 35,
+	semreg.EchoSuppressed: 36, semreg.CausalBudgetExceeded: 37,
+	semreg.ProjectionIncomplete: 38, semreg.AliasNotRoutable: 39,
 }
 
 // Validate rejects a value outside the ItemKind set with invalid_enum.
@@ -111,6 +112,17 @@ func (m ProjectionManifest) Validate() error {
 		errs = append(errs, errorf(semreg.DuplicateKey, "pack versions"))
 	} else if !ordered {
 		errs = append(errs, errorf(semreg.NoncanonicalOrder, "pack versions"))
+	}
+	if m.Lens != nil {
+		errs = append(errs, m.Lens.Validate())
+		if m.Lens.Validate() == nil {
+			known, err := knownLens(*m.Lens)
+			if err != nil {
+				errs = append(errs, err)
+			} else if !known {
+				errs = append(errs, errorf(semreg.MembershipMissing, "projection lens"))
+			}
+		}
 	}
 	return ranked(errs...)
 }
@@ -191,6 +203,28 @@ func (d ProjectionDisposition) Validate() error {
 	} else if !ordered {
 		errs = append(errs, errorf(semreg.NoncanonicalOrder, "projection loss"))
 	}
+	if d.Resources != nil && len(d.Resources) == 0 {
+		errs = append(errs, errorf(semreg.InvalidValue, "present empty resources"))
+	}
+	if d.Relations != nil && len(d.Relations) == 0 {
+		errs = append(errs, errorf(semreg.InvalidValue, "present empty relations"))
+	}
+	for _, id := range d.Resources {
+		errs = append(errs, id.Validate())
+	}
+	for _, key := range d.Relations {
+		errs = append(errs, key.Validate())
+	}
+	if duplicate, ordered := orderedResourceIDs(d.Resources); duplicate {
+		errs = append(errs, errorf(semreg.DuplicateKey, "projection resources"))
+	} else if !ordered {
+		errs = append(errs, errorf(semreg.NoncanonicalOrder, "projection resources"))
+	}
+	if duplicate, ordered := orderedRelationKeys(d.Relations); duplicate {
+		errs = append(errs, errorf(semreg.DuplicateKey, "projection relations"))
+	} else if !ordered {
+		errs = append(errs, errorf(semreg.NoncanonicalOrder, "projection relations"))
+	}
 	if d.Outcome == ProjectionExact && len(d.Loss) != 0 {
 		errs = append(errs, errorf(semreg.ProjectionIncomplete, "exact projection loss"))
 	}
@@ -226,10 +260,10 @@ func (r ProjectionReport) Validate() error {
 		errs = append(errs, errorf(semreg.BoundsExceeded, "projection items"))
 	}
 	for _, requested := range r.Requested {
-		errs = append(errs, requested.Validate())
+		errs = append(errs, requested.Validate(), relationDefinitionError(requested.Kind, requested.ItemID))
 	}
 	for _, disposition := range r.Dispositions {
-		errs = append(errs, disposition.Validate())
+		errs = append(errs, disposition.Validate(), relationDefinitionError(disposition.Kind, disposition.ItemID))
 	}
 	if duplicate, ordered := orderedRequested(r.Requested); duplicate {
 		errs = append(errs, errorf(semreg.ProjectionIncomplete, "requested tuples"))
@@ -352,6 +386,17 @@ func orderedEvidence(items []semreg.EvidenceRef) (bool, bool) {
 }
 func orderedFactKeys(items []semreg.FactKey) (bool, bool) {
 	return orderedValid(items, func(item semreg.FactKey) (string, bool) {
+		canonical, err := semreg.CanonicalJSON(item)
+		return string(canonical), err == nil
+	})
+}
+func orderedResourceIDs(items []semreg.ResourceID) (bool, bool) {
+	return orderedValid(items, func(item semreg.ResourceID) (string, bool) {
+		return string(item), item.Validate() == nil
+	})
+}
+func orderedRelationKeys(items []semreg.RelationKey) (bool, bool) {
+	return orderedValid(items, func(item semreg.RelationKey) (string, bool) {
 		canonical, err := semreg.CanonicalJSON(item)
 		return string(canonical), err == nil
 	})

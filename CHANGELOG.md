@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+In place before the 0.7 release: a projection report may name the catalog
+lens it accounts for and cite the resources and relation instances a
+disposition was made from. The manifest member `lens` and the disposition
+members `resources` and `relations` are omitted when empty, so a report
+without them keeps its present bytes (TGT-1, TGT-2). `Project` accepts an
+optional lens result as the source of those citations. A cited relation
+instance that is not coherent in that result is `projection_incomplete`
+(G-NEG-TGT-1). A requested item of kind `relation` that names no member
+relation definition of the element catalog is `membership_missing` (PRJ-2).
+A report over a lens that cites two resources and one coherent relation key
+is accepted (G-POS-TGT-1). No pack, catalog or contract version is raised,
+and no lock moves. The new report path imports no pack. The root package
+and the operation package still do not import the graph package.
+
 In place before the 0.7 release: `semreg/v1/graph` returns a lens result and
 sums the member facts of a scope. `RetrieveLens` answers one retained cut
 with the canonical lens result (`helianthus.semantic.lens-result/v1`): the
