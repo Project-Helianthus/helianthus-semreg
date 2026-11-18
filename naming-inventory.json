@@ -217796,6 +217796,88 @@
       "emitted_name": "pv.ac.active_power"
     },
     {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.apparent_power",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.ac.apparent_power",
+      "target": "pv.ac.apparent_power",
+      "role_decomposition": [
+        "pv",
+        "ac",
+        "apparent_power"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.volt_ampere",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.ac.apparent_power"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.reactive_power",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.ac.reactive_power",
+      "target": "pv.ac.reactive_power",
+      "role_decomposition": [
+        "pv",
+        "ac",
+        "reactive_power"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.volt_ampere_reactive",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.ac.reactive_power"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.dc.energy",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.dc.energy",
+      "target": "pv.dc.energy",
+      "role_decomposition": [
+        "pv",
+        "dc",
+        "energy"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.dc.energy"
+    },
+    {
       "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.frequency",
       "owning_file": "semreg/v1/packs/pv/definitions.go",
       "kind": "definition_literal",

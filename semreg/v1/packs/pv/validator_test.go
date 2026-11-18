@@ -499,3 +499,183 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 		}
 	}
 }
+
+// TestPVStringEnergyStaysDistinct keeps per-string cumulative DC energy,
+// per-phase apparent power and per-phase reactive power apart from the
+// system-level generated energy. Each of the three is accepted only on its own
+// dimension, in its own unit and inside its own bounds; string energy is
+// refused on the input and system dimensions, generated energy keeps the
+// system dimension and its nonnegative lower bound, and no capability or
+// operation uses the three.
+func TestPVStringEnergyStaysDistinct(t *testing.T) {
+	v := New()
+	generated, ok := findField("pv.energy.generated")
+	if !ok {
+		t.Fatal("pv.energy.generated is absent")
+	}
+	if !pvSameSpec(generated, semreg.ValueQuantity, "unit.joule", "pv.dimension.system", bound("0", 0), bound("36", 17)) {
+		t.Fatalf("pv.energy.generated changed: %s", pvDescribe(generated))
+	}
+	infrastructure := pvFixtureFields(t, "infrastructure-pack-vectors.json", "catalog", "definitions", "fields")
+	infrastructureBound := func(id, side string) *decimalBound {
+		t.Helper()
+		bounds, _ := pvFieldEntry(t, infrastructure, id)["bounds"].(map[string]any)
+		value, ok := bounds[side].(map[string]any)
+		if !ok {
+			t.Fatalf("%s has no %s", id, side)
+		}
+		coefficient, _ := value["coefficient"].(string)
+		exponent, _ := value["exponent10"].(float64)
+		return bound(coefficient, int32(exponent))
+	}
+	cases := []struct {
+		id, unit, dimension semreg.DefinitionID
+		minimum, maximum    *decimalBound
+		signed              bool
+	}{
+		{"pv.dc.energy", "unit.joule", "pv.dimension.string", bound("0", 0), generated.maximum, false},
+		{"pv.ac.apparent_power", "unit.volt_ampere", "pv.dimension.phase", infrastructureBound("infrastructure.ac.apparent_power", "minimum"), infrastructureBound("infrastructure.ac.apparent_power", "maximum"), false},
+		{"pv.ac.reactive_power", "unit.volt_ampere_reactive", "pv.dimension.phase", infrastructureBound("infrastructure.ac.reactive_power", "minimum"), infrastructureBound("infrastructure.ac.reactive_power", "maximum"), true},
+	}
+	units := map[semreg.DefinitionID]struct{}{"unit.other": {}}
+	for _, spec := range fields {
+		if spec.unit != "" {
+			units[spec.unit] = struct{}{}
+		}
+	}
+	for _, c := range cases {
+		units[c.unit] = struct{}{}
+	}
+	indexed := map[semreg.DefinitionRef]bool{}
+	for _, ref := range v.Definitions().Fields {
+		indexed[ref] = true
+	}
+	metadata := map[semreg.DefinitionID]semreg.FieldMetadata{}
+	for _, field := range Metadata().Fields {
+		metadata[field.Ref.ID] = field
+	}
+	quantity := func(n semreg.Decimal, unit semreg.DefinitionID) *semreg.Value {
+		return &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: n, Unit: unit}}
+	}
+	key := func(id, dimension semreg.DefinitionID) semreg.FactKey {
+		return testKey(fieldSpec{id: id, dimension: dimension})
+	}
+	for _, c := range cases {
+		spec, ok := findField(c.id)
+		if !ok {
+			t.Fatalf("%s is absent", c.id)
+		}
+		if !pvSameSpec(spec, semreg.ValueQuantity, c.unit, c.dimension, c.minimum, c.maximum) {
+			t.Fatalf("%s: got %s", c.id, pvDescribe(spec))
+		}
+		if !indexed[definition(c.id)] {
+			t.Fatalf("%s is not in the definition index", c.id)
+		}
+		if m, ok := metadata[c.id]; !ok || m.CanonicalUnit == nil || *m.CanonicalUnit != definition(c.unit) || m.Dimension != definition(c.dimension) {
+			t.Fatalf("%s metadata: %+v", c.id, m)
+		}
+		own := key(c.id, c.dimension)
+		for _, n := range []semreg.Decimal{c.minimum.decimal(), c.maximum.decimal()} {
+			if err := v.ValidateFact(own, quantity(n, c.unit)); err != nil {
+				t.Fatalf("%s %v: %v", c.id, n, err)
+			}
+		}
+		for _, n := range []semreg.Decimal{pvOutside(c.minimum.decimal(), -1), pvOutside(c.maximum.decimal(), 1)} {
+			if got := pvRefusal(v.ValidateFact(own, quantity(n, c.unit))); got != semreg.BoundsExceeded {
+				t.Fatalf("%s %v: %s", c.id, n, got)
+			}
+		}
+		negative := v.ValidateFact(own, quantity(semreg.Decimal{Coefficient: "-1"}, c.unit))
+		if c.signed && negative != nil || !c.signed && pvRefusal(negative) != semreg.BoundsExceeded {
+			t.Fatalf("%s negative value: %v", c.id, negative)
+		}
+		for dimension := range dimensions {
+			if dimension == c.dimension {
+				continue
+			}
+			if got := pvRefusal(v.ValidateFact(key(c.id, dimension), quantity(c.minimum.decimal(), c.unit))); got != semreg.InvalidValue {
+				t.Fatalf("%s on %s: %s", c.id, dimension, got)
+			}
+		}
+		for unit := range units {
+			if unit == c.unit {
+				continue
+			}
+			if got := pvRefusal(v.ValidateFact(own, quantity(c.minimum.decimal(), unit))); got != semreg.InvalidValue {
+				t.Fatalf("%s in %s: %s", c.id, unit, got)
+			}
+		}
+		text := "id"
+		for name, changed := range map[string]func(*semreg.FactKey){
+			"pack id":      func(k *semreg.FactKey) { k.PackID = "helianthus.pack.other" },
+			"pack version": func(k *semreg.FactKey) { k.PackVersion = "1.0.1" },
+			"no dimension": func(k *semreg.FactKey) { k.Dimensions = nil },
+			"dimension value kind": func(k *semreg.FactKey) {
+				k.Dimensions = []semreg.Dimension{{ID: c.dimension, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.ratio"}}}}
+			},
+			"extra dimension": func(k *semreg.FactKey) {
+				k.Dimensions = append(k.Dimensions, semreg.Dimension{ID: "pv.dimension.system", Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
+			},
+		} {
+			k := key(c.id, c.dimension)
+			changed(&k)
+			if v.ValidateFact(k, quantity(c.minimum.decimal(), c.unit)) == nil {
+				t.Fatalf("%s with another %s accepted", c.id, name)
+			}
+		}
+		symbol := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: c.id, Token: "x", Known: true}}
+		if got := pvRefusal(v.ValidateFact(own, &symbol)); got != semreg.InvalidValue {
+			t.Fatalf("%s symbol: %s", c.id, got)
+		}
+		for id, capability := range capabilities {
+			for _, constraint := range capability.constraints {
+				if constraint == c.id {
+					t.Fatalf("%s constrains %s", c.id, id)
+				}
+			}
+		}
+		for id, op := range operations {
+			if op.argument == c.id {
+				t.Fatalf("%s is the argument of %s", c.id, id)
+			}
+		}
+	}
+	for _, dimension := range []semreg.DefinitionID{"pv.dimension.input", "pv.dimension.system"} {
+		if got := pvRefusal(v.ValidateFact(key("pv.dc.energy", dimension), quantity(semreg.Decimal{Coefficient: "1"}, "unit.joule"))); got != semreg.InvalidValue {
+			t.Fatalf("pv.dc.energy on %s: %s", dimension, got)
+		}
+	}
+	if got := pvRefusal(v.ValidateFact(key("pv.energy.generated", "pv.dimension.string"), quantity(semreg.Decimal{Coefficient: "1"}, "unit.joule"))); got != semreg.InvalidValue {
+		t.Fatalf("pv.energy.generated on pv.dimension.string: %s", got)
+	}
+	if got := pvRefusal(v.ValidateFact(key("pv.energy.generated", "pv.dimension.system"), quantity(semreg.Decimal{Coefficient: "-1"}, "unit.joule"))); got != semreg.BoundsExceeded {
+		t.Fatalf("negative pv.energy.generated: %s", got)
+	}
+}
+
+// pvSameSpec reports whether spec has exactly the given kind, unit,
+// dimension and bounds and no symbols.
+func pvSameSpec(spec fieldSpec, kind semreg.ValueKind, unit, dimension semreg.DefinitionID, minimum, maximum *decimalBound) bool {
+	same := func(a, b *decimalBound) bool { return a != nil && b != nil && *a == *b }
+	return spec.kind == kind && spec.unit == unit && spec.dimension == dimension && same(spec.minimum, minimum) && same(spec.maximum, maximum) && spec.symbols == nil
+}
+
+// pvRefusal returns the error identifier of a refusal, or "" when err is nil,
+// so that an accepted value never reads as a refusal.
+func pvRefusal(err error) semreg.ErrorID {
+	if err == nil {
+		return ""
+	}
+	return semreg.ErrorIdentifier(err)
+}
+
+// pvDescribe prints a field table entry with its bounds dereferenced.
+func pvDescribe(spec fieldSpec) string {
+	text := func(b *decimalBound) string {
+		if b == nil {
+			return "none"
+		}
+		return fmt.Sprintf("%se%d", b.coefficient, b.exponent10)
+	}
+	return fmt.Sprintf("%s %s %s on %s from %s to %s symbols %v", spec.id, spec.kind, spec.unit, spec.dimension, text(spec.minimum), text(spec.maximum), spec.symbols)
+}
