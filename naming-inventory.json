@@ -201084,6 +201084,34 @@
       "emitted_name": "evse.limit.allocated_current"
     },
     {
+      "identity": "semreg/v1/packs/evse/definitions.go::definition_literal::evse.limit.allocated_current_phase",
+      "owning_file": "semreg/v1/packs/evse/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "evse.limit.allocated_current_phase",
+      "target": "evse.limit.allocated_current_phase",
+      "role_decomposition": [
+        "evse",
+        "limit",
+        "allocated_current_phase"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/evse/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.ampere",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/evse-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/evse/validator_test.go"
+      ],
+      "emitted_name": "evse.limit.allocated_current_phase"
+    },
+    {
       "identity": "semreg/v1/packs/evse/definitions.go::definition_literal::evse.limit.configured_current",
       "owning_file": "semreg/v1/packs/evse/definitions.go",
       "kind": "definition_literal",
@@ -214994,6 +215022,63 @@
       "emitted_name": "unit.volt"
     },
     {
+      "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.ac.voltage_line_line",
+      "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "infrastructure.ac.voltage_line_line",
+      "target": "infrastructure.ac.voltage_line_line",
+      "role_decomposition": [
+        "infrastructure",
+        "ac",
+        "voltage_line_line"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/infrastructure/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.volt",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/infrastructure-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+        "semreg/v1/packs/infrastructure/validator_test.go"
+      ],
+      "emitted_name": "infrastructure.ac.voltage_line_line"
+    },
+    {
+      "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.dimension.line_pair",
+      "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "infrastructure.dimension.line_pair",
+      "target": "infrastructure.dimension.line_pair",
+      "role_decomposition": [
+        "infrastructure",
+        "dimension",
+        "line_pair"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/infrastructure/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/infrastructure-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/infrastructure/validator_test.go"
+      ],
+      "emitted_name": "infrastructure.dimension.line_pair"
+    },
+    {
       "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.energy.export",
       "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
       "kind": "definition_literal",
@@ -216079,6 +216164,34 @@
         "docs-semantic/scripts/validate_infrastructure_pack_v1.py"
       ],
       "emitted_name": "infrastructure.service.meter"
+    },
+    {
+      "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.service.line_pair",
+      "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "infrastructure.service.line_pair",
+      "target": "infrastructure.service.line_pair",
+      "role_decomposition": [
+        "infrastructure",
+        "service",
+        "line_pair"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/infrastructure/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/infrastructure-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+        "semreg/v1/packs/infrastructure/validator_test.go"
+      ],
+      "emitted_name": "infrastructure.service.line_pair"
     },
     {
       "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.capability.read.site",
@@ -219035,6 +219148,62 @@
         "matter-binding/docs/target-profile/photovoltaic.md"
       ],
       "emitted_name": "pv.ac.aggregate_active_power"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.aggregate_apparent_power",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.ac.aggregate_apparent_power",
+      "target": "pv.ac.aggregate_apparent_power",
+      "role_decomposition": [
+        "pv",
+        "ac",
+        "aggregate_apparent_power"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.volt_ampere",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.ac.aggregate_apparent_power"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.aggregate_reactive_power",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.ac.aggregate_reactive_power",
+      "target": "pv.ac.aggregate_reactive_power",
+      "role_decomposition": [
+        "pv",
+        "ac",
+        "aggregate_reactive_power"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.volt_ampere_reactive",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.ac.aggregate_reactive_power"
     },
     {
       "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.dimension.array",

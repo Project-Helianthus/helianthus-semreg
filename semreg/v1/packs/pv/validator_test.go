@@ -23,7 +23,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 	if err := x.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(x.Fields) != 24 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
+	if len(x.Fields) != 26 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
 		t.Fatal(x)
 	}
 	for _, s := range fields {
@@ -56,7 +56,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 64; i++ {
-				if len(v.Definitions().Fields) != 24 {
+				if len(v.Definitions().Fields) != 26 {
 					t.Error("index")
 				}
 			}
@@ -101,10 +101,10 @@ func TestPVMachineVectors(t *testing.T) {
 
 // pvFixtureSHA256 is the SHA-256 of fixtures/v1/pv-inverter-pack-vectors.json.
 var pvFixtureSHA256 = [sha256.Size]byte{
-	0x20, 0xfd, 0x18, 0xb8, 0xe0, 0x69, 0x45, 0xff,
-	0xe3, 0x4f, 0x62, 0xbb, 0xb9, 0x66, 0x35, 0xec,
-	0xae, 0x6c, 0xcd, 0x0e, 0x3a, 0xc9, 0xcb, 0x18,
-	0xee, 0xe1, 0x93, 0x4b, 0x68, 0xc9, 0x5a, 0x46,
+	0xad, 0x30, 0x37, 0xb8, 0x91, 0xad, 0x60, 0xad,
+	0x1d, 0x14, 0x84, 0xc3, 0x92, 0x10, 0x75, 0xc4,
+	0x0c, 0xb8, 0x8e, 0x69, 0x4c, 0xbf, 0x75, 0x07,
+	0xfb, 0xaf, 0xb1, 0xa3, 0xa9, 0x3b, 0x99, 0x13,
 }
 
 // pvRelations lists the accepted PV relations in declared order; every one
@@ -528,15 +528,98 @@ func TestPVStringEnergyStaysDistinct(t *testing.T) {
 		exponent, _ := value["exponent10"].(float64)
 		return bound(coefficient, int32(exponent))
 	}
-	cases := []struct {
-		id, unit, dimension semreg.DefinitionID
-		minimum, maximum    *decimalBound
-		signed              bool
-	}{
+	pvRequireDistinct(t, v, []pvDistinctCase{
 		{"pv.dc.energy", "unit.joule", "pv.dimension.string", bound("0", 0), generated.maximum, false},
 		{"pv.ac.apparent_power", "unit.volt_ampere", "pv.dimension.phase", infrastructureBound("infrastructure.ac.apparent_power", "minimum"), infrastructureBound("infrastructure.ac.apparent_power", "maximum"), false},
 		{"pv.ac.reactive_power", "unit.volt_ampere_reactive", "pv.dimension.phase", infrastructureBound("infrastructure.ac.reactive_power", "minimum"), infrastructureBound("infrastructure.ac.reactive_power", "maximum"), true},
+	})
+	quantity := func(n semreg.Decimal, unit semreg.DefinitionID) *semreg.Value {
+		return &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: n, Unit: unit}}
 	}
+	key := func(id, dimension semreg.DefinitionID) semreg.FactKey {
+		return testKey(fieldSpec{id: id, dimension: dimension})
+	}
+	for _, dimension := range []semreg.DefinitionID{"pv.dimension.input", "pv.dimension.system"} {
+		if got := pvRefusal(v.ValidateFact(key("pv.dc.energy", dimension), quantity(semreg.Decimal{Coefficient: "1"}, "unit.joule"))); got != semreg.InvalidValue {
+			t.Fatalf("pv.dc.energy on %s: %s", dimension, got)
+		}
+	}
+	if got := pvRefusal(v.ValidateFact(key("pv.energy.generated", "pv.dimension.string"), quantity(semreg.Decimal{Coefficient: "1"}, "unit.joule"))); got != semreg.InvalidValue {
+		t.Fatalf("pv.energy.generated on pv.dimension.string: %s", got)
+	}
+	if got := pvRefusal(v.ValidateFact(key("pv.energy.generated", "pv.dimension.system"), quantity(semreg.Decimal{Coefficient: "-1"}, "unit.joule"))); got != semreg.BoundsExceeded {
+		t.Fatalf("negative pv.energy.generated: %s", got)
+	}
+}
+
+// TestPVInverterTotalApparentAndReactivePower keeps the inverter totals of
+// apparent and reactive power apart from the per-phase values.
+// pv.ac.aggregate_apparent_power is nonnegative in volt-ampere and
+// pv.ac.aggregate_reactive_power is signed in volt-ampere reactive, both on
+// the inverter dimension and both bounded by the magnitude of
+// pv.ac.aggregate_active_power. The per-phase apparent and reactive power
+// keep the phase dimension, neither total is accepted on the phase
+// dimension, and no capability or operation uses either total.
+func TestPVInverterTotalApparentAndReactivePower(t *testing.T) {
+	v := New()
+	active, ok := findField("pv.ac.aggregate_active_power")
+	if !ok {
+		t.Fatal("pv.ac.aggregate_active_power is absent")
+	}
+	if !pvSameSpec(active, semreg.ValueQuantity, "unit.watt", "pv.dimension.inverter", bound("-1", 7), bound("1", 7)) {
+		t.Fatalf("pv.ac.aggregate_active_power changed: %s", pvDescribe(active))
+	}
+	for _, phase := range []struct {
+		id, unit         semreg.DefinitionID
+		minimum, maximum *decimalBound
+	}{
+		{"pv.ac.apparent_power", "unit.volt_ampere", bound("0", 0), bound("1", 7)},
+		{"pv.ac.reactive_power", "unit.volt_ampere_reactive", bound("-1", 7), bound("1", 7)},
+	} {
+		spec, ok := findField(phase.id)
+		if !ok || !pvSameSpec(spec, semreg.ValueQuantity, phase.unit, "pv.dimension.phase", phase.minimum, phase.maximum) {
+			t.Fatalf("%s changed: %s", phase.id, pvDescribe(spec))
+		}
+	}
+	pvRequireDistinct(t, v, []pvDistinctCase{
+		{"pv.ac.aggregate_apparent_power", "unit.volt_ampere", "pv.dimension.inverter", bound("0", 0), active.maximum, false},
+		{"pv.ac.aggregate_reactive_power", "unit.volt_ampere_reactive", "pv.dimension.inverter", active.minimum, active.maximum, true},
+	})
+	quantity := func(n semreg.Decimal, unit semreg.DefinitionID) *semreg.Value {
+		return &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: n, Unit: unit}}
+	}
+	for total, perPhase := range map[semreg.DefinitionID]semreg.DefinitionID{
+		"pv.ac.aggregate_apparent_power": "pv.ac.apparent_power",
+		"pv.ac.aggregate_reactive_power": "pv.ac.reactive_power",
+	} {
+		spec, _ := findField(total)
+		one := quantity(semreg.Decimal{Coefficient: "1"}, spec.unit)
+		if got := pvRefusal(v.ValidateFact(testKey(fieldSpec{id: total, dimension: "pv.dimension.phase"}), one)); got != semreg.InvalidValue {
+			t.Fatalf("%s on pv.dimension.phase: %s", total, got)
+		}
+		if got := pvRefusal(v.ValidateFact(testKey(fieldSpec{id: perPhase, dimension: "pv.dimension.inverter"}), one)); got != semreg.InvalidValue {
+			t.Fatalf("%s on pv.dimension.inverter: %s", perPhase, got)
+		}
+	}
+}
+
+// pvDistinctCase is the exact contract of one field that must stay apart
+// from the fields it could be confused with.
+type pvDistinctCase struct {
+	id, unit, dimension semreg.DefinitionID
+	minimum, maximum    *decimalBound
+	signed              bool
+}
+
+// pvRequireDistinct requires each case to be in the table, the definition
+// index and the metadata exactly as stated; to be accepted only on its own
+// dimension, in its own unit and inside its own bounds; to refuse a negative
+// value unless it is signed; to refuse a key with another pack identity,
+// another fact identifier, no dimension, another dimension value kind or an
+// extra dimension; and to be
+// neither a capability constraint nor an operation argument.
+func pvRequireDistinct(t *testing.T, v semreg.PackValidator, cases []pvDistinctCase) {
+	t.Helper()
 	units := map[semreg.DefinitionID]struct{}{"unit.other": {}}
 	for _, spec := range fields {
 		if spec.unit != "" {
@@ -609,6 +692,7 @@ func TestPVStringEnergyStaysDistinct(t *testing.T) {
 		for name, changed := range map[string]func(*semreg.FactKey){
 			"pack id":      func(k *semreg.FactKey) { k.PackID = "helianthus.pack.other" },
 			"pack version": func(k *semreg.FactKey) { k.PackVersion = "1.0.1" },
+			"fact id":      func(k *semreg.FactKey) { k.FactID = c.id + "_other" },
 			"no dimension": func(k *semreg.FactKey) { k.Dimensions = nil },
 			"dimension value kind": func(k *semreg.FactKey) {
 				k.Dimensions = []semreg.Dimension{{ID: c.dimension, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.ratio"}}}}
@@ -639,17 +723,6 @@ func TestPVStringEnergyStaysDistinct(t *testing.T) {
 				t.Fatalf("%s is the argument of %s", c.id, id)
 			}
 		}
-	}
-	for _, dimension := range []semreg.DefinitionID{"pv.dimension.input", "pv.dimension.system"} {
-		if got := pvRefusal(v.ValidateFact(key("pv.dc.energy", dimension), quantity(semreg.Decimal{Coefficient: "1"}, "unit.joule"))); got != semreg.InvalidValue {
-			t.Fatalf("pv.dc.energy on %s: %s", dimension, got)
-		}
-	}
-	if got := pvRefusal(v.ValidateFact(key("pv.energy.generated", "pv.dimension.string"), quantity(semreg.Decimal{Coefficient: "1"}, "unit.joule"))); got != semreg.InvalidValue {
-		t.Fatalf("pv.energy.generated on pv.dimension.string: %s", got)
-	}
-	if got := pvRefusal(v.ValidateFact(key("pv.energy.generated", "pv.dimension.system"), quantity(semreg.Decimal{Coefficient: "-1"}, "unit.joule"))); got != semreg.BoundsExceeded {
-		t.Fatalf("negative pv.energy.generated: %s", got)
 	}
 }
 

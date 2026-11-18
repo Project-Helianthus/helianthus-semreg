@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+In place before the 0.7 release: `helianthus.pack.pv` gains the inverter
+totals of apparent and reactive power beside `pv.ac.aggregate_active_power`.
+`pv.ac.aggregate_apparent_power` is a quantity in `unit.volt_ampere` on
+`pv.dimension.inverter` from 0 to 10^7, and `pv.ac.aggregate_reactive_power`
+is a signed quantity in `unit.volt_ampere_reactive` on the same dimension
+from -10^7 to 10^7, the magnitude bound of the active-power total. The
+inverter read descriptor of the PV vector copy lists both. A new PV pack test
+refuses each total on the phase dimension and on every other dimension, in
+any other unit, outside its bounds and under a key with another pack, fact
+or dimension identity, refuses the per-phase apparent and reactive power on
+the inverter dimension, and keeps the per-phase fields on
+`pv.dimension.phase`. No service, capability or operation uses the totals.
+The PV field index goes from 24 to 26. The PV vector copy is re-copied from
+the semantic contract and its SHA-256 pin moves. The element catalog copy
+gains the two fact entries as the contract publishes them, and its SHA-256
+pin in `fixtures/README.md`, `graph.PinnedDigest`, the root package's pinned
+catalog digest and the catalog bytes embedded in `semreg/v1/graph` move
+together; the catalog counts go from 115 facts and 365 entries to 117 facts
+and 367 entries. The graph acceptance vectors keep the catalog digest of the
+seed they were written against and their own pin. The rows of
+`naming-inventory.json` and their bindings in `naming-consumers.json` for
+the two identifiers are added and provisional. No pack, catalog or contract
+version is raised, and no alias, shim or dual acceptance is added.
+
+In place before the 0.7 release: a new EVSE pack test keeps
+`evse.limit.allocated_current_phase` apart from the connector allocation.
+`evse.limit.allocated_current` stays in `unit.ampere` on
+`evse.dimension.connector` and remains the only constraint of
+`evse.capability.set_allocated_current` and the only argument of
+`evse.operation.set_allocated_current`. The per-phase field is in
+`unit.ampere` on `evse.dimension.phase` with the same bounds, and is refused
+on the connector dimension, on every other dimension, in any other unit,
+outside its bounds, under a key with another pack, fact or dimension
+identity, and as the constraint of the connector capability. The connector
+allocation is refused on the phase dimension. The session and lifetime
+energy are unchanged. The row of `naming-inventory.json` and its binding in
+`naming-consumers.json` for the per-phase field are added and provisional.
+No fixture, pin, pack, catalog or contract version moves.
+
+In place before the 0.7 release: a new infrastructure pack test keeps
+line-to-line voltage off the phase dimension. `infrastructure.ac.voltage`
+stays in `unit.volt` on `infrastructure.dimension.phase`.
+`infrastructure.ac.voltage_line_line` is in `unit.volt` on
+`infrastructure.dimension.line_pair` from 0 to the phase voltage's maximum,
+and `infrastructure.service.line_pair` keys its facts by that dimension.
+The test refuses a line-to-line value on the phase dimension and on every
+other dimension, a phase voltage on the line-pair dimension, any other unit,
+a value outside the bounds and a key with another pack, fact or dimension
+identity, and requires that no capability or operation names the line-pair
+service or field. Import and export energy and reactive power are
+unchanged. The rows of `naming-inventory.json` and their bindings in
+`naming-consumers.json` for the line-pair dimension, the line-pair service
+and the line-to-line voltage are added and provisional. No fixture, pin,
+pack, catalog or contract version moves.
+
 In place before the 0.7 release: `helianthus.pack.pv` keeps per-string
 cumulative DC energy apart from generated energy, and its per-phase apparent
 and reactive power apart from active power. `pv.dc.energy` is a quantity in

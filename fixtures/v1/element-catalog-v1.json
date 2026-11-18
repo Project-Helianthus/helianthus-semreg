@@ -6111,6 +6111,50 @@
             "version": "1.0.0"
           }
         },
+        "id": "pv.ac.aggregate_apparent_power",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/pv-inverter-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.pv",
+                "version": "1.0.0"
+              }
+            },
+            "id": "pv.dimension.inverter",
+            "version": "1.0.0"
+          },
+          "kind": "resource.inverter"
+        },
+        "aggregation": "aggregate",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.pv",
+            "version": "1.0.0"
+          }
+        },
         "id": "pv.ac.aggregate_current",
         "version": "1.0.0"
       },
@@ -6144,6 +6188,51 @@
         },
         "aggregation": "aggregate",
         "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.pv",
+            "version": "1.0.0"
+          }
+        },
+        "id": "pv.ac.aggregate_reactive_power",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/pv-inverter-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.pv",
+                "version": "1.0.0"
+              }
+            },
+            "id": "pv.dimension.inverter",
+            "version": "1.0.0"
+          },
+          "kind": "resource.inverter"
+        },
+        "aggregation": "aggregate",
+        "direction": "signed",
+        "sign_reference": "native_convention"
       }
     },
     {

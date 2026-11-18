@@ -184,3 +184,125 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 		}
 	}
 }
+
+// TestAllocatedCurrentPhaseStaysOffConnector keeps a per-phase allocation
+// apart from the connector allocation. evse.limit.allocated_current stays in
+// ampere on the connector dimension and remains the only constraint of
+// evse.capability.set_allocated_current and the only argument of
+// evse.operation.set_allocated_current. evse.limit.allocated_current_phase is
+// in ampere on the phase dimension with the connector allocation's bounds,
+// and neither allocation is accepted on the other's dimension.
+func TestAllocatedCurrentPhaseStaysOffConnector(t *testing.T) {
+	v := New().(validator)
+	sameBound := func(got *decimalBound, want decimalBound) bool { return got != nil && *got == want }
+	connector, ok := findField("evse.limit.allocated_current")
+	if !ok {
+		t.Fatal("evse.limit.allocated_current is absent")
+	}
+	if connector.kind != semreg.ValueQuantity || connector.unit != "unit.ampere" || connector.dimension != "evse.dimension.connector" || !sameBound(connector.minimum, decimalBound{"0", 0}) || !sameBound(connector.maximum, decimalBound{"1", 3}) || connector.symbols != nil {
+		t.Fatalf("evse.limit.allocated_current changed: %+v", connector)
+	}
+	phase, ok := findField("evse.limit.allocated_current_phase")
+	if !ok {
+		t.Fatal("evse.limit.allocated_current_phase is absent")
+	}
+	if phase.kind != semreg.ValueQuantity || phase.unit != "unit.ampere" || phase.dimension != "evse.dimension.phase" || !sameBound(phase.minimum, *connector.minimum) || !sameBound(phase.maximum, *connector.maximum) || phase.symbols != nil {
+		t.Fatalf("evse.limit.allocated_current_phase: %+v", phase)
+	}
+	if got := capabilities["evse.capability.set_allocated_current"]; got.service != "evse.service.connector" || !reflect.DeepEqual(got.constraints, []semreg.DefinitionID{connector.id}) {
+		t.Fatalf("evse.capability.set_allocated_current: %+v", got)
+	}
+	if got := operations["evse.operation.set_allocated_current"]; got.argument != connector.id || got.capability != "evse.capability.set_allocated_current" {
+		t.Fatalf("evse.operation.set_allocated_current: %+v", got)
+	}
+	for id, capability := range capabilities {
+		for _, constraint := range capability.constraints {
+			if constraint == phase.id {
+				t.Fatalf("%s constrains %s", id, phase.id)
+			}
+		}
+	}
+	for id, op := range operations {
+		if op.argument == phase.id {
+			t.Fatalf("%s takes %s", id, phase.id)
+		}
+	}
+	listed := false
+	for _, ref := range v.Definitions().Fields {
+		listed = listed || ref == definition(phase.id)
+	}
+	if !listed {
+		t.Fatalf("%s is not in the definition index", phase.id)
+	}
+	metadataOK := false
+	for _, field := range Metadata().Fields {
+		if field.Ref.ID == phase.id {
+			metadataOK = field.CanonicalUnit != nil && *field.CanonicalUnit == definition("unit.ampere") && field.Dimension == definition("evse.dimension.phase")
+		}
+	}
+	if !metadataOK {
+		t.Fatalf("%s metadata: %+v", phase.id, Metadata().Fields)
+	}
+
+	quantity := func(number semreg.Decimal, unit semreg.DefinitionID) *semreg.Value {
+		return &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: number, Unit: unit}}
+	}
+	key := func(id, dimension semreg.DefinitionID) semreg.FactKey {
+		name := "phase:1"
+		return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: id, Dimensions: []semreg.Dimension{{ID: dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	}
+	own := key(phase.id, phase.dimension)
+	for _, number := range []semreg.Decimal{phase.minimum.decimal(), phase.maximum.decimal()} {
+		if err := v.ValidateFact(own, quantity(number, "unit.ampere")); err != nil {
+			t.Fatalf("per-phase allocation %v: %v", number, err)
+		}
+	}
+	require(t, v.ValidateFact(own, quantity(above(phase.maximum.decimal()), "unit.ampere")), semreg.BoundsExceeded)
+	require(t, v.ValidateFact(own, quantity(below(phase.minimum.decimal()), "unit.ampere")), semreg.BoundsExceeded)
+	require(t, v.ValidateFact(key(phase.id, "evse.dimension.connector"), quantity(semreg.Decimal{Coefficient: "16"}, "unit.ampere")), semreg.InvalidValue)
+	require(t, v.ValidateFact(key(connector.id, "evse.dimension.phase"), quantity(semreg.Decimal{Coefficient: "16"}, "unit.ampere")), semreg.InvalidValue)
+	if err := v.ValidateFact(key(connector.id, "evse.dimension.connector"), quantity(semreg.Decimal{Coefficient: "16"}, "unit.ampere")); err != nil {
+		t.Fatalf("connector allocation on the connector dimension: %v", err)
+	}
+	for dimension := range dimensions {
+		if dimension == phase.dimension {
+			continue
+		}
+		require(t, v.ValidateFact(key(phase.id, dimension), quantity(semreg.Decimal{Coefficient: "1"}, "unit.ampere")), semreg.InvalidValue)
+	}
+	for _, spec := range fields {
+		if spec.unit == "" || spec.unit == "unit.ampere" {
+			continue
+		}
+		require(t, v.ValidateFact(own, quantity(semreg.Decimal{Coefficient: "1"}, spec.unit)), semreg.InvalidValue)
+	}
+	symbol := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: phase.id, Token: "x", Known: true}}
+	require(t, v.ValidateFact(own, &symbol), semreg.InvalidValue)
+	text := "connector:1"
+	for name, change := range map[string]func(*semreg.FactKey){
+		"pack id":      func(k *semreg.FactKey) { k.PackID = "helianthus.pack.infrastructure" },
+		"pack version": func(k *semreg.FactKey) { k.PackVersion = "1.0.1" },
+		"fact id":      func(k *semreg.FactKey) { k.FactID = "evse.limit.allocated_current_line" },
+		"no dimension": func(k *semreg.FactKey) { k.Dimensions = nil },
+		"dimension id": func(k *semreg.FactKey) {
+			k.Dimensions = []semreg.Dimension{{ID: "evse.dimension.session", Value: k.Dimensions[0].Value}}
+		},
+		"dimension value kind": func(k *semreg.FactKey) {
+			k.Dimensions = []semreg.Dimension{{ID: phase.dimension, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.ratio"}}}}
+		},
+		"extra dimension": func(k *semreg.FactKey) {
+			k.Dimensions = append(append([]semreg.Dimension(nil), k.Dimensions...), semreg.Dimension{ID: "evse.dimension.connector", Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
+		},
+	} {
+		changed := key(phase.id, phase.dimension)
+		change(&changed)
+		if v.ValidateFact(changed, quantity(semreg.Decimal{Coefficient: "1"}, "unit.ampere")) == nil {
+			t.Fatalf("per-phase allocation with another %s accepted", name)
+		}
+	}
+	capability := testCapability("evse.capability.set_allocated_current")
+	if err := v.MatchConstraints(capability, []semreg.TypedField{{ID: connector.id, Value: testValue(connector)}}); err != nil {
+		t.Fatalf("connector argument: %v", err)
+	}
+	require(t, v.MatchConstraints(capability, []semreg.TypedField{{ID: phase.id, Value: testValue(phase)}}), semreg.InvalidValue)
+}

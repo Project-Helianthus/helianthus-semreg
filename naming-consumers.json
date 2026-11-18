@@ -185537,6 +185537,14 @@
       "ha-integration/tests/test_sensor.py",
       "matter-binding/docs/target-profile/evse.md"
     ],
+    "semreg/v1/packs/evse/definitions.go::definition_literal::evse.limit.allocated_current_phase": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/evse-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/evse/validator_test.go"
+    ],
     "semreg/v1/packs/evse/definitions.go::definition_literal::evse.limit.configured_current": [
       "docs-semantic/api/v1/mappings/tesla-gen3-wc3-24443-evse-current-limit-v1.json",
       "docs-semantic/api/v1/mappings/tesla-gen3-wc3-24443-evse-current-limit-v1.md",
@@ -197616,6 +197624,15 @@
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
       "matter-binding/docs/target-profile/metering.md"
     ],
+    "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.ac.voltage_line_line": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/infrastructure-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+      "semreg/v1/packs/infrastructure/validator_test.go"
+    ],
     "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.capability.read.circuit": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/infrastructure-acceptance-vectors.json",
@@ -197705,6 +197722,14 @@
       "ebusgateway/cmd/gateway/semantic_metrics_runtime_test.go",
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
       "ha-integration/tests/test_semantic_snapshot_sensors.py"
+    ],
+    "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.dimension.line_pair": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/infrastructure-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/infrastructure/validator_test.go"
     ],
     "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.dimension.meter": [
       "docs-semantic/api/v1/mappings/huawei-gateway-meter-infrastructure-v1.json",
@@ -197919,6 +197944,14 @@
       "docs-semantic/api/v1/packs/infrastructure-v1.md",
       "docs-semantic/mappings/infrastructure/gateway-runtime.md",
       "docs-semantic/scripts/validate_infrastructure_pack_v1.py"
+    ],
+    "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.service.line_pair": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/infrastructure-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+      "semreg/v1/packs/infrastructure/validator_test.go"
     ],
     "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.service.meter": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -199016,6 +199049,14 @@
       "ha-integration/tests/test_semantic_snapshot_sensors.py",
       "matter-binding/docs/target-profile/photovoltaic.md"
     ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.aggregate_apparent_power": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
+    ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.aggregate_current": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
@@ -199026,6 +199067,14 @@
       "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
       "matter-binding/docs/target-profile/photovoltaic.md"
+    ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.aggregate_reactive_power": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
     ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.aggregate_voltage": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
