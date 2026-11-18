@@ -2,6 +2,53 @@
 
 ## Unreleased
 
+In place before the 0.7 release: `semreg/v1/graph` returns a lens result and
+sums the member facts of a scope. `RetrieveLens` answers one retained cut
+with the canonical lens result (`helianthus.semantic.lens-result/v1`): the
+resources reached, with depth and the lens planes they are in; the relation
+instances among them, including a candidate, rejected, conflicting or
+non-coherent instance marked `in_plane: false` and not followed; the absence
+statements of the followed definitions, in absence-key order (definition,
+resource, side); the facts, services and capabilities whose subject they
+are and whose definition is in a lens plane; the cut
+findings that name a reached resource or a member that holds one; and the
+frontier. Facts carry the kernel evaluation view unchanged. A lens whose
+roots are absent returns an empty result and the cut reference, not an error
+(LRS-1 to LRS-6). `SumMembers` adds only facts whose catalog aggregation is
+`member`. It does not add an aggregate to the members or to another
+aggregate. The members of a scope are the resources reached from it through
+coherent `groups` or `contains` instances. When member facts of the summed
+definition name a subject kind, only reached resources of that kind are
+summands, so a container of another kind does not withhold the sum; a subject
+with no fact of the definition still withholds with `member_unavailable`.
+With no member fact of the definition, every reached resource stays a summand.
+A scope with no groups or contains instance, a
+`same_unit` pair, a partial cut that lists a not-included asset, a member
+whose fact is unavailable, stale or in conflict, mixed sign references, and
+a `native_convention` fact added across assets are `withheld` with that
+reason, never a partial total and never zero for an empty scope. A
+frontier entry on the scope or on a reached member, or a later page that
+leaves one of those resources out of the result, is `member_unavailable`
+rather than the sum of the subset that was reached. A source-reported
+aggregate on the scope is returned beside the sum, labelled as observed,
+when it is the summed definition or its values carry a unit of that
+definition's member facts; an aggregate of another quantity is not
+returned (SUM-1 to SUM-6). The element catalog copy is re-copied in
+place. It now carries the four lenses and marks `resource.site` as the
+installation root. Its SHA-256 pin in `fixtures/README.md`,
+`graph.PinnedDigest`, the root package's pinned catalog digest, the catalog
+bytes embedded in `semreg/v1/graph`, and the catalog digest recorded by the
+graph acceptance vectors move together; that vector document's own pin moves
+with the recorded digest. The accepted packs declare the members the catalog
+already lists, still in place and without a new pack version:
+`evse.limit.allocated_current_phase` on the phase dimension, the line-pair
+dimension and service with `infrastructure.ac.voltage_line_line`, and
+`pv.ac.apparent_power`, `pv.ac.reactive_power` and `pv.dc.energy`. The EVSE,
+infrastructure and PV vector copies and their pins move with those
+declarations. No pack, catalog or contract version is raised. The root
+package and the operation package still do not import this package.
+Traversal, retention and target reports are unchanged.
+
 In place before the 0.7 release: `semreg/v1/graph` serves a listing and a
 bounded traversal over one retained graph cut. `CutStore` keeps the newest
 cut and every cut an unexpired page token names, at most 8 cuts and at most

@@ -10,7 +10,7 @@ import (
 // the byte copy of the accepted element catalog. A graph-enforced registry
 // accepts no catalog with another digest. It moves together with every
 // in-place edit of the catalog copy.
-const pinnedCatalogDigest Digest = "sha256:b630656362d6ca1a4047a474c07c6da0201cb882cc4ef96260dc9fa92cfba133"
+const pinnedCatalogDigest Digest = "sha256:6084c0f1aed4ddc34095fe342b5791e6d1f056ac2709a0465cd04a3cb6183fd8"
 
 // GraphDisposition is the catalog disposition of an element.
 type GraphDisposition string

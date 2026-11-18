@@ -47,6 +47,7 @@ var fields = []fieldSpec{
 	{id: "infrastructure.ac.power_factor", kind: semreg.ValueQuantity, unit: "unit.ratio", dimension: "infrastructure.dimension.grid_connection", minimum: bound("-1", 0), maximum: bound("1", 0)},
 	{id: "infrastructure.ac.reactive_power", kind: semreg.ValueQuantity, unit: "unit.volt_ampere_reactive", dimension: "infrastructure.dimension.phase", minimum: bound("-1", 7), maximum: bound("1", 7)},
 	{id: "infrastructure.ac.voltage", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.phase", minimum: bound("0", 0), maximum: bound("1", 3)},
+	{id: "infrastructure.ac.voltage_line_line", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.line_pair", minimum: bound("0", 0), maximum: bound("1", 3)},
 	{id: "infrastructure.energy.export", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
 	{id: "infrastructure.energy.import", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
 	{id: "infrastructure.power.apparent", kind: semreg.ValueQuantity, unit: "unit.volt_ampere", dimension: "infrastructure.dimension.grid_connection", minimum: bound("0", 0), maximum: bound("1", 7)},
@@ -68,6 +69,7 @@ var dimensions = map[semreg.DefinitionID]semreg.ValueKind{
 	"infrastructure.dimension.circuit":         semreg.ValueText,
 	"infrastructure.dimension.phase":           semreg.ValueText,
 	"infrastructure.dimension.meter":           semreg.ValueText,
+	"infrastructure.dimension.line_pair":       semreg.ValueText,
 }
 
 var services = map[semreg.DefinitionID]semreg.DefinitionID{
@@ -77,6 +79,7 @@ var services = map[semreg.DefinitionID]semreg.DefinitionID{
 	"infrastructure.service.circuit":         "infrastructure.dimension.circuit",
 	"infrastructure.service.phase":           "infrastructure.dimension.phase",
 	"infrastructure.service.meter":           "infrastructure.dimension.meter",
+	"infrastructure.service.line_pair":       "infrastructure.dimension.line_pair",
 }
 
 var capabilities = map[semreg.DefinitionID]semreg.DefinitionID{
@@ -104,7 +107,7 @@ func index() semreg.DefinitionIndex {
 	}
 	for _, id := range []semreg.DefinitionID{
 		"infrastructure.service.circuit", "infrastructure.service.feeder", "infrastructure.service.grid_connection",
-		"infrastructure.service.meter", "infrastructure.service.phase", "infrastructure.service.site",
+		"infrastructure.service.line_pair", "infrastructure.service.meter", "infrastructure.service.phase", "infrastructure.service.site",
 	} {
 		result.Services = append(result.Services, definition(id))
 	}

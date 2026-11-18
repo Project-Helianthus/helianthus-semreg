@@ -30,7 +30,7 @@ const CatalogOrder = "owner kind, pack id, pack version, element id, element ver
 // byte copy of the accepted catalog. Load accepts no other bytes, and a
 // graph-enforced registry of the root package accepts no catalog with another
 // digest.
-const PinnedDigest semreg.Digest = "sha256:b630656362d6ca1a4047a474c07c6da0201cb882cc4ef96260dc9fa92cfba133"
+const PinnedDigest semreg.Digest = "sha256:6084c0f1aed4ddc34095fe342b5791e6d1f056ac2709a0465cd04a3cb6183fd8"
 
 // Status is the document status.
 type Status string
@@ -305,8 +305,10 @@ type Lens struct {
 }
 
 // ResourceKindAttributes are the attributes of a resource kind.
+// InstallationRoot is true only on the one member kind the sites entry names.
 type ResourceKindAttributes struct {
-	AnchorClass semreg.AnchorClass
+	AnchorClass      semreg.AnchorClass
+	InstallationRoot bool
 }
 
 // EndpointDimensions names the pack dimensions that reach the two endpoint
@@ -424,17 +426,18 @@ type Element struct {
 
 // Catalog is an immutable decoded element catalog.
 type Catalog struct {
-	raw       []byte
-	digest    semreg.Digest
-	status    Status
-	planes    []Plane
-	coreTypes []CoreRelationType
-	schemes   []IdentificationScheme
-	elements  []Element
-	lenses    []Lens
-	byRef     map[ElementRef]int
-	coreByID  map[semreg.DefinitionID][]int
-	byPackID  map[packIDKey][]int
+	raw              []byte
+	digest           semreg.Digest
+	status           Status
+	planes           []Plane
+	coreTypes        []CoreRelationType
+	schemes          []IdentificationScheme
+	elements         []Element
+	lenses           []Lens
+	installationRoot semreg.DefinitionID
+	byRef            map[ElementRef]int
+	coreByID         map[semreg.DefinitionID][]int
+	byPackID         map[packIDKey][]int
 }
 
 // packIDKey names the pack-owned entries with one identifier, whatever their
@@ -498,6 +501,15 @@ func (c *Catalog) IdentificationSchemes() []IdentificationScheme {
 		out[i].Admission = cloneAdmission(scheme.Admission)
 	}
 	return out
+}
+
+// InstallationRoot returns the member resource kind the catalog marks as the
+// installation root (ENT-1). The second result is false when none is marked.
+func (c *Catalog) InstallationRoot() (semreg.DefinitionID, bool) {
+	if c == nil || c.installationRoot == "" {
+		return "", false
+	}
+	return c.installationRoot, true
 }
 
 // Lenses returns the lenses in document order.
@@ -706,7 +718,8 @@ type documentWire struct {
 }
 
 type resourceKindWire struct {
-	AnchorClass string `json:"anchor_class"`
+	AnchorClass      string `json:"anchor_class"`
+	InstallationRoot *bool  `json:"installation_root,omitempty"`
 }
 
 type endpointsWire struct {
@@ -879,6 +892,12 @@ func Decode(raw []byte) (*Catalog, error) {
 			return nil, within(fmt.Sprintf("element %d", i), err)
 		}
 		c.elements[i] = element
+		if element.ResourceKind != nil && element.ResourceKind.InstallationRoot {
+			if c.installationRoot != "" {
+				return nil, newError(semreg.InvalidValue, "the catalog marks two installation roots")
+			}
+			c.installationRoot = element.Ref.ID
+		}
 		if _, seen := c.byRef[element.Ref]; !seen {
 			c.byRef[element.Ref] = i
 		}
@@ -1065,6 +1084,12 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 			return errorf(semreg.InvalidEnum, "anchor class %q", wire.AnchorClass)
 		}
 		element.ResourceKind = &ResourceKindAttributes{AnchorClass: semreg.AnchorClass(wire.AnchorClass)}
+		if wire.InstallationRoot != nil {
+			if !*wire.InstallationRoot || element.Disposition != DispositionMember {
+				return newError(semreg.InvalidValue, "installation_root is true only on a member kind")
+			}
+			element.ResourceKind.InstallationRoot = true
+		}
 	case KindRelation:
 		return decodeRelation(element, raw)
 	case KindDimension:

@@ -18,10 +18,10 @@ import (
 // infrastructureFixtureSHA256 is the SHA-256 of
 // fixtures/v1/infrastructure-pack-vectors.json.
 var infrastructureFixtureSHA256 = [sha256.Size]byte{
-	0x55, 0x58, 0xda, 0xac, 0x28, 0xb5, 0x97, 0x1d,
-	0x50, 0x1e, 0xde, 0x0a, 0x4c, 0x9e, 0x70, 0x95,
-	0xc0, 0x29, 0xed, 0x39, 0x9a, 0xc6, 0xe7, 0xa0,
-	0x4a, 0xc4, 0xe4, 0xf0, 0x8e, 0xa6, 0x93, 0xcf,
+	0x49, 0xaa, 0x90, 0x1d, 0xbd, 0x50, 0xe7, 0xf1,
+	0x4f, 0x74, 0xe4, 0x02, 0xca, 0x41, 0x25, 0x50,
+	0x86, 0x60, 0xc5, 0xa9, 0xf2, 0x1e, 0x82, 0x4d,
+	0x72, 0x46, 0xed, 0x25, 0x14, 0xdc, 0xfe, 0x28,
 }
 
 type machineVector struct {
@@ -123,7 +123,7 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		t.Fatalf("missing relations: %#v", wantRelations)
 	}
 	portal := listValue(t, definitions["portal_contributions"])
-	if len(portal) != 6 {
+	if len(portal) != 7 {
 		t.Fatalf("portal read descriptor count = %d", len(portal))
 	}
 	wantPortal := map[string]struct {
@@ -136,6 +136,7 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		"infrastructure.portal.read.circuit":         {"infrastructure.service.circuit", []string{"infrastructure.status.breaker", "infrastructure.status.interlock"}},
 		"infrastructure.portal.read.phase":           {"infrastructure.service.phase", []string{"infrastructure.ac.active_power", "infrastructure.ac.apparent_power", "infrastructure.ac.current", "infrastructure.ac.reactive_power", "infrastructure.ac.voltage"}},
 		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.energy.export", "infrastructure.energy.import"}},
+		"infrastructure.portal.read.line_pair":       {"infrastructure.service.line_pair", []string{"infrastructure.ac.voltage_line_line"}},
 	}
 	for _, item := range portal {
 		descriptor := mapValue(t, item)

@@ -87,17 +87,17 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 		counts[element.ElementKind]++
 	}
 	want := map[graph.ElementKind]int{
-		graph.KindResourceKind: 33, graph.KindRelation: 28, graph.KindDimension: 35, graph.KindService: 34,
-		graph.KindFact: 110, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
-		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 40,
+		graph.KindResourceKind: 34, graph.KindRelation: 28, graph.KindDimension: 36, graph.KindService: 35,
+		graph.KindFact: 115, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
+		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 41,
 	}
 	for kind, n := range want {
 		if counts[kind] != n {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 356 {
-		t.Errorf("entries = %d, want 356", n)
+	if n := len(catalog.Elements()); n != 365 {
+		t.Errorf("entries = %d, want 365", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)
@@ -108,8 +108,46 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 	if n := len(catalog.IdentificationSchemes()); n != 0 {
 		t.Errorf("identification schemes = %d, want the empty seed", n)
 	}
-	if n := len(catalog.Lenses()); n != 0 {
-		t.Errorf("lenses = %d, want the empty seed", n)
+	lenses := catalog.Lenses()
+	wantLenses := []semreg.DefinitionID{
+		"lens.installation_hierarchy", "lens.energy_flow", "lens.equipment_composition", "lens.provenance",
+	}
+	if len(lenses) != len(wantLenses) {
+		t.Errorf("lenses = %d, want %d", len(lenses), len(wantLenses))
+	}
+	for i, id := range wantLenses {
+		if i >= len(lenses) || lenses[i].ID != id {
+			t.Errorf("lens %d = %v, want %s", i, lenses, id)
+			break
+		}
+	}
+	root, ok := catalog.InstallationRoot()
+	if !ok || root != "resource.site" {
+		t.Errorf("installation root = %s, %v", root, ok)
+	}
+	site, ok := catalog.CoreEntry("resource.site")
+	if !ok || site.ResourceKind == nil || !site.ResourceKind.InstallationRoot {
+		t.Errorf("resource.site installation root = %+v, %v", site.ResourceKind, ok)
+	}
+}
+
+func TestInstallationRootMark(t *testing.T) {
+	falseRoot := decodeDocument(t)
+	element(t, falseRoot, "resource.equipment")["attributes"].(document)["installation_root"] = false
+	if _, err := graph.Decode(encode(t, falseRoot)); semreg.ErrorIdentifier(err) != semreg.InvalidValue {
+		t.Fatalf("false installation_root = %v", err)
+	}
+	second := decodeDocument(t)
+	element(t, second, "resource.equipment")["attributes"].(document)["installation_root"] = true
+	if _, err := graph.Decode(encode(t, second)); semreg.ErrorIdentifier(err) != semreg.InvalidValue {
+		t.Fatalf("second installation root = %v", err)
+	}
+	unknown := decodeDocument(t)
+	entry := element(t, unknown, "resource.equipment")
+	setUnknown(entry)
+	entry["attributes"].(document)["installation_root"] = true
+	if _, err := graph.Decode(encode(t, unknown)); semreg.ErrorIdentifier(err) != semreg.InvalidValue {
+		t.Fatalf("unknown installation root = %v", err)
 	}
 }
 
@@ -1002,8 +1040,8 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 		portals = append(portals, storageRef(item.ID))
 	}
 
-	if len(relations) != 26 || len(portals) != 37 {
-		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 26 and 37", len(relations), len(portals))
+	if len(relations) != 26 || len(portals) != 38 {
+		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 26 and 38", len(relations), len(portals))
 	}
 	declared := map[semreg.DefinitionRef]bool{}
 	for _, spec := range relations {

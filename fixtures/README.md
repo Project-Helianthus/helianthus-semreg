@@ -7,9 +7,12 @@ for protocol-neutral semantic contracts.
 byte-for-byte copy of `api/v1/packs/pv-inverter-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units; its SHA-256 is
-`2bb878623c9de8693cb6e9fac9b0ed9b881917a776fad95dd6ede5c2615d924d`.
+`20fd18b8e06945ffe34f62bbb96635ecae6ccd0e3ac9cb18eee1934b68c95a46`.
 The generated energy is in `unit.joule` with a maximum of 3.6 × 10^18 and the
-inverter temperature in `unit.kelvin` from 223.15 to 473.15. The PV pack tests
+inverter temperature in `unit.kelvin` from 223.15 to 473.15. Per-phase
+apparent power and reactive power, and per-string `pv.dc.energy` in
+`unit.joule` with the same bounds as generated energy, are in the copy.
+Nothing derives string energy from generated energy. The PV pack tests
 compare every field of the copy (identifier, kind, unit, dimension, bounds and
 symbols) with the validator table.
 Its five relation definitions use the shared encoding (`from`, `to`,
@@ -44,10 +47,12 @@ mapping, a route, authority, or live operation.
 copy of `api/v1/packs/evse-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units. Its SHA-256 is
-`60855489020d6903b3592c31798eabdcdd767f94564a550d050bc434bbb1b025`.
+`1df2d5bb48268514823826aa6fc6a963c8fbb81012f108d8bdd76ad5f9f24650`.
 The session and lifetime energy are in `unit.joule` with a maximum of
-3.6 × 10^18, and the EVSE pack tests compare every field of the copy with the
-validator table.
+3.6 × 10^18. `evse.limit.allocated_current_phase` is in ampere on the phase
+dimension, with the same bounds as the connector allocation, and the
+connector operation still names only the connector field. The EVSE pack tests
+compare every field of the copy with the validator table.
 The EVSE pack tests execute all twelve static catalog vectors, including the
 five-domain catalog, relation and Portal metadata, operation safety, Tesla,
 eeBUS, Matter, and counter-policy boundaries. The fixture does not create a
@@ -74,9 +79,12 @@ is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units. Its SHA-256 is
-`5558daac28b5971d501ede0a4c9e7095c029ed399ac6e7a04ac4e4f08ea693cf`.
+`49aa901dbd50e7f14f74e402ca4125508660c5a9f21e824d7246ed2514dcfe28`.
 The import and export energy are in `unit.joule` with a maximum of
-3.6 × 10^18.
+3.6 × 10^18. Line-to-line voltage is `infrastructure.ac.voltage_line_line`
+on `infrastructure.dimension.line_pair`, with that dimension, its service
+and its read descriptor. Phase voltage stays on the phase dimension. No
+read capability is added for the line-pair service.
 The infrastructure pack tests pin its source and execute every accepted static
 catalog vector. The fixture is documentation-derived contract metadata only;
 it does not create relation instances, Portal composition, routes, native
@@ -302,33 +310,33 @@ canonical order
 [`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a
 byte-for-byte copy of `api/v1/element-catalog-v1.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as accepted in
-docs-semantic #76 and edited in place for the accepted thermal placement. Its
-SHA-256 is
-`b630656362d6ca1a4047a474c07c6da0201cb882cc4ef96260dc9fa92cfba133`; the
+docs-semantic #76 and edited in place for the accepted thermal placement and
+the four lens seeds. Its SHA-256 is
+`6084c0f1aed4ddc34095fe342b5791e6d1f056ac2709a0465cd04a3cb6183fd8`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types and 356 entries, with no identification scheme, no
-lens and no entry of disposition `unknown`; a test that needs an unknown entry
-sets one by a stated mutation.
+seven core relation types, 365 entries and four lenses, and marks
+`resource.site` as the installation root. It has no identification scheme and
+no entry of disposition `unknown`; a test that needs an unknown entry sets one
+by a stated mutation.
 `semreg/v1/graph` decodes it strictly and checks rules CAT-1 to CAT-9 against
 the accepted packs. Its tests apply one rejected mutation per rule and match
 the relation and Portal entries against the copied pack vectors above. The
 fixture creates no resource, relation instance, membership record, route or
 authority.
 
-[`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is a
-byte-for-byte copy of `api/v1/graph-acceptance-vectors.json` from
-`Project-Helianthus/helianthus-docs-semantic`, the
-`helianthus.semantic.graph.acceptance/v1` document of the graph contract. Its
-SHA-256 is
-`7227793db8a35d829619c9199f28fca42a1a519a93cf9ccfc542693fe654f933`;
+[`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is the
+`helianthus.semantic.graph.acceptance/v1` document exercised by this module.
+Its SHA-256 is
+`153e223f421bf1fffda8ad11ba408105aae15378683cf9fdd7cffc824bb54358`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
 bytes and checks the element catalog digest the document records against
-`graph.PinnedDigest`. Every in-place edit of the source document moves the
-copy and both pins together. The document holds 62 vectors over 24 prior
-states, the seven coverage areas and the operations `construct_registry`,
+`graph.PinnedDigest`. The recorded catalog digest is the pinned catalog, and
+this document's own pin moves with that recorded digest. The document holds
+62 vectors over 24 prior states, the seven coverage areas and the operations
+`construct_registry`,
 `register_catalog`, `apply`, `assemble_cut` and `admit`. Three prior states
 register the catalog with stated `set_disposition` mutations, each setting
 one member entry to `unknown` with no plane, a reason and a tracking issue;
