@@ -266,3 +266,128 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 		}
 	}
 }
+
+// TestLineToLineVoltageStaysOffPhase keeps a phase-to-phase voltage apart
+// from the phase voltage. infrastructure.ac.voltage stays in volt on the
+// phase dimension. infrastructure.ac.voltage_line_line is in volt on the
+// line-pair dimension, from 0 to the phase voltage's maximum, and the
+// line-pair service keys its facts by that dimension. Neither voltage is
+// accepted on the other's dimension, and no capability or operation names
+// the line-pair service or field.
+func TestLineToLineVoltageStaysOffPhase(t *testing.T) {
+	v := New()
+	sameBound := func(got *decimalBound, want decimalBound) bool { return got != nil && *got == want }
+	phase, ok := findField("infrastructure.ac.voltage")
+	if !ok {
+		t.Fatal("infrastructure.ac.voltage is absent")
+	}
+	if phase.kind != semreg.ValueQuantity || phase.unit != "unit.volt" || phase.dimension != "infrastructure.dimension.phase" || !sameBound(phase.minimum, decimalBound{"0", 0}) || !sameBound(phase.maximum, decimalBound{"1", 3}) || phase.symbols != nil {
+		t.Fatalf("infrastructure.ac.voltage changed: %+v", phase)
+	}
+	lineLine, ok := findField("infrastructure.ac.voltage_line_line")
+	if !ok {
+		t.Fatal("infrastructure.ac.voltage_line_line is absent")
+	}
+	if lineLine.kind != semreg.ValueQuantity || lineLine.unit != "unit.volt" || lineLine.dimension != "infrastructure.dimension.line_pair" || !sameBound(lineLine.minimum, decimalBound{"0", 0}) || !sameBound(lineLine.maximum, *phase.maximum) || lineLine.symbols != nil {
+		t.Fatalf("infrastructure.ac.voltage_line_line: %+v", lineLine)
+	}
+	if kind, ok := dimensions["infrastructure.dimension.line_pair"]; !ok || kind != semreg.ValueText {
+		t.Fatalf("infrastructure.dimension.line_pair = %q, %v", kind, ok)
+	}
+	if dimension, ok := services["infrastructure.service.line_pair"]; !ok || dimension != "infrastructure.dimension.line_pair" {
+		t.Fatalf("infrastructure.service.line_pair keys %q, %v", dimension, ok)
+	}
+	for id, service := range capabilities {
+		if service == "infrastructure.service.line_pair" {
+			t.Fatalf("%s uses the line-pair service", id)
+		}
+	}
+	index := v.Definitions()
+	listed := func(refs []semreg.DefinitionRef, id semreg.DefinitionID) bool {
+		for _, ref := range refs {
+			if ref == definition(id) {
+				return true
+			}
+		}
+		return false
+	}
+	if !listed(index.Fields, lineLine.id) || !listed(index.Services, "infrastructure.service.line_pair") || len(index.Operations) != 0 || len(index.EffectRules) != 0 {
+		t.Fatalf("definition index: %+v", index)
+	}
+	metadata := Metadata()
+	fieldFound, serviceFound := false, false
+	for _, field := range metadata.Fields {
+		if field.Ref.ID == lineLine.id {
+			fieldFound = field.CanonicalUnit != nil && *field.CanonicalUnit == definition("unit.volt") && field.Dimension == definition("infrastructure.dimension.line_pair")
+		}
+	}
+	for _, service := range metadata.Services {
+		if service.Ref.ID == "infrastructure.service.line_pair" {
+			serviceFound = service.FactKeyDimension == definition("infrastructure.dimension.line_pair")
+		}
+	}
+	if !fieldFound || !serviceFound || len(metadata.Operations) != 0 {
+		t.Fatalf("metadata: %+v", metadata)
+	}
+	if err := v.ValidateService(validService("infrastructure.service.line_pair")); err != nil {
+		t.Fatalf("line-pair service: %v", err)
+	}
+	requireErrorID(t, v.ValidateCapability(validCapability("infrastructure.capability.read.line_pair")), semreg.DefinitionOwnerMissing)
+
+	quantity := func(number semreg.Decimal, unit semreg.DefinitionID) *semreg.Value {
+		return &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: number, Unit: unit}}
+	}
+	key := func(id, dimension semreg.DefinitionID) semreg.FactKey {
+		name := "pair:1"
+		return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: id, Dimensions: []semreg.Dimension{{ID: dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	}
+	own := key(lineLine.id, lineLine.dimension)
+	for _, number := range []semreg.Decimal{lineLine.minimum.decimal(), lineLine.maximum.decimal()} {
+		if err := v.ValidateFact(own, quantity(number, "unit.volt")); err != nil {
+			t.Fatalf("line-to-line %v: %v", number, err)
+		}
+	}
+	requireErrorID(t, v.ValidateFact(own, quantity(beyond(lineLine.maximum.decimal()), "unit.volt")), semreg.BoundsExceeded)
+	requireErrorID(t, v.ValidateFact(own, quantity(semreg.Decimal{Coefficient: "-1"}, "unit.volt")), semreg.BoundsExceeded)
+	requireErrorID(t, v.ValidateFact(key(lineLine.id, "infrastructure.dimension.phase"), quantity(semreg.Decimal{Coefficient: "4", Exponent10: 2}, "unit.volt")), semreg.InvalidValue)
+	requireErrorID(t, v.ValidateFact(key(phase.id, "infrastructure.dimension.line_pair"), quantity(semreg.Decimal{Coefficient: "23", Exponent10: 1}, "unit.volt")), semreg.InvalidValue)
+	if err := v.ValidateFact(key(phase.id, "infrastructure.dimension.phase"), quantity(semreg.Decimal{Coefficient: "23", Exponent10: 1}, "unit.volt")); err != nil {
+		t.Fatalf("phase voltage on the phase dimension: %v", err)
+	}
+	for dimension := range dimensions {
+		if dimension == lineLine.dimension {
+			continue
+		}
+		requireErrorID(t, v.ValidateFact(key(lineLine.id, dimension), quantity(semreg.Decimal{Coefficient: "1"}, "unit.volt")), semreg.InvalidValue)
+	}
+	for _, spec := range fields {
+		if spec.unit == "" || spec.unit == "unit.volt" {
+			continue
+		}
+		requireErrorID(t, v.ValidateFact(own, quantity(semreg.Decimal{Coefficient: "1"}, spec.unit)), semreg.InvalidValue)
+	}
+	symbol := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: lineLine.id, Token: "x", Known: true}}
+	requireErrorID(t, v.ValidateFact(own, &symbol), semreg.InvalidValue)
+	text := "pair:2"
+	for name, change := range map[string]func(*semreg.FactKey){
+		"pack id":      func(k *semreg.FactKey) { k.PackID = "helianthus.pack.evse" },
+		"pack version": func(k *semreg.FactKey) { k.PackVersion = "1.0.1" },
+		"fact id":      func(k *semreg.FactKey) { k.FactID = "infrastructure.ac.voltage_line_neutral" },
+		"no dimension": func(k *semreg.FactKey) { k.Dimensions = nil },
+		"dimension id": func(k *semreg.FactKey) {
+			k.Dimensions = []semreg.Dimension{{ID: "infrastructure.dimension.meter", Value: k.Dimensions[0].Value}}
+		},
+		"dimension value kind": func(k *semreg.FactKey) {
+			k.Dimensions = []semreg.Dimension{{ID: lineLine.dimension, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.ratio"}}}}
+		},
+		"extra dimension": func(k *semreg.FactKey) {
+			k.Dimensions = append(append([]semreg.Dimension(nil), k.Dimensions...), semreg.Dimension{ID: "infrastructure.dimension.phase", Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
+		},
+	} {
+		changed := key(lineLine.id, lineLine.dimension)
+		change(&changed)
+		if v.ValidateFact(changed, quantity(semreg.Decimal{Coefficient: "1"}, "unit.volt")) == nil {
+			t.Fatalf("line-to-line voltage with another %s accepted", name)
+		}
+	}
+}

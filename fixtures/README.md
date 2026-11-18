@@ -7,11 +7,15 @@ for protocol-neutral semantic contracts.
 byte-for-byte copy of `api/v1/packs/pv-inverter-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units; its SHA-256 is
-`20fd18b8e06945ffe34f62bbb96635ecae6ccd0e3ac9cb18eee1934b68c95a46`.
+`ad3037b891ad60ad1d1484c3921075c40cb88e694cbf7507fbafb1a3a93b9913`.
 The generated energy is in `unit.joule` with a maximum of 3.6 × 10^18 and the
 inverter temperature in `unit.kelvin` from 223.15 to 473.15. Per-phase
 apparent power and reactive power, and per-string `pv.dc.energy` in
 `unit.joule` with the same bounds as generated energy, are in the copy.
+The inverter totals `pv.ac.aggregate_apparent_power` in `unit.volt_ampere`
+from 0 and `pv.ac.aggregate_reactive_power` in `unit.volt_ampere_reactive`,
+signed, are on `pv.dimension.inverter` with the magnitude bound of
+`pv.ac.aggregate_active_power`, and the inverter read descriptor lists them.
 Nothing derives string energy from generated energy. The PV pack tests
 compare every field of the copy (identifier, kind, unit, dimension, bounds and
 symbols) with the validator table.
@@ -310,14 +314,14 @@ canonical order
 [`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a
 byte-for-byte copy of `api/v1/element-catalog-v1.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as accepted in
-docs-semantic #76 and edited in place for the accepted thermal placement and
-the four lens seeds. Its SHA-256 is
-`6084c0f1aed4ddc34095fe342b5791e6d1f056ac2709a0465cd04a3cb6183fd8`; the
+docs-semantic #76 and edited in place for the accepted thermal placement,
+the four lens seeds and the two PV inverter totals. Its SHA-256 is
+`09c1786fc95a0cb36a5b3a02f6bdef292a77f61086897b1c1642a0d18813e584`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types, 365 entries and four lenses, and marks
+seven core relation types, 367 entries and four lenses, and marks
 `resource.site` as the installation root. It has no identification scheme and
 no entry of disposition `unknown`; a test that needs an unknown entry sets one
 by a stated mutation.
