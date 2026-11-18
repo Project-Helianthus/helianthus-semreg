@@ -197820,6 +197820,24 @@
       "ha-integration/tests/test_semantic_snapshot_sensors.py",
       "matter-binding/docs/target-profile/metering.md"
     ],
+    "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.energy.self_consumption": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/infrastructure-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+      "semreg/v1/packs/infrastructure/validator_test.go"
+    ],
+    "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.limit.fallback_power": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/infrastructure-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+      "semreg/v1/packs/infrastructure/validator_test.go"
+    ],
     "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.power.apparent": [
       "docs-ebus/deployment/prometheus-semantic-coverage.md",
       "docs-ebus/scripts/validate_prometheus_semantic_coverage.py",
@@ -197923,6 +197941,15 @@
       "ebusgateway/internal/semanticmetrics/metrics_test.go",
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
       "matter-binding/docs/target-profile/metering.md"
+    ],
+    "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.power.pcc": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/infrastructure-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+      "semreg/v1/packs/infrastructure/validator_test.go"
     ],
     "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.service.circuit": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -199712,6 +199739,30 @@
       "ha-integration/tests/test_semantic_migration_plan.py",
       "matter-binding/docs/target-profile/photovoltaic.md"
     ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.energy.yield_day": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
+    ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.energy.yield_month": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
+    ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.energy.yield_year": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
+    ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.limit.active_power": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
       "docs-semantic/api/v1/packs/pv-inverter-acceptance-vectors.json",
@@ -199722,6 +199773,14 @@
       "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py",
       "ha-integration/tests/test_semantic_snapshot_sensors.py"
+    ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.limit.active_power_ratio": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
     ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.limit.export_power": [
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -223912,6 +223971,15 @@
       "docs-semantic/scripts/test_validate_element_catalog_v1.py",
       "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.pump": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.refrigerant_circuit": [
       "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -224149,6 +224217,14 @@
       "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
       "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.pump_speed": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_condensing_temperature": [
       "docs-semantic/api/v1/element-catalog-v1.json",
       "docs-semantic/api/v1/pack-metadata-v1.json",
@@ -224226,6 +224302,14 @@
       "docs-semantic/architecture/naming-contract.json",
       "docs-semantic/scripts/test_validate_thermal_hvac_pack_v1.py",
       "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.valve_position": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.water_pressure": [
       "docs-semantic/api/v1/element-catalog-v1.json",
@@ -224376,6 +224460,76 @@
       "matter-binding/docs/target-profile/heating.md",
       "matter-binding/docs/target-profile/thermostats.md"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.hvac_system_off": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_day_at_home": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_day_away": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_time_dhw": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_time_ventilation": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.party": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.sg_ready_condition_1": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.sg_ready_condition_3": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.sg_ready_condition_4": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.valve_kick": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.circuit": [
       "docs-ebus/architecture/circuit-capability-semreg-cutover.md",
       "docs-ebus/architecture/circuit-pump-semreg-cutover.md",
@@ -224426,6 +224580,15 @@
       "docs-semantic/api/v1/packs/thermal-hvac-v1.md",
       "docs-semantic/api/v1/targets/matter-1.6.1-v1.json",
       "docs-semantic/architecture/naming-contract.json"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.pump": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.refrigerant_circuit": [
       "docs-semantic/api/v1/element-catalog-v1.json",
@@ -224506,6 +224669,22 @@
       "ebusgateway/internal/semanticmetrics/metrics_test.go",
       "matter-binding/docs/target-profile/heating.md"
     ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.occupied_cooling": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.occupied_heating": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
+    ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.temperature": [
       "docs-ebus/architecture/circuit-temperature-cutover.md",
       "docs-ebus/architecture/zone-setpoint-semreg-cutover.md",
@@ -224528,6 +224707,22 @@
       "matter-binding/docs/target-profile/air-conditioning.md",
       "matter-binding/docs/target-profile/heating.md",
       "matter-binding/docs/target-profile/thermostats.md"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.unoccupied_cooling": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
+    ],
+    "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.unoccupied_heating": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/thermal-hvac-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/thermal/contract_vectors_test.go",
+      "semreg/v1/packs/thermal/validator_test.go"
     ],
     "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.status.fault": [
       "docs-ebus/architecture/maintenance-system-state-cutover.md",

@@ -7,7 +7,7 @@ for protocol-neutral semantic contracts.
 byte-for-byte copy of `api/v1/packs/pv-inverter-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units; its SHA-256 is
-`ad3037b891ad60ad1d1484c3921075c40cb88e694cbf7507fbafb1a3a93b9913`.
+`ece4c9d5720efceb544285f3cdb90a1d85d901530bffe0e89a893fb517f48fac`.
 The generated energy is in `unit.joule` with a maximum of 3.6 × 10^18 and the
 inverter temperature in `unit.kelvin` from 223.15 to 473.15. Per-phase
 apparent power and reactive power, and per-string `pv.dc.energy` in
@@ -16,6 +16,12 @@ The inverter totals `pv.ac.aggregate_apparent_power` in `unit.volt_ampere`
 from 0 and `pv.ac.aggregate_reactive_power` in `unit.volt_ampere_reactive`,
 signed, are on `pv.dimension.inverter` with the magnitude bound of
 `pv.ac.aggregate_active_power`, and the inverter read descriptor lists them.
+The day, month and year yields `pv.energy.yield_day`, `pv.energy.yield_month`
+and `pv.energy.yield_year` are in `unit.joule` on `pv.dimension.system` with
+the bounds of generated energy, and the system read descriptor lists them.
+`pv.limit.active_power_ratio` is in `unit.ratio` from 0 to 1 on
+`pv.dimension.inverter`, and the inverter read descriptor lists it; the
+active-power limit operation still names only the watt limit.
 Nothing derives string energy from generated energy. The PV pack tests
 compare every field of the copy (identifier, kind, unit, dimension, bounds and
 symbols) with the validator table.
@@ -67,11 +73,21 @@ or live authority.
 byte-for-byte copy of `api/v1/packs/thermal-hvac-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the
 accepted thermal placement. Its SHA-256 is
-`b5541b56b0d6038a44e5dad00ad8c08f1d67227ca59eb2f3faff2553a3ec0c89`;
+`9585e1aa5fb60f4d5007c4e0509bb4f9def5f6650d7461a0284ee14d2dfef37c`;
 `TestThermalMachineFixtureVectors` compares the digest of the copy with the
-digest of the approved preimage it holds. The fixture declares 32 fields, each
-with exactly one resource dimension (its subject) and an SI unit, ten resource
-dimensions, ten services, twelve capabilities and five relation definitions.
+digest of the approved preimage it holds. The fixture declares 48 fields, each
+with exactly one resource dimension (its subject) and an SI unit, eleven
+resource dimensions, eleven services, twelve capabilities and five relation
+definitions. The ten overrun statuses `thermal.overrun.<type>` are symbols on
+`thermal.dimension.system` with the statuses `active`, `finished`, `inactive`
+and `running`. The occupied and unoccupied heating and cooling setpoints are
+in `unit.kelvin` on `thermal.dimension.zone` with the setpoint bounds, and
+`thermal.mode.system` has nine symbols. Pump speed is in
+`unit.reciprocal_second` from 0 to 1000 on `thermal.dimension.pump`, which
+`thermal.service.pump` keys and `thermal.portal.read.pump` reads; valve
+position is a 0 to 1 `unit.ratio` on `thermal.dimension.terminal_unit`. No
+capability reads the pump service, and the set-temperature and set-mode
+operations keep their single arguments.
 The thermal pack tests execute all seventeen static catalog vectors and compare
 every field, dimension, service, relation and capability with the validator
 tables. The fixture does not create a native mapping, topology instance,
@@ -83,12 +99,19 @@ is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units. Its SHA-256 is
-`49aa901dbd50e7f14f74e402ca4125508660c5a9f21e824d7246ed2514dcfe28`.
+`7bdd3aee28f90622a2714c296c4dc7ae67e23ad8e0c110bc1cd0b752aa50fc21`.
 The import and export energy are in `unit.joule` with a maximum of
 3.6 × 10^18. Line-to-line voltage is `infrastructure.ac.voltage_line_line`
 on `infrastructure.dimension.line_pair`, with that dimension, its service
 and its read descriptor. Phase voltage stays on the phase dimension. No
 read capability is added for the line-pair service.
+`infrastructure.energy.self_consumption` is in `unit.joule` on
+`infrastructure.dimension.meter` with the bounds of import energy, and the
+meter read descriptor lists it. `infrastructure.power.pcc` is a signed
+quantity in `unit.watt` from -10^7 to 10^7 and
+`infrastructure.limit.fallback_power` is in `unit.watt` from 0 to 10^7, both
+on `infrastructure.dimension.grid_connection` and listed by its read
+descriptor. No capability, operation or effect rule is added.
 The infrastructure pack tests pin its source and execute every accepted static
 catalog vector. The fixture is documentation-derived contract metadata only;
 it does not create relation instances, Portal composition, routes, native
@@ -311,17 +334,24 @@ canonical order
 `helianthus.pack.infrastructure@1.0.0` sorts before their current
 `semantic_pack`.
 
-[`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a
-byte-for-byte copy of `api/v1/element-catalog-v1.json` from
+[`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a copy of
+`api/v1/element-catalog-v1.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as accepted in
 docs-semantic #76 and edited in place for the accepted thermal placement,
-the four lens seeds and the two PV inverter totals. Its SHA-256 is
-`09c1786fc95a0cb36a5b3a02f6bdef292a77f61086897b1c1642a0d18813e584`; the
+the four lens seeds, the two PV inverter totals, the thermal overrun
+statuses, zone setpoints, pump and valve entries, the PV yield periods and
+limit ratio, and the infrastructure self-consumption, point-of-coupling power
+and fallback limit. It differs from the contract bytes in one respect: the
+contract cites the thermal pack page on the default branch as the evidence of
+`resource.pump` and of nineteen thermal pack entries, and CAT-6 refuses
+evidence that is not pinned to a revision, so the copy cites that page at a
+full commit instead. Nothing else differs. Its SHA-256 is
+`6c8d5c5c65327ef289c504db8378bc824c7170f5d7cb55e714625728feb526a4`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types, 367 entries and four lenses, and marks
+seven core relation types, 394 entries and four lenses, and marks
 `resource.site` as the installation root. It has no identification scheme and
 no entry of disposition `unknown`; a test that needs an unknown entry sets one
 by a stated mutation.

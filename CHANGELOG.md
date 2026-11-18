@@ -2,6 +2,95 @@
 
 ## Unreleased
 
+In place before the 0.7 release: `helianthus.pack.thermal` gains the ten
+overrun statuses `thermal.overrun.one_time_dhw`, `thermal.overrun.party`,
+`thermal.overrun.sg_ready_condition_1`, `thermal.overrun.sg_ready_condition_3`,
+`thermal.overrun.sg_ready_condition_4`, `thermal.overrun.one_day_away`,
+`thermal.overrun.one_day_at_home`, `thermal.overrun.one_time_ventilation`,
+`thermal.overrun.hvac_system_off` and `thermal.overrun.valve_kick`. Each is a
+symbol on `thermal.dimension.system` with the statuses `active`, `finished`,
+`inactive` and `running`, and the system read descriptor of the thermal vector
+copy lists them. A new thermal pack test requires each in the table, the
+definition index and the metadata exactly, accepts each status, and refuses
+another symbol namespace or token, an unknown symbol, a quantity, every other
+dimension and a key with another pack id, pack version, fact id, dimension
+value kind, no dimension or an extra dimension. No service, capability or
+operation is added. The rows of `naming-inventory.json` and their bindings
+in `naming-consumers.json` for the ten identifiers are added and provisional.
+
+In place before the 0.7 release: `helianthus.pack.thermal` gains
+`thermal.setpoint.occupied_heating`, `thermal.setpoint.occupied_cooling`,
+`thermal.setpoint.unoccupied_heating` and
+`thermal.setpoint.unoccupied_cooling`, each in `unit.kelvin` on
+`thermal.dimension.zone` from 223.15 to 423.15, listed by the zone read
+descriptor. `thermal.mode.system` gains the symbols `dry`, `emergency_heat`,
+`fan_only`, `precooling` and `sleep` beside `auto`, `cool`, `heat` and `off`.
+`thermal.setpoint.temperature_setpoint` is unchanged and stays the only
+constraint of `thermal.capability.set_temperature` and the only argument and
+effect fact of `thermal.operation.set_temperature`. A new thermal pack test
+refuses each setpoint on every other dimension, in every other unit, just
+outside each bound and under a changed key, and accepts every mode symbol as
+a fact and as the set-mode argument. The rows of `naming-inventory.json` and
+their bindings in `naming-consumers.json` for the four setpoints are added
+and provisional.
+
+In place before the 0.7 release: `helianthus.pack.thermal` gains
+`thermal.dimension.pump`, `thermal.service.pump` keyed by it,
+`thermal.measurement.pump_speed` in `unit.reciprocal_second` from 0 to 1000
+on the pump dimension, and `thermal.measurement.valve_position` as a 0 to 1
+`unit.ratio` on `thermal.dimension.terminal_unit`. No capability reads the
+pump service. Compressor speed, flow rate and the pressures are unchanged. A
+new thermal pack test refuses both fields on every other dimension, in every
+other unit, outside their bounds and under a changed key, and refuses
+compressor speed on the pump dimension. The thermal field index goes from 32
+to 48 and the service index from 10 to 11. The thermal vector copy is
+re-copied from the semantic contract, and its approved preimage and SHA-256
+pin move. The rows of `naming-inventory.json` and their bindings in
+`naming-consumers.json` for the dimension, the service and the two fields are
+added and provisional.
+
+In place before the 0.7 release: `helianthus.pack.pv` gains the yield periods
+`pv.energy.yield_day`, `pv.energy.yield_month` and `pv.energy.yield_year`,
+each in `unit.joule` on `pv.dimension.system` with the bounds of
+`pv.energy.generated`, and `pv.limit.active_power_ratio` as a 0 to 1
+`unit.ratio` on `pv.dimension.inverter`. `pv.energy.generated` and
+`pv.limit.active_power` are unchanged, and the watt limit stays the only
+constraint of `pv.capability.set_active_power_limit` and the only argument of
+`pv.operation.set_active_power_limit`. A new PV pack test refuses each of the
+four on every other dimension, in every other unit, outside its bounds, as a
+negative value and under a changed key, and refuses a ratio as the watt
+limit. The PV field index goes from 26 to 30. The PV vector copy is re-copied
+from the semantic contract and its SHA-256 pin moves. The rows of
+`naming-inventory.json` and their bindings in `naming-consumers.json` for
+the four identifiers are added and provisional.
+
+In place before the 0.7 release: `helianthus.pack.infrastructure` gains
+`infrastructure.energy.self_consumption` in `unit.joule` on
+`infrastructure.dimension.meter` with the bounds of import energy, the signed
+`infrastructure.power.pcc` in `unit.watt` from -10^7 to 10^7 and
+`infrastructure.limit.fallback_power` in `unit.watt` from 0 to 10^7, both on
+`infrastructure.dimension.grid_connection`. Phase voltage stays on the phase
+dimension, line-to-line voltage on the line-pair dimension, and the import
+and export quantities are unchanged. A new infrastructure pack test refuses
+each of the three on every other dimension, in every other unit, outside its
+bounds and under a changed key, refuses a negative self-consumption or
+fallback limit, and requires that no capability, operation or effect rule is
+added. The infrastructure field index goes from 20 to 23. The infrastructure
+vector copy is re-copied from the semantic contract and its SHA-256 pin
+moves. The element catalog copy gains the twenty-seven entries of the five
+additions as the contract publishes them, except that the evidence of
+`resource.pump` and of nineteen thermal pack entries cites the thermal pack
+page at a full commit instead of the default branch, because CAT-6 refuses
+unpinned evidence. Its SHA-256 pin in `fixtures/README.md`,
+`graph.PinnedDigest`, the root package's pinned catalog digest and the
+catalog bytes embedded in `semreg/v1/graph` move together; the catalog counts
+go from 117 facts and 367 entries to 140 facts and 394 entries. The graph
+acceptance vectors keep the catalog digest of the seed they were written
+against and their own pin. The rows of `naming-inventory.json` and their
+bindings in `naming-consumers.json` for the three identifiers are added and
+provisional. No pack, catalog or contract version is raised, and no alias,
+shim or dual acceptance is added.
+
 In place before the 0.7 release: `helianthus.pack.pv` gains the inverter
 totals of apparent and reactive power beside `pv.ac.aggregate_active_power`.
 `pv.ac.aggregate_apparent_power` is a quantity in `unit.volt_ampere` on

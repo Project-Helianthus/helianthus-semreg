@@ -23,7 +23,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 	if err := x.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(x.Fields) != 26 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
+	if len(x.Fields) != 30 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
 		t.Fatal(x)
 	}
 	for _, s := range fields {
@@ -56,7 +56,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 64; i++ {
-				if len(v.Definitions().Fields) != 26 {
+				if len(v.Definitions().Fields) != 30 {
 					t.Error("index")
 				}
 			}
@@ -101,10 +101,10 @@ func TestPVMachineVectors(t *testing.T) {
 
 // pvFixtureSHA256 is the SHA-256 of fixtures/v1/pv-inverter-pack-vectors.json.
 var pvFixtureSHA256 = [sha256.Size]byte{
-	0xad, 0x30, 0x37, 0xb8, 0x91, 0xad, 0x60, 0xad,
-	0x1d, 0x14, 0x84, 0xc3, 0x92, 0x10, 0x75, 0xc4,
-	0x0c, 0xb8, 0x8e, 0x69, 0x4c, 0xbf, 0x75, 0x07,
-	0xfb, 0xaf, 0xb1, 0xa3, 0xa9, 0x3b, 0x99, 0x13,
+	0xec, 0xe4, 0xc9, 0xd5, 0x72, 0x0e, 0xfc, 0xeb,
+	0x54, 0x42, 0x85, 0xf3, 0xcd, 0xb9, 0x0a, 0x1d,
+	0x85, 0xd9, 0x01, 0x53, 0x0b, 0xff, 0xe0, 0xe8,
+	0x9a, 0x89, 0x3f, 0xb5, 0x17, 0xf4, 0x8f, 0xac,
 }
 
 // pvRelations lists the accepted PV relations in declared order; every one
@@ -751,4 +751,42 @@ func pvDescribe(spec fieldSpec) string {
 		return fmt.Sprintf("%se%d", b.coefficient, b.exponent10)
 	}
 	return fmt.Sprintf("%s %s %s on %s from %s to %s symbols %v", spec.id, spec.kind, spec.unit, spec.dimension, text(spec.minimum), text(spec.maximum), spec.symbols)
+}
+
+// TestPVYieldPeriodsAndActivePowerLimitRatio requires the day, month and
+// year yields in joule on the system dimension with the bounds of generated
+// energy, and the active-power limit ratio from 0 to 1 on the inverter
+// dimension. pvRequireDistinct refuses each on every other dimension, in
+// every other unit, outside its bounds, as a negative value and under a key
+// with another pack id, pack version, fact id, dimension value kind, no
+// dimension or an extra dimension. The lifetime energy and the watt limit
+// keep their contracts, and the watt limit stays the only constraint of the
+// limit capability and the only argument of the limit operation.
+func TestPVYieldPeriodsAndActivePowerLimitRatio(t *testing.T) {
+	v := New()
+	generated, ok := findField("pv.energy.generated")
+	if !ok || !pvSameSpec(generated, semreg.ValueQuantity, "unit.joule", "pv.dimension.system", bound("0", 0), bound("36", 17)) {
+		t.Fatalf("pv.energy.generated changed: %s", pvDescribe(generated))
+	}
+	limit, ok := findField("pv.limit.active_power")
+	if !ok || !pvSameSpec(limit, semreg.ValueQuantity, "unit.watt", "pv.dimension.inverter", bound("0", 0), bound("1", 7)) {
+		t.Fatalf("pv.limit.active_power changed: %s", pvDescribe(limit))
+	}
+	pvRequireDistinct(t, v, []pvDistinctCase{
+		{"pv.energy.yield_day", "unit.joule", "pv.dimension.system", generated.minimum, generated.maximum, false},
+		{"pv.energy.yield_month", "unit.joule", "pv.dimension.system", generated.minimum, generated.maximum, false},
+		{"pv.energy.yield_year", "unit.joule", "pv.dimension.system", generated.minimum, generated.maximum, false},
+		{"pv.limit.active_power_ratio", "unit.ratio", "pv.dimension.inverter", bound("0", 0), bound("1", 0), false},
+	})
+	capability := capabilities["pv.capability.set_active_power_limit"]
+	if capability.service != "pv.service.inverter" || len(capability.constraints) != 1 || capability.constraints[0] != "pv.limit.active_power" {
+		t.Fatalf("limit capability: %+v", capability)
+	}
+	if op := operations["pv.operation.set_active_power_limit"]; op != (operationSpec{"pv.capability.set_active_power_limit", "pv.limit.active_power", "pv.effect.set_active_power_limit"}) {
+		t.Fatalf("limit operation: %+v", op)
+	}
+	ratio := &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "5", Exponent10: -1}, Unit: "unit.ratio"}}
+	if got := pvRefusal(v.ValidateFact(testKey(fieldSpec{id: "pv.limit.active_power", dimension: "pv.dimension.inverter"}), ratio)); got != semreg.InvalidValue {
+		t.Fatalf("a ratio as the watt limit: %s", got)
+	}
 }

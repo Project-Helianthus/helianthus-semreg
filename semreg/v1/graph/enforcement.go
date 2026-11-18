@@ -1878,6 +1878,32 @@ const embeddedCatalog = `{
           "kind": "core",
           "contract": "helianthus.semantic.kernel/v1"
         },
+        "id": "resource.pump",
+        "version": "1.0.0"
+      },
+      "element_kind": "resource_kind",
+      "disposition": "member",
+      "planes": [
+        "physical",
+        "hydraulic",
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "anchor_class": "component"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "core",
+          "contract": "helianthus.semantic.kernel/v1"
+        },
         "id": "resource.pv_array",
         "version": "1.0.0"
       },
@@ -5025,6 +5051,94 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "infrastructure.energy.self_consumption",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/infrastructure-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.infrastructure",
+                "version": "1.0.0"
+              }
+            },
+            "id": "infrastructure.dimension.meter",
+            "version": "1.0.0"
+          },
+          "kind": "resource.meter"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.infrastructure",
+            "version": "1.0.0"
+          }
+        },
+        "id": "infrastructure.limit.fallback_power",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/infrastructure-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.infrastructure",
+                "version": "1.0.0"
+              }
+            },
+            "id": "infrastructure.dimension.grid_connection",
+            "version": "1.0.0"
+          },
+          "kind": "resource.grid_connection"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.infrastructure",
+            "version": "1.0.0"
+          }
+        },
         "id": "infrastructure.portal.read.circuit",
         "version": "1.0.0"
       },
@@ -5416,6 +5530,51 @@ const embeddedCatalog = `{
         },
         "aggregation": "member",
         "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.infrastructure",
+            "version": "1.0.0"
+          }
+        },
+        "id": "infrastructure.power.pcc",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/infrastructure-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.infrastructure",
+                "version": "1.0.0"
+              }
+            },
+            "id": "infrastructure.dimension.grid_connection",
+            "version": "1.0.0"
+          },
+          "kind": "resource.grid_connection"
+        },
+        "aggregation": "member",
+        "direction": "signed",
+        "sign_reference": "native_convention"
       }
     },
     {
@@ -7738,7 +7897,184 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "pv.energy.yield_day",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/pv-inverter-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.pv",
+                "version": "1.0.0"
+              }
+            },
+            "id": "pv.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.pv_system"
+        },
+        "aggregation": "aggregate",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.pv",
+            "version": "1.0.0"
+          }
+        },
+        "id": "pv.energy.yield_month",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/pv-inverter-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.pv",
+                "version": "1.0.0"
+              }
+            },
+            "id": "pv.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.pv_system"
+        },
+        "aggregation": "aggregate",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.pv",
+            "version": "1.0.0"
+          }
+        },
+        "id": "pv.energy.yield_year",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/pv-inverter-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.pv",
+                "version": "1.0.0"
+              }
+            },
+            "id": "pv.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.pv_system"
+        },
+        "aggregation": "aggregate",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.pv",
+            "version": "1.0.0"
+          }
+        },
         "id": "pv.limit.active_power",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "energy",
+        "control"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/pv-inverter-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.pv",
+                "version": "1.0.0"
+              }
+            },
+            "id": "pv.dimension.inverter",
+            "version": "1.0.0"
+          },
+          "kind": "resource.inverter"
+        },
+        "aggregation": "not_applicable",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.pv",
+            "version": "1.0.0"
+          }
+        },
+        "id": "pv.limit.active_power_ratio",
         "version": "1.0.0"
       },
       "element_kind": "fact",
@@ -12064,6 +12400,36 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "thermal.dimension.pump",
+        "version": "1.0.0"
+      },
+      "element_kind": "dimension",
+      "disposition": "member",
+      "planes": [
+        "physical",
+        "hydraulic",
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "role": "resource",
+        "resource_kind": "resource.pump"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
         "id": "thermal.dimension.refrigerant_circuit",
         "version": "1.0.0"
       },
@@ -12796,6 +13162,51 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "thermal.measurement.pump_speed",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "hydraulic",
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.pump",
+            "version": "1.0.0"
+          },
+          "kind": "resource.pump"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
         "id": "thermal.measurement.refrigerant_condensing_temperature",
         "version": "1.0.0"
       },
@@ -13126,6 +13537,50 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "thermal.measurement.valve_position",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "hydraulic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.terminal_unit",
+            "version": "1.0.0"
+          },
+          "kind": "resource.terminal_unit"
+        },
+        "aggregation": "member",
+        "direction": "non_negative"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
         "id": "thermal.measurement.water_pressure",
         "version": "1.0.0"
       },
@@ -13420,6 +13875,446 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "thermal.overrun.hvac_system_off",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.one_day_at_home",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.one_day_away",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.one_time_dhw",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.one_time_ventilation",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.party",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.sg_ready_condition_1",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.sg_ready_condition_3",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.sg_ready_condition_4",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.overrun.valve_kick",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "symbol",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.system",
+            "version": "1.0.0"
+          },
+          "kind": "resource.thermal_system"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
         "id": "thermal.portal.operation.set_mode",
         "version": "1.0.0"
       },
@@ -13561,6 +14456,32 @@ const embeddedCatalog = `{
         "arm": "matter_baseline",
         "evidence": [
           "https://github.com/Project-Helianthus/helianthus-docs-semantic/issues/68"
+        ]
+      },
+      "attributes": {
+        "target": "portal"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.portal.read.pump",
+        "version": "1.0.0"
+      },
+      "element_kind": "presentation",
+      "disposition": "unsupported",
+      "planes": [],
+      "reason": "catalog.reason.target_presentation",
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
         ]
       },
       "attributes": {
@@ -14142,6 +15063,46 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "thermal.service.pump",
+        "version": "1.0.0"
+      },
+      "element_kind": "service",
+      "disposition": "member",
+      "planes": [
+        "physical",
+        "hydraulic",
+        "diagnostic"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "fact_key_dimension": {
+          "owner": {
+            "kind": "pack",
+            "pack": {
+              "id": "helianthus.pack.thermal",
+              "version": "1.0.0"
+            }
+          },
+          "id": "thermal.dimension.pump",
+          "version": "1.0.0"
+        },
+        "subject_kind": "resource.pump"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
         "id": "thermal.service.refrigerant_circuit",
         "version": "1.0.0"
       },
@@ -14433,6 +15394,94 @@ const embeddedCatalog = `{
             "version": "1.0.0"
           }
         },
+        "id": "thermal.setpoint.occupied_cooling",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "control"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.zone",
+            "version": "1.0.0"
+          },
+          "kind": "resource.zone"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.setpoint.occupied_heating",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "control"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.zone",
+            "version": "1.0.0"
+          },
+          "kind": "resource.zone"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
         "id": "thermal.setpoint.temperature_setpoint",
         "version": "1.0.0"
       },
@@ -14445,6 +15494,94 @@ const embeddedCatalog = `{
         "arm": "accepted_pack",
         "evidence": [
           "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/f4f62ce20ce4b643f8f7d75d97063a1b0d346cee/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.zone",
+            "version": "1.0.0"
+          },
+          "kind": "resource.zone"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.setpoint.unoccupied_cooling",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "control"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
+        ]
+      },
+      "attributes": {
+        "value_kind": "quantity",
+        "subject": {
+          "status": "resolved",
+          "dimension": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.zone",
+            "version": "1.0.0"
+          },
+          "kind": "resource.zone"
+        },
+        "aggregation": "not_applicable",
+        "direction": "not_applicable"
+      }
+    },
+    {
+      "ref": {
+        "owner": {
+          "kind": "pack",
+          "pack": {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        },
+        "id": "thermal.setpoint.unoccupied_heating",
+        "version": "1.0.0"
+      },
+      "element_kind": "fact",
+      "disposition": "member",
+      "planes": [
+        "control"
+      ],
+      "admission": {
+        "arm": "accepted_pack",
+        "evidence": [
+          "https://github.com/Project-Helianthus/helianthus-docs-semantic/blob/8ff08f94c42abdff20f529e901e19e10e0c8fbb6/api/v1/packs/thermal-hvac-v1.md"
         ]
       },
       "attributes": {

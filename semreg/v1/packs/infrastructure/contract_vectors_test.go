@@ -18,10 +18,10 @@ import (
 // infrastructureFixtureSHA256 is the SHA-256 of
 // fixtures/v1/infrastructure-pack-vectors.json.
 var infrastructureFixtureSHA256 = [sha256.Size]byte{
-	0x49, 0xaa, 0x90, 0x1d, 0xbd, 0x50, 0xe7, 0xf1,
-	0x4f, 0x74, 0xe4, 0x02, 0xca, 0x41, 0x25, 0x50,
-	0x86, 0x60, 0xc5, 0xa9, 0xf2, 0x1e, 0x82, 0x4d,
-	0x72, 0x46, 0xed, 0x25, 0x14, 0xdc, 0xfe, 0x28,
+	0x7b, 0xdd, 0x3a, 0xee, 0x28, 0xf9, 0x06, 0x22,
+	0xa2, 0x71, 0x4c, 0x29, 0x6c, 0x4d, 0xc7, 0xae,
+	0x67, 0xe2, 0x3a, 0xd8, 0xe0, 0xc1, 0x10, 0xbc,
+	0x1c, 0xd0, 0xb7, 0x52, 0xaa, 0x50, 0xfc, 0x21,
 }
 
 type machineVector struct {
@@ -131,11 +131,11 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		fields  []string
 	}{
 		"infrastructure.portal.read.site":            {"infrastructure.service.site", []string{"infrastructure.status.fault"}},
-		"infrastructure.portal.read.grid_connection": {"infrastructure.service.grid_connection", []string{"infrastructure.ac.frequency", "infrastructure.ac.power_factor", "infrastructure.power.apparent", "infrastructure.power.export_active", "infrastructure.power.export_reactive", "infrastructure.power.import_active", "infrastructure.power.import_reactive", "infrastructure.status.connection", "infrastructure.status.readiness"}},
+		"infrastructure.portal.read.grid_connection": {"infrastructure.service.grid_connection", []string{"infrastructure.ac.frequency", "infrastructure.ac.power_factor", "infrastructure.limit.fallback_power", "infrastructure.power.apparent", "infrastructure.power.export_active", "infrastructure.power.export_reactive", "infrastructure.power.import_active", "infrastructure.power.import_reactive", "infrastructure.power.pcc", "infrastructure.status.connection", "infrastructure.status.readiness"}},
 		"infrastructure.portal.read.feeder":          {"infrastructure.service.feeder", []string{}},
 		"infrastructure.portal.read.circuit":         {"infrastructure.service.circuit", []string{"infrastructure.status.breaker", "infrastructure.status.interlock"}},
 		"infrastructure.portal.read.phase":           {"infrastructure.service.phase", []string{"infrastructure.ac.active_power", "infrastructure.ac.apparent_power", "infrastructure.ac.current", "infrastructure.ac.reactive_power", "infrastructure.ac.voltage"}},
-		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.energy.export", "infrastructure.energy.import"}},
+		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.self_consumption"}},
 		"infrastructure.portal.read.line_pair":       {"infrastructure.service.line_pair", []string{"infrastructure.ac.voltage_line_line"}},
 	}
 	for _, item := range portal {

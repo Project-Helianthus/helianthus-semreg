@@ -50,11 +50,11 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 		metadata := source.Metadata
 		index := source.Validator.Definitions()
 		want := map[semreg.DefinitionID]struct{ units, fields, services, capabilities, operations int }{
-			"helianthus.pack.thermal":        {7, 32, 10, 12, 2},
-			"helianthus.pack.pv":             {9, 26, 6, 8, 2},
+			"helianthus.pack.thermal":        {7, 48, 11, 12, 2},
+			"helianthus.pack.pv":             {9, 30, 6, 8, 2},
 			"helianthus.pack.storage":        {7, 23, 7, 5, 2},
 			"helianthus.pack.evse":           {5, 16, 5, 6, 1},
-			"helianthus.pack.infrastructure": {8, 20, 7, 6, 0},
+			"helianthus.pack.infrastructure": {8, 23, 7, 6, 0},
 		}[metadata.Pack.ID]
 		if got := struct{ units, fields, services, capabilities, operations int }{len(metadata.Units), len(metadata.Fields), len(metadata.Services), len(metadata.Capabilities), len(metadata.Operations)}; got != want {
 			t.Fatalf("metadata shape for %s = %+v, want %+v", metadata.Pack.ID, got, want)
