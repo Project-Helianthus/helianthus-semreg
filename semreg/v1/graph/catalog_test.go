@@ -87,17 +87,17 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 		counts[element.ElementKind]++
 	}
 	want := map[graph.ElementKind]int{
-		graph.KindResourceKind: 34, graph.KindRelation: 28, graph.KindDimension: 36, graph.KindService: 35,
-		graph.KindFact: 117, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
-		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 41,
+		graph.KindResourceKind: 35, graph.KindRelation: 28, graph.KindDimension: 37, graph.KindService: 36,
+		graph.KindFact: 140, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
+		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 42,
 	}
 	for kind, n := range want {
 		if counts[kind] != n {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 367 {
-		t.Errorf("entries = %d, want 367", n)
+	if n := len(catalog.Elements()); n != 394 {
+		t.Errorf("entries = %d, want 394", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)
@@ -1040,8 +1040,8 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 		portals = append(portals, storageRef(item.ID))
 	}
 
-	if len(relations) != 26 || len(portals) != 38 {
-		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 26 and 38", len(relations), len(portals))
+	if len(relations) != 26 || len(portals) != 39 {
+		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 26 and 39", len(relations), len(portals))
 	}
 	declared := map[semreg.DefinitionRef]bool{}
 	for _, spec := range relations {

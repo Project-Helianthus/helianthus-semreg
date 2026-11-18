@@ -14,7 +14,7 @@ import (
 func TestDefinitionIndexIsExactAndReadOnly(t *testing.T) {
 	validator := New()
 	first := validator.Definitions()
-	if first.Pack != pack || len(first.Fields) != 20 || len(first.Services) != 7 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
+	if first.Pack != pack || len(first.Fields) != 23 || len(first.Services) != 7 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
 		t.Fatalf("unexpected definition index: %+v", first)
 	}
 	if err := first.Validate(); err != nil {
@@ -389,5 +389,128 @@ func TestLineToLineVoltageStaysOffPhase(t *testing.T) {
 		if v.ValidateFact(changed, quantity(semreg.Decimal{Coefficient: "1"}, "unit.volt")) == nil {
 			t.Fatalf("line-to-line voltage with another %s accepted", name)
 		}
+	}
+}
+
+// TestSelfConsumptionCouplingPowerAndFallbackLimit requires self-consumption
+// energy in joule on the meter dimension from 0 to 3.6 × 10^18, the signed
+// point-of-coupling power in watt on the grid-connection dimension from
+// -10^7 to 10^7, and the fallback grid limit in watt on the grid-connection
+// dimension from 0 to 10^7. Each is refused, with the production check it
+// catches: under another pack id or pack version (the pack owner check),
+// another fact id (the field lookup), every other pack dimension, no
+// dimension, an extra dimension or a non-text dimension value (the dimension
+// check), every other pack unit and a symbol value (the value check), and
+// just outside each bound (the bounds check). Phase voltage stays on the
+// phase dimension, line-to-line voltage stays on the line-pair dimension,
+// the import and export quantities keep their contracts, and no capability,
+// operation or effect rule is added.
+func TestSelfConsumptionCouplingPowerAndFallbackLimit(t *testing.T) {
+	v := New()
+	sameBound := func(got *decimalBound, want decimalBound) bool { return got != nil && *got == want }
+	for _, want := range []fieldSpec{
+		{id: "infrastructure.ac.voltage", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.phase", minimum: bound("0", 0), maximum: bound("1", 3)},
+		{id: "infrastructure.ac.voltage_line_line", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.line_pair", minimum: bound("0", 0), maximum: bound("1", 3)},
+		{id: "infrastructure.energy.import", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
+		{id: "infrastructure.energy.export", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
+		{id: "infrastructure.power.import_active", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.grid_connection", minimum: bound("0", 0), maximum: bound("1", 7)},
+		{id: "infrastructure.power.export_active", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.grid_connection", minimum: bound("0", 0), maximum: bound("1", 7)},
+		{id: "infrastructure.power.import_reactive", kind: semreg.ValueQuantity, unit: "unit.volt_ampere_reactive", dimension: "infrastructure.dimension.grid_connection", minimum: bound("0", 0), maximum: bound("1", 7)},
+		{id: "infrastructure.power.export_reactive", kind: semreg.ValueQuantity, unit: "unit.volt_ampere_reactive", dimension: "infrastructure.dimension.grid_connection", minimum: bound("0", 0), maximum: bound("1", 7)},
+	} {
+		spec, ok := findField(want.id)
+		if !ok || spec.kind != want.kind || spec.unit != want.unit || spec.dimension != want.dimension || !sameBound(spec.minimum, *want.minimum) || !sameBound(spec.maximum, *want.maximum) || spec.symbols != nil {
+			t.Fatalf("%s changed: %+v", want.id, spec)
+		}
+	}
+	units := map[semreg.DefinitionID]bool{"unit.other": true}
+	for _, spec := range fields {
+		if spec.unit != "" {
+			units[spec.unit] = true
+		}
+	}
+	indexed := map[semreg.DefinitionRef]bool{}
+	for _, ref := range v.Definitions().Fields {
+		indexed[ref] = true
+	}
+	metadata := map[semreg.DefinitionID]semreg.FieldMetadata{}
+	for _, field := range Metadata().Fields {
+		metadata[field.Ref.ID] = field
+	}
+	quantity := func(number semreg.Decimal, unit semreg.DefinitionID) *semreg.Value {
+		return &semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: number, Unit: unit}}
+	}
+	for _, want := range []struct {
+		fieldSpec
+		signed bool
+	}{
+		{fieldSpec{id: "infrastructure.energy.self_consumption", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)}, false},
+		{fieldSpec{id: "infrastructure.power.pcc", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.grid_connection", minimum: bound("-1", 7), maximum: bound("1", 7)}, true},
+		{fieldSpec{id: "infrastructure.limit.fallback_power", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.grid_connection", minimum: bound("0", 0), maximum: bound("1", 7)}, false},
+	} {
+		spec, ok := findField(want.id)
+		if !ok {
+			t.Fatalf("%s is absent", want.id)
+		}
+		if spec.kind != want.kind || spec.unit != want.unit || spec.dimension != want.dimension || !sameBound(spec.minimum, *want.minimum) || !sameBound(spec.maximum, *want.maximum) || spec.symbols != nil {
+			t.Fatalf("%s: %+v", want.id, spec)
+		}
+		if !indexed[definition(want.id)] {
+			t.Fatalf("%s is not in the definition index", want.id)
+		}
+		if m, ok := metadata[want.id]; !ok || m.CanonicalUnit == nil || *m.CanonicalUnit != definition(want.unit) || m.Dimension != definition(want.dimension) {
+			t.Fatalf("%s metadata: %+v", want.id, m)
+		}
+		own := validKey(want.fieldSpec)
+		for _, number := range []semreg.Decimal{want.minimum.decimal(), want.maximum.decimal()} {
+			if err := v.ValidateFact(own, quantity(number, want.unit)); err != nil {
+				t.Fatalf("%s %v: %v", want.id, number, err)
+			}
+		}
+		requireErrorID(t, v.ValidateFact(own, quantity(beyond(want.maximum.decimal()), want.unit)), semreg.BoundsExceeded)
+		below := semreg.Decimal{Coefficient: fmt.Sprintf("%d", decimalInteger(want.minimum.decimal())-1), Exponent10: want.minimum.exponent10}
+		requireErrorID(t, v.ValidateFact(own, quantity(below, want.unit)), semreg.BoundsExceeded)
+		negative := v.ValidateFact(own, quantity(semreg.Decimal{Coefficient: "-1"}, want.unit))
+		if want.signed && negative != nil || !want.signed && semreg.ErrorIdentifier(negative) != semreg.BoundsExceeded {
+			t.Fatalf("%s negative value: %v", want.id, negative)
+		}
+		for dimension := range dimensions {
+			if dimension == want.dimension {
+				continue
+			}
+			changed := validKey(want.fieldSpec)
+			changed.Dimensions[0].ID = dimension
+			requireErrorID(t, v.ValidateFact(changed, quantity(want.minimum.decimal(), want.unit)), semreg.InvalidValue)
+		}
+		for unit := range units {
+			if unit != want.unit {
+				requireErrorID(t, v.ValidateFact(own, quantity(want.minimum.decimal(), unit)), semreg.InvalidValue)
+			}
+		}
+		symbol := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: want.id, Token: "x", Known: true}}
+		requireErrorID(t, v.ValidateFact(own, &symbol), semreg.InvalidValue)
+		text := "other"
+		for name, change := range map[string]func(*semreg.FactKey){
+			"pack id":      func(k *semreg.FactKey) { k.PackID = "helianthus.pack.pv" },
+			"pack version": func(k *semreg.FactKey) { k.PackVersion = "1.0.1" },
+			"fact id":      func(k *semreg.FactKey) { k.FactID = want.id + "_other" },
+			"no dimension": func(k *semreg.FactKey) { k.Dimensions = nil },
+			"dimension value kind": func(k *semreg.FactKey) {
+				k.Dimensions = []semreg.Dimension{{ID: want.dimension, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.ratio"}}}}
+			},
+			"extra dimension": func(k *semreg.FactKey) {
+				k.Dimensions = append(k.Dimensions, semreg.Dimension{ID: "infrastructure.dimension.site", Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
+			},
+		} {
+			changed := validKey(want.fieldSpec)
+			change(&changed)
+			if v.ValidateFact(changed, quantity(want.minimum.decimal(), want.unit)) == nil {
+				t.Fatalf("%s with another %s accepted", want.id, name)
+			}
+		}
+	}
+	index := v.Definitions()
+	if len(index.Capabilities) != 6 || len(index.Operations) != 0 || len(index.EffectRules) != 0 || len(capabilities) != 6 {
+		t.Fatalf("definition index: %+v", index)
 	}
 }

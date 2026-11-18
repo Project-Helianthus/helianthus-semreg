@@ -215260,6 +215260,64 @@
       "emitted_name": "infrastructure.energy.import"
     },
     {
+      "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.energy.self_consumption",
+      "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "infrastructure.energy.self_consumption",
+      "target": "infrastructure.energy.self_consumption",
+      "role_decomposition": [
+        "infrastructure",
+        "energy",
+        "self_consumption"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/infrastructure/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/infrastructure-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+        "semreg/v1/packs/infrastructure/validator_test.go"
+      ],
+      "emitted_name": "infrastructure.energy.self_consumption"
+    },
+    {
+      "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.limit.fallback_power",
+      "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "infrastructure.limit.fallback_power",
+      "target": "infrastructure.limit.fallback_power",
+      "role_decomposition": [
+        "infrastructure",
+        "limit",
+        "fallback_power"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/infrastructure/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.watt",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/infrastructure-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+        "semreg/v1/packs/infrastructure/validator_test.go"
+      ],
+      "emitted_name": "infrastructure.limit.fallback_power"
+    },
+    {
       "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.power.apparent",
       "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
       "kind": "definition_literal",
@@ -215462,6 +215520,35 @@
         "matter-binding/docs/target-profile/metering.md"
       ],
       "emitted_name": "infrastructure.power.import_reactive"
+    },
+    {
+      "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.power.pcc",
+      "owning_file": "semreg/v1/packs/infrastructure/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "infrastructure.power.pcc",
+      "target": "infrastructure.power.pcc",
+      "role_decomposition": [
+        "infrastructure",
+        "power",
+        "pcc"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/infrastructure/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.watt",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/infrastructure-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/infrastructure/contract_vectors_test.go",
+        "semreg/v1/packs/infrastructure/validator_test.go"
+      ],
+      "emitted_name": "infrastructure.power.pcc"
     },
     {
       "identity": "semreg/v1/packs/infrastructure/definitions.go::definition_literal::infrastructure.status.breaker",
@@ -219204,6 +219291,118 @@
         "semreg/v1/packs/pv/validator_test.go"
       ],
       "emitted_name": "pv.ac.aggregate_reactive_power"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.energy.yield_day",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.energy.yield_day",
+      "target": "pv.energy.yield_day",
+      "role_decomposition": [
+        "pv",
+        "energy",
+        "yield_day"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.energy.yield_day"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.energy.yield_month",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.energy.yield_month",
+      "target": "pv.energy.yield_month",
+      "role_decomposition": [
+        "pv",
+        "energy",
+        "yield_month"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.energy.yield_month"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.energy.yield_year",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.energy.yield_year",
+      "target": "pv.energy.yield_year",
+      "role_decomposition": [
+        "pv",
+        "energy",
+        "yield_year"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.joule",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.energy.yield_year"
+    },
+    {
+      "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.limit.active_power_ratio",
+      "owning_file": "semreg/v1/packs/pv/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "pv.limit.active_power_ratio",
+      "target": "pv.limit.active_power_ratio",
+      "role_decomposition": [
+        "pv",
+        "limit",
+        "active_power_ratio"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/pv/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.ratio",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/pv-inverter-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/pv/validator_test.go"
+      ],
+      "emitted_name": "pv.limit.active_power_ratio"
     },
     {
       "identity": "semreg/v1/packs/pv/definitions.go::definition_literal::pv.dimension.array",
@@ -247024,6 +247223,35 @@
       "emitted_name": "thermal.dimension.compressor"
     },
     {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.dimension.pump",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.dimension.pump",
+      "target": "thermal.dimension.pump",
+      "role_decomposition": [
+        "thermal",
+        "dimension",
+        "pump"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueText",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.dimension.pump"
+    },
+    {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.dhw_temperature",
       "owning_file": "semreg/v1/packs/thermal/definitions.go",
       "kind": "definition_literal",
@@ -247301,6 +247529,34 @@
         "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
       "emitted_name": "thermal.measurement.outdoor_air_temperature"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.pump_speed",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.pump_speed",
+      "target": "thermal.measurement.pump_speed",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "pump_speed"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.reciprocal_second",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.measurement.pump_speed"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.refrigerant_condensing_temperature",
@@ -247613,6 +247869,34 @@
         "docs-semantic/scripts/validate_thermal_hvac_pack_v1.py"
       ],
       "emitted_name": "thermal.measurement.thermal_power"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.measurement.valve_position",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.measurement.valve_position",
+      "target": "thermal.measurement.valve_position",
+      "role_decomposition": [
+        "thermal",
+        "measurement",
+        "valve_position"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.ratio",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.measurement.valve_position"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::unit.watt",
@@ -248224,6 +248508,388 @@
         "docs-semantic/api/v1/packs/thermal-hvac-acceptance-vectors.json"
       ],
       "emitted_name": "thermal.mode.zone.off"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.hvac_system_off",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.hvac_system_off",
+      "target": "thermal.overrun.hvac_system_off",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "hvac_system_off"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.hvac_system_off"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_day_at_home",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.one_day_at_home",
+      "target": "thermal.overrun.one_day_at_home",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "one_day_at_home"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.one_day_at_home"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_day_away",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.one_day_away",
+      "target": "thermal.overrun.one_day_away",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "one_day_away"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.one_day_away"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_time_dhw",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.one_time_dhw",
+      "target": "thermal.overrun.one_time_dhw",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "one_time_dhw"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.one_time_dhw"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.one_time_ventilation",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.one_time_ventilation",
+      "target": "thermal.overrun.one_time_ventilation",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "one_time_ventilation"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.one_time_ventilation"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.party",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.party",
+      "target": "thermal.overrun.party",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "party"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.party"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.sg_ready_condition_1",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.sg_ready_condition_1",
+      "target": "thermal.overrun.sg_ready_condition_1",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "sg_ready_condition_1"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.sg_ready_condition_1"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.sg_ready_condition_3",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.sg_ready_condition_3",
+      "target": "thermal.overrun.sg_ready_condition_3",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "sg_ready_condition_3"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.sg_ready_condition_3"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.sg_ready_condition_4",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.sg_ready_condition_4",
+      "target": "thermal.overrun.sg_ready_condition_4",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "sg_ready_condition_4"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.sg_ready_condition_4"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.overrun.valve_kick",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.overrun.valve_kick",
+      "target": "thermal.overrun.valve_kick",
+      "role_decomposition": [
+        "thermal",
+        "overrun",
+        "valve_kick"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueSymbol",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go"
+      ],
+      "emitted_name": "thermal.overrun.valve_kick"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.occupied_cooling",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.setpoint.occupied_cooling",
+      "target": "thermal.setpoint.occupied_cooling",
+      "role_decomposition": [
+        "thermal",
+        "setpoint",
+        "occupied_cooling"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.setpoint.occupied_cooling"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.occupied_heating",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.setpoint.occupied_heating",
+      "target": "thermal.setpoint.occupied_heating",
+      "role_decomposition": [
+        "thermal",
+        "setpoint",
+        "occupied_heating"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.setpoint.occupied_heating"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.unoccupied_cooling",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.setpoint.unoccupied_cooling",
+      "target": "thermal.setpoint.unoccupied_cooling",
+      "role_decomposition": [
+        "thermal",
+        "setpoint",
+        "unoccupied_cooling"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.setpoint.unoccupied_cooling"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.unoccupied_heating",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.setpoint.unoccupied_heating",
+      "target": "thermal.setpoint.unoccupied_heating",
+      "role_decomposition": [
+        "thermal",
+        "setpoint",
+        "unoccupied_heating"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "ValueQuantity",
+      "unit_metadata": "unit.kelvin",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.setpoint.unoccupied_heating"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.setpoint.dhw_temperature",
@@ -249210,6 +249876,35 @@
         "docs-semantic/architecture/naming-contract.json"
       ],
       "emitted_name": "thermal.service.compressor"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.service.pump",
+      "owning_file": "semreg/v1/packs/thermal/definitions.go",
+      "kind": "definition_literal",
+      "current_name": "thermal.service.pump",
+      "target": "thermal.service.pump",
+      "role_decomposition": [
+        "thermal",
+        "service",
+        "pump"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": [
+        "CHANGELOG.md",
+        "fixtures/README.md",
+        "fixtures/v1/element-catalog-v1.json",
+        "fixtures/v1/thermal-hvac-pack-vectors.json",
+        "semreg/v1/graph/enforcement.go",
+        "semreg/v1/packs/thermal/contract_vectors_test.go",
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "emitted_name": "thermal.service.pump"
     },
     {
       "identity": "semreg/v1/packs/thermal/definitions.go::definition_literal::thermal.capability.read.system",

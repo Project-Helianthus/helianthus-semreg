@@ -608,6 +608,84 @@
           },
           "optional": true,
           "order": 210
+        },
+        {
+          "id": "infrastructure.energy.self_consumption",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.self_consumption",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.joule",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "36",
+              "exponent10": 17
+            }
+          },
+          "optional": true,
+          "order": 220
+        },
+        {
+          "id": "infrastructure.power.pcc",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.power.pcc",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "-1",
+              "exponent10": 7
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 230
+        },
+        {
+          "id": "infrastructure.limit.fallback_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.limit.fallback_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 7
+            }
+          },
+          "optional": true,
+          "order": 240
         }
       ],
       "fact_dimensions": [
@@ -994,11 +1072,13 @@
           "fields": [
             "infrastructure.ac.frequency",
             "infrastructure.ac.power_factor",
+            "infrastructure.limit.fallback_power",
             "infrastructure.power.apparent",
             "infrastructure.power.export_active",
             "infrastructure.power.export_reactive",
             "infrastructure.power.import_active",
             "infrastructure.power.import_reactive",
+            "infrastructure.power.pcc",
             "infrastructure.status.connection",
             "infrastructure.status.readiness"
           ],
@@ -1072,7 +1152,8 @@
           "service": "infrastructure.service.meter",
           "fields": [
             "infrastructure.energy.export",
-            "infrastructure.energy.import"
+            "infrastructure.energy.import",
+            "infrastructure.energy.self_consumption"
           ],
           "order": 60
         },
