@@ -199037,6 +199037,13 @@
       "ebusgateway/cmd/gateway/testdata/characterization/consumers/matter_feed.json",
       "ha-integration/custom_components/helianthus/semantic_snapshot_sensors.py"
     ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.apparent_power": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
+    ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.current": [
       "docs-ebus/docs/platform/fixtures/canonical-pv/v1/golden-three-phase.json",
       "docs-ebus/docs/platform/fixtures/canonical-pv/v1/negative-cases.json",
@@ -199168,6 +199175,13 @@
       "ha-integration/custom_components/helianthus/sensor.py",
       "ha-integration/docs/legacy-sensor-shared-migration.md",
       "matter-binding/docs/target-profile/photovoltaic.md"
+    ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.reactive_power": [
+      "CHANGELOG.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
     ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.ac.voltage": [
       "docs-semantic/api/v1/mappings/huawei-sun2000-pv-v1.json",
@@ -199411,6 +199425,14 @@
       "ha-integration/custom_components/helianthus/sensor.py",
       "ha-integration/docs/legacy-sensor-shared-migration.md",
       "ha-integration/tests/test_pv_m2m.py"
+    ],
+    "semreg/v1/packs/pv/definitions.go::definition_literal::pv.dc.energy": [
+      "CHANGELOG.md",
+      "fixtures/README.md",
+      "fixtures/v1/element-catalog-v1.json",
+      "fixtures/v1/pv-inverter-pack-vectors.json",
+      "semreg/v1/graph/enforcement.go",
+      "semreg/v1/packs/pv/validator_test.go"
     ],
     "semreg/v1/packs/pv/definitions.go::definition_literal::pv.dc.power": [
       "docs-semantic/api/v1/pack-metadata-v1.json",

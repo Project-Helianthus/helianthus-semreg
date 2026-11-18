@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+In place before the 0.7 release: `helianthus.pack.pv` keeps per-string
+cumulative DC energy apart from generated energy, and its per-phase apparent
+and reactive power apart from active power. `pv.dc.energy` is a quantity in
+`unit.joule` on `pv.dimension.string` with a minimum of 0 and the maximum of
+`pv.energy.generated`. `pv.ac.apparent_power` is in `unit.volt_ampere` on
+`pv.dimension.phase` with a minimum of 0, and `pv.ac.reactive_power` is a
+signed quantity in `unit.volt_ampere_reactive` on `pv.dimension.phase`; both
+take the bounds of `infrastructure.ac.apparent_power` and
+`infrastructure.ac.reactive_power`. A new PV pack test refuses string energy
+on the input and system dimensions, refuses each of the three on any other
+dimension, in any other unit or outside its bounds, and keeps
+`pv.energy.generated` on `pv.dimension.system` and nonnegative. No service,
+capability or operation uses the three, and the field index stays at 24.
+`pv.energy.generated`, the input DC voltage, current and power, the
+active-power and export limits and the single operating-status symbol are
+unchanged. The PV vector copy and the element catalog copy already carry the
+three definitions as the semantic contract publishes them, so no SHA-256 pin
+moves. The rows of `naming-inventory.json` and their bindings in
+`naming-consumers.json` for the three identifiers are added and provisional.
+No pack, catalog or contract version is raised, and no alias, shim or dual
+acceptance is added.
+
 In place before the 0.7 release: the pack availability view is retired.
 `semreg/v1/projection` holds target records and imports no pack (TGT-6).
 Nothing in that package replaces the view. An asset outside the graph is
