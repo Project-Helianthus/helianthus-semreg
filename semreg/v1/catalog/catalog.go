@@ -125,7 +125,7 @@ const (
 // exact revision for a composition claim.
 const EvidenceKindGatewayComposition = "gateway_composition"
 
-const gatewayOwnerPrefix = "Project-Helianthus/helianthus-ebusgateway@"
+const gatewayOwnerPrefix = "Project-Helianthus/helianthus-gateway@"
 
 var reasons = map[Reason]struct{}{
 	ReasonOfflineProfileOnly: {}, ReasonOfflineMappingGateOnly: {}, ReasonFamilyCompatibleOffline: {},

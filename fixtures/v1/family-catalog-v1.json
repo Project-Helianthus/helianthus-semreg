@@ -37,7 +37,7 @@
           "statement": "canonical-PV v1 migration comparator executes the composed PV path through SemReg; no native mapping or live authority is created"
         },
         {
-          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "owner": "Project-Helianthus/helianthus-gateway@e017a547967e449ffbe76ea779d5892596306f07",
           "kind": "gateway_composition",
           "locator": "internal/modbusadapter/semreg_pv_publication_core.go",
           "statement": "gateway publishes canonical PV facts through SemReg (also internal/modbusadapter/adapter.go); cmd/gateway/modbus_sunspec_runtime.go is a read-only live-smoke driver, not a composition claim"
@@ -73,7 +73,7 @@
           "statement": "storage/BMS RS-485 row is an offline candidate only, physical qualification false, no control route"
         },
         {
-          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "owner": "Project-Helianthus/helianthus-gateway@e017a547967e449ffbe76ea779d5892596306f07",
           "kind": "gateway_composition",
           "locator": "cmd/gateway/growatt_bms_rs485_runtime.go",
           "statement": "SemanticStorageCurrent performs the SemReg-only storage publication (line ~236-256); cmd/gateway/growatt_storage_semreg.go"
@@ -103,7 +103,7 @@
           "statement": "Gen3 FC100 persistent and provisional current-limit retention; native evidence stays with the registry"
         },
         {
-          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "owner": "Project-Helianthus/helianthus-gateway@e017a547967e449ffbe76ea779d5892596306f07",
           "kind": "gateway_composition",
           "locator": "cmd/gateway/tesla_hsc_retained_owner.go",
           "statement": "retained owner publishes only to mcp.TeslaGen3EVSESemanticPublication (mcp/tesla_gen3_evse_semantic.go) and serves MCP readers: provider-local, no gateway-wide composition"
@@ -355,7 +355,7 @@
           "statement": "thermal.mapping.ebus.companion is a native-owner candidate row; no mapping is normative"
         },
         {
-          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "owner": "Project-Helianthus/helianthus-gateway@e017a547967e449ffbe76ea779d5892596306f07",
           "kind": "gateway_composition",
           "locator": "cmd/gateway/semantic_vaillant.go",
           "statement": "Vaillant polling feeds graphql.LiveSemanticProvider, the legacy semantic layer, not a SemReg thermal pack publication"
@@ -385,7 +385,7 @@
           "statement": "eeBUS remains unknown_pending_normative_source in every pack; no normative mapping or conformance claim"
         },
         {
-          "owner": "Project-Helianthus/helianthus-ebusgateway@e017a547967e449ffbe76ea779d5892596306f07",
+          "owner": "Project-Helianthus/helianthus-gateway@e017a547967e449ffbe76ea779d5892596306f07",
           "kind": "gateway_composition",
           "locator": "cmd/gateway/eebus_promoted_semantic.go",
           "statement": "wireEEBusPromotedSemanticGraphQL composes graphql.NewPromotedSemanticProvider(base, promoted.Overlay): promoted overlay over the legacy semantic provider"
