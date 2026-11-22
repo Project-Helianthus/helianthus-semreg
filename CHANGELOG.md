@@ -676,3 +676,7 @@ report the same error identifiers, so `Snapshot.Validate` returns the same error
 for every snapshot. No exported name, wire value or fixture changes, and no
 naming-inventory row moves. The library revision still changes, so the gateway
 pin and its renewed evidence follow it.
+
+The `gateway_composition` evidence owner name is now
+`Project-Helianthus/helianthus-gateway@<gateway-commit>`, as set by SemReg PR #149. Existing
+evidence commits are preserved, and callers generate the new name.
