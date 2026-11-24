@@ -9,9 +9,6 @@
         "storage.pack.power",
         "storage.energy.charged",
         "storage.energy.discharged",
-        "storage.energy.nominal_capacity",
-        "storage.energy.remaining",
-        "storage.energy.usable_capacity",
         "storage.capacity.charge",
         "storage.capacity.discharge",
         "storage.temperature.pack",
@@ -203,7 +200,23 @@
         "version": "1.1.0"
       },
       {
+        "id": "storage.limit.charge_current",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
         "id": "storage.limit.charge_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.limit.discharge_current",
         "pack": {
           "id": "helianthus.pack.storage",
           "version": "1.1.0"
@@ -526,20 +539,6 @@
         }
       },
       "dimension": "storage.dimension.pack",
-      "id": "storage.energy.nominal_capacity",
-      "kind": "quantity",
-      "optional": true,
-      "unit": "unit.joule"
-    },
-    {
-      "bounds": {
-        "maximum": null,
-        "minimum": {
-          "coefficient": "0",
-          "exponent10": 0
-        }
-      },
-      "dimension": "storage.dimension.pack",
       "id": "storage.energy.remaining",
       "kind": "quantity",
       "optional": true,
@@ -555,6 +554,20 @@
       },
       "dimension": "storage.dimension.pack",
       "id": "storage.energy.usable_capacity",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.joule"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": {
+          "coefficient": "0",
+          "exponent10": 0
+        }
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.energy.nominal_capacity",
       "kind": "quantity",
       "optional": true,
       "unit": "unit.joule"
@@ -670,6 +683,28 @@
       "kind": "quantity",
       "optional": true,
       "unit": "unit.watt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.limit.charge_current",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.ampere"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.limit.discharge_current",
+      "kind": "quantity",
+      "optional": true,
+      "unit": "unit.ampere"
     },
     {
       "dimension": "storage.dimension.pack",
@@ -848,11 +883,13 @@
         "storage.pack.power",
         "storage.energy.charged",
         "storage.energy.discharged",
-        "storage.energy.nominal_capacity",
         "storage.energy.remaining",
         "storage.energy.usable_capacity",
+        "storage.energy.nominal_capacity",
         "storage.capacity.charge",
         "storage.capacity.discharge",
+        "storage.limit.charge_current",
+        "storage.limit.discharge_current",
         "storage.temperature.pack",
         "storage.status.operating",
         "storage.status.alarm",

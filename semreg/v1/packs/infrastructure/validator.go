@@ -34,11 +34,11 @@ func (validator) ValidateFact(key semreg.FactKey, value *semreg.Value) error {
 // dimension carries an opaque resource identifier and every qualifier
 // dimension keeps the shape it has without the catalog.
 func (validator) ValidateGraphFact(key semreg.FactKey, value *semreg.Value, subject semreg.GraphFactSubject) error {
-	return validateFact(key, value, func(values []semreg.Dimension, expected semreg.DefinitionID) error {
-		return graphDimensionsOK(values, expected, subject)
+	return validateFact(key, value, func(values []semreg.Dimension, spec fieldSpec) error {
+		return graphDimensionsOK(values, spec.dimension, subject)
 	})
 }
-func validateFact(key semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, semreg.DefinitionID) error) error {
+func validateFact(key semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, fieldSpec) error) error {
 	if err := key.Validate(); err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func validateFact(key semreg.FactKey, value *semreg.Value, dimensionsCheck func(
 	if !ok {
 		return failure(semreg.DefinitionOwnerMissing, "infrastructure fact")
 	}
-	if err := dimensionsCheck(key.Dimensions, spec.dimension); err != nil {
+	if err := dimensionsCheck(key.Dimensions, spec); err != nil {
 		return err
 	}
 	return validateValue(spec, *value)
@@ -172,13 +172,17 @@ func findField(id semreg.DefinitionID) (fieldSpec, bool) {
 	return fieldSpec{}, false
 }
 
-func validateDimensions(dimensionsValue []semreg.Dimension, expected semreg.DefinitionID) error {
-	if len(dimensionsValue) != 1 {
+func validateDimensions(dimensionsValue []semreg.Dimension, spec fieldSpec) error {
+	want := append([]semreg.DefinitionID{}, fieldQualifiers[spec.id]...)
+	want = append(want, spec.dimension)
+	sort.Slice(want, func(i, j int) bool { return want[i] < want[j] })
+	if len(dimensionsValue) != len(want) {
 		return failure(semreg.InvalidValue, "infrastructure fact dimensions")
 	}
-	dimension := dimensionsValue[0]
-	if dimension.ID != expected || dimensions[dimension.ID] != dimension.Value.Kind || dimension.Value.Text == nil {
-		return failure(semreg.InvalidValue, "infrastructure fact dimension")
+	for i, dimension := range dimensionsValue {
+		if dimension.ID != want[i] || !dimensionShapeOK(dimension) {
+			return failure(semreg.InvalidValue, "infrastructure fact dimension")
+		}
 	}
 	return nil
 }
@@ -192,8 +196,15 @@ func validateValue(spec fieldSpec, value semreg.Value) error {
 		if value.Quantity == nil || value.Quantity.Unit != spec.unit {
 			return failure(semreg.InvalidValue, "infrastructure quantity unit")
 		}
-		if compareDecimal(value.Quantity.Number, spec.minimum.decimal()) < 0 || compareDecimal(value.Quantity.Number, spec.maximum.decimal()) > 0 {
+		if spec.minimum != nil && compareDecimal(value.Quantity.Number, spec.minimum.decimal()) < 0 {
 			return failure(semreg.BoundsExceeded, "infrastructure quantity bounds")
+		}
+		if spec.maximum != nil && compareDecimal(value.Quantity.Number, spec.maximum.decimal()) > 0 {
+			return failure(semreg.BoundsExceeded, "infrastructure quantity bounds")
+		}
+	case semreg.ValueBoolean:
+		if value.Boolean == nil {
+			return failure(semreg.InvalidValue, "infrastructure boolean")
 		}
 	case semreg.ValueSymbol:
 		if value.Symbol == nil || !value.Symbol.Known || value.Symbol.Namespace != spec.id || !contains(spec.symbols, string(value.Symbol.Namespace)+"."+value.Symbol.Token) {
@@ -203,6 +214,13 @@ func validateValue(spec fieldSpec, value semreg.Value) error {
 		return failure(semreg.InvalidValue, "infrastructure value kind")
 	}
 	return nil
+}
+
+func dimensionShapeOK(dimension semreg.Dimension) bool {
+	if symbols, ok := qualifierSymbols[dimension.ID]; ok {
+		return dimension.Value.Kind == semreg.ValueSymbol && dimension.Value.Symbol != nil && dimension.Value.Symbol.Known && dimension.Value.Symbol.Namespace == dimension.ID && contains(symbols, dimension.Value.Symbol.Token)
+	}
+	return dimensions[dimension.ID] == dimension.Value.Kind && dimension.Value.Text != nil
 }
 
 func compareDecimal(a, b semreg.Decimal) int {
@@ -253,11 +271,13 @@ func graphDimensionsOK(values []semreg.Dimension, expected semreg.DefinitionID, 
 	}
 	own := false
 	for i, d := range values {
-		if d.ID != declared[i] || dimensions[d.ID] != d.Value.Kind || d.Value.Text == nil {
+		if d.ID != declared[i] || !dimensionShapeOK(d) {
 			return failure(semreg.InvalidValue, "infrastructure fact dimension")
 		}
-		if subject.Resolved && d.ID == subject.Dimension && semreg.ResourceID(*d.Value.Text).Validate() != nil {
-			return failure(semreg.InvalidValue, "infrastructure fact resource dimension")
+		if subject.Resolved && d.ID == subject.Dimension {
+			if d.Value.Text == nil || semreg.ResourceID(*d.Value.Text).Validate() != nil {
+				return failure(semreg.InvalidValue, "infrastructure fact resource dimension")
+			}
 		}
 		own = own || d.ID == expected
 	}

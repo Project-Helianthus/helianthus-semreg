@@ -67,11 +67,12 @@ func Validate(c *Catalog, metadata []semreg.PackMetadataSource) error {
 // The reference set of CAT-1 comes from the pack definition indexes (fields,
 // services, capabilities, operations, effect rules) and the dimensions their
 // metadata names. No Go pack table declares relation definitions or Portal
-// contributions: for those, and for a dimension that only a relation endpoint
-// names, Check requires an accepted owning pack, and the pack vector fixtures
-// account for them entry by entry. The arm accepted_pack is allowed for an
-// entry of an accepted pack and for a core resource kind that a resource
-// dimension of an accepted pack reaches.
+// contributions: for those, for a dimension that only a relation endpoint
+// names, and for a dimension that a same-owner fact lists in qualifiers,
+// Check requires an accepted owning pack, and the pack vector fixtures
+// account for the relation and presentation entries. The arm accepted_pack is
+// allowed for an entry of an accepted pack and for a core resource kind that
+// a resource dimension of an accepted pack reaches.
 func Check(c *Catalog, metadata []semreg.PackMetadataSource) ([]Finding, error) {
 	if c == nil {
 		return nil, newError(semreg.InvalidValue, "nil catalog")
@@ -392,6 +393,9 @@ func attributeRefs(element *Element) []namedRef {
 		if element.Fact.Subject.QualifierDimension != nil {
 			out = append(out, namedRef{"subject qualifier_dimension", *element.Fact.Subject.QualifierDimension, KindDimension})
 		}
+		for _, qualifier := range element.Fact.Qualifiers {
+			out = append(out, namedRef{"qualifier", qualifier, KindDimension})
+		}
 	case element.Relation != nil && element.Relation.EndpointDimensions != nil:
 		out = append(out,
 			namedRef{"endpoint from", element.Relation.EndpointDimensions.From, KindDimension},
@@ -453,12 +457,20 @@ func (v *validator) completeness() {
 		}
 	}
 	endpointDimensions := map[ElementRef]struct{}{}
+	qualifiedDimensions := map[ElementRef]struct{}{}
 	for _, element := range v.c.elements {
 		if element.Relation != nil && element.Relation.EndpointDimensions != nil && element.Ref.Owner.Kind == OwnerPack {
 			ends := element.Relation.EndpointDimensions
 			for _, end := range []ElementRef{ends.From, ends.To} {
 				if end.Owner == element.Ref.Owner {
 					endpointDimensions[end] = struct{}{}
+				}
+			}
+		}
+		if element.Fact != nil && element.Ref.Owner.Kind == OwnerPack {
+			for _, qualifier := range element.Fact.Qualifiers {
+				if qualifier.Owner == element.Ref.Owner {
+					qualifiedDimensions[qualifier] = struct{}{}
 				}
 			}
 		}
@@ -478,8 +490,10 @@ func (v *validator) completeness() {
 		case declared:
 		case element.ElementKind == KindRelation, element.ElementKind == KindPresentation:
 		case element.ElementKind == KindDimension:
-			if _, ok := endpointDimensions[element.Ref]; !ok {
-				v.add("CAT-1", "", semreg.DefinitionOwnerMissing, element.Ref.String(), "no accepted pack field, service or relation names this dimension")
+			_, endpoint := endpointDimensions[element.Ref]
+			_, qualified := qualifiedDimensions[element.Ref]
+			if !endpoint && !qualified {
+				v.add("CAT-1", "", semreg.DefinitionOwnerMissing, element.Ref.String(), "no accepted pack field, service, relation or fact qualifier names this dimension")
 			}
 		default:
 			v.add("CAT-1", "", semreg.DefinitionOwnerMissing, element.Ref.String(), "no accepted pack declares it")
@@ -581,7 +595,31 @@ func (v *validator) agreement() {
 			v.disagree(entry.Ref, "role %s, the pack uses it as a %s dimension", entry.Dimension.Role, v.in.roles[ref])
 		}
 	}
+	v.qualifiers()
 	v.subjectKinds()
+}
+
+func (v *validator) qualifiers() {
+	for i := range v.c.elements {
+		element := &v.c.elements[i]
+		if element.Fact == nil || len(element.Fact.Qualifiers) == 0 {
+			continue
+		}
+		var previous string
+		for index, qualifier := range element.Fact.Qualifiers {
+			if qualifier.Owner != element.Ref.Owner {
+				v.disagree(element.Ref, "qualifier is not a dimension of the same pack")
+			}
+			if entry, ok := v.entry(qualifier); ok && (entry.Dimension == nil || entry.Dimension.Role != RoleQualifier) {
+				v.disagree(element.Ref, "qualifier is not a qualifier dimension")
+			}
+			name := qualifier.String()
+			if index > 0 && name <= previous {
+				v.disagree(element.Ref, "qualifiers are not a sorted unique list")
+			}
+			previous = name
+		}
+	}
 }
 
 func (v *validator) operationAgreement(operation semreg.OperationMetadata) {
@@ -1024,10 +1062,44 @@ func evidenceProblems(admission Admission) []string {
 }
 
 func pinnedPublicURL(link string) bool {
+	if repositoryRelativeEvidence(link) {
+		return true
+	}
 	if strings.HasPrefix(link, "https://github.com/") {
 		return githubURLPattern.MatchString(link)
 	}
 	return otherURLPattern.MatchString(link)
+}
+
+// repositoryRelativeEvidence admits a path of a file in the repository that
+// carries the catalog. The reference resolves against the revision recorded
+// with the pin. A segment of "." or ".." and every other non-absolute form
+// is refused.
+func repositoryRelativeEvidence(link string) bool {
+	if link == "" || strings.Contains(link, "\\") || strings.ContainsAny(link, " \t?#") {
+		return false
+	}
+	parts := strings.Split(link, "/")
+	if len(parts) < 2 {
+		return false
+	}
+	for _, part := range parts {
+		if part == "" || part == "." || part == ".." || !relativeEvidenceSegment(part) {
+			return false
+		}
+	}
+	return true
+}
+
+func relativeEvidenceSegment(part string) bool {
+	for _, r := range part {
+		switch {
+		case r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '.', r == '_', r == '-':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // ------------------------------------------------------------------ CAT-7

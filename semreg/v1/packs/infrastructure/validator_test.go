@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -14,7 +15,7 @@ import (
 func TestDefinitionIndexIsExactAndReadOnly(t *testing.T) {
 	validator := New()
 	first := validator.Definitions()
-	if first.Pack != pack || len(first.Fields) != 23 || len(first.Services) != 7 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
+	if first.Pack != pack || len(first.Fields) != 25 || len(first.Services) != 7 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
 		t.Fatalf("unexpected definition index: %+v", first)
 	}
 	if err := first.Validate(); err != nil {
@@ -58,24 +59,32 @@ func TestFieldsAcceptTheirExactContract(t *testing.T) {
 			if err := validator.ValidateField(definition(spec.id), semreg.TypedField{ID: spec.id, Value: value}); err != nil {
 				t.Fatalf("valid typed field: %v", err)
 			}
-			badDimension := key
-			badDimension.Dimensions = append([]semreg.Dimension(nil), key.Dimensions...)
-			badDimension.Dimensions[0].ID = "infrastructure.dimension.site"
-			requireErrorID(t, validator.ValidateFact(badDimension, &value), semreg.InvalidValue)
-			if spec.kind == semreg.ValueQuantity {
+			if len(key.Dimensions) == 1 {
+				badDimension := key
+				badDimension.Dimensions = append([]semreg.Dimension(nil), key.Dimensions...)
+				badDimension.Dimensions[0].ID = "infrastructure.dimension.site"
+				requireErrorID(t, validator.ValidateFact(badDimension, &value), semreg.InvalidValue)
+			}
+			switch spec.kind {
+			case semreg.ValueQuantity:
 				wrongUnit := value
 				wrongUnit.Quantity = &semreg.Quantity{Number: value.Quantity.Number, Unit: "unit.ampere"}
 				if spec.unit == "unit.ampere" {
 					wrongUnit.Quantity.Unit = "unit.volt"
 				}
 				requireErrorID(t, validator.ValidateFact(key, &wrongUnit), semreg.InvalidValue)
-				outside := value
-				outside.Quantity = &semreg.Quantity{Number: beyond(spec.maximum.decimal()), Unit: spec.unit}
-				requireErrorID(t, validator.ValidateFact(key, &outside), semreg.BoundsExceeded)
-			} else {
+				if spec.maximum != nil {
+					outside := value
+					outside.Quantity = &semreg.Quantity{Number: beyond(spec.maximum.decimal()), Unit: spec.unit}
+					requireErrorID(t, validator.ValidateFact(key, &outside), semreg.BoundsExceeded)
+				}
+			case semreg.ValueSymbol:
 				wrongSymbol := value
 				wrongSymbol.Symbol = &semreg.Symbol{Namespace: spec.id, Token: "unknown", Known: true}
 				requireErrorID(t, validator.ValidateFact(key, &wrongSymbol), semreg.InvalidValue)
+			default:
+				wrongKind := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "0"}, Unit: "unit.ratio"}}
+				requireErrorID(t, validator.ValidateFact(key, &wrongKind), semreg.InvalidValue)
 			}
 		})
 	}
@@ -174,16 +183,35 @@ func TestConcurrentValidationIsDeterministic(t *testing.T) {
 }
 
 func validKey(spec fieldSpec) semreg.FactKey {
-	name := "identity"
-	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	return infrastructureFactKey(spec, "identity")
+}
+
+func infrastructureFactKey(spec fieldSpec, text string) semreg.FactKey {
+	dims := make([]semreg.Dimension, 0, 1+len(fieldQualifiers[spec.id]))
+	for _, id := range fieldQualifiers[spec.id] {
+		token := qualifierSymbols[id][0]
+		dims = append(dims, semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}})
+	}
+	dims = append(dims, semreg.Dimension{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
+	sort.Slice(dims, func(i, j int) bool { return dims[i].ID < dims[j].ID })
+	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: dims}
 }
 
 func validFieldValue(spec fieldSpec) semreg.Value {
-	if spec.kind == semreg.ValueQuantity {
-		return semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: spec.minimum.decimal(), Unit: spec.unit}}
+	switch spec.kind {
+	case semreg.ValueQuantity:
+		number := semreg.Decimal{Coefficient: "0"}
+		if spec.minimum != nil {
+			number = spec.minimum.decimal()
+		}
+		return semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: number, Unit: spec.unit}}
+	case semreg.ValueBoolean:
+		value := true
+		return semreg.Value{Kind: semreg.ValueBoolean, Boolean: &value}
+	default:
+		name := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: name, Known: true}}
 	}
-	name := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
-	return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: name, Known: true}}
 }
 
 func beyond(value semreg.Decimal) semreg.Decimal {
@@ -234,6 +262,9 @@ func requireErrorID(t *testing.T, err error, want semreg.ErrorID) {
 func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 	var graphValidator semreg.GraphFactValidator = New().(semreg.GraphFactValidator)
 	for _, spec := range fields {
+		if len(fieldQualifiers[spec.id]) > 0 {
+			continue
+		}
 		key, value := validKey(spec), validFieldValue(spec)
 		withText := func(text string) semreg.FactKey {
 			changed := key
@@ -513,4 +544,181 @@ func TestSelfConsumptionCouplingPowerAndFallbackLimit(t *testing.T) {
 	if len(index.Capabilities) != 6 || len(index.Operations) != 0 || len(index.EffectRules) != 0 || len(capabilities) != 6 {
 		t.Fatalf("definition index: %+v", index)
 	}
+}
+
+// TestPilotAccuracyFacts requires the measured boolean and the ratio maximum
+// on the meter dimension, qualified by the measurement-type symbol dimension.
+// Each refusal names the production check it catches. Coefficients 1 and -1
+// of the ratio are accepted, so a lower bound of zero refuses them.
+func TestPilotAccuracyFacts(t *testing.T) {
+	v := New()
+	graphValidator := New().(semreg.GraphFactValidator)
+	for _, id := range []semreg.DefinitionID{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum"} {
+		spec, ok := findField(id)
+		if !ok || spec.dimension != "infrastructure.dimension.meter" || !sameIDsOf(fieldQualifiers[id], []semreg.DefinitionID{"infrastructure.dimension.measurement_type"}) {
+			t.Fatalf("%s = %+v qualifiers %v", id, spec, fieldQualifiers[id])
+		}
+		key := infrastructureFactKey(spec, "meter:1")
+		value := validFieldValue(spec)
+		if err := v.ValidateFact(key, &value); err != nil {
+			t.Fatal(id, err)
+		}
+		if spec.kind == semreg.ValueBoolean {
+			for _, bit := range []bool{true, false} {
+				bit := bit
+				accepted := semreg.Value{Kind: semreg.ValueBoolean, Boolean: &bit}
+				if err := v.ValidateFact(key, &accepted); err != nil {
+					t.Fatalf("%s %v: %v", id, bit, err)
+				}
+			}
+			quantity := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.ratio"}}
+			requireErrorID(t, v.ValidateFact(key, &quantity), semreg.InvalidValue)
+		} else {
+			for _, coefficient := range []string{"1", "-1"} {
+				accepted := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: coefficient}, Unit: spec.unit}}
+				if err := v.ValidateFact(key, &accepted); err != nil {
+					t.Fatalf("%s coefficient %s: %v", id, coefficient, err)
+				}
+			}
+			wrongUnit := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.watt"}}
+			requireErrorID(t, v.ValidateFact(key, &wrongUnit), semreg.InvalidValue)
+			bit := true
+			wrongKind := semreg.Value{Kind: semreg.ValueBoolean, Boolean: &bit}
+			requireErrorID(t, v.ValidateFact(key, &wrongKind), semreg.InvalidValue)
+		}
+		refuse := func(name string, changed semreg.FactKey) {
+			t.Helper()
+			if v.ValidateFact(changed, &value) == nil {
+				t.Fatalf("%s with another %s accepted", id, name)
+			}
+		}
+		otherPack := key
+		otherPack.PackID = "helianthus.pack.other"
+		refuse("pack id", otherPack)
+		otherVersion := key
+		otherVersion.PackVersion = "9.0.0"
+		refuse("pack version", otherVersion)
+		otherFact := key
+		otherFact.FactID = id + ".other"
+		refuse("fact id", otherFact)
+		requireErrorID(t, v.ValidateFact(pilotDropDimension(key, "infrastructure.dimension.measurement_type"), &value), semreg.InvalidValue)
+		requireErrorID(t, v.ValidateFact(pilotReplaceDimensionID(key, "infrastructure.dimension.measurement_type", "zz.dimension.type"), &value), semreg.InvalidValue)
+		requireErrorID(t, v.ValidateFact(pilotReplaceDimensionID(key, spec.dimension, "zz.dimension.subject"), &value), semreg.InvalidValue)
+		requireErrorID(t, v.ValidateFact(pilotQualifierText(key, "infrastructure.dimension.measurement_type"), &value), semreg.InvalidValue)
+		requireErrorID(t, v.ValidateFact(pilotQualifierToken(key, "infrastructure.dimension.measurement_type", "other"), &value), semreg.InvalidValue)
+		requireErrorID(t, v.ValidateFact(pilotQualifierNamespace(key, "infrastructure.dimension.measurement_type", "zz.dimension.type"), &value), semreg.InvalidValue)
+		requireErrorID(t, v.ValidateFact(pilotSubjectSymbol(key, spec.dimension), &value), semreg.InvalidValue)
+		extra := pilotCopyKey(key)
+		text := "extra"
+		extra.Dimensions = append(extra.Dimensions, semreg.Dimension{ID: "zz.dimension.extra", Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
+		sort.Slice(extra.Dimensions, func(i, j int) bool { return extra.Dimensions[i].ID < extra.Dimensions[j].ID })
+		requireErrorID(t, v.ValidateFact(extra, &value), semreg.InvalidValue)
+		empty := key
+		empty.Dimensions = []semreg.Dimension{}
+		requireErrorID(t, v.ValidateFact(empty, &value), semreg.InvalidValue)
+		resourceKey := infrastructureFactKey(spec, "resource:meter:01")
+		subject := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.meter", Qualifiers: append([]semreg.DefinitionID(nil), fieldQualifiers[id]...)}
+		if err := graphValidator.ValidateGraphFact(resourceKey, &value, subject); err != nil {
+			t.Fatalf("%s graph: %v", id, err)
+		}
+		plain := infrastructureFactKey(spec, "meter 01")
+		requireErrorID(t, graphValidator.ValidateGraphFact(plain, &value, subject), semreg.InvalidValue)
+		if err := v.ValidateFact(plain, &value); err != nil {
+			t.Fatalf("%s without the catalog: %v", id, err)
+		}
+		bare := subject
+		bare.Qualifiers = nil
+		requireErrorID(t, graphValidator.ValidateGraphFact(resourceKey, &value, bare), semreg.InvalidValue)
+	}
+}
+
+func sameIDsOf(got, want []semreg.DefinitionID) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func pilotCopyKey(key semreg.FactKey) semreg.FactKey {
+	key.Dimensions = append([]semreg.Dimension(nil), key.Dimensions...)
+	for i := range key.Dimensions {
+		if key.Dimensions[i].Value.Text != nil {
+			text := *key.Dimensions[i].Value.Text
+			key.Dimensions[i].Value.Text = &text
+		}
+		if key.Dimensions[i].Value.Symbol != nil {
+			symbol := *key.Dimensions[i].Value.Symbol
+			key.Dimensions[i].Value.Symbol = &symbol
+		}
+	}
+	return key
+}
+
+func pilotDropDimension(key semreg.FactKey, id semreg.DefinitionID) semreg.FactKey {
+	key = pilotCopyKey(key)
+	kept := make([]semreg.Dimension, 0, len(key.Dimensions))
+	for _, dimension := range key.Dimensions {
+		if dimension.ID != id {
+			kept = append(kept, dimension)
+		}
+	}
+	key.Dimensions = kept
+	return key
+}
+
+func pilotReplaceDimensionID(key semreg.FactKey, from, to semreg.DefinitionID) semreg.FactKey {
+	key = pilotCopyKey(key)
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == from {
+			key.Dimensions[i].ID = to
+		}
+	}
+	sort.Slice(key.Dimensions, func(i, j int) bool { return key.Dimensions[i].ID < key.Dimensions[j].ID })
+	return key
+}
+
+func pilotQualifierText(key semreg.FactKey, id semreg.DefinitionID) semreg.FactKey {
+	key = pilotCopyKey(key)
+	text := "voltage"
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == id {
+			key.Dimensions[i].Value = semreg.Value{Kind: semreg.ValueText, Text: &text}
+		}
+	}
+	return key
+}
+
+func pilotQualifierToken(key semreg.FactKey, id semreg.DefinitionID, token string) semreg.FactKey {
+	key = pilotCopyKey(key)
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == id && key.Dimensions[i].Value.Symbol != nil {
+			key.Dimensions[i].Value.Symbol.Token = token
+		}
+	}
+	return key
+}
+
+func pilotQualifierNamespace(key semreg.FactKey, id semreg.DefinitionID, namespace semreg.DefinitionID) semreg.FactKey {
+	key = pilotCopyKey(key)
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == id && key.Dimensions[i].Value.Symbol != nil {
+			key.Dimensions[i].Value.Symbol.Namespace = namespace
+		}
+	}
+	return key
+}
+
+func pilotSubjectSymbol(key semreg.FactKey, id semreg.DefinitionID) semreg.FactKey {
+	key = pilotCopyKey(key)
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == id {
+			key.Dimensions[i].Value = semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: "active_current", Known: true}}
+		}
+	}
+	return key
 }

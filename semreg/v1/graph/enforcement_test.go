@@ -440,10 +440,17 @@ func TestGraphEnforcementResourceLookupsAgreeWithTheCatalog(t *testing.T) {
 			if want.Dimension != nil && subject.Dimension != want.Dimension.ID || want.Dimension == nil && subject.Dimension != "" {
 				t.Fatalf("FactSubject(%s) dimension %s", element.Ref, subject.Dimension)
 			}
+			wantIDs := make([]semreg.DefinitionID, 0, len(element.Fact.Qualifiers)+1)
+			for _, qualifier := range element.Fact.Qualifiers {
+				wantIDs = append(wantIDs, qualifier.ID)
+			}
 			if want.QualifierDimension != nil {
 				unknown++
-				if !reflect.DeepEqual(subject.Qualifiers, []semreg.DefinitionID{want.QualifierDimension.ID}) {
-					t.Fatalf("FactSubject(%s) qualifiers %v", element.Ref, subject.Qualifiers)
+				wantIDs = append(wantIDs, want.QualifierDimension.ID)
+			}
+			if len(wantIDs) > 0 {
+				if !reflect.DeepEqual(subject.Qualifiers, wantIDs) {
+					t.Fatalf("FactSubject(%s) qualifiers %v, want %v", element.Ref, subject.Qualifiers, wantIDs)
 				}
 				subject.Qualifiers[0] = "mutated"
 				if again, _ := asInterface.FactSubject(element.Ref.Owner.Pack, element.Ref.ID); again.Qualifiers[0] == "mutated" {

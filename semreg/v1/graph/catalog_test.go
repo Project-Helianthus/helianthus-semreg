@@ -87,8 +87,8 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 		counts[element.ElementKind]++
 	}
 	want := map[graph.ElementKind]int{
-		graph.KindResourceKind: 35, graph.KindRelation: 28, graph.KindDimension: 37, graph.KindService: 36,
-		graph.KindFact: 140, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
+		graph.KindResourceKind: 35, graph.KindRelation: 28, graph.KindDimension: 39, graph.KindService: 36,
+		graph.KindFact: 146, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
 		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 42,
 	}
 	for kind, n := range want {
@@ -96,8 +96,8 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 394 {
-		t.Errorf("entries = %d, want 394", n)
+	if n := len(catalog.Elements()); n != 402 {
+		t.Errorf("entries = %d, want 402", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)
@@ -105,8 +105,10 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 	if n := len(catalog.CoreRelationTypes()); n != 7 {
 		t.Errorf("core relation types = %d, want 7", n)
 	}
-	if n := len(catalog.IdentificationSchemes()); n != 0 {
-		t.Errorf("identification schemes = %d, want the empty seed", n)
+	schemes := catalog.IdentificationSchemes()
+	if len(schemes) != 2 || schemes[0].ID != "scheme.ieee.eui48" || schemes[1].ID != "scheme.ieee.eui64" ||
+		schemes[0].IssuerRegistry != graph.IssuerNone || schemes[1].IssuerRegistry != graph.IssuerNone {
+		t.Errorf("identification schemes = %+v", schemes)
 	}
 	lenses := catalog.Lenses()
 	wantLenses := []semreg.DefinitionID{
@@ -195,10 +197,32 @@ func TestLookups(t *testing.T) {
 	}); !ok || kind != "resource.heat_generator" {
 		t.Fatalf("DimensionKind(thermal heat generator) = %q %v", kind, ok)
 	}
+	qualifiers := 0
 	for _, entry := range catalog.Elements() {
-		if entry.ElementKind == graph.KindDimension && (entry.Dimension == nil || entry.Dimension.Role != graph.RoleResource) {
-			t.Fatalf("dimension %s is not a resource dimension", entry.Ref.ID)
+		if entry.ElementKind != graph.KindDimension {
+			continue
 		}
+		if entry.Dimension == nil {
+			t.Fatalf("dimension %s has no attributes", entry.Ref.ID)
+		}
+		ref, isPack := entry.Ref.DefinitionRef()
+		kind, ok := catalog.DimensionKind(ref)
+		switch entry.Dimension.Role {
+		case graph.RoleResource:
+			if !isPack || !ok || kind == "" {
+				t.Fatalf("resource dimension %s kind %q %v", entry.Ref.ID, kind, ok)
+			}
+		case graph.RoleQualifier:
+			qualifiers++
+			if ok || entry.Dimension.ValueKind != semreg.ValueSymbol || len(entry.Dimension.Symbols) == 0 {
+				t.Fatalf("qualifier dimension %s = %+v", entry.Ref.ID, entry.Dimension)
+			}
+		default:
+			t.Fatalf("dimension %s role %s", entry.Ref.ID, entry.Dimension.Role)
+		}
+	}
+	if qualifiers != 2 {
+		t.Errorf("qualifier dimensions = %d, want 2", qualifiers)
 	}
 	if kind, ok := catalog.ServiceSubjectKind(evseRef("evse.service.connector")); !ok || kind != "resource.connector" {
 		t.Fatalf("ServiceSubjectKind(connector) = %q %v", kind, ok)
@@ -507,6 +531,72 @@ func TestCAT1Completeness(t *testing.T) {
 	})
 }
 
+// TestCAT1QualifierDimensionIsNamedByTheFactsItQualifies requires a qualifier
+// dimension to stay covered while one same-owner fact lists it, and to be
+// definition_owner_missing when every naming fact drops it or points the
+// qualifier at another entry. The qualifier key is the owner kind, the pack
+// id, the pack version, the element id and the element version.
+func TestCAT1QualifierDimensionIsNamedByTheFactsItQualifies(t *testing.T) {
+	const dimension = "infrastructure.dimension.measurement_type"
+	facts := []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum"}
+	uncovered := func(findings []graph.Finding) bool {
+		for _, finding := range findings {
+			if finding.Rule == "CAT-1" && finding.ID == semreg.DefinitionOwnerMissing && strings.Contains(finding.Entry, dimension) {
+				return true
+			}
+		}
+		return false
+	}
+	qualifier := func(t *testing.T, doc document, fact string) document {
+		t.Helper()
+		refs := element(t, doc, fact)["attributes"].(document)["qualifiers"].([]any)
+		if len(refs) != 1 {
+			t.Fatalf("%s qualifiers = %d", fact, len(refs))
+		}
+		return refs[0].(document)
+	}
+	if uncovered(findingsOf(t, decodeDocument(t))) {
+		t.Fatal("the measurement-type dimension is uncovered")
+	}
+	one := decodeDocument(t)
+	delete(element(t, one, facts[0])["attributes"].(document), "qualifiers")
+	if findings := findingsOf(t, one); uncovered(findings) || len(findings) != 0 {
+		t.Fatalf("one naming fact is not enough:\n%s", joinFindings(findings))
+	}
+	both := decodeDocument(t)
+	for _, fact := range facts {
+		delete(element(t, both, fact)["attributes"].(document), "qualifiers")
+	}
+	requireFinding(t, findingsOf(t, both), "CAT-1", "", semreg.DefinitionOwnerMissing, dimension)
+	for _, change := range []struct {
+		name   string
+		mutate func(document)
+	}{
+		{"element id", func(ref document) { ref["id"] = "infrastructure.dimension.other" }},
+		{"element version", func(ref document) { ref["version"] = "1.0.1" }},
+		{"pack id", func(ref document) { ref["owner"].(document)["pack"].(document)["id"] = "helianthus.pack.other" }},
+		{"pack version", func(ref document) { ref["owner"].(document)["pack"].(document)["version"] = "9.0.0" }},
+		{"owner kind", func(ref document) {
+			ref["owner"] = document{"kind": "core", "contract": "helianthus.semantic.kernel/v1"}
+		}},
+	} {
+		t.Run(change.name, func(t *testing.T) {
+			doc := decodeDocument(t)
+			for _, fact := range facts {
+				change.mutate(qualifier(t, doc, fact))
+			}
+			requireFinding(t, findingsOf(t, doc), "CAT-1", "", semreg.DefinitionOwnerMissing, dimension)
+		})
+		t.Run(change.name+" on one fact", func(t *testing.T) {
+			doc := decodeDocument(t)
+			change.mutate(qualifier(t, doc, facts[0]))
+			if uncovered(findingsOf(t, doc)) {
+				t.Fatalf("changing %s on one fact uncovered the dimension", change.name)
+			}
+		})
+	}
+}
+
 func TestCAT2Agreement(t *testing.T) {
 	t.Run("service fact-key dimension", func(t *testing.T) {
 		doc := decodeDocument(t)
@@ -543,6 +633,8 @@ func TestCAT2Agreement(t *testing.T) {
 		attributes := element(t, doc, "evse.dimension.connector")["attributes"].(document)
 		attributes["role"] = "qualifier"
 		delete(attributes, "resource_kind")
+		attributes["value_kind"] = "symbol"
+		attributes["symbols"] = []any{"phase"}
 		requireFinding(t, findingsOf(t, doc), "CAT-2", "", semreg.InvalidValue, "evse.dimension.connector")
 	})
 	t.Run("operation effect rule", func(t *testing.T) {
@@ -758,6 +850,21 @@ func TestCAT6Admission(t *testing.T) {
 			evidence := admission["evidence"].([]any)
 			admission["evidence"] = append(evidence, evidence[0])
 		}},
+		"single path segment": {"evse.ac.voltage", func(doc document) {
+			doc["elements"].([]any)[indexOf(doc, "evse.ac.voltage")].(document)["admission"].(document)["evidence"] = []any{"kernel.md"}
+		}},
+		"parent segment": {"evse.ac.voltage", func(doc document) {
+			doc["elements"].([]any)[indexOf(doc, "evse.ac.voltage")].(document)["admission"].(document)["evidence"] = []any{"api/../kernel.md"}
+		}},
+		"dot segment": {"evse.ac.voltage", func(doc document) {
+			doc["elements"].([]any)[indexOf(doc, "evse.ac.voltage")].(document)["admission"].(document)["evidence"] = []any{"./api/v1/kernel.md"}
+		}},
+		"backslash": {"evse.ac.voltage", func(doc document) {
+			doc["elements"].([]any)[indexOf(doc, "evse.ac.voltage")].(document)["admission"].(document)["evidence"] = []any{`api\v1\kernel.md`}
+		}},
+		"absolute path": {"evse.ac.voltage", func(doc document) {
+			doc["elements"].([]any)[indexOf(doc, "evse.ac.voltage")].(document)["admission"].(document)["evidence"] = []any{"/api/v1/kernel.md"}
+		}},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -765,6 +872,16 @@ func TestCAT6Admission(t *testing.T) {
 			c.mutate(doc)
 			requireFinding(t, findingsOf(t, doc), "CAT-6", "", semreg.InvalidValue, c.entry)
 		})
+	}
+}
+
+// A repository-relative evidence path is admitted. A single segment, a "." or
+// ".." segment, a backslash and a leading slash stay refused.
+func TestCAT6RepositoryRelativeEvidence(t *testing.T) {
+	doc := decodeDocument(t)
+	doc["elements"].([]any)[indexOf(doc, "evse.ac.voltage")].(document)["admission"].(document)["evidence"] = []any{"api/v1/kernel.md"}
+	if findings := findingsOf(t, doc); len(findings) != 0 {
+		t.Fatalf("repository-relative evidence rejected:\n%s", joinFindings(findings))
 	}
 }
 

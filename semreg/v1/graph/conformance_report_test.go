@@ -145,18 +145,19 @@ func gvJoinClauses(clauses []string) string {
 }
 
 // TestDigestAssertionsIgnoreRecordedCitation pins the comparison the
-// conformance account describes. The copied document cites an element-catalog
-// digest other than graph.PinnedDigest. Both assertions still accept the
-// loaded catalog, because they compare that catalog with graph.PinnedDigest
+// conformance account describes. The copied document cites graph.PinnedDigest.
+// Both assertions still accept the loaded catalog after that citation is
+// replaced, because they compare the loaded catalog with graph.PinnedDigest
 // and do not read the recorded citation.
 func TestDigestAssertionsIgnoreRecordedCitation(t *testing.T) {
 	doc := gvDecodeDocument(t, gvReadFixture(t))
 	if err := doc.ElementCatalog.SHA256.Validate(); err != nil {
 		t.Fatalf("recorded citation: %v", err)
 	}
-	if doc.ElementCatalog.SHA256 == graph.PinnedDigest {
-		t.Fatal("recorded citation equals graph.PinnedDigest")
+	if doc.ElementCatalog.SHA256 != graph.PinnedDigest {
+		t.Fatal("recorded citation differs from graph.PinnedDigest")
 	}
+	doc.ElementCatalog.SHA256 = semreg.Digest("sha256:" + strings.Repeat("ab", 32))
 	catalog := gvEmbedded(t)
 	if catalog.Digest() != graph.PinnedDigest {
 		t.Fatalf("loaded catalog digest = %s", catalog.Digest())

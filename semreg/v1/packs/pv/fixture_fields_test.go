@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 )
 
 // TestPVFixtureFieldsMatchDefinitions compares every field of the copied
@@ -28,6 +30,7 @@ func TestPVFieldComparisonCatchesEveryProperty(t *testing.T) {
 	if spec.minimum == nil || spec.maximum == nil {
 		t.Fatalf("probe %s needs both bounds", spec.id)
 	}
+	t.Cleanup(func() { delete(fieldQualifiers, spec.id) })
 	entry := pvFieldEntry(t, entries, string(spec.id))
 	if got := pvFieldMismatch(entry, spec, true); got != "" {
 		t.Fatalf("baseline %s differs in %s", spec.id, got)
@@ -54,6 +57,7 @@ func TestPVFieldComparisonCatchesEveryProperty(t *testing.T) {
 		{"maximum", func(s *fieldSpec) { s.maximum.exponent10++ }},
 		{"maximum", func(s *fieldSpec) { s.maximum = nil }},
 		{"symbols", func(s *fieldSpec) { s.symbols = []string{string(s.id) + ".other"} }},
+		{"qualifiers", func(s *fieldSpec) { fieldQualifiers[s.id] = []semreg.DefinitionID{"pv.dimension.other"} }},
 	} {
 		changed := spec
 		changed.minimum, changed.maximum = copyBound(spec.minimum), copyBound(spec.maximum)
@@ -88,8 +92,26 @@ func pvFieldMismatch(entry map[string]any, spec fieldSpec, withBounds bool) stri
 		return "maximum"
 	case !pvSameSymbols(entry["symbols"], spec.symbols):
 		return "symbols"
+	case !pvSameQualifiers(entry["qualifiers"], fieldQualifiers[spec.id]):
+		return "qualifiers"
 	}
 	return ""
+}
+
+func pvSameQualifiers(value any, want []semreg.DefinitionID) bool {
+	if len(want) == 0 {
+		return value == nil
+	}
+	got, ok := value.([]any)
+	if !ok || len(got) != len(want) {
+		return false
+	}
+	for index := range want {
+		if got[index] != string(want[index]) {
+			return false
+		}
+	}
+	return true
 }
 
 func pvSameBound(value any, want *decimalBound) bool {

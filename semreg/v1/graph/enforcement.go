@@ -167,7 +167,8 @@ func (c *Catalog) ResourceKindClass(kind semreg.DefinitionID) (semreg.AnchorClas
 // FactSubject returns the subject and disposition of the one fact entry of
 // the pack with the identifier: a resolved subject names its resource
 // dimension and kind, an unresolved one its qualifier dimension when the
-// entry declares it.
+// entry declares it. Qualifiers lists that dimension and every qualifier
+// dimension the fact names, as a detached copy.
 func (c *Catalog) FactSubject(pack semreg.PackRef, fact semreg.DefinitionID) (semreg.GraphFactSubject, bool) {
 	element, ok := c.packEntryOfKind(pack, fact, KindFact)
 	if !ok || element.Fact == nil {
@@ -181,8 +182,15 @@ func (c *Catalog) FactSubject(pack semreg.PackRef, fact semreg.DefinitionID) (se
 		}
 		result.Dimension, result.Kind = subject.Dimension.ID, subject.Kind
 	}
+	qualifiers := make([]semreg.DefinitionID, 0, len(element.Fact.Qualifiers)+1)
+	for _, qualifier := range element.Fact.Qualifiers {
+		qualifiers = append(qualifiers, qualifier.ID)
+	}
 	if subject.QualifierDimension != nil {
-		result.Qualifiers = []semreg.DefinitionID{subject.QualifierDimension.ID}
+		qualifiers = append(qualifiers, subject.QualifierDimension.ID)
+	}
+	if len(qualifiers) > 0 {
+		result.Qualifiers = qualifiers
 	}
 	return result, true
 }

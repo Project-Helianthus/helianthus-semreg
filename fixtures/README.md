@@ -355,19 +355,17 @@ the pack of every accepted mapping gate of its family is not in place yet.
 docs-semantic #76 and edited in place for the accepted thermal placement,
 the four lens seeds, the two PV inverter totals, the thermal overrun
 statuses, zone setpoints, pump and valve entries, the PV yield periods and
-limit ratio, and the infrastructure self-consumption, point-of-coupling power
-and fallback limit. It differs from the contract bytes in one respect: the
-contract cites the thermal pack page on the default branch as the evidence of
-`resource.pump` and of nineteen thermal pack entries, and CAT-6 refuses
-evidence that is not pinned to a revision, so the copy cites that page at a
-full commit instead. Nothing else differs. Its SHA-256 is
-`6c8d5c5c65327ef289c504db8378bc824c7170f5d7cb55e714625728feb526a4`; the
+limit ratio, the infrastructure self-consumption, point-of-coupling power
+and fallback limit, and the pilot accuracy, measurement-type and storage
+current entries. Its SHA-256 is
+`911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types, 394 entries and four lenses, and marks
-`resource.site` as the installation root. It has no identification scheme and
+seven core relation types, 402 entries and four lenses, and marks
+`resource.site` as the installation root. It lists the identification schemes
+`scheme.ieee.eui48` and `scheme.ieee.eui64`, both with issuer `none`. It has
 no entry of disposition `unknown`; a test that needs an unknown entry sets one
 by a stated mutation.
 `semreg/v1/graph` decodes it strictly and checks rules CAT-1 to CAT-9 against
@@ -379,19 +377,20 @@ authority.
 [`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is the
 `helianthus.semantic.graph.acceptance/v1` document exercised by this module.
 Its SHA-256 is
-`b5afbd8d5f546c9178a72ae037515cfe581f8cef3c75bb65ba98bb3266508ba5`;
+`7244173c41d7bfc12b45c9f42647f12df38e356b9f023cae8bb901cf55efe856`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
-bytes. The document records the catalog digest of the seed it was written
-against. The element catalog copy and `graph.PinnedDigest` are a separate
-lock and stay as they are. The document holds
-85 vectors over 24 prior states, the coverage areas it lists and the operations
+bytes. The document records the catalog digest of the pinned catalog copy.
+The element catalog copy and `graph.PinnedDigest` are that pin. The document holds
+89 vectors over 24 prior states, the coverage areas it lists and the operations
 `construct_registry`,
 `register_catalog`, `apply`, `assemble_cut`, `admit`, `list_resources`,
-`traverse`, `retrieve_lens`, `sum_members` and `project`. Three prior states
+`traverse`, `retrieve_lens`, `sum_members` and `project`. Four `admit` vectors
+whose input is `subject_check` are pinned with the document and are not
+executed. Three prior states
 register the catalog with stated `set_disposition` mutations, each setting
 one member entry to `unknown` with no plane, a reason and a tracking issue;
 the harness applies them to a copy of the pinned catalog.
-`TestGraphAcceptanceVectors` executes every vector by identifier through the
+`TestGraphAcceptanceVectors` executes every other vector by identifier through the
 public API; it adds only members the document leaves out, omits a present
 empty graph collection, and decodes every record strictly. All records are
 synthetic: they prove no native fact,

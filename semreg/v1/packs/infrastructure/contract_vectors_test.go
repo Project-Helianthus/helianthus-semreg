@@ -18,10 +18,10 @@ import (
 // infrastructureFixtureSHA256 is the SHA-256 of
 // fixtures/v1/infrastructure-pack-vectors.json.
 var infrastructureFixtureSHA256 = [sha256.Size]byte{
-	0x7b, 0xdd, 0x3a, 0xee, 0x28, 0xf9, 0x06, 0x22,
-	0xa2, 0x71, 0x4c, 0x29, 0x6c, 0x4d, 0xc7, 0xae,
-	0x67, 0xe2, 0x3a, 0xd8, 0xe0, 0xc1, 0x10, 0xbc,
-	0x1c, 0xd0, 0xb7, 0x52, 0xaa, 0x50, 0xfc, 0x21,
+	0xe9, 0xf5, 0x86, 0xf1, 0x03, 0xd6, 0x05, 0x39,
+	0x83, 0x72, 0x63, 0x82, 0xe2, 0x19, 0xbb, 0x70,
+	0x00, 0xc3, 0x5e, 0xf4, 0xdc, 0x52, 0x02, 0x4a,
+	0x9c, 0x93, 0xee, 0xc6, 0x42, 0xaa, 0x22, 0x65,
 }
 
 type machineVector struct {
@@ -135,7 +135,7 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		"infrastructure.portal.read.feeder":          {"infrastructure.service.feeder", []string{}},
 		"infrastructure.portal.read.circuit":         {"infrastructure.service.circuit", []string{"infrastructure.status.breaker", "infrastructure.status.interlock"}},
 		"infrastructure.portal.read.phase":           {"infrastructure.service.phase", []string{"infrastructure.ac.active_power", "infrastructure.ac.apparent_power", "infrastructure.ac.current", "infrastructure.ac.reactive_power", "infrastructure.ac.voltage"}},
-		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.self_consumption"}},
+		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum", "infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.self_consumption"}},
 		"infrastructure.portal.read.line_pair":       {"infrastructure.service.line_pair", []string{"infrastructure.ac.voltage_line_line"}},
 	}
 	for _, item := range portal {
@@ -172,7 +172,7 @@ func validateMachineCatalog(document map[string]any) error {
 		}
 	}
 	definitions, ok := catalog["definitions"].(map[string]any)
-	if !ok || !exactFields(definitions) || !exactDimensions(definitions) || !exactServicesAndCapabilities(definitions) {
+	if !ok || !exactFields(definitions) || !exactDimensions(definitions) || !exactQualifierDimensions(definitions) || !exactServicesAndCapabilities(definitions) {
 		return fmt.Errorf("quantity contract")
 	}
 	if !exactRelations(definitions) {
@@ -208,15 +208,64 @@ func exactFields(definitions map[string]any) bool {
 	}
 	for _, spec := range fields {
 		item, ok := byID[string(spec.id)]
-		if !ok || item["kind"] != string(spec.kind) || item["dimension"] != string(spec.dimension) {
+		if !ok || item["kind"] != string(spec.kind) || item["dimension"] != string(spec.dimension) || !sameIDs(item["qualifiers"], fieldQualifiers[spec.id]) {
 			return false
 		}
-		if spec.kind == "quantity" {
+		switch spec.kind {
+		case semreg.ValueQuantity:
 			bounds, ok := item["bounds"].(map[string]any)
-			if !ok || item["unit"] != string(spec.unit) || !sameDecimal(bounds["minimum"], spec.minimum.decimal()) || !sameDecimal(bounds["maximum"], spec.maximum.decimal()) {
+			if !ok || item["unit"] != string(spec.unit) || !sameOptionalDecimal(bounds["minimum"], spec.minimum) || !sameOptionalDecimal(bounds["maximum"], spec.maximum) {
 				return false
 			}
-		} else if !sameStrings(item["symbols"], spec.symbols) {
+		case semreg.ValueBoolean:
+			if item["unit"] != nil || item["bounds"] != nil || item["symbols"] != nil {
+				return false
+			}
+		default:
+			if !sameStrings(item["symbols"], spec.symbols) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func sameOptionalDecimal(value any, want *decimalBound) bool {
+	if want == nil {
+		return value == nil
+	}
+	return sameDecimal(value, want.decimal())
+}
+
+func sameIDs(value any, want []semreg.DefinitionID) bool {
+	if want == nil {
+		return value == nil
+	}
+	got, ok := value.([]any)
+	if !ok || len(got) != len(want) {
+		return false
+	}
+	for i := range want {
+		if got[i] != string(want[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func exactQualifierDimensions(definitions map[string]any) bool {
+	entries, ok := definitions["qualifier_dimensions"].([]any)
+	if !ok || len(entries) != len(qualifierSymbols) {
+		return false
+	}
+	for _, entry := range entries {
+		item, ok := entry.(map[string]any)
+		if !ok {
+			return false
+		}
+		id := semreg.DefinitionID(fmt.Sprint(item["id"]))
+		symbols, known := qualifierSymbols[id]
+		if !known || item["value_kind"] != string(semreg.ValueSymbol) || !sameStrings(item["symbols"], symbols) {
 			return false
 		}
 	}

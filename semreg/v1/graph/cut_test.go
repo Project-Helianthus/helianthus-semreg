@@ -117,7 +117,7 @@ func cutCatalog(t *testing.T) *graph.Catalog {
 		relation(relControls, "controls", kindDevice, kindZone, "one_to_one", "", planes("control")),
 		relation(relFeeds, "supplies", kindDevice, kindDevice, "one_to_many", "electrical", planes("energy")),
 		entry(pack, dimensionDevice, "dimension", "member", devicePlanes, document{"role": "resource", "resource_kind": kindDevice}),
-		entry(pack, dimensionLabel, "dimension", "unknown", planes(), document{"role": "qualifier"}),
+		entry(pack, dimensionLabel, "dimension", "unknown", planes(), document{"role": "qualifier", "value_kind": "symbol", "symbols": []any{"label"}}),
 		fact(factPower, "member", planes("energy"), resolved),
 		fact(factFault, "member", planes("diagnostic"), resolved),
 		fact(factLabel, "unknown", planes(), document{"status": "unresolved", "qualifier_dimension": labelDimension}),

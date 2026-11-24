@@ -36,11 +36,11 @@ func (v validator) ValidateFact(k semreg.FactKey, value *semreg.Value) error {
 // dimension carries an opaque resource identifier and every qualifier
 // dimension keeps the shape it has without the catalog.
 func (v validator) ValidateGraphFact(k semreg.FactKey, value *semreg.Value, subject semreg.GraphFactSubject) error {
-	return validateFact(k, value, func(values []semreg.Dimension, expected semreg.DefinitionID) error {
-		return graphDimensionsOK(values, expected, subject)
+	return validateFact(k, value, func(values []semreg.Dimension, spec fieldSpec) error {
+		return graphDimensionsOK(values, spec.dimension, subject)
 	})
 }
-func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, semreg.DefinitionID) error) error {
+func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, fieldSpec) error) error {
 	if err := k.Validate(); err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]
 	if !ok {
 		return fail(semreg.DefinitionOwnerMissing, "pv fact")
 	}
-	if err := dimensionsCheck(k.Dimensions, s.dimension); err != nil {
+	if err := dimensionsCheck(k.Dimensions, s); err != nil {
 		return err
 	}
 	return valueOK(s, *value)
@@ -190,7 +190,7 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 		return fail(semreg.InvalidValue, "pv expected effect")
 	}
 	s, _ := findField(field)
-	if err := dimensionsOK(e.Fact.Dimensions, s.dimension); err != nil {
+	if err := dimensionsOK(e.Fact.Dimensions, s); err != nil {
 		return err
 	}
 	if err := valueOK(s, e.Expected); err != nil {
@@ -228,13 +228,17 @@ func findField(id semreg.DefinitionID) (fieldSpec, bool) {
 	}
 	return fieldSpec{}, false
 }
-func dimensionsOK(ds []semreg.Dimension, want semreg.DefinitionID) error {
-	if len(ds) != 1 {
+func dimensionsOK(ds []semreg.Dimension, spec fieldSpec) error {
+	want := append([]semreg.DefinitionID{}, fieldQualifiers[spec.id]...)
+	want = append(want, spec.dimension)
+	sort.Slice(want, func(i, j int) bool { return want[i] < want[j] })
+	if len(ds) != len(want) {
 		return fail(semreg.InvalidValue, "pv dimensions")
 	}
-	d := ds[0]
-	if d.ID != want || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
-		return fail(semreg.InvalidValue, "pv dimension")
+	for i, d := range ds {
+		if d.ID != want[i] || !dimensionShapeOK(d) {
+			return fail(semreg.InvalidValue, "pv dimension")
+		}
 	}
 	return nil
 }
@@ -263,8 +267,17 @@ func valueOK(s fieldSpec, v semreg.Value) error {
 		if v.Quantity == nil || v.Quantity.Unit != s.unit {
 			return fail(semreg.InvalidValue, "pv quantity unit")
 		}
-		if compare(v.Quantity.Number, s.minimum.decimal()) < 0 || compare(v.Quantity.Number, s.maximum.decimal()) > 0 {
+		if s.minimum != nil && compare(v.Quantity.Number, s.minimum.decimal()) < 0 {
 			return fail(semreg.BoundsExceeded, "pv quantity bounds")
+		}
+		if s.maximum != nil && compare(v.Quantity.Number, s.maximum.decimal()) > 0 {
+			return fail(semreg.BoundsExceeded, "pv quantity bounds")
+		}
+		return nil
+	}
+	if s.kind == semreg.ValueBoolean {
+		if v.Boolean == nil {
+			return fail(semreg.InvalidValue, "pv boolean")
 		}
 		return nil
 	}
@@ -275,6 +288,13 @@ func valueOK(s fieldSpec, v semreg.Value) error {
 		return nil
 	}
 	return fail(semreg.InvalidValue, "pv value kind")
+}
+
+func dimensionShapeOK(d semreg.Dimension) bool {
+	if symbols, ok := qualifierSymbols[d.ID]; ok {
+		return d.Value.Kind == semreg.ValueSymbol && d.Value.Symbol != nil && d.Value.Symbol.Known && d.Value.Symbol.Namespace == d.ID && contains(symbols, d.Value.Symbol.Token)
+	}
+	return dimensions[d.ID] == d.Value.Kind && d.Value.Text != nil
 }
 func compare(a, b semreg.Decimal) int { return rat(a).Cmp(rat(b)) }
 func rat(v semreg.Decimal) *big.Rat {
@@ -316,11 +336,13 @@ func graphDimensionsOK(values []semreg.Dimension, expected semreg.DefinitionID, 
 	}
 	own := false
 	for i, d := range values {
-		if d.ID != declared[i] || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
+		if d.ID != declared[i] || !dimensionShapeOK(d) {
 			return fail(semreg.InvalidValue, "pv dimension")
 		}
-		if subject.Resolved && d.ID == subject.Dimension && semreg.ResourceID(*d.Value.Text).Validate() != nil {
-			return fail(semreg.InvalidValue, "pv resource dimension")
+		if subject.Resolved && d.ID == subject.Dimension {
+			if d.Value.Text == nil || semreg.ResourceID(*d.Value.Text).Validate() != nil {
+				return fail(semreg.InvalidValue, "pv resource dimension")
+			}
 		}
 		own = own || d.ID == expected
 	}

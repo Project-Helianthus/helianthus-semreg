@@ -48,6 +48,8 @@ var fields = []fieldSpec{
 	{id: "infrastructure.ac.reactive_power", kind: semreg.ValueQuantity, unit: "unit.volt_ampere_reactive", dimension: "infrastructure.dimension.phase", minimum: bound("-1", 7), maximum: bound("1", 7)},
 	{id: "infrastructure.ac.voltage", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.phase", minimum: bound("0", 0), maximum: bound("1", 3)},
 	{id: "infrastructure.ac.voltage_line_line", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.line_pair", minimum: bound("0", 0), maximum: bound("1", 3)},
+	{id: "infrastructure.accuracy.measured", kind: semreg.ValueBoolean, dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.ratio_maximum", kind: semreg.ValueQuantity, unit: "unit.ratio", dimension: "infrastructure.dimension.meter"},
 	{id: "infrastructure.energy.export", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
 	{id: "infrastructure.energy.import", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
 	{id: "infrastructure.energy.self_consumption", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
@@ -73,6 +75,21 @@ var dimensions = map[semreg.DefinitionID]semreg.ValueKind{
 	"infrastructure.dimension.phase":           semreg.ValueText,
 	"infrastructure.dimension.meter":           semreg.ValueText,
 	"infrastructure.dimension.line_pair":       semreg.ValueText,
+}
+
+var measurementSymbols = []string{
+	"active_current", "active_power", "apparent_current", "apparent_energy", "apparent_power",
+	"electrical_energy", "frequency", "neutral_current", "power_factor", "reactive_current",
+	"reactive_energy", "reactive_power", "rms_current", "rms_power", "rms_voltage", "unspecified", "voltage",
+}
+
+var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
+	"infrastructure.accuracy.measured":      {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.ratio_maximum": {"infrastructure.dimension.measurement_type"},
+}
+
+var qualifierSymbols = map[semreg.DefinitionID][]string{
+	"infrastructure.dimension.measurement_type": measurementSymbols,
 }
 
 var services = map[semreg.DefinitionID]semreg.DefinitionID{

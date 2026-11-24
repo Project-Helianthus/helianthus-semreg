@@ -686,6 +686,47 @@
           },
           "optional": true,
           "order": 240
+        },
+        {
+          "id": "infrastructure.accuracy.measured",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.measured",
+            "version": "1.0.0"
+          },
+          "kind": "boolean",
+          "dimension": "infrastructure.dimension.meter",
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 250
+        },
+        {
+          "id": "infrastructure.accuracy.ratio_maximum",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.ratio_maximum",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ratio",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 260
         }
       ],
       "fact_dimensions": [
@@ -779,6 +820,40 @@
           },
           "value_kind": "text",
           "order": 70
+        }
+      ],
+      "qualifier_dimensions": [
+        {
+          "id": "infrastructure.dimension.measurement_type",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.measurement_type",
+            "version": "1.0.0"
+          },
+          "value_kind": "symbol",
+          "symbols": [
+            "active_current",
+            "active_power",
+            "apparent_current",
+            "apparent_energy",
+            "apparent_power",
+            "electrical_energy",
+            "frequency",
+            "neutral_current",
+            "power_factor",
+            "reactive_current",
+            "reactive_energy",
+            "reactive_power",
+            "rms_current",
+            "rms_power",
+            "rms_voltage",
+            "unspecified",
+            "voltage"
+          ],
+          "order": 80
         }
       ],
       "services": [
@@ -1151,6 +1226,8 @@
           "kind": "read",
           "service": "infrastructure.service.meter",
           "fields": [
+            "infrastructure.accuracy.measured",
+            "infrastructure.accuracy.ratio_maximum",
             "infrastructure.energy.export",
             "infrastructure.energy.import",
             "infrastructure.energy.self_consumption"

@@ -20,7 +20,7 @@ func TestStorageDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 23 || len(index.Services) != 7 || len(index.Capabilities) != 5 || len(index.Operations) != 2 || len(index.EffectRules) != 2 {
+	if len(index.Fields) != 25 || len(index.Services) != 7 || len(index.Capabilities) != 5 || len(index.Operations) != 2 || len(index.EffectRules) != 2 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {
@@ -212,6 +212,85 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 			if got := semreg.ErrorIdentifier(graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, subject)); got != semreg.InvalidValue {
 				t.Fatalf("%s with %s: %s", spec.id, subjectName, got)
 			}
+		}
+	}
+}
+
+// TestPilotChargeAndDischargeCurrent requires the two pack currents in
+// ampere with both bounds empty. Coefficients 1 and -1 are accepted, so a
+// lower bound of zero refuses them. Each refusal names the production check
+// it catches: pack id and pack version (the pack owner check), fact id (the
+// field lookup), dimension id, a symbol on the text dimension, an extra
+// dimension and an empty dimension list (the dimension check), another unit
+// and a boolean value (the value check).
+func TestPilotChargeAndDischargeCurrent(t *testing.T) {
+	v := New()
+	graphValidator := New().(semreg.GraphFactValidator)
+	for _, id := range []semreg.DefinitionID{"storage.limit.charge_current", "storage.limit.discharge_current"} {
+		spec, ok := findField(id)
+		if !ok || spec.kind != semreg.ValueQuantity || spec.unit != "unit.ampere" || spec.dimension != "storage.dimension.pack" || spec.minimum != nil || spec.maximum != nil {
+			t.Fatalf("%s = %+v", id, spec)
+		}
+		key, value := testKey(spec), testValue(spec)
+		if err := v.ValidateFact(key, &value); err != nil {
+			t.Fatal(id, err)
+		}
+		for _, coefficient := range []string{"1", "-1"} {
+			accepted := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: coefficient}, Unit: spec.unit}}
+			if err := v.ValidateFact(key, &accepted); err != nil {
+				t.Fatalf("%s coefficient %s: %v", id, coefficient, err)
+			}
+		}
+		wrongUnit := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.watt"}}
+		require(t, v.ValidateFact(key, &wrongUnit), semreg.InvalidValue)
+		bit := true
+		wrongKind := semreg.Value{Kind: semreg.ValueBoolean, Boolean: &bit}
+		require(t, v.ValidateFact(key, &wrongKind), semreg.InvalidValue)
+		otherPack := key
+		otherPack.PackID = "helianthus.pack.other"
+		if v.ValidateFact(otherPack, &value) == nil {
+			t.Fatalf("%s with another pack id accepted", id)
+		}
+		otherVersion := key
+		otherVersion.PackVersion = "9.0.0"
+		if got := semreg.ErrorIdentifier(v.ValidateFact(otherVersion, &value)); got != semreg.DefinitionOwnerMissing {
+			t.Fatalf("%s pack version: %s", id, got)
+		}
+		otherFact := key
+		otherFact.FactID = id + ".other"
+		if got := semreg.ErrorIdentifier(v.ValidateFact(otherFact, &value)); got != semreg.DefinitionOwnerMissing {
+			t.Fatalf("%s fact id: %s", id, got)
+		}
+		otherDimension := key
+		otherDimension.Dimensions = []semreg.Dimension{{ID: "zz.dimension.subject", Value: key.Dimensions[0].Value}}
+		require(t, v.ValidateFact(otherDimension, &value), semreg.InvalidValue)
+		symbol := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.dimension, Token: "active_current", Known: true}}
+		symbolKey := key
+		symbolKey.Dimensions = []semreg.Dimension{{ID: spec.dimension, Value: symbol}}
+		require(t, v.ValidateFact(symbolKey, &value), semreg.InvalidValue)
+		text := "extra"
+		extra := key
+		extra.Dimensions = []semreg.Dimension{
+			key.Dimensions[0],
+			{ID: "zz.dimension.extra", Value: semreg.Value{Kind: semreg.ValueText, Text: &text}},
+		}
+		require(t, v.ValidateFact(extra, &value), semreg.InvalidValue)
+		empty := key
+		empty.Dimensions = []semreg.Dimension{}
+		require(t, v.ValidateFact(empty, &value), semreg.InvalidValue)
+		identifier := "resource:pack:01"
+		resourceKey := testKey(spec)
+		resourceKey.Dimensions = []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &identifier}}}
+		subject := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment"}
+		if err := graphValidator.ValidateGraphFact(resourceKey, &value, subject); err != nil {
+			t.Fatalf("%s graph: %v", id, err)
+		}
+		plain := "pack 01"
+		plainKey := testKey(spec)
+		plainKey.Dimensions = []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &plain}}}
+		require(t, graphValidator.ValidateGraphFact(plainKey, &value, subject), semreg.InvalidValue)
+		if err := v.ValidateFact(plainKey, &value); err != nil {
+			t.Fatalf("%s without the catalog: %v", id, err)
 		}
 	}
 }

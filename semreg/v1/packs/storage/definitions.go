@@ -51,6 +51,8 @@ var fields = []fieldSpec{
 	{"storage.cell.voltage_maximum", semreg.ValueQuantity, "unit.volt", "storage.dimension.cell", bound("0", 0), nil, nil},
 	{"storage.limit.charge_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.interface", bound("0", 0), nil, nil},
 	{"storage.limit.discharge_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.interface", bound("0", 0), nil, nil},
+	{"storage.limit.charge_current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
+	{"storage.limit.discharge_current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
 	{"storage.status.operating", semreg.ValueSymbol, "", "storage.dimension.pack", nil, nil, []string{"storage.status.operating.active", "storage.status.operating.idle", "storage.status.operating.standby"}},
 	{"storage.status.alarm", semreg.ValueSymbol, "", "storage.dimension.pack", nil, nil, []string{"storage.status.alarm.clear", "storage.status.alarm.present"}},
 	{"storage.status.protection", semreg.ValueSymbol, "", "storage.dimension.pack", nil, nil, []string{"storage.status.protection.active", "storage.status.protection.clear"}},
