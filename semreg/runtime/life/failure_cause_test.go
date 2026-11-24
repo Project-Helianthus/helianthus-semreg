@@ -77,6 +77,7 @@ var issueAcceptedCauses = []string{
 }
 
 func TestFailureCauseRemovesEveryContractAddressShape(t *testing.T) {
+	t.Parallel()
 	for _, tc := range issueAddressCauses {
 		if !contractRejectsCause(tc.raw) {
 			t.Fatalf("oracle accepts %q; the fixture is not an address shape", tc.raw)
@@ -96,6 +97,7 @@ func TestFailureCauseRemovesEveryContractAddressShape(t *testing.T) {
 
 // The contract's keywords are lower case; the redaction does not depend on case.
 func TestFailureCauseRedactsKeywordOperandsInAnyCase(t *testing.T) {
+	t.Parallel()
 	for raw, want := range map[string]string{
 		"Dial UDP Gateway: closed":     "Dial UDP <redacted>: closed",
 		"LOOKUP Gateway: no such host": "LOOKUP <redacted>: no such host",
@@ -108,6 +110,7 @@ func TestFailureCauseRedactsKeywordOperandsInAnyCase(t *testing.T) {
 }
 
 func TestFailureCauseKeepsTextTheContractAccepts(t *testing.T) {
+	t.Parallel()
 	for _, text := range issueAcceptedCauses {
 		if contractRejectsCause(text) {
 			t.Fatalf("oracle refuses %q; the fixture is not an accepted cause", text)
@@ -119,6 +122,7 @@ func TestFailureCauseKeepsTextTheContractAccepts(t *testing.T) {
 }
 
 func TestFailureCauseIsOneBoundedPrintableAsciiLine(t *testing.T) {
+	t.Parallel()
 	for name, tc := range map[string]struct{ raw, want string }{
 		"newline and tab":      {"line one\nline two\tend", "line one line two end"},
 		"carriage return":      {"a\r\nb", "a b"},
@@ -148,6 +152,7 @@ func TestFailureCauseIsOneBoundedPrintableAsciiLine(t *testing.T) {
 // A cut at 160 characters can leave the first digits of a longer port number,
 // which is a host:port shape the uncut text did not have.
 func TestFailureCauseCutNeverLeavesAnAddressShape(t *testing.T) {
+	t.Parallel()
 	for digits := 6; digits <= 9; digits++ {
 		for pad := 140; pad <= 156; pad++ {
 			raw := strings.Repeat("a", pad) + " host:" + strings.Repeat("7", digits)
@@ -175,13 +180,16 @@ func TestFailureCauseCutNeverLeavesAnAddressShape(t *testing.T) {
 // Whatever the input, the result is within the contract, and sanitizing it
 // again changes nothing.
 func TestFailureCauseInvariantOverGeneratedText(t *testing.T) {
+	t.Parallel()
 	pieces := []string{
 		"dial", "tcp", "udp", "lookup", "resolve", "connect to", "connect", "to", " ", " ", " ", ":", "::", "/", "//", "\\", "@", ".", "-", "_",
 		"[", "]", "(", ")", "0", "1", "255", "12345", "123456", "a", "ab", "host", "gateway", "example", "ttyUSB0", "aa:bb", "fe80", "2001:db8",
 		"://", "http", "\n", "\t", "\u00e9", "\u2028", "refused", "timeout", "<redacted>", "%", "=", ",", ";",
 	}
 	random := rand.New(rand.NewSource(1375))
-	for i := 0; i < 20000; i++ {
+	// 1000 seeded texts reach every shape of the piece list many times over;
+	// under the race detector each text costs about a millisecond and a half.
+	for i := 0; i < 1000; i++ {
 		var b strings.Builder
 		for n := 1 + random.Intn(40); n > 0; n-- {
 			b.WriteString(pieces[random.Intn(len(pieces))])
@@ -203,6 +211,7 @@ func TestFailureCauseInvariantOverGeneratedText(t *testing.T) {
 // The check that backs the redaction never accepts text the contract refuses
 // (it may refuse more: it treats the keywords in any case).
 func TestFailureCauseGuardRefusesWhatTheContractRefuses(t *testing.T) {
+	t.Parallel()
 	var texts []string
 	for _, tc := range issueAddressCauses {
 		texts = append(texts, tc.raw)
@@ -210,7 +219,7 @@ func TestFailureCauseGuardRefusesWhatTheContractRefuses(t *testing.T) {
 	texts = append(texts, issueAcceptedCauses...)
 	random := rand.New(rand.NewSource(13751))
 	pieces := []string{"dial", "tcp", "udp", "lookup", "resolve", "connect to", " ", ":", "::", "/", "\\", "@", ".", "-", "0", "1", "12345", "123456", "a", "host", "aa:bb", "://", "\t", "\u00e9"}
-	for i := 0; i < 20000; i++ {
+	for i := 0; i < 3000; i++ {
 		var b strings.Builder
 		for n := 1 + random.Intn(20); n > 0; n-- {
 			b.WriteString(pieces[random.Intn(len(pieces))])

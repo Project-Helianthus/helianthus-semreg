@@ -42,6 +42,7 @@ func issueRequireNoLifecycleError(t *testing.T, f *svcFixture) {
 
 // The process-start (untyped) attempt.
 func TestRecoveringProcessStartIsAdmittedIntoNativeRecovery(t *testing.T) {
+	t.Parallel()
 	due := time.Date(2026, time.October, 26, 7, 0, 1, 0, time.FixedZone("CET", 3600))
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver), "fam.beta"), setup: func(f *svcFixture) {
 		f.execs[nativeDriver].setStart(func(context.Context, LifecycleCorrelation) error { return issueRecovering(1, due) })
@@ -86,6 +87,7 @@ func TestRecoveringProcessStartIsAdmittedIntoNativeRecovery(t *testing.T) {
 
 // The typed START, then a RESTART during the recovery.
 func TestRecoveringTypedStartIsAdmittedAndRestartWithdrawsIt(t *testing.T) {
+	t.Parallel()
 	due := time.Date(2026, time.October, 26, 7, 0, 1, 0, time.UTC)
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	f.waitSettled(nativeDriver, ObservedRunning)
@@ -131,6 +133,7 @@ func TestRecoveringTypedStartIsAdmittedAndRestartWithdrawsIt(t *testing.T) {
 // Each field the admission checks is varied on its own. A refused outcome is
 // a failed start whose generation is withdrawn, on both start paths.
 func TestMalformedRecoveringStartFailsClosed(t *testing.T) {
+	t.Parallel()
 	due := time.Date(2026, time.October, 26, 7, 0, 1, 0, time.UTC)
 	backoff := func(mutate func(*NativeObservation)) *RecoveringStart {
 		start := issueRecovering(1, due)

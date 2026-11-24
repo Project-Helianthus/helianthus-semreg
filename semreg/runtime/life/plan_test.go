@@ -47,6 +47,7 @@ func planError(t *testing.T, err error) *PlanError {
 // together; every configured instance, enabled or not, is planned once, and no
 // instance is constructed.
 func TestPlanThreeInstancesOfOneKind(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	set := mustPlan(t, planInstallation(f,
 		withClaims(f, "bus.one", true, claimSpec{Provider: "provider.a", Config: "config.one", Domain: "domain.one", Exclusive: true}),
@@ -77,6 +78,7 @@ func TestPlanThreeInstancesOfOneKind(t *testing.T) {
 // A plan with no transport claim is valid: it has its instance and no link
 // node.
 func TestPlanWithoutTransportHasNoLinkNode(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	set := mustPlan(t, planInstallation(f, withClaims(f, "bus.none", true)), f)
 	if len(set.Instances) != 1 || len(set.Instances[0].Links) != 0 || len(set.Edges) != 0 {
@@ -92,6 +94,7 @@ func TestPlanWithoutTransportHasNoLinkNode(t *testing.T) {
 // claim against a serialized one is not, and a disabled instance's claim takes
 // part.
 func TestPlanExclusiveTransportCollisionNamesBothInstances(t *testing.T) {
+	t.Parallel()
 	claim := func(exclusive bool) claimSpec {
 		return claimSpec{Provider: "provider.a", Config: "config.shared", Domain: "domain.one", Exclusive: exclusive}
 	}
@@ -134,6 +137,7 @@ func TestPlanExclusiveTransportCollisionNamesBothInstances(t *testing.T) {
 // The claim identity is normalized: composed and decomposed forms of one text
 // are the same transport.
 func TestPlanTransportClaimsMatchAfterNormalization(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	composed := claimSpec{Provider: "provider.é", Config: "config.one", Domain: "domain.one", Exclusive: true}
 	decomposed := claimSpec{Provider: "provider.é", Config: "config.one", Domain: "domain.one", Exclusive: true}
@@ -144,6 +148,7 @@ func TestPlanTransportClaimsMatchAfterNormalization(t *testing.T) {
 // Two plans of one driver kind and instance key are a plan error, and so is a
 // configured instance with no factory.
 func TestPlanDuplicateAndUnplannedInstances(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	dup := withClaims(f, "bus.one", true)
 	_, err := Plan(planInstallation(f, dup, dup), f)
@@ -160,6 +165,7 @@ func TestPlanDuplicateAndUnplannedInstances(t *testing.T) {
 // A rejected plan set installs nothing, and a driver outside it keeps running:
 // Plan returns no set and the first supervisor keeps its instances.
 func TestPlanRejectedSetReturnsNoSet(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	spec := claimSpec{Provider: "provider.a", Config: "config.shared", Domain: "domain.one", Exclusive: true}
 	set, err := Plan(planInstallation(f, withClaims(f, "bus.one", true, spec), withClaims(f, "bus.two", true, spec)), f)
@@ -171,6 +177,7 @@ func TestPlanRejectedSetReturnsNoSet(t *testing.T) {
 
 // Every field of the installation, bridge and instance identity is validated.
 func TestPlanRejectsEachMissingIdentityMember(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	base := func() Installation { return planInstallation(f, withClaims(f, "bus.one", true)) }
 	mutations := map[string]func(*Installation){
@@ -192,6 +199,7 @@ func TestPlanRejectsEachMissingIdentityMember(t *testing.T) {
 // of the two operands and the instance's own secret reference unchanged; a
 // missing reference stays empty.
 func TestPlanPassesTheConfiguredRecordToTheFactory(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	transport := json.RawMessage(`[]`)
 	options := json.RawMessage(`{"mode":"synthetic"}`)
@@ -218,6 +226,7 @@ func TestPlanPassesTheConfiguredRecordToTheFactory(t *testing.T) {
 }
 
 func TestPlanCarriesTheCalendarSelectionApartFromTheClock(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	zone := "Europe/Bucharest"
 	inst := planInstallation(f, withClaims(f, "bus.one", true))
@@ -246,6 +255,7 @@ func nodeTexts(keys []driver.NodeKey) []string {
 // The bridge and link keys and the relays edges are equal across two Plan calls
 // with the factories and the instances given in reverse order.
 func TestPlanTopologyIsStableAcrossOrder(t *testing.T) {
+	t.Parallel()
 	build := func(reverse bool) PlanSet {
 		a, b := newTestFactory("driver.alpha"), newTestFactory("driver.beta")
 		cfgs := []InstanceConfig{
@@ -290,6 +300,7 @@ func TestPlanTopologyIsStableAcrossOrder(t *testing.T) {
 // A disabled instance's configured link node stays declared from planning, with
 // no construction, and so does the link of an instance that is never started.
 func TestPlanDisabledInstanceKeepsItsLinkNode(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	spec := claimSpec{Provider: "provider.a", Config: "config.one", Domain: "domain.one", Exclusive: true}
 	set := mustPlan(t, planInstallation(f, withClaims(f, "bus.off", false, spec)), f)
@@ -315,6 +326,7 @@ func TestPlanDisabledInstanceKeepsItsLinkNode(t *testing.T) {
 // is equal when only the sharing mode, the factory order or the endpoint
 // operand differs.
 func TestPlanLinkKeyVariesWithEveryIdentityField(t *testing.T) {
+	t.Parallel()
 	baseSpec := claimSpec{Provider: "provider.a", Config: "config.one", Domain: "domain.one", Exclusive: true}
 	key := func(mutate func(*Installation, *claimSpec, *InstanceConfig)) driver.NodeKey {
 		f := newTestFactory(testKind)
@@ -371,6 +383,7 @@ func TestPlanLinkKeyVariesWithEveryIdentityField(t *testing.T) {
 // segments. Neither the slot nor the order lets a second claim bypass the
 // exclusive transport check or duplicate the key.
 func TestPlanLoggerIsDeclaredOnceUnderTheDriversSlot(t *testing.T) {
+	t.Parallel()
 	logger := claimSpec{Provider: "provider.a", Config: "config.logger", Domain: "domain.one", Exclusive: true, Slot: "slot.logger"}
 	published := func(set PlanSet) driver.NodeKey {
 		// The driver's first publication names the logger by the same durable
@@ -449,6 +462,7 @@ func TestPlanLoggerIsDeclaredOnceUnderTheDriversSlot(t *testing.T) {
 // The runtime declares no communication session as a node: the planned nodes are
 // the bridge and the links, nothing else.
 func TestPlanDeclaresNoSessionNode(t *testing.T) {
+	t.Parallel()
 	f := newTestFactory(testKind)
 	spec := claimSpec{Provider: "provider.a", Config: "config.one", Domain: "domain.one"}
 	set := mustPlan(t, planInstallation(f, withClaims(f, "bus.one", true, spec, claimSpec{Provider: "provider.a", Config: "config.two", Domain: "domain.one"})), f)
@@ -463,6 +477,7 @@ func TestPlanDeclaresNoSessionNode(t *testing.T) {
 }
 
 func TestRefIDIsUnambiguous(t *testing.T) {
+	t.Parallel()
 	a := Ref{Driver: "a", Instance: "b/c"}
 	b := Ref{Driver: "a/b", Instance: "c"}
 	if a.ID() == b.ID() {

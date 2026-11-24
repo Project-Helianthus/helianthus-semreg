@@ -26,6 +26,7 @@ func withheldAssertRefusals(t *testing.T, svc *Service, id InstanceID, code Refu
 }
 
 func TestDurableWithholdingPrecondition(t *testing.T) {
+	t.Parallel()
 	for _, cause := range []struct {
 		name        string
 		content     string
@@ -86,6 +87,7 @@ type withheldCatalogErrorStore struct {
 func (s withheldCatalogErrorStore) Catalog() (ControlCatalog, error) { return ControlCatalog{}, s.err }
 
 func TestTransientStorePreconditionClassification(t *testing.T) {
+	t.Parallel()
 	transient := errors.New("synthetic transient store failure")
 	f := newFixture(t, svcOpts{drivers: enabled("fam.alpha"), noStart: true, wrap: func(s Store) Store { return withheldCatalogErrorStore{Store: s, err: transient} }})
 	if err := f.svc.Start(context.Background()); !errors.Is(err, transient) {
@@ -98,6 +100,7 @@ func TestTransientStorePreconditionClassification(t *testing.T) {
 }
 
 func TestWithheldViewPreconditionPreservesIntent(t *testing.T) {
+	t.Parallel()
 	for _, readable := range []bool{false, true} {
 		for _, configured := range []bool{false, true} {
 			for _, desired := range []DesiredState{DesiredRunning, DesiredStopped} {

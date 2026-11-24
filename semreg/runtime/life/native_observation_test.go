@@ -53,6 +53,7 @@ func nativeWaitStatus(t *testing.T, f *svcFixture, state ObservedState, reason R
 }
 
 func TestNativeObservationProjectsManagerRecoveryAfterRunning(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	before := f.status(nativeDriver)
@@ -114,6 +115,7 @@ func TestNativeObservationProjectsManagerRecoveryAfterRunning(t *testing.T) {
 // neither; the bridge supplies them, and its epoch and generation already
 // identify the admitted generation.
 func TestNativeObservationRejectsForeignAndStaleCorrelation(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver), "fam.beta")})
 	corr := nativeLive(t, f)
 	f.waitSettled("fam.beta", ObservedRunning)
@@ -174,6 +176,7 @@ func TestNativeObservationRejectsForeignAndStaleCorrelation(t *testing.T) {
 }
 
 func TestNativeObservationRefusesServiceOwnedVocabulary(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	for name, obs := range map[string]NativeObservation{
@@ -202,6 +205,7 @@ func TestNativeObservationRefusesServiceOwnedVocabulary(t *testing.T) {
 // A queued observation never overwrites a service transition: it waits while
 // a work slot exists and is dropped once the admitted generation is gone.
 func TestNativeObservationNeverOverridesServiceStop(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	entered, release := make(chan struct{}), make(chan struct{})
@@ -238,6 +242,7 @@ func TestNativeObservationNeverOverridesServiceStop(t *testing.T) {
 }
 
 func TestNativeObservationQuarantineBlocksAdmission(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	if !f.svc.ObserveNative(corr, NativeObservation{State: ObservedFailed, Reason: ReasonCloseUnconfirmed, Quarantined: true}) {
@@ -274,6 +279,7 @@ func TestNativeObservationQuarantineBlocksAdmission(t *testing.T) {
 // A decision that raises its hold between the reconciler's check and the
 // apply, then fails to persist, must not lose the queued terminal FAILED.
 func TestNativeObservationSurvivesDecisionHoldThatReleases(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	d := f.svc.drivers[nativeDriver]
@@ -302,6 +308,7 @@ func TestNativeObservationSurvivesDecisionHoldThatReleases(t *testing.T) {
 // A stale-generation callback arriving while a valid observation is queued
 // must not replace it.
 func TestNativeObservationStaleCallbackKeepsQueuedObservation(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	d := f.svc.drivers[nativeDriver]
@@ -328,6 +335,7 @@ func TestNativeObservationStaleCallbackKeepsQueuedObservation(t *testing.T) {
 // A record read before an accepted transition released its hold must not
 // let the queued observation through once a work slot exists.
 func TestNativeObservationRereadsWorkSlot(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	d := f.svc.drivers[nativeDriver]
@@ -366,6 +374,7 @@ func TestNativeObservationRereadsWorkSlot(t *testing.T) {
 // spans the publication, so the operator decision is refused as busy and
 // the native BACKOFF cannot be published over an accepted STOP.
 func TestNativeObservationPublicationHoldsDecisionGuard(t *testing.T) {
+	t.Parallel()
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver)),
 		wrap: func(s Store) Store { hs = &hookStore{Store: s}; return hs }})

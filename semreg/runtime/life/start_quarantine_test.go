@@ -35,6 +35,7 @@ func issueRequireQuarantinedRestart(t *testing.T, f *svcFixture) {
 }
 
 func TestStartCloseUnconfirmedQuarantines(t *testing.T) {
+	t.Parallel()
 	for _, typed := range []bool{false, true} {
 		for _, retry := range []bool{false, true} {
 			t.Run(fmt.Sprintf("typed=%t/retryable=%t", typed, retry), func(t *testing.T) {
@@ -74,6 +75,7 @@ func TestStartCloseUnconfirmedQuarantines(t *testing.T) {
 }
 
 func TestQuarantineContinuesCleanup(t *testing.T) {
+	t.Parallel()
 	for _, failure := range []string{"charge", "result", "semantic"} {
 		t.Run(failure, func(t *testing.T) {
 			var store *workFaultStore
@@ -120,6 +122,7 @@ func TestQuarantineContinuesCleanup(t *testing.T) {
 }
 
 func TestQuarantineSurvivesCleanupExhaustion(t *testing.T) {
+	t.Parallel()
 	for _, exhaustion := range []string{"attempts", "deadline"} {
 		t.Run(exhaustion, func(t *testing.T) {
 			var expired atomic.Bool
@@ -188,6 +191,7 @@ func TestQuarantineSurvivesCleanupExhaustion(t *testing.T) {
 }
 
 func TestRestartUnconfirmedPredecessorDoesNotRetryClose(t *testing.T) {
+	t.Parallel()
 	for _, semanticCleaned := range []bool{false, true} {
 		t.Run(fmt.Sprintf("semantic-cleaned=%t", semanticCleaned), func(t *testing.T) {
 			svc, store, exec := decService(t, nativeDriver, 7)
@@ -229,6 +233,7 @@ func TestRestartUnconfirmedPredecessorDoesNotRetryClose(t *testing.T) {
 // withdrawal before the attempt is recorded failed; an unproven close stays
 // attached to the same correlation and quarantines the instance.
 func TestUntypedStartDeadlineSettlesTheNativeAttempt(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	expire := func(ctx context.Context, _ LifecycleCorrelation) error {
 		<-ctx.Done()

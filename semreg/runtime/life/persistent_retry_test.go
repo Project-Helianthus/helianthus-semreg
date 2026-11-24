@@ -232,6 +232,7 @@ func reportPersistentLoss(t *testing.T, manager *Manager) {
 }
 
 func TestPersistentRetryContinuesPastFastBudgetWithCappedJitteredDelays(t *testing.T) {
+	t.Parallel()
 	const failures = 19 // five fast attempts and fourteen persistent ones
 	clock := newPersistentClock()
 	runtime := &persistentRuntime{outcome: func(replace int) error {
@@ -298,6 +299,7 @@ func TestPersistentRetryContinuesPastFastBudgetWithCappedJitteredDelays(t *testi
 }
 
 func TestPersistentRetryEndsOnNonRetryableFailureWithItsReason(t *testing.T) {
+	t.Parallel()
 	clock := newPersistentClock()
 	runtime := &persistentRuntime{outcome: func(replace int) error {
 		if replace == 7 {
@@ -321,6 +323,7 @@ func TestPersistentRetryEndsOnNonRetryableFailureWithItsReason(t *testing.T) {
 }
 
 func TestBoundedRetryPolicyStillExhaustsWithoutPersistentPhase(t *testing.T) {
+	t.Parallel()
 	clock := newPersistentClock()
 	runtime := &persistentRuntime{outcome: func(int) error { return errPersistentDial }}
 	policy := persistentPolicy()
@@ -340,6 +343,7 @@ func TestBoundedRetryPolicyStillExhaustsWithoutPersistentPhase(t *testing.T) {
 }
 
 func TestPersistentRetryExplicitStartResetsScheduleAndStopEndsIt(t *testing.T) {
+	t.Parallel()
 	clock := newPersistentClock()
 	clock.block = func(attempt int) bool { return attempt == 7 }
 	runtime := &persistentRuntime{outcome: func(int) error { return errPersistentDial }}

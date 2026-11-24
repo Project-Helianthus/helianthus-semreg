@@ -68,6 +68,7 @@ func newDetailManager(t *testing.T, runtime Runtime, clock *persistentClock, pol
 }
 
 func TestRetrySnapshotReportsTheFailureThatScheduledIt(t *testing.T) {
+	t.Parallel()
 	// The reported loss schedules retry 1. Replacement attempts 1..6 fail with
 	// the errors below, so retries 2..7 each report their own attempt's
 	// failure, across the fast budget (five) and into the persistent phase.
@@ -121,6 +122,7 @@ func TestRetrySnapshotReportsTheFailureThatScheduledIt(t *testing.T) {
 }
 
 func TestFailureDetailDoesNotChangeTheSchedule(t *testing.T) {
+	t.Parallel()
 	// Two runs with the same failures differ only in the detail the classifier
 	// attaches: the attempts, delays and not-before instants are identical.
 	run := func(classify func(error) FailureDetail) []persistentRetry {
@@ -170,6 +172,7 @@ func TestFailureDetailDoesNotChangeTheSchedule(t *testing.T) {
 }
 
 func TestNoRetrySnapshotOutsideBackoffCarriesADetail(t *testing.T) {
+	t.Parallel()
 	// A terminal failure schedules nothing, so its FAILED snapshot has no retry
 	// and therefore no detail, whatever the classifier attached.
 	clock := newPersistentClock()
@@ -201,6 +204,7 @@ func TestNoRetrySnapshotOutsideBackoffCarriesADetail(t *testing.T) {
 }
 
 func TestFailureClassClosedSet(t *testing.T) {
+	t.Parallel()
 	for class, valid := range map[FailureClass]bool{
 		FailureDialFailed: true, FailureTimeout: true, FailureTransportClosed: true, FailureOther: true,
 		"": false, "dial_failed": false, "NONE": false, "DIAL_FAILED ": false,

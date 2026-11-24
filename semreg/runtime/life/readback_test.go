@@ -264,6 +264,7 @@ func (h *holdStore) ResolveReadback(ctx context.Context) error {
 // whose publisher call never ran is not applied automatically, and accepted
 // outcomes are never applied twice, including after reopening.
 func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name      string
 		intent    bool

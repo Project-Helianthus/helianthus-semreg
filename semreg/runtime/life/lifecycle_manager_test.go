@@ -389,6 +389,7 @@ func (runtime *scriptedRuntime) calls() (start, stop int) {
 }
 
 func TestRetryDelayUsesBoundedInjectableJitter(t *testing.T) {
+	t.Parallel()
 	policy := normalizeRetryPolicy(contract.RetryPolicy{
 		InitialDelay: 10 * time.Millisecond,
 		MaxDelay:     80 * time.Millisecond,
@@ -417,6 +418,7 @@ func TestRetryDelayUsesBoundedInjectableJitter(t *testing.T) {
 }
 
 func TestManagerRetrySnapshotUsesInjectedJitter(t *testing.T) {
+	t.Parallel()
 	now := time.Date(2026, time.August, 21, 12, 0, 0, 0, time.UTC)
 	runtime := &scriptedRuntime{startResults: []error{errors.New("offline")}}
 	manager, err := NewManager(ManagerConfig{
@@ -448,6 +450,7 @@ func TestManagerRetrySnapshotUsesInjectedJitter(t *testing.T) {
 }
 
 func TestManagerInitialFailureBacksOffAndRecoversCategorically(t *testing.T) {
+	t.Parallel()
 	rawFailure := errors.New("dial tcp://user:secret@example.invalid:9999: refused")
 	runtime := &scriptedRuntime{startResults: []error{rawFailure, nil}}
 	manager, err := NewManager(ManagerConfig{
@@ -492,6 +495,7 @@ func TestManagerInitialFailureBacksOffAndRecoversCategorically(t *testing.T) {
 }
 
 func TestManagerStopCancelsBackoffWithoutResurrection(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{startResults: []error{errors.New("offline"), nil}}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:      "bus.primary",
@@ -525,6 +529,7 @@ func TestManagerStopCancelsBackoffWithoutResurrection(t *testing.T) {
 }
 
 func TestManagerRejectsStaleGenerationHealthCallbackAfterReplace(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -566,6 +571,7 @@ func TestManagerRejectsStaleGenerationHealthCallbackAfterReplace(t *testing.T) {
 }
 
 func TestManagerSameDesiredStartPreservesDegradedGenerationByteForByte(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -610,6 +616,7 @@ func TestManagerSameDesiredStartPreservesDegradedGenerationByteForByte(t *testin
 }
 
 func TestManagerSafetyQuarantineMirrorsRuntimeAndBlocksRecovery(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{stopResults: []error{ErrSafetyQuarantined}}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -651,6 +658,7 @@ func TestManagerSafetyQuarantineMirrorsRuntimeAndBlocksRecovery(t *testing.T) {
 }
 
 func TestManagerRejectsCallbackFromSupersededOperation(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -685,6 +693,7 @@ func TestManagerRejectsCallbackFromSupersededOperation(t *testing.T) {
 }
 
 func TestManagerReportFailureWithZeroRetryBudgetPublishesRetryExhausted(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -724,6 +733,7 @@ func TestManagerReportFailureWithZeroRetryBudgetPublishesRetryExhausted(t *testi
 }
 
 func TestManagerReportFailureFencesRuntimeBeforeBackoff(t *testing.T) {
+	t.Parallel()
 	runtime := &withdrawalFenceRuntime{}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -757,6 +767,7 @@ func TestManagerReportFailureFencesRuntimeBeforeBackoff(t *testing.T) {
 }
 
 func TestManagerStopCancelsInFlightRetryConstruction(t *testing.T) {
+	t.Parallel()
 	runtime := newCancelableConstructionRuntime()
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID:           "bus.primary",
@@ -803,6 +814,7 @@ func TestManagerStopCancelsInFlightRetryConstruction(t *testing.T) {
 }
 
 func TestManagerShutdownFencePreventsEarlierDriverResurrection(t *testing.T) {
+	t.Parallel()
 	firstRuntime := &scriptedRuntime{}
 	secondRuntime := &shutdownBlockingRuntime{
 		scriptedRuntime: &scriptedRuntime{},
@@ -856,6 +868,7 @@ func TestManagerShutdownFencePreventsEarlierDriverResurrection(t *testing.T) {
 }
 
 func TestManagerRepeatedStartJoinsStartingIntent(t *testing.T) {
+	t.Parallel()
 	runtime := &repeatedStartRuntime{startEntered: make(chan struct{}), startRelease: make(chan struct{})}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID: "bus.primary", Enabled: true, Runtime: runtime, Capabilities: []Capability{CapabilityRead},
@@ -892,6 +905,7 @@ func TestManagerRepeatedStartJoinsStartingIntent(t *testing.T) {
 }
 
 func TestManagerRepeatedStartDuringRetryPublicationKeepsRecoveryLive(t *testing.T) {
+	t.Parallel()
 	runtime := &scriptedRuntime{startResults: []error{errors.New("offline"), nil}}
 	classification := make(chan bool, 1)
 	releaseClassification := make(chan struct{})
@@ -949,6 +963,7 @@ func TestManagerRepeatedStartDuringRetryPublicationKeepsRecoveryLive(t *testing.
 }
 
 func TestManagerRetiresLateAdmissionAfterStopIntent(t *testing.T) {
+	t.Parallel()
 	runtime := &lateAdmissionRuntime{startEntered: make(chan struct{}), startRelease: make(chan struct{})}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID: "bus.primary", Enabled: true, Runtime: runtime, Capabilities: []Capability{CapabilityRead},
@@ -996,6 +1011,7 @@ func TestManagerRetiresLateAdmissionAfterStopIntent(t *testing.T) {
 }
 
 func TestManagerWithdrawalFencePrecedesStopAndReplace(t *testing.T) {
+	t.Parallel()
 	for _, action := range []string{"stop", "replace"} {
 		t.Run(action, func(t *testing.T) {
 			runtime := &withdrawalFenceRuntime{}
@@ -1034,6 +1050,7 @@ func TestManagerWithdrawalFencePrecedesStopAndReplace(t *testing.T) {
 }
 
 func TestManagerLateAdmissionCleanupFailureQuarantinesProcessEpoch(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		name            string
 		lateStopError   error
@@ -1237,6 +1254,7 @@ func newHookManager(t *testing.T, runtime Runtime, budget int, hooks LifecycleHo
 // reads stay responsive. RUNNING and the capabilities then publish in one
 // transition.
 func TestLifecycleHookHoldAdmissionPublishesRunningAndCapabilitiesTogether(t *testing.T) {
+	t.Parallel()
 	runtime := &hookRuntime{}
 	entered := make(chan AdmissionHold, 1)
 	release := make(chan struct{})
@@ -1292,6 +1310,7 @@ func TestLifecycleHookHoldAdmissionPublishesRunningAndCapabilitiesTogether(t *te
 // deadline; a proven close fails the attempt through the manager's own
 // retry policy, which constructs afresh and holds again.
 func TestLifecycleHookHoldFailureRetiresGenerationAndKeepsManagerRetry(t *testing.T) {
+	t.Parallel()
 	runtime := &hookRuntime{}
 	closes := &closeLog{}
 	var holds []AdmissionHold
@@ -1334,6 +1353,7 @@ func TestLifecycleHookHoldFailureRetiresGenerationAndKeepsManagerRetry(t *testin
 }
 
 func TestLifecycleHookHoldFailureWithUnprovenCloseQuarantines(t *testing.T) {
+	t.Parallel()
 	runtime := &hookRuntime{stopErrs: []error{errors.New("close not confirmed")}}
 	closes := &closeLog{}
 	manager := newHookManager(t, runtime, 3, LifecycleHooks{
@@ -1357,6 +1377,7 @@ func TestLifecycleHookHoldFailureWithUnprovenCloseQuarantines(t *testing.T) {
 // A Stop during the hold supersedes the operation: the held generation is
 // never published and is retired on the independent deadline.
 func TestLifecycleHookStopDuringHoldNeverPublishes(t *testing.T) {
+	t.Parallel()
 	retired := make(chan struct{})
 	runtime := &hookRuntime{onStop: func(stops int) {
 		if stops == 2 {
@@ -1421,6 +1442,7 @@ func TestLifecycleHookStopDuringHoldNeverPublishes(t *testing.T) {
 }
 
 func TestLifecycleHookManagerRetryHoldIsMarkedRetryAndReplacement(t *testing.T) {
+	t.Parallel()
 	runtime := &hookRuntime{}
 	holds := make(chan AdmissionHold, 4)
 	manager := newHookManager(t, runtime, 2, LifecycleHooks{HoldAdmission: func(_ context.Context, hold AdmissionHold) error {
@@ -1448,6 +1470,7 @@ func TestLifecycleHookManagerRetryHoldIsMarkedRetryAndReplacement(t *testing.T) 
 }
 
 func TestDriverStopWithReportCloseClasses(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name          string
 		stopErr       error
@@ -1536,6 +1559,7 @@ func TestDriverStopWithReportCloseClasses(t *testing.T) {
 }
 
 func TestDriverClassifyCloseTable(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		err         error
 		quarantined bool
@@ -1559,6 +1583,7 @@ func TestDriverClassifyCloseTable(t *testing.T) {
 }
 
 func TestDriverBindHooksOnceAndWatch(t *testing.T) {
+	t.Parallel()
 	manager := newHookManager(t, &hookRuntime{}, 0, LifecycleHooks{})
 	if err := manager.BindHooks("missing", LifecycleHooks{}); !errors.Is(err, ErrDriverNotFound) {
 		t.Fatalf("BindHooks(missing) = %v", err)
@@ -1592,6 +1617,7 @@ func TestDriverBindHooksOnceAndWatch(t *testing.T) {
 }
 
 func TestLifecycleHookRepeatedStopUnderRuntimeQuarantineStaysUnconfirmed(t *testing.T) {
+	t.Parallel()
 	runtime := &hookRuntime{}
 	manager := newHookManager(t, runtime, 0, LifecycleHooks{})
 	if err := manager.Start(context.Background(), "bus.primary"); err != nil {
@@ -1613,6 +1639,7 @@ func TestLifecycleHookRepeatedStopUnderRuntimeQuarantineStaysUnconfirmed(t *test
 }
 
 func TestLifecycleHookShutdownDeliversClosedReport(t *testing.T) {
+	t.Parallel()
 	runtime := &hookRuntime{}
 	closes := &closeLog{}
 	manager := newHookManager(t, runtime, 0, LifecycleHooks{Closed: closes.add})
@@ -1630,10 +1657,11 @@ func TestLifecycleHookShutdownDeliversClosedReport(t *testing.T) {
 }
 
 func TestLifecycleHookLateAdmissionCloseReportCarriesCorrelation(t *testing.T) {
+	t.Parallel()
 	runtime := &lateCleanupRuntime{startEntered: make(chan struct{}), startRelease: make(chan struct{})}
 	closes := &closeLog{}
 	manager, err := NewManager(ManagerConfig{
-		LateRetireTimeout: time.Second,
+		LateRetireTimeout: 200 * time.Millisecond,
 		Drivers: []ManagedConfig{{
 			ID: "bus.primary", Enabled: true, Runtime: runtime, Capabilities: []Capability{CapabilityRead},
 			Hooks: LifecycleHooks{Closed: closes.add},

@@ -28,11 +28,21 @@ func threeBusRig(t *testing.T, store ControlStore) *rig {
 
 func (r *rig) decide(key string, method Method) DesiredView {
 	r.t.Helper()
-	view, err := r.sup.SetDesired(context.Background(), ref(key), method, r.status(key).DesiredRevision)
-	if err != nil {
-		r.t.Fatalf("%s %s: %v", method, key, err)
+	// A decision made while the previous decision's outcome is still being
+	// resolved is refused as busy; it is made again once that settles.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		view, err := r.sup.SetDesired(context.Background(), ref(key), method, r.status(key).DesiredRevision)
+		var refusal *Refusal
+		if errors.As(err, &refusal) && refusal.Code == RefusalTransitionBusy && time.Now().Before(deadline) {
+			time.Sleep(time.Millisecond)
+			continue
+		}
+		if err != nil {
+			r.t.Fatalf("%s %s: %v", method, key, err)
+		}
+		return view
 	}
-	return view
 }
 
 func (r *rig) instancesOf(key string) []*testInstance {
@@ -51,6 +61,7 @@ func (r *rig) instancesOf(key string) []*testInstance {
 // stop and restart independently; the epoch and generation of each are reported,
 // and a restart takes a fresh source epoch whose first attempt is generation 1.
 func TestThreeInstancesOfOneKindRunIndependently(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	defer r.close()
 	r.build("inc1", false)
@@ -131,6 +142,7 @@ func TestThreeInstancesOfOneKindRunIndependently(t *testing.T) {
 // the successor's observation nor its publication, and the fresh epoch's own
 // report is accepted.
 func TestLateReportsOfAFencedCorrelationAreDiscarded(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	defer r.close()
 	r.build("inc1", false)
@@ -170,6 +182,7 @@ func TestLateReportsOfAFencedCorrelationAreDiscarded(t *testing.T) {
 // declared, whatever state the instance is in: disabled, running, stopped,
 // failed or quarantined.
 func TestDisabledInstanceNeverConstructsAndLinkNodesPersist(t *testing.T) {
+	t.Parallel()
 	spec := func(key string) claimSpec {
 		return claimSpec{Provider: "provider.a", Config: "config." + key, Domain: "domain.one", Exclusive: true}
 	}
@@ -216,6 +229,7 @@ func TestDisabledInstanceNeverConstructsAndLinkNodesPersist(t *testing.T) {
 // WaitInitial returns only once every started instance has committed its
 // initial publication or reported its outcome.
 func TestWaitInitialWaitsForTheInitialPublicationOfEveryStartedInstance(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	defer r.close()
 	release := make(chan struct{})
@@ -257,6 +271,7 @@ func TestWaitInitialWaitsForTheInitialPublicationOfEveryStartedInstance(t *testi
 
 // An instance that reports a failed outcome also releases WaitInitial.
 func TestWaitInitialReturnsOnAFailedOutcome(t *testing.T) {
+	t.Parallel()
 	r := newRig(t, NewMemoryStore(), func(f *testFactory) []InstanceConfig {
 		f.script["bus.bad"] = &startScript{startErrs: []error{errors.New("terminal")}}
 		return instanceConfigs(f, true, nil, "bus.bad", "bus.good")
@@ -275,6 +290,7 @@ func TestWaitInitialReturnsOnAFailedOutcome(t *testing.T) {
 // A rejected plan set installs nothing and does not stop what runs: the plan
 // error leaves the running supervisor and its instances untouched.
 func TestRejectedPlanSetLeavesRunningInstancesAlone(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	defer r.close()
 	r.build("inc1", false)
@@ -296,6 +312,7 @@ func TestRejectedPlanSetLeavesRunningInstancesAlone(t *testing.T) {
 // SetDesired takes the desired revision the caller last saw as its precondition:
 // a stale value is refused, and the observed generation is not that check.
 func TestSetDesiredPreconditionIsTheDesiredRevision(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	defer r.close()
 	r.build("inc1", false)
@@ -319,6 +336,7 @@ func TestSetDesiredPreconditionIsTheDesiredRevision(t *testing.T) {
 
 // Watch returns the state and a channel closed at the instance's next change.
 func TestWatchReportsTheNextChange(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	defer r.close()
 	r.build("inc1", false)
@@ -346,6 +364,7 @@ func TestWatchReportsTheNextChange(t *testing.T) {
 // Close stops every instance and relinquishes the store only when every close
 // was proven.
 func TestCloseStopsInstancesAndRelinquishesTheStoreOnlyWhenProven(t *testing.T) {
+	t.Parallel()
 	for _, proven := range []bool{true, false} {
 		dir := t.TempDir()
 		store, err := OpenFileStore(dir)
@@ -382,6 +401,7 @@ func TestCloseStopsInstancesAndRelinquishesTheStoreOnlyWhenProven(t *testing.T) 
 }
 
 func TestNewSupervisorRequiresItsInputs(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	good := Options{Store: r.store, Recovery: r.recovery, Publication: r.pub, Incarnation: "inc1"}
 	for name, mutate := range map[string]func(*Options){

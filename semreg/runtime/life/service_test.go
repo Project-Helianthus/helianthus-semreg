@@ -112,8 +112,13 @@ func (h *blockHooks) FsyncDir(path string) error {
 	if fail {
 		return errors.New("synthetic directory fsync failure")
 	}
-	return h.osHooks.FsyncDir(path)
+	// The data reaches the file system in this process either way, and a
+	// device flush is what these fixtures spend their time on; the tests of
+	// the flush itself go through OpenFileStore, which keeps it.
+	return nil
 }
+
+func (h *blockHooks) FsyncFile(string) error { return nil }
 
 func (h *blockHooks) WriteFile(path string, data []byte, perm uint32) error {
 	h.mu.Lock()
@@ -554,6 +559,7 @@ func blockingStart(entered chan<- LifecycleCorrelation, release <-chan struct{},
 }
 
 func TestServiceConfigValidationRejectsWithoutEffects(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled("fam.alpha", "fam.beta"), noStart: true})
 	before := f.fileBytes()
 	exec := &fakeExec{id: "fam.alpha"}
@@ -645,6 +651,7 @@ func (f *svcFixture) assertUnchanged(what string, before stateProbe) {
 // stale revision, RESTART in STOPPED) and requires no durable, view, event
 // or executor change.
 func TestServiceRefusalsLeaveStateUnchanged(t *testing.T) {
+	t.Parallel()
 	drivers := []ControlInstance{
 		{InstanceID: "fam.alpha", Enabled: true}, {InstanceID: "fam.beta", Enabled: false}, {InstanceID: "fam.gamma", Enabled: true},
 	}
@@ -724,6 +731,7 @@ func TestServiceRefusalsLeaveStateUnchanged(t *testing.T) {
 // unsigned 64-bit maximum: a changing START refuses COUNTER_EXHAUSTED with no
 // durable, view or event change.
 func TestServiceCounterOverflowRejectsWithoutStateChange(t *testing.T) {
+	t.Parallel()
 	maxRev := strconv.FormatUint(math.MaxUint64, 10)
 	f := newFixture(t, svcOpts{drivers: enabled("fam.alpha"), state: func(t *testing.T, path string) {
 		body := fmt.Sprintf(`{"schema_version":1,"issued_revision_mark":%q,"catalog_revision":"5","instances":{`+
@@ -753,6 +761,7 @@ func TestServiceCounterOverflowRejectsWithoutStateChange(t *testing.T) {
 // STOPPED with an unconfirmed close, return desired/revision only and change
 // nothing: no revision, mark, slot, budget, observation, event or wake.
 func TestServiceSameDesiredNoOpsKeepRetryAndQuarantine(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{
 		drivers: enabled("fam.backoff", "fam.failed", "fam.quar", "fam.typed"),
 		opts:    func(o *ServiceOptions) { o.RetryDelay = func(int) time.Duration { return time.Hour } },
@@ -889,6 +898,7 @@ func (g *gateStore) arm() (reached, release chan struct{}) {
 // untouched. Releasing it publishes, emits and wakes, and the response is the
 // committed desired state and revision, incremented exactly once.
 func TestServiceAcceptanceIsDurableBeforePublishWakeAndEvent(t *testing.T) {
+	t.Parallel()
 	gate := &gateStore{ops: &orderLog{}}
 	f := newFixture(t, svcOpts{drivers: enabled("fam.alpha"), wrap: func(s Store) Store { gate.Store = s; return gate }})
 	f.waitSettled("fam.alpha", ObservedRunning)
@@ -944,6 +954,7 @@ func TestServiceAcceptanceIsDurableBeforePublishWakeAndEvent(t *testing.T) {
 // transition advances only the catalog revision; desired revision and the
 // mark keep the accepted value.
 func TestServiceObservedTransitionsNeverBumpDesiredRevision(t *testing.T) {
+	t.Parallel()
 	// The deadline only diagnoses a hung test, so it is generous for a loaded
 	// race run; all progress is ordered by signals, never by elapsed time.
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -1092,6 +1103,7 @@ func TestServiceObservedTransitionsNeverBumpDesiredRevision(t *testing.T) {
 // revision on every entry, revisions never go backwards for a reader, and a
 // revision always shows the same content to every reader.
 func TestServiceListSnapshotsAreCoherentUnderRaces(t *testing.T) {
+	t.Parallel()
 	ids := []InstanceID{"fam.d", "fam.b", "fam.c", "fam.a"}
 	f := newFixture(t, svcOpts{drivers: enabled("fam.d", "fam.b", "fam.c", "fam.a")})
 	for _, id := range ids {
@@ -1206,6 +1218,7 @@ func countAccepted(t *testing.T, views []DesiredView, errs []error, rev DesiredR
 // START takes the reserved slot and any further changing request is
 // TRANSITION_BUSY (at the service).
 func TestServiceConcurrentRequestsObeyConflictAndCapacity(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled("fam.alpha")})
 	id := InstanceID("fam.alpha")
 	f.waitSettled(id, ObservedRunning)
@@ -1288,6 +1301,7 @@ type fencingCase struct {
 // publishes a late result, refuses a further changing request as
 // TRANSITION_BUSY, and loses no accepted RESTART.
 func TestServiceStopOrRestartDuringStartingOrBackoffFencesAndKeepsCleanup(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []fencingCase{
 		{"typed starting stop", false, false, MethodStop},
 		{"typed starting restart", false, false, MethodRestart},
@@ -1414,6 +1428,7 @@ func runFencingCase(t *testing.T, tc fencingCase) {
 // TRANSITION_BUSY; an old-revision retry conflicts and a fresh-revision retry
 // after settlement is another restart.
 func TestServiceEveryAcceptedRestartExecutesInOrder(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -1457,6 +1472,7 @@ func TestServiceEveryAcceptedRestartExecutesInOrder(t *testing.T) {
 // diagnostic type carries an operation handle, receipt, key, principal,
 // authority or endpoint field.
 func TestServiceResultsAreNotReceipts(t *testing.T) {
+	t.Parallel()
 	raw, err := json.Marshal(DesiredView{DesiredState: DesiredRunning, DesiredRevision: 42})
 	if err != nil {
 		t.Fatal(err)
@@ -1518,6 +1534,7 @@ func TestServiceResultsAreNotReceipts(t *testing.T) {
 // persisted work, which runs under the service's own lifetime and bounded
 // budget; an exhausted budget ends the work FAILED with desired intact.
 func TestServiceCancellationAfterAcceptanceKeepsWork(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id), "fam.beta"),
 		opts: func(o *ServiceOptions) { o.OperationBudget = 300 * time.Millisecond }})
@@ -1597,6 +1614,7 @@ func assertReadsResponsive(t *testing.T, f *svcFixture, ids ...InstanceID) {
 // the documented bound; B keeps deciding and reconciling (its decision waits
 // only until its own context ends while A's write holds the store).
 func TestServiceTwoDriversStayResponsiveWhileOneBlocks(t *testing.T) {
+	t.Parallel()
 	a, b := InstanceID("fam.a"), InstanceID("fam.b")
 	cycleB := func(t *testing.T, f *svcFixture) {
 		start := time.Now()
@@ -1723,6 +1741,7 @@ func controlState(mark, catalog uint64, drivers map[string]string, recovery stri
 // Only the pruned slots are secured, and no completed-operation history
 // exists to consult.
 func TestServiceRecoveryUsesOnlyInFlightState(t *testing.T) {
+	t.Parallel()
 	far := "2099-01-01T00:00:00Z"
 	payload := []byte("synthetic-d5-material")
 	drivers := map[string]string{
@@ -1794,6 +1813,7 @@ func TestServiceRecoveryUsesOnlyInFlightState(t *testing.T) {
 // historical correlation and performs the retained replacement under a new
 // epoch before dropping the slot, although desired already says RUNNING.
 func TestServiceRestartRecoveredAfterProcessLoss(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -1849,6 +1869,7 @@ func TestServiceRestartRecoveredAfterProcessLoss(t *testing.T) {
 // can, the material is committed before the slot is pruned. Diagnostics stay
 // a bounded sanitized in-memory ring.
 func TestServicePrunesOnlyAfterRecoveryMaterialSecured(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	sentinel := errors.New("synthetic secure rejection")
 	var allow atomic.Bool
@@ -1933,6 +1954,7 @@ func TestServicePrunesOnlyAfterRecoveryMaterialSecured(t *testing.T) {
 // transitions emit events that reference a published catalog revision; the
 // ring is bounded and a reader behind the window is told to resync.
 func TestServiceEventsAreCommittedBoundedAndResyncable(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)), opts: func(o *ServiceOptions) { o.EventCapacity = 8 }})
 	f.waitSettled(id, ObservedRunning)
@@ -2032,6 +2054,7 @@ func TestServiceEventsAreCommittedBoundedAndResyncable(t *testing.T) {
 // refusals are Refusal. An unresolved restore withholds the driver FAILED and
 // refuses admission (row 7) while an unaffected driver runs.
 func TestServiceErrorIdentitySeparation(t *testing.T) {
+	t.Parallel()
 	sentinel := errors.New("synthetic semantic rejection")
 	payload := []byte("synthetic-d5")
 	drivers := map[string]string{
@@ -2090,6 +2113,7 @@ func TestServiceErrorIdentitySeparation(t *testing.T) {
 // residual on the service side: an accepted changing request must enqueue
 // exactly one new transition of the requested kind and keep stored work.
 func TestServicePlanValidationRequiresRequestedTransition(t *testing.T) {
+	t.Parallel()
 	stored := &Transition{Kind: KindStart, DesiredRevision: 4, Sequence: 2, Phase: PhaseActive, Epoch: "inc1.fam.a.1", Generation: 1}
 	newT := func(kind TransitionKind) *Transition { return &Transition{Kind: kind, Phase: PhasePending} }
 	cancel := &Transition{Kind: KindCancel, Phase: PhasePending, Epoch: "inc1.fam.a.2", Generation: 1, NativeClosePending: true}
@@ -2128,6 +2152,7 @@ func TestServicePlanValidationRequiresRequestedTransition(t *testing.T) {
 // without the store: pruning and occupied slots are TRANSITION_BUSY,
 // quarantine and unresolved recovery refuse admission at row 7 but allow STOP.
 func TestServicePlannerSlotRules(t *testing.T) {
+	t.Parallel()
 	svc, err := NewService(ServiceOptions{Store: &managerStore{}, Recovery: &fakeRecovery{}, Incarnation: "inc1",
 		Drivers: []ServiceInstance{{InstanceID: "fam.a", Executor: &fakeExec{}}}})
 	if err != nil {
@@ -2190,6 +2215,7 @@ func TestServicePlannerSlotRules(t *testing.T) {
 // stored transition; the comment names the mutation of checkWorkUpdate it
 // catches.
 func TestServiceWorkUpdateGuard(t *testing.T) {
+	t.Parallel()
 	deadline := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
 	stored := Transition{Kind: KindStart, DesiredRevision: 5, Sequence: 3, Phase: PhaseActive, Epoch: "inc1.fam.a.1",
 		Generation: 2, NativeClosePending: true, SemanticCleanupPending: true, AttemptsUsed: 2, DeadlineUTC: deadline}
@@ -2283,6 +2309,7 @@ func (h *hookStore) Driver(id InstanceID) (ControlRecord, error) {
 // withdrawing the admitted generation for a RESTART, the durable slot already
 // carries that generation's correlation and both cleanup obligations.
 func TestServiceRestartPersistsPredecessorBeforeStop(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -2309,6 +2336,7 @@ func TestServiceRestartPersistsPredecessorBeforeStop(t *testing.T) {
 // cleanup past the operation budget, and an unfinished semantic cleanup is
 // retried only a bounded number of times per series.
 func TestServiceCleanupStopIsBounded(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
 		opts: func(o *ServiceOptions) { o.OperationBudget = 100 * time.Millisecond; o.MaxAttempts = 3 }})
@@ -2342,6 +2370,7 @@ func TestServiceCleanupStopIsBounded(t *testing.T) {
 // the reconciler read its (empty) slots but before the process-start attempt
 // was installed must prevent that attempt from starting at all.
 func TestServiceStopBeforeUntypedInstallClosesGeneration(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	reached, release := make(chan struct{}), make(chan struct{})
@@ -2368,6 +2397,7 @@ func TestServiceStopBeforeUntypedInstallClosesGeneration(t *testing.T) {
 // its attempt deadline is withdrawn and never published RUNNING, for the
 // typed and the process-start path.
 func TestServiceLateStartSuccessIsNotAdmitted(t *testing.T) {
+	t.Parallel()
 	late := func(ctx context.Context, _ LifecycleCorrelation) error {
 		<-ctx.Done()
 		return nil
@@ -2403,6 +2433,7 @@ func TestServiceLateStartSuccessIsNotAdmitted(t *testing.T) {
 // failure neither loses the transition nor its event; both appear in order
 // once the store recovers, with no further action.
 func TestServiceFailedObservationPublicationIsRetried(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -2433,6 +2464,7 @@ func TestServiceFailedObservationPublicationIsRetried(t *testing.T) {
 // TestServiceEventsFollowTheirView: a reader woken by an event always finds a
 // list at least as new as the event's catalog revision.
 func TestServiceEventsFollowTheirView(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -2477,6 +2509,7 @@ func TestServiceEventsFollowTheirView(t *testing.T) {
 // TestServiceFatalStartLeavesServiceNotRunning: a Start refused by startup
 // validation accepts no decision afterwards.
 func TestServiceFatalStartLeavesServiceNotRunning(t *testing.T) {
+	t.Parallel()
 	a, b := InstanceID("fam.alpha"), InstanceID("fam.beta")
 	f := newFixture(t, svcOpts{drivers: enabled(string(a), string(b)), noStart: true,
 		opts: func(o *ServiceOptions) { o.Drivers = o.Drivers[:1] }})
@@ -2492,6 +2525,7 @@ func TestServiceFatalStartLeavesServiceNotRunning(t *testing.T) {
 // TestServiceInitialViewIsRetried: a transient failure while publishing the
 // first view is retried instead of leaving the constructor's empty catalog.
 func TestServiceInitialViewIsRetried(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: []ControlInstance{{InstanceID: id}}, noStart: true,
@@ -2515,6 +2549,7 @@ func TestServiceInitialViewIsRetried(t *testing.T) {
 // Stop receives an already-expired context and is never retried with a fresh
 // budget.
 func TestServiceUntypedLateSuccessKeepsUnfinishedCleanupBlocking(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var renewed atomic.Bool
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -2556,6 +2591,7 @@ func hasDiagnostic(diags []Diagnostic, outcome string) bool {
 // TestServiceAcceptedEventCarriesObservedState: DESIRED_ACCEPTED reports the
 // driver's observed state at acceptance, not an empty one.
 func TestServiceAcceptedEventCarriesObservedState(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -2575,6 +2611,7 @@ func TestServiceAcceptedEventCarriesObservedState(t *testing.T) {
 // TestServiceCleanupAttemptsArePersisted: each cleanup Stop is counted in the
 // slot's persisted AttemptsUsed so process recovery cannot renew it.
 func TestServiceCleanupAttemptsArePersisted(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
 		opts: func(o *ServiceOptions) { o.MaxAttempts = 3 }})
@@ -2593,6 +2630,7 @@ func TestServiceCleanupAttemptsArePersisted(t *testing.T) {
 // deadline has passed, an unfinished semantic cleanup is not retried with a
 // fresh budget; the obligation stays durable.
 func TestServiceCleanupRetryNeverRenewsExpiredDeadline(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
 		opts: func(o *ServiceOptions) { o.OperationBudget = 100 * time.Millisecond }})
@@ -2616,6 +2654,7 @@ func TestServiceCleanupRetryNeverRenewsExpiredDeadline(t *testing.T) {
 // publication fails are coalesced per driver, so no replayed event reports an
 // observation the view at its catalog revision no longer shows.
 func TestServiceDeferredObservationsMatchTheirView(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -2641,6 +2680,7 @@ func TestServiceDeferredObservationsMatchTheirView(t *testing.T) {
 // received a cursor cannot leave a silent gap; readers positioned before it
 // are told to resynchronise.
 func TestServicePendingEventOverflowForcesResync(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -2666,6 +2706,7 @@ func TestServicePendingEventOverflowForcesResync(t *testing.T) {
 // request, admission reopens, the adopted decision appears in List and the
 // reconciler executes it, within the documented bound.
 func TestServiceResolvesAmbiguousCommitWithoutFurtherRequest(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -2701,6 +2742,7 @@ func TestServiceResolvesAmbiguousCommitWithoutFurtherRequest(t *testing.T) {
 // with CLEANUP_STALLED, blocks START and RESTART (row 7), is never retried
 // and keeps the original deadline durably.
 func TestServiceExpiredCleanupDeadlineIsNeverRenewed(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	past := "2001-01-01T00:00:00Z"
 	var renewed atomic.Bool
@@ -2745,6 +2787,7 @@ func TestServiceExpiredCleanupDeadlineIsNeverRenewed(t *testing.T) {
 // before the executor's Stop runs, so process loss during Stop cannot grant
 // an extra attempt on recovery.
 func TestServiceCleanupAttemptChargedBeforeStop(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -2781,6 +2824,7 @@ func (r roStore) Catalog() (ControlCatalog, error) {
 // withholds every driver as FAILED but keeps the stored catalog revision and
 // each stored desired revision unchanged, never zero.
 func TestServiceReadOnlyViewKeepsStoredRevisions(t *testing.T) {
+	t.Parallel()
 	a, b := InstanceID("fam.a"), InstanceID("fam.b")
 	f := newFixture(t, svcOpts{
 		drivers: enabled(string(a), string(b)),
@@ -2817,6 +2861,7 @@ func TestServiceReadOnlyViewKeepsStoredRevisions(t *testing.T) {
 // EventCursor always finds that cursor's events, deterministically at the
 // event log and under concurrent publications.
 func TestServicePublishedCursorEventsExist(t *testing.T) {
+	t.Parallel()
 	t.Run("log", func(t *testing.T) {
 		l := newEventLog(8)
 		got := make(chan EventPage, 1)
@@ -2878,6 +2923,7 @@ func TestServicePublishedCursorEventsExist(t *testing.T) {
 // driver is published successfully, the superseded event is not stamped with
 // the newer view's revision.
 func TestServicePublishCoalescesSupersededObservations(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -2915,6 +2961,7 @@ func TestServicePublishCoalescesSupersededObservations(t *testing.T) {
 // untyped BACKOFF synthesizes the cancellation with the attempt's own
 // nonrenewable deadline and attempts already used, never a fresh budget.
 func TestServiceSynthesizedCancelInheritsUntypedBudget(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	entered := make(chan LifecycleCorrelation, 16)
 	f := newFixture(t, svcOpts{
@@ -2955,6 +3002,7 @@ func TestServiceSynthesizedCancelInheritsUntypedBudget(t *testing.T) {
 // attempt must not open another generation, and the cleanup closes the
 // generation the cancellation slot names.
 func TestServiceAmbiguousStopFencesUntypedBackoffAfterReadback(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var mu sync.Mutex
 	var started []LifecycleCorrelation
@@ -3009,6 +3057,7 @@ func TestServiceAmbiguousStopFencesUntypedBackoffAfterReadback(t *testing.T) {
 // whose persisted attempts are spent runs no uncharged Stop, and a START that
 // keeps failing leaves its own reserved attempt for the cleanup.
 func TestServiceSettleObligationsNeverRunsStopWithoutPersistedAttempt(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
 		opts: func(o *ServiceOptions) { o.MaxAttempts = 3 }})
@@ -3039,6 +3088,7 @@ func TestServiceSettleObligationsNeverRunsStopWithoutPersistedAttempt(t *testing
 // commit was ambiguous and later adopted by the readback is not silently
 // absent from the event stream.
 func TestServiceAdoptedAmbiguousDecisionEmitsDesiredAccepted(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -3065,6 +3115,7 @@ func TestServiceAdoptedAmbiguousDecisionEmitsDesiredAccepted(t *testing.T) {
 // DESIRED_ACCEPTED that a later desired transition superseded before its view
 // published is not stamped with that view; readers are told to resync.
 func TestServiceSupersededPendingDesiredEventIsNotStampedWithLaterView(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var hs *hookStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -3268,6 +3319,7 @@ func assertAcceptedThenCanceled(t *testing.T, f *svcFixture, cursor uint64, id I
 // did not persist), the START resumes with its attempt, budget and deadline
 // unchanged and completes; no Stop runs and no event names the STOP.
 func TestServiceRejectedSupersedingStopResumesTypedStart(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f, g := gatedFixture(t, string(id))
 	h := f.typedStartInFlight(id)
@@ -3325,6 +3377,7 @@ func TestServiceRejectedSupersedingStopResumesTypedStart(t *testing.T) {
 // moved the namespace mark past this driver's revision, so adoption is read
 // from the committed record, not from expected+1.
 func TestServiceAdoptedSupersedingStopAcceptsBeforeCanceling(t *testing.T) {
+	t.Parallel()
 	alpha, beta := InstanceID("fam.alpha"), InstanceID("fam.beta")
 	f, g := gatedFixture(t, string(alpha), string(beta))
 	f.waitSettled(alpha, ObservedRunning)
@@ -3363,6 +3416,7 @@ func TestServiceAdoptedSupersedingStopAcceptsBeforeCanceling(t *testing.T) {
 // adopted cancels the START (acceptance first, one cancellation, never
 // RUNNING), rejected admits the same attempt.
 func TestServiceReadbackOutcomeRacesStartExecution(t *testing.T) {
+	t.Parallel()
 	for _, adopted := range []bool{true, false} {
 		name := map[bool]string{true: "adopted", false: "rejected"}[adopted]
 		t.Run(name, func(t *testing.T) {
@@ -3414,6 +3468,7 @@ func TestServiceReadbackOutcomeRacesStartExecution(t *testing.T) {
 // visible; the reconciler must not cancel (no Stop, no observation) until
 // the acceptance is published.
 func TestServiceCommittedSupersedingStopHoldsCancelUntilAccepted(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f, g := gatedFixture(t, string(id))
 	h := f.typedStartInFlight(id)
@@ -3468,6 +3523,7 @@ func (g *recoveryGateStore) Recovery() *RecoveryMaterial {
 // while startup (catalog validation and recovery restore) is still running is
 // refused, and is accepted once Start has returned.
 func TestServiceAdmissionStaysClosedUntilStartupCompletes(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var g *recoveryGateStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)), noStart: true,
@@ -3495,6 +3551,7 @@ func TestServiceAdmissionStaysClosedUntilStartupCompletes(t *testing.T) {
 // STOP; when the readback rejects that STOP after the budget ran out, the
 // success is withdrawn and never published as RUNNING.
 func TestServiceStartSuccessAfterBudgetExpiredDuringHoldIsWithdrawn(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var g *readbackStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -3542,6 +3599,7 @@ func (c *catalogFailStore) Catalog() (ControlCatalog, error) {
 // acceptance cannot be published, the superseded START is neither canceled nor
 // is any Stop run until a later publication carries the acceptance.
 func TestServiceFailedAcceptancePublicationKeepsSupersededStartRunning(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var c *catalogFailStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -3574,14 +3632,17 @@ func TestServiceFailedAcceptancePublicationKeepsSupersededStartRunning(t *testin
 // original deadline; obligations are then settled, or the cleanup stalls with
 // the diagnostic when the Stop leaves semantic cleanup unfinished.
 func TestServiceMaxAttemptsOneReservesCleanupAttempt(t *testing.T) {
+	t.Parallel()
 	for _, settled := range []bool{true, false} {
 		name := map[bool]string{true: "settled", false: "stalled"}[settled]
 		t.Run(name, func(t *testing.T) {
+			// Each case waits out its own budget; the two do not share state.
+			t.Parallel()
 			id := InstanceID("fam.alpha")
 			f := newFixture(t, svcOpts{drivers: enabled(string(id)),
 				// The budget also bounds the fixture's first START, which has a single attempt, so it
 				// must be long enough for a loaded host; the START under test ends at the budget by itself.
-				opts: func(o *ServiceOptions) { o.OperationBudget = 2 * time.Second; o.MaxAttempts = 1 }})
+				opts: func(o *ServiceOptions) { o.OperationBudget = time.Second; o.MaxAttempts = 1 }})
 			f.waitSettled(id, ObservedRunning)
 			f.mustDecide(MethodStop, id)
 			f.waitSettled(id, ObservedStopped)
@@ -3624,6 +3685,7 @@ func TestServiceMaxAttemptsOneReservesCleanupAttempt(t *testing.T) {
 // admission is revalidated under the hold and the late generation is
 // withdrawn.
 func TestServiceUntypedSuccessExpiredWhileHeldIsWithdrawn(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var g *readbackStore
 	entered, release := make(chan struct{}), make(chan struct{})
@@ -3674,6 +3736,7 @@ func TestServiceUntypedSuccessExpiredWhileHeldIsWithdrawn(t *testing.T) {
 // pending increment and commits it before the next Start, so the executor
 // never sees the previous generation twice.
 func TestServiceRetryGenerationIncrementIsCommittedBeforeNextStart(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var ws *workFaultStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -3720,6 +3783,7 @@ func (w *workFaultStore) CommitWork(ctx context.Context, id InstanceID, current,
 // attempt, so the RESTART ends FAILED without creating or starting a
 // replacement, and its cleanup retry state is reset.
 func TestServiceRestartEndsFailedWhenPredecessorCleanupSpentTheStartBudget(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
 		opts: func(o *ServiceOptions) { o.MaxAttempts = 1 }})
@@ -3750,6 +3814,7 @@ func TestServiceRestartEndsFailedWhenPredecessorCleanupSpentTheStartBudget(t *te
 // predecessor whose semantic cleanup needed a retry leaves no retry count
 // behind for an unrelated later STOP.
 func TestServiceRestartResetsCleanupRetriesAfterPredecessorCleanup(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	f := newFixture(t, svcOpts{drivers: enabled(string(id))})
 	f.waitSettled(id, ObservedRunning)
@@ -3775,6 +3840,7 @@ func TestServiceRestartResetsCleanupRetriesAfterPredecessorCleanup(t *testing.T)
 // during the eighth untyped attempt does not inherit a count that skips the
 // reserved cleanup Stop.
 func TestServiceStopDuringLastUntypedAttemptStillCleansUp(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	entered := make(chan struct{})
 	var calls atomic.Int32
@@ -3822,6 +3888,7 @@ func (w *applyThenFailStore) CommitWork(ctx context.Context, id InstanceID, cur,
 // was persisted but reported as failed is adopted; the attempt runs Start
 // instead of charging again and exhausting a one-attempt budget.
 func TestServiceAdoptedStartChargeIsNotChargedAgain(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var w *applyThenFailStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -3842,6 +3909,7 @@ func TestServiceAdoptedStartChargeIsNotChargedAgain(t *testing.T) {
 // TestServiceAdoptedCleanupChargeIsNotChargedAgain: an adopted cleanup charge
 // leaves the persisted count at one while Stop runs.
 func TestServiceAdoptedCleanupChargeIsNotChargedAgain(t *testing.T) {
+	t.Parallel()
 	id := InstanceID("fam.alpha")
 	var w *applyThenFailStore
 	f := newFixture(t, svcOpts{drivers: enabled(string(id)),
@@ -3882,6 +3950,7 @@ func (w *frozenReadStore) Driver(id InstanceID) (ControlRecord, error) {
 // only after that decision publishes its acceptance, for typed and untyped
 // attempts.
 func TestServiceStartErrorWaitsForPendingDecision(t *testing.T) {
+	t.Parallel()
 	for _, typed := range []bool{true, false} {
 		name := map[bool]string{true: "typed", false: "untyped"}[typed]
 		t.Run(name, func(t *testing.T) {

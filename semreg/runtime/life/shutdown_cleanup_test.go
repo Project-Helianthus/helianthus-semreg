@@ -32,6 +32,7 @@ func fileRig(t *testing.T, retry contract.RetryPolicy, script *startScript, keys
 // close releases the store lock at shutdown, an unconfirmed one quarantines the
 // instance and keeps the lock.
 func TestSessionOpenFailureStopsTheConstructedInstance(t *testing.T) {
+	t.Parallel()
 	for _, confirmed := range []bool{true, false} {
 		name := "unconfirmed"
 		var script *startScript
@@ -67,6 +68,7 @@ func TestSessionOpenFailureStopsTheConstructedInstance(t *testing.T) {
 // generation registered before the failure is returned. A withdrawal that fails
 // stays pending: the retry settles it before it constructs anything.
 func TestFailedStartWithdrawsItsPublications(t *testing.T) {
+	t.Parallel()
 	t.Run("withdrawn", func(t *testing.T) {
 		r := single(t, contract.RetryPolicy{}, &startScript{startErrs: []error{errors.New("terminal after opening")}}, "bus.one")
 		defer r.close()
@@ -114,6 +116,7 @@ func TestFailedStartWithdrawsItsPublications(t *testing.T) {
 // Shutdown withdraws the generations the instances published once their native
 // owners stopped, once each, and reports a withdrawal that failed.
 func TestShutdownWithdrawsAdmittedGenerations(t *testing.T) {
+	t.Parallel()
 	r := threeBusRig(t, NewMemoryStore())
 	r.build("inc1", false)
 	r.start()
@@ -154,6 +157,7 @@ func TestShutdownWithdrawsAdmittedGenerations(t *testing.T) {
 // Closing the durable store waits for the write in flight: the lock is never
 // releasable while a write of this owner can still land.
 func TestFileStoreCloseDrainsTheWriteInFlight(t *testing.T) {
+	t.Parallel()
 	hooks := &blockHooks{}
 	s, _ := seededStore(t, hooks)
 	entered, release := hooks.arm()
@@ -190,6 +194,7 @@ func TestFileStoreCloseDrainsTheWriteInFlight(t *testing.T) {
 // A stop that interrupts a start in flight proves nothing while the canceled
 // construction can still admit late; the retirement proves it afterwards.
 func TestStopDuringStartingIsNotProvenWhileConstructionIsOutstanding(t *testing.T) {
+	t.Parallel()
 	runtime := &lateAdmissionRuntime{startEntered: make(chan struct{}), startRelease: make(chan struct{})}
 	manager, err := NewManager(ManagerConfig{Drivers: []ManagedConfig{{
 		ID: "bus.primary", Enabled: true, Runtime: runtime, Capabilities: []Capability{CapabilityRead},

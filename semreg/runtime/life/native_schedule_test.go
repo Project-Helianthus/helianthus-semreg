@@ -10,6 +10,7 @@ import (
 // persistent recovery tries again. The schedule exists only in BACKOFF.
 
 func TestNativeObservationBackoffScheduleReachesServiceView(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver), "fam.beta")})
 	corr := nativeLive(t, f)
 	f.waitSettled("fam.beta", ObservedRunning)
@@ -65,6 +66,7 @@ func TestNativeObservationBackoffScheduleReachesServiceView(t *testing.T) {
 // outside BACKOFF, an ordinal without a due time and a due time without an
 // ordinal are refused before they can be queued.
 func TestNativeObservationRefusesIncoherentSchedule(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver))})
 	corr := nativeLive(t, f)
 	due := time.Date(2026, time.October, 25, 18, 32, 25, 0, time.UTC)

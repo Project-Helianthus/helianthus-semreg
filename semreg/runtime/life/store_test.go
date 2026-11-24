@@ -70,6 +70,7 @@ func mustDriver(t *testing.T, s Store, id InstanceID) ControlRecord {
 // is recorded as start and a disabled one as stop; the committed records survive
 // reopening, and a stop decision survives it too.
 func TestStoreSeedOnceAndStoppedSurvivesReload(t *testing.T) {
+	t.Parallel()
 	s, dir := seededStore(t, nil)
 	off, on := mustDriver(t, s, "alpha.off"), mustDriver(t, s, "bus.primary")
 	if off.DesiredState != DesiredStopped || off.DesiredRevision != 1 || on.DesiredState != DesiredRunning || on.DesiredRevision != 2 {
@@ -102,6 +103,7 @@ func TestStoreSeedOnceAndStoppedSurvivesReload(t *testing.T) {
 // A decision is committed before Decide returns, for the memory store and for
 // the durable store, and the durable store shows it after reopening.
 func TestStoreDecisionIsCommittedBeforeItReturns(t *testing.T) {
+	t.Parallel()
 	t.Run("memory", func(t *testing.T) {
 		s := NewMemoryStore()
 		if _, err := s.Register(storeCtx(t), storeInstances); err != nil {
@@ -146,6 +148,7 @@ func TestStoreDecisionIsCommittedBeforeItReturns(t *testing.T) {
 // Disabled configuration wins: a decision for a disabled instance is refused and
 // durable intent is not rewritten.
 func TestStoreDisabledConfigurationWinsWithoutRewritingIntent(t *testing.T) {
+	t.Parallel()
 	s, dir := seededStore(t, nil)
 	before, _ := os.ReadFile(filepath.Join(dir, controlFileName))
 	_, err := s.Decide(storeCtx(t), MethodStart, Request{InstanceID: "alpha.off", ExpectedRevision: 1}, startPlanner)
@@ -159,6 +162,7 @@ func TestStoreDisabledConfigurationWinsWithoutRewritingIntent(t *testing.T) {
 // Failures before the commit point discard the staging: nothing is exposed, the
 // error is retryable and a later write succeeds.
 func TestStorePreCommitFailuresDiscardStaging(t *testing.T) {
+	t.Parallel()
 	for name, set := range map[string]func(*failHooks){
 		"write":  func(h *failHooks) { h.failWrite = errors.New("synthetic write failure") },
 		"fsync":  func(h *failHooks) { h.failFsync = errors.New("synthetic fsync failure") },
@@ -231,6 +235,7 @@ func (h *failHooks) Rename(oldpath, newpath string) error {
 // namespace agrees with the staged or the previous one and directory durability
 // is established.
 func TestStoreDirectoryFsyncFailureIsAmbiguousPersistence(t *testing.T) {
+	t.Parallel()
 	for _, persisted := range []bool{true, false} {
 		name := "reverted"
 		if persisted {
@@ -281,6 +286,7 @@ func TestStoreDirectoryFsyncFailureIsAmbiguousPersistence(t *testing.T) {
 // The load dispositions never collapse: a missing file is seedable, a corrupt or
 // unsupported one is preserved byte for byte and fails control closed.
 func TestStoreLoadDispositionsNeverCollapse(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name    string
 		content string
@@ -329,6 +335,7 @@ func TestStoreLoadDispositionsNeverCollapse(t *testing.T) {
 // A second opener that cannot take the store lock reads the last committed
 // state read-only and writes nothing: no seed, no charge, no control write.
 func TestStoreLockHeldKeepsCommittedViewReadOnly(t *testing.T) {
+	t.Parallel()
 	owner, dir := seededStore(t, nil)
 	path := filepath.Join(dir, controlFileName)
 	if _, err := owner.Decide(storeCtx(t), MethodStop, Request{InstanceID: "bus.primary", ExpectedRevision: 2}, startPlanner); err != nil {
@@ -383,6 +390,7 @@ func TestStoreLockHeldKeepsCommittedViewReadOnly(t *testing.T) {
 
 // An invalid instance record fails only that instance.
 func TestStoreInvalidRecordFailsOnlyThatInstance(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	good := recordJSON(DesiredRunning, 1, 0, "")
 	content := `{"schema_version":1,"issued_revision_mark":"2","catalog_revision":"3","instances":{"fam.good":` + good + `,"fam.bad":{"desired_state":"PAUSED"}}}`
@@ -407,6 +415,7 @@ func TestStoreInvalidRecordFailsOnlyThatInstance(t *testing.T) {
 // writes: its record is deleted when it holds no work or recovery material, and
 // a re-added instance reads as stopped at the mark.
 func TestStoreRemovalAndReAddAreMarkOnlyWrites(t *testing.T) {
+	t.Parallel()
 	s, dir := seededStore(t, nil)
 	if _, err := s.Decide(storeCtx(t), MethodStop, Request{InstanceID: "bus.primary", ExpectedRevision: 2}, startPlanner); err != nil {
 		t.Fatal(err)
@@ -439,6 +448,7 @@ func TestStoreRemovalAndReAddAreMarkOnlyWrites(t *testing.T) {
 // Work updates keep the stored identity, move forward only and never produce
 // reversed or duplicate slots.
 func TestStoreWorkGuards(t *testing.T) {
+	t.Parallel()
 	s, _ := seededStore(t, nil)
 	if _, err := s.Decide(storeCtx(t), MethodStop, Request{InstanceID: "bus.primary", ExpectedRevision: 2}, startPlanner); err != nil {
 		t.Fatal(err)
@@ -483,6 +493,7 @@ func TestStoreWorkGuards(t *testing.T) {
 
 // The loader rejects reversed and duplicate transition sequences per record.
 func TestStoreLoaderRejectsInvalidRecordInvariants(t *testing.T) {
+	t.Parallel()
 	far := "2099-01-01T00:00:00Z"
 	t1 := transitionJSON(KindStop, 1, 2, PhasePending, "", 0, false, false, 0, "")
 	t2 := transitionJSON(KindStart, 1, 1, PhasePending, "", 0, false, false, 0, "")
@@ -512,6 +523,7 @@ func TestStoreLoaderRejectsInvalidRecordInvariants(t *testing.T) {
 // The committed recovery envelope is returned byte for byte after reopening and a
 // payload whose digest does not match fails control closed.
 func TestStoreRecoveryEnvelopeSurvivesReopeningAndIsDigestChecked(t *testing.T) {
+	t.Parallel()
 	s, dir := seededStore(t, nil)
 	if got := s.Recovery(); got != nil {
 		t.Fatalf("recovery before any commit = %+v", got)
@@ -560,6 +572,7 @@ func TestStoreRecoveryEnvelopeSurvivesReopeningAndIsDigestChecked(t *testing.T) 
 // A control file with anything but whitespace after the closing object is
 // corrupt: it never loads as committed state.
 func TestDecodeNamespaceRejectsTrailingBytes(t *testing.T) {
+	t.Parallel()
 	s, dir := seededStore(t, nil)
 	_ = s.Stop(context.Background())
 	raw, err := os.ReadFile(filepath.Join(dir, controlFileName))

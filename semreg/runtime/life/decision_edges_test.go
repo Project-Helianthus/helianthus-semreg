@@ -151,6 +151,7 @@ func decBusy(t *testing.T, err error) {
 }
 
 func TestFailedCommitsBalanceHolds(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name     string
 		id       InstanceID
@@ -223,6 +224,7 @@ func decFailedCommitsBalanceHolds(t *testing.T, id InstanceID, revision DesiredR
 }
 
 func TestAdoptedPublicationRetainsOwner(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name     string
 		id       InstanceID
@@ -343,6 +345,7 @@ func (p *decTwoDriverStore) Catalog() (ControlCatalog, error) {
 }
 
 func TestTwoResolverAcceptanceOrdering(t *testing.T) {
+	t.Parallel()
 	const revision DesiredRevision = 11
 	a := &decStore{record: ControlRecord{InstanceID: "family.alpha", Enabled: true, HasRecord: true, DesiredState: DesiredStopped, DesiredRevision: revision}, revision: 1}
 	b := &decStore{record: ControlRecord{InstanceID: "family.beta", Enabled: true, HasRecord: true, DesiredState: DesiredStopped, DesiredRevision: revision}, revision: 1}
@@ -430,6 +433,7 @@ func TestTwoResolverAcceptanceOrdering(t *testing.T) {
 }
 
 func TestRecoveredCleanupCorrelation(t *testing.T) {
+	t.Parallel()
 	type identity struct {
 		id         InstanceID
 		epoch      SourceEpoch
@@ -528,6 +532,7 @@ func TestRecoveredCleanupCorrelation(t *testing.T) {
 // The second clock read after Start returns is the deadline revalidation in
 // settle's callback, while d.mu is held, immediately before stageObservation.
 func TestStartSettlementConcurrentPublication(t *testing.T) {
+	t.Parallel()
 	for _, typed := range []bool{true, false} {
 		t.Run(fmt.Sprintf("typed-%t", typed), func(t *testing.T) {
 			const id InstanceID = "family.alpha"
@@ -615,6 +620,7 @@ func TestStartSettlementConcurrentPublication(t *testing.T) {
 // A Service assembled without a driver map must still publish; the held-
 // intent guard may only consult drivers that exist.
 func TestPublishToleratesUnregisteredDriver(t *testing.T) {
+	t.Parallel()
 	for _, id := range []InstanceID{"fam.alpha", "fam.beta"} {
 		store := &decStore{record: ControlRecord{InstanceID: id, Enabled: true, HasRecord: true, DesiredState: DesiredRunning, DesiredRevision: 2}, revision: 3}
 		s := &Service{store: store, ctx: context.Background(), order: []InstanceID{id}, events: newEventLog(8),

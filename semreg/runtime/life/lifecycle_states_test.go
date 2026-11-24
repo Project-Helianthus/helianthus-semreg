@@ -313,6 +313,7 @@ func charErr(err error) string { return "err=" + charErrorClass(err) }
 // sequence and the runtime/hook call order for a healthy Start, Replace,
 // Stop and restart through the protocol-neutral manager.
 func TestLifecycleCharacterizationStartStopReplaceSnapshots(t *testing.T) {
+	t.Parallel()
 	harness := newCharHarness(t, 2, &charRuntime{id: "driver.alpha"})
 	const id = "driver.alpha"
 	steps := []charStep{}
@@ -371,6 +372,7 @@ func TestLifecycleCharacterizationStartStopReplaceSnapshots(t *testing.T) {
 // runtime close result into observed state, reason and quarantine, and
 // whether a later Start is admitted.
 func TestLifecycleCharacterizationStopCloseClasses(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name        string
 		stopErr     error
@@ -453,6 +455,7 @@ func TestLifecycleCharacterizationStopCloseClasses(t *testing.T) {
 // scheduled retry is manager-owned: an explicit Start or Stop supersedes it
 // and Shutdown reaps it without a further construction.
 func TestLifecycleCharacterizationStartFailureClassesAndRetryOwnership(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name      string
 		budget    int
@@ -564,6 +567,7 @@ func TestLifecycleCharacterizationStartFailureClassesAndRetryOwnership(t *testin
 // BACKOFF, stale correlations are rejected, recovery uses Replace, and
 // degradation withdraws a capability subset.
 func TestLifecycleCharacterizationReportFailureWithdrawalAndRecovery(t *testing.T) {
+	t.Parallel()
 	harness := newCharHarness(t, 1, &charRuntime{id: "driver.alpha"})
 	const id = "driver.alpha"
 	steps := []charStep{}
@@ -617,6 +621,7 @@ func TestLifecycleCharacterizationReportFailureWithdrawalAndRecovery(t *testing.
 // Shutdown stops drivers in sorted ID order and permanently fences new
 // lifecycle requests.
 func TestLifecycleCharacterizationShutdownOrderAndClosedFence(t *testing.T) {
+	t.Parallel()
 	harness := newCharHarness(t, 1, &charRuntime{id: "driver.zulu"}, &charRuntime{id: "driver.alpha"})
 	for _, id := range []string{"driver.zulu", "driver.alpha"} {
 		if err := harness.manager.Start(context.Background(), id); err != nil {

@@ -22,6 +22,7 @@ func (*alwaysFailingRuntime) Start(context.Context) (uint64, error)   { return 0
 func (*alwaysFailingRuntime) Replace(context.Context) (uint64, error) { return 0, errPersistentDial }
 
 func TestRetrySnapshotReportsThePersistentSeries(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name       string
 		persistent bool

@@ -24,6 +24,7 @@ func single(t *testing.T, retry contract.RetryPolicy, script *startScript, key s
 // and one above half is half; a persistent phase follows the same delay rules
 // and is left as given while disabled. No driver name selects a policy.
 func TestRetryPolicyNormalization(t *testing.T) {
+	t.Parallel()
 	s := time.Second
 	cases := []struct {
 		name string
@@ -56,6 +57,7 @@ func TestRetryPolicyNormalization(t *testing.T) {
 // Epochs name their incarnation, so a correlation of an earlier process is told
 // from this process's.
 func TestEpochNamesItsIncarnation(t *testing.T) {
+	t.Parallel()
 	epoch := makeEpoch("inc.7", ref("bus.one").ID(), 3)
 	if got, ok := epochIncarnation(epoch); !ok || got != "inc.7" {
 		t.Fatalf("incarnation = %q %v", got, ok)
@@ -76,6 +78,7 @@ func TestEpochNamesItsIncarnation(t *testing.T) {
 // start: the instance is closed, nothing stays open and the instance reports
 // failure.
 func TestFailedPartialStartLeavesNothingOpen(t *testing.T) {
+	t.Parallel()
 	r := single(t, contract.RetryPolicy{}, &startScript{startErrs: []error{errors.New("terminal after opening")}}, "bus.one")
 	defer r.close()
 	r.build("inc1", false)
@@ -96,6 +99,7 @@ func TestFailedPartialStartLeavesNothingOpen(t *testing.T) {
 // A failed start whose close cannot be proven quarantines the instance: it is
 // reported, and no replacement is constructed.
 func TestFailedStartWithUnprovenCloseQuarantines(t *testing.T) {
+	t.Parallel()
 	r := single(t, contract.RetryPolicy{Budget: 3}, &startScript{
 		startErrs:  []error{&retryableError{"retryable after opening"}},
 		stopReport: &contract.CloseReport{Confirmed: false, Err: errors.New("not proven")},
@@ -119,6 +123,7 @@ func TestFailedStartWithUnprovenCloseQuarantines(t *testing.T) {
 // its schedule and then follows the owner's later transitions to RUNNING; the
 // manager is the one retry owner.
 func TestRecoveringStartIsAdmittedIntoBackoffAndFollowed(t *testing.T) {
+	t.Parallel()
 	retry := contract.RetryPolicy{JitterRatio: -1, Persistent: contract.PersistentRetry{Enabled: true, InitialDelay: 300 * time.Millisecond, MaxDelay: 300 * time.Millisecond}}
 	r := single(t, retry, &startScript{startErrs: []error{&retryableError{"first attempt"}}}, "bus.one")
 	defer r.close()
@@ -143,6 +148,7 @@ func TestRecoveringStartIsAdmittedIntoBackoffAndFollowed(t *testing.T) {
 // it: the old instance is closed and withdrawn, a new one starts, and the
 // service follows the owner back to RUNNING.
 func TestFailureAfterStartIsReplacedByTheNativeOwner(t *testing.T) {
+	t.Parallel()
 	retry := contract.RetryPolicy{Budget: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond, JitterRatio: -1}
 	r := single(t, retry, &startScript{}, "bus.one")
 	defer r.close()

@@ -77,6 +77,7 @@ func settle(t *testing.T, r *rig, key string, state ObservedState) {
 // constructed and started, a disabled one is recorded stopped and never
 // constructed, and the committed records survive reopening.
 func TestStartSeedsAnEmptyStoreOnce(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	r := durableRig(t, dir, func(f *testFactory) []InstanceConfig {
 		return append(keysOf(f, true, "bus.on"), keysOf(f, false, "bus.off")...)
@@ -118,6 +119,7 @@ func TestStartSeedsAnEmptyStoreOnce(t *testing.T) {
 // durable store is opened again, with no accepted transition outstanding, is
 // neither constructed nor started by Start.
 func TestStartedThenStoppedInstanceStaysStoppedAfterReopening(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	build := func(f *testFactory) []InstanceConfig { return keysOf(f, true, "bus.one", "bus.two") }
 	r := durableRig(t, dir, build)
@@ -152,6 +154,7 @@ func TestStartedThenStoppedInstanceStaysStoppedAfterReopening(t *testing.T) {
 // first, and the cleanup charge is committed before the old correlation is
 // settled.
 func TestRestartRecoveredAfterProcessLoss(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	seedControl(t, dir, 1, 2, map[string]string{
 		"bus.one": recordJSON(DesiredRunning, 1, 1, activeTransition(KindRestart, 1, 1, "bus.one")),
@@ -207,6 +210,7 @@ func TestRestartRecoveredAfterProcessLoss(t *testing.T) {
 // under the original correlation, reports stopped only after both are cleared,
 // and constructs and starts nothing.
 func TestStopRecoveredAfterProcessLossStartsNothing(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	seedControl(t, dir, 2, 3, map[string]string{
 		"bus.one": recordJSON(DesiredStopped, 2, 2, activeTransition(KindStop, 2, 2, "bus.one")),
@@ -276,6 +280,7 @@ func recoveryRig(t *testing.T, material string) (*rig, *recordingStore, string) 
 // envelope without a write and lets pruning proceed; a Secure error or a failed
 // required commit keeps the slot.
 func TestTerminalSlotIsPrunedOnlyAfterSecure(t *testing.T) {
+	t.Parallel()
 	material := recoveryJSON([]string{string(ref("bus.one").ID())}, 1, []byte("committed-before"))
 	committed := func(r *rig) *RecoveryMaterial { return r.store.Recovery() }
 
@@ -353,6 +358,7 @@ func TestTerminalSlotIsPrunedOnlyAfterSecure(t *testing.T) {
 // With a terminal slot ahead of a reserved one, successful nil material lets the
 // prune promote the reserved slot, which then runs.
 func TestNilSecuredMaterialPromotesTheReservedSlot(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	stop := transitionJSON(KindStop, 2, 2, PhaseCleanup, string(oldEpoch("bus.one")), 1, false, false, 0, farFuture)
 	start := transitionJSON(KindStart, 3, 3, PhasePending, "", 0, false, false, 0, "")
@@ -378,6 +384,7 @@ func TestNilSecuredMaterialPromotesTheReservedSlot(t *testing.T) {
 // otherwise the committed envelope's ids, otherwise every configured instance.
 // A blocked instance reaches no executor and no admission; the others start.
 func TestRestoreFailureScope(t *testing.T) {
+	t.Parallel()
 	ids := func(keys ...string) []InstanceID {
 		var out []InstanceID
 		for _, k := range keys {
@@ -462,6 +469,7 @@ func TestRestoreFailureScope(t *testing.T) {
 // Recovery ordering: the adapter's Restore is the first call, before any
 // executor call or admission.
 func TestRestoreIsTheFirstCall(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	seedControl(t, dir, 1, 2, map[string]string{"bus.one": recordJSON(DesiredRunning, 1, 0, "")},
 		recoveryJSON([]string{string(ref("bus.one").ID())}, 1, []byte("pre-loss")))
@@ -484,6 +492,7 @@ func TestRestoreIsTheFirstCall(t *testing.T) {
 // last committed read-only view and stops before Restore, executor calls and
 // admission: it makes no charge and no control write.
 func TestSecondHostIsReadOnlyAndTouchesNothing(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	seedControl(t, dir, 1, 2, map[string]string{
 		"bus.one": recordJSON(DesiredRunning, 1, 1, activeTransition(KindRestart, 1, 1, "bus.one")),
@@ -535,6 +544,7 @@ func TestSecondHostIsReadOnlyAndTouchesNothing(t *testing.T) {
 // exclusively; an unconfirmed or unknown owner never yields a successful native
 // close.
 func TestRecoveredExecutorProvesCloseOnlyForTheFormerProcess(t *testing.T) {
+	t.Parallel()
 	build := func(exclusive bool) (*instanceExecutor, *testPublication, *testFactory) {
 		r := newRig(t, NewMemoryStore(), func(f *testFactory) []InstanceConfig { return keysOf(f, true, "bus.one") })
 		r.build("inc2", false)
@@ -573,6 +583,7 @@ func TestRecoveredExecutorProvesCloseOnlyForTheFormerProcess(t *testing.T) {
 // native close with a pending semantic result leaves the accepted correlation
 // pending.
 func TestUnsettledCloseKeepsTheAcceptedCorrelationPending(t *testing.T) {
+	t.Parallel()
 	t.Run("native close unconfirmed", func(t *testing.T) {
 		r := newRig(t, NewMemoryStore(), func(f *testFactory) []InstanceConfig {
 			f.script["bus.one"] = &startScript{stopReport: &driver.CloseReport{Confirmed: false, Err: errors.New("not proven")}}

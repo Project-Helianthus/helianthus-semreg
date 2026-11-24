@@ -24,6 +24,7 @@ func (s stopScript) next(n int) StopOutcome {
 // executor under the attempt's own correlation, so the instance can be
 // restarted afterwards.
 func TestUntypedTerminalStartFailureRetiresEpoch(t *testing.T) {
+	t.Parallel()
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver)),
 		setup: func(f *svcFixture) {
 			f.execs[nativeDriver].setStart(func(context.Context, LifecycleCorrelation) error {
@@ -59,6 +60,7 @@ func TestUntypedTerminalStartFailureRetiresEpoch(t *testing.T) {
 // closed, so the next epoch binds instead of being refused for its
 // predecessor.
 func TestUntypedTerminalStartFailureAllowsRestartWithExecutor(t *testing.T) {
+	t.Parallel()
 	r := newRig(t, NewMemoryStore(), func(f *testFactory) []InstanceConfig {
 		f.script["bus.one"] = &startScript{startErrs: []error{errors.New("start refused")}}
 		return instanceConfigs(f, true, nil, "bus.one")
@@ -82,6 +84,7 @@ func TestUntypedTerminalStartFailureAllowsRestartWithExecutor(t *testing.T) {
 // after the close and the withdrawal are proven, and a replacement is refused
 // while the close is unproven.
 func TestUntypedUnprovenCloseIsSettledByStop(t *testing.T) {
+	t.Parallel()
 	unproven := StopOutcome{NativeClosed: false, SemanticCleaned: true}
 	proven := StopOutcome{NativeClosed: true, SemanticCleaned: true}
 	for _, path := range []string{"withdrawn-late", "close-unconfirmed"} {
@@ -159,6 +162,7 @@ func countOp(calls []execCall, op string) int {
 // store settles it under that correlation and reports STOPPED only after the
 // withdrawal is proven.
 func TestUntypedUnwithdrawnStartKeepsCorrelationForStop(t *testing.T) {
+	t.Parallel()
 	var origin LifecycleCorrelation
 	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver)),
 		setup: func(f *svcFixture) {

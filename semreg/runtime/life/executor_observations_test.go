@@ -59,6 +59,7 @@ func obsWait(t *testing.T, ch <-chan struct{}, label string) {
 }
 
 func TestObservationPublicationRejectsSupersededCorrelation(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name       string
 		epoch      SourceEpoch
@@ -162,6 +163,7 @@ func TestObservationPublicationRejectsSupersededCorrelation(t *testing.T) {
 // The replacement defers first, then the blocked predecessor defers and replaces
 // it. Retrying must expose the replacement view with a resync notification.
 func TestDeferredObservationPublicationSignalsSupersededGap(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name       string
 		epoch      SourceEpoch
