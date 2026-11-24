@@ -242,10 +242,57 @@ func (s *ScopedInput) Capture(ctx context.Context, filter driver.Filter) (driver
 	if err != nil {
 		return driver.SemanticCut{}, err
 	}
+	// The session keeps its own copy of the capture, and its own retention of
+	// the captured cut body, so neither a consumer's edit of what it was handed
+	// nor a later retain of the same digest changes what a page continuation of
+	// this CutRef is answered from.
+	held, err := detachView(view)
+	if err != nil {
+		return driver.SemanticCut{}, err
+	}
+	handed, err := cloneSnapshots(held.Members)
+	if err != nil {
+		return driver.SemanticCut{}, err
+	}
 	s.tree.mu.Lock()
-	s.views[key] = view
+	s.views[key] = held
 	s.tree.mu.Unlock()
-	return driver.SemanticCut{Ref: view.Ref, Snapshots: view.Members, SettingRoutes: view.SettingRoutes}, nil
+	ref := held.Ref
+	ref.Members = append([]graph.CutMember(nil), ref.Members...)
+	ref.NotIncluded = append([]graph.NotIncludedAsset(nil), ref.NotIncluded...)
+	return driver.SemanticCut{Ref: ref, Snapshots: handed, SettingRoutes: view.SettingRoutes}, nil
+}
+
+func cloneSnapshots(in []semreg.Snapshot) ([]semreg.Snapshot, error) {
+	out := make([]semreg.Snapshot, len(in))
+	for i, snapshot := range in {
+		raw, err := semreg.CanonicalJSON(snapshot)
+		if err != nil {
+			return nil, err
+		}
+		if out[i], err = semreg.Decode[semreg.Snapshot](raw); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+// detachView copies the members and the reference vectors of a view and retains
+// the captured cut with its members and catalog in a store of its own.
+func detachView(view CutView) (CutView, error) {
+	members, err := cloneSnapshots(view.Members)
+	if err != nil {
+		return CutView{}, err
+	}
+	view.Members = members
+	view.Ref.Members = append([]graph.CutMember(nil), view.Ref.Members...)
+	view.Ref.NotIncluded = append([]graph.NotIncludedAsset(nil), view.Ref.NotIncluded...)
+	store := graph.NewCutStore(nil)
+	if err := store.Retain(view.Cut, view.Members, view.Catalog); err != nil {
+		return CutView{}, err
+	}
+	view.Store = store
+	return view, nil
 }
 
 // Resume returns the commits after the cursor inside the session scope.

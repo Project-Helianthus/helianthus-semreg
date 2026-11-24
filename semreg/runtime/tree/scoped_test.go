@@ -144,7 +144,8 @@ func TestScopedContinuationAfterSecondCaptureWithNewOmissionsAndLaterClock(t *te
 	if err != nil {
 		t.Fatalf("page two of the first capture after a second capture: %v", err)
 	}
-	if page2.Cut.CutID != page1.Cut.CutID || len(page2.Cut.NotIncluded) != 0 || len(page2.Resources) != 1 {
+	if page2.Cut.CutID != page1.Cut.CutID || len(page2.Cut.NotIncluded) != 0 || len(page2.Resources) != 1 ||
+		page2.Cut.Completeness != page1.Cut.Completeness || page2.Cut.Completeness != graph.CutComplete {
 		t.Fatalf("page two is not the first view's: %+v", page2.Cut)
 	}
 	if _, err := input.RetrieveLens(ctx, second.Ref, next); semreg.ErrorIdentifier(err) != semreg.RevisionConflict {

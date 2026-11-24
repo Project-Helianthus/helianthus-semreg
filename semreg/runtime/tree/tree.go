@@ -246,7 +246,7 @@ func (t *Tree) Capture(ctx context.Context, options CutOptions) (*TreeCut, error
 		if member.read == nil {
 			continue
 		}
-		obs, err := member.read(ctx)
+		obs, err := observe(ctx, member.read)
 		if err != nil {
 			continue
 		}
@@ -852,7 +852,7 @@ func (c *TreeCut) Read(ctx context.Context, ref AttrRef, _ ReadOptions) (Value, 
 func (c *TreeCut) readNative(ctx context.Context, ref AttrRef, key Key, member memberRecord) (Value, error) {
 	out := Value{Ref: ref, Cut: c.id, Unit: member.spec.Units}
 	live, ok := c.tree.Registry.member(key.String())
-	if !ok || live.withdrawn || live.read == nil {
+	if !ok || live.withdrawn || live.read == nil || live.generation != member.generation {
 		out.Status, out.Instance = StatusUnavailable, c.tree.state(member.instance)
 		return out, nil
 	}
@@ -860,7 +860,7 @@ func (c *TreeCut) readNative(ctx context.Context, ref AttrRef, key Key, member m
 		out.Pinned = true
 		return fill(out, pin), nil
 	}
-	obs, err := live.read(ctx)
+	obs, err := observe(ctx, live.read)
 	if err != nil {
 		out.Status, out.Instance = StatusUnavailable, c.tree.state(member.instance)
 		return out, nil
@@ -879,7 +879,46 @@ func sameObservation(a, b Observation) bool {
 	return bytes.Equal(a.Encoded, b.Encoded) && bytes.Equal(a.Raw, b.Raw) && a.Absent == b.Absent && a.Freshness == b.Freshness
 }
 
+// clone returns an observation that shares no memory with the driver's: the
+// byte slices and the revision, receive-time and age values are copied.
+func (o Observation) clone() Observation {
+	o.Encoded = cloneBytes(o.Encoded)
+	o.Raw = cloneBytes(o.Raw)
+	if o.ReceivedAt != nil {
+		received := *o.ReceivedAt
+		o.ReceivedAt = &received
+	}
+	if o.Age != nil {
+		age := *o.Age
+		o.Age = &age
+	}
+	if o.Revision != nil {
+		revision := *o.Revision
+		o.Revision = &revision
+	}
+	return o
+}
+
+func cloneBytes(b []byte) []byte {
+	if b == nil {
+		return nil
+	}
+	return append([]byte{}, b...)
+}
+
+// observe reads one observation and detaches it from the driver's buffers, so a
+// driver that updates its retained value in place cannot change what a cut
+// pinned or compared.
+func observe(ctx context.Context, read ObservedReader) (Observation, error) {
+	obs, err := read(ctx)
+	if err != nil {
+		return Observation{}, err
+	}
+	return obs.clone(), nil
+}
+
 func fill(out Value, obs Observation) Value {
+	obs = obs.clone()
 	out.Verification, out.ReceivedAt, out.Freshness, out.Age = obs.Verification, obs.ReceivedAt, obs.Freshness, obs.Age
 	out.Revision, out.Derived, out.Name = obs.Revision, obs.Derived, obs.Name
 	switch {
@@ -889,10 +928,7 @@ func fill(out Value, obs Observation) Value {
 		out.Status = StatusStale
 	default:
 		out.Status = StatusCurrent
-		out.Encoded = append([]byte(nil), obs.Encoded...)
-		if obs.Raw != nil {
-			out.Raw = append([]byte(nil), obs.Raw...)
-		}
+		out.Encoded, out.Raw = obs.Encoded, obs.Raw
 	}
 	return out
 }
