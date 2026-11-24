@@ -188,8 +188,10 @@ type fakeCuts struct {
 	expired  map[semreg.Digest]time.Time
 	// demoted is when a cut stopped being the newest; the source stops
 	// retaining it graph.CutRetention later, as the retained store does.
-	demoted  map[semreg.Digest]time.Time
-	history  []driver.SemanticCut
+	demoted map[semreg.Digest]time.Time
+	history []driver.SemanticCut
+	// routes are the setting routes the next capture returns with its view.
+	routes   []driver.SettingRoute
 	resync   bool
 	captures int
 }
@@ -275,6 +277,7 @@ func (f *fakeCuts) build(filter driver.Filter) (tree.CutView, error) {
 		Cursor: driver.Cursor{Incarnation: "semantic.one", Position: semreg.Uint64(position)},
 	}
 	f.mu.Lock()
+	view.SettingRoutes = f.routes
 	for other := range f.views {
 		if _, ok := f.demoted[other]; !ok && other != cut.ID() {
 			f.demoted[other] = f.now

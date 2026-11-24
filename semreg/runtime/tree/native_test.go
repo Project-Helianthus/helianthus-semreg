@@ -111,14 +111,38 @@ func TestRegistrationReadAndWithdrawalAcrossGeneration(t *testing.T) {
 	if err := second.ObserveMember(device2, memberSpec("member.1"), value.read); err != nil {
 		t.Fatalf("the new generation registers the withdrawn member again: %v", err)
 	}
+	if err := second.Method(device2, methodSpec("method.1"), func(context.Context, []byte) ([]byte, error) { return nil, nil }); err != nil {
+		t.Fatal(err)
+	}
 	fresh := w.capture()
 	got, err = fresh.Read(ctx, ref, tree.ReadOptions{})
 	if err != nil || got.Status != tree.StatusLiveOnly || string(got.Encoded) != "two" {
 		t.Fatalf("read in the new generation = %+v, %v", got, err)
 	}
 	old, err := cut.Read(ctx, ref, tree.ReadOptions{})
-	if err != nil || old.Status == tree.StatusUnavailable && old.Instance.Generation != 2 {
-		t.Fatalf("old cut read = %+v, %v", old, err)
+	if err != nil || old.Status != tree.StatusUnavailable || old.Instance == nil || old.Instance.Generation != 2 || old.Encoded != nil {
+		t.Fatalf("old cut read = %+v, %v; the fenced generation's cut must read unavailable with the instance state", old, err)
+	}
+	// The old cut's descriptors stay withdrawn although a later generation
+	// registered the same keys; the fresh cut's are current.
+	for _, entry := range []tree.Ref{ref, methodRef, tree.Ref(mustPath(t, device).String())} {
+		oldDescriptor, err := cut.Describe(ctx, entry)
+		if err != nil || !oldDescriptor.Withdrawn || oldDescriptor.State == nil {
+			t.Fatalf("old cut descriptor %s = %+v, %v; want withdrawn with the instance state", entry, oldDescriptor, err)
+		}
+		newDescriptor, err := fresh.Describe(ctx, entry)
+		if err != nil || newDescriptor.Withdrawn {
+			t.Fatalf("fresh cut descriptor %s = %+v, %v; want current", entry, newDescriptor, err)
+		}
+	}
+	listedOld, err := cut.List(ctx, device, tree.Page{Size: 10})
+	if err != nil || len(listedOld.Entries) != 2 {
+		t.Fatalf("old cut list = %+v, %v", listedOld, err)
+	}
+	for _, entry := range listedOld.Entries {
+		if !entry.Withdrawn {
+			t.Fatalf("old cut lists %s as current after a later generation registered it", entry.Ref)
+		}
 	}
 	if called != 0 {
 		t.Fatal("a method ran without being called")

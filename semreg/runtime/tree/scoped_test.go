@@ -254,3 +254,48 @@ func TestScopedContinuationOutlivingTheCutRetentionIsRevisionConflict(t *testing
 		t.Fatalf("a continuation after the session dropped the view = %v", err)
 	}
 }
+
+func TestScopedCaptureReturnsTheSettingRoutesOfItsOwnView(t *testing.T) {
+	w := scopedWorld(t)
+	route := func(key string) driver.SettingRoute {
+		return driver.SettingRoute{
+			Operation: powerFact, Owner: driver.SourceRef{PathKey: key},
+			Limits: &driver.ValueLimits{Origin: driver.LimitDeviceQuery},
+		}
+	}
+	first := []driver.SettingRoute{route("route.one")}
+	w.cuts.routes = first
+	input := w.tree.SemanticInput(driver.Filter{})
+	one, err := input.Capture(ctx, driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The source reuses and edits its slice after the capture.
+	first[0].Owner.PathKey = "route.edited"
+	first[0].Limits.Origin = driver.LimitSpecification
+	if got := one.SettingRoutes; len(got) != 1 || got[0].Owner.PathKey != "route.one" || got[0].Limits.Origin != driver.LimitDeviceQuery {
+		t.Fatalf("routes stay as returned when the source edits its slice: %+v", got)
+	}
+	// A second capture of the same CutRef is answered with the first view's
+	// snapshots and the first view's routes, not the new capture's.
+	w.cuts.routes = []driver.SettingRoute{route("route.two")}
+	two, err := input.Capture(ctx, driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(one.Ref, two.Ref) {
+		t.Fatalf("the two captures did not yield one CutRef")
+	}
+	if got := two.SettingRoutes; len(got) != 1 || got[0].Owner.PathKey != "route.one" {
+		t.Fatalf("routes of the repeated capture = %+v, want the first view's route.one", got)
+	}
+	// A consumer's edit of what it was handed changes nothing retained.
+	two.SettingRoutes[0].Owner.PathKey = "route.consumer"
+	three, err := input.Capture(ctx, driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := three.SettingRoutes; len(got) != 1 || got[0].Owner.PathKey != "route.one" {
+		t.Fatalf("routes after a consumer edit = %+v", got)
+	}
+}

@@ -126,7 +126,11 @@ func retrieveLens(view CutView, digest semreg.Digest, request graph.LensRequest)
 
 // Catalog reads the element catalog held with the cut.
 func (c *TreeCut) Catalog(ctx context.Context) (CatalogResult, error) {
-	return catalogOf(c.view.Catalog), nil
+	view, _, err := c.serving(ctx, nil)
+	if err != nil {
+		return CatalogResult{}, err
+	}
+	return catalogOf(view.Catalog), nil
 }
 
 func catalogOf(catalog *graph.Catalog) CatalogResult {
@@ -276,7 +280,28 @@ func (s *ScopedInput) Capture(ctx context.Context, filter driver.Filter) (driver
 	ref := held.Ref
 	ref.Members = append([]graph.CutMember(nil), ref.Members...)
 	ref.NotIncluded = append([]graph.NotIncludedAsset(nil), ref.NotIncluded...)
-	return driver.SemanticCut{Ref: ref, Snapshots: handed, SettingRoutes: view.SettingRoutes}, nil
+	routes, err := cloneRoutes(held.SettingRoutes)
+	if err != nil {
+		return driver.SemanticCut{}, err
+	}
+	return driver.SemanticCut{Ref: ref, Snapshots: handed, SettingRoutes: routes}, nil
+}
+
+// cloneRoutes copies setting routes so the copy shares no memory with the
+// source's slice or the values it points to.
+func cloneRoutes(in []driver.SettingRoute) ([]driver.SettingRoute, error) {
+	if in == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+	out := []driver.SettingRoute{}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func cloneSnapshots(in []semreg.Snapshot) ([]semreg.Snapshot, error) {
@@ -301,6 +326,9 @@ func detachView(view CutView) (CutView, error) {
 		return CutView{}, err
 	}
 	view.Members = members
+	if view.SettingRoutes, err = cloneRoutes(view.SettingRoutes); err != nil {
+		return CutView{}, err
+	}
 	return retainOwn(view)
 }
 

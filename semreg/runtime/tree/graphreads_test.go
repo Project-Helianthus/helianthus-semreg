@@ -319,3 +319,22 @@ func TestTreeCutKeepsItsCapturedBodyWhenTheSameDigestIsRetainedAgain(t *testing.
 		t.Fatalf("an expired capture's lens = %v", err)
 	}
 }
+
+func TestCatalogOnACaptureWhoseCutExpiredIsRevisionConflict(t *testing.T) {
+	w := threeResourceWorld(t)
+	cut := w.capture()
+	if _, err := cut.Catalog(ctx); err != nil {
+		t.Fatalf("catalog of a retained cut: %v", err)
+	}
+	id := mustDigest(t, cut)
+	expiredAt := w.cuts.now
+	w.cuts.expired[id] = expiredAt
+	if _, err := cut.ListResources(ctx, graph.ListRequest{PageSize: 1}); err == nil {
+		t.Fatal("list on an expired cut succeeded")
+	}
+	_, err := cut.Catalog(ctx)
+	coded := mustCode(t, err, semreg.RevisionConflict)
+	if !strings.Contains(coded.Detail, string(id)) || !strings.Contains(coded.Detail, "expired at "+expiredAt.UTC().Format(time.RFC3339Nano)) {
+		t.Fatalf("catalog on an expired cut names the revision and expiry: %q", coded.Detail)
+	}
+}

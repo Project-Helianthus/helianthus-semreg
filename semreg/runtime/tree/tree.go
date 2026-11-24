@@ -607,17 +607,20 @@ func (c *TreeCut) nodeDescriptor(path NodePath) (Descriptor, bool) {
 	d := Descriptor{Ref: Ref(path.String()), Kind: EntryNode, Level: level, Namespace: record.namespace, Instance: record.instance}
 	if record.spec != nil {
 		d.NodeKind, d.Contract, d.Subject, d.Local = record.spec.Kind, record.spec.Contract, record.spec.Subject, string(record.spec.Local)
-		d.Withdrawn = c.liveWithdrawn(path)
+		d.Withdrawn = c.liveWithdrawn(path, record.generation)
 	}
 	d.State = c.tree.state(record.instance)
 	return d, true
 }
 
-func (c *TreeCut) liveWithdrawn(path NodePath) bool {
+// liveWithdrawn reports whether the registration this cut captured, of the
+// given generation, is withdrawn: fenced, gone, or replaced by another
+// generation's registration of the same key.
+func (c *TreeCut) liveWithdrawn(path NodePath, generation uint64) bool {
 	c.tree.Registry.mu.Lock()
 	defer c.tree.Registry.mu.Unlock()
 	record, ok := c.tree.Registry.nodes[path.String()]
-	return !ok || record.withdrawn
+	return !ok || record.withdrawn || record.generation != generation
 }
 
 func (c *TreeCut) memberDescriptor(m memberRecord) Descriptor {
@@ -626,7 +629,7 @@ func (c *TreeCut) memberDescriptor(m memberRecord) Descriptor {
 		Local: string(m.spec.Local), Schema: m.spec.Schema, Unit: m.spec.Units, Mode: m.spec.Mode, Visibility: m.spec.Visibility,
 		Channel: m.spec.Channel, Scope: m.spec.Scope, Bounds: m.spec.Bounds, State: c.tree.state(m.instance),
 	}
-	if live, ok := c.tree.Registry.member(m.key.String()); !ok || live.withdrawn {
+	if live, ok := c.tree.Registry.member(m.key.String()); !ok || live.withdrawn || live.generation != m.generation {
 		d.Withdrawn = true
 	}
 	return d
@@ -637,7 +640,7 @@ func (c *TreeCut) methodDescriptor(m methodRecord) Descriptor {
 		Ref: Ref(m.key.String()), Kind: EntryMethod, Domain: KeywordNative, Namespace: m.namespace, Instance: m.instance,
 		Local: string(m.spec.Local), Schema: m.spec.Schema, Visibility: m.spec.Visibility, Scope: m.spec.Scope, State: c.tree.state(m.instance),
 	}
-	if live, ok := c.tree.Registry.method(m.key.String()); !ok || live.withdrawn {
+	if live, ok := c.tree.Registry.method(m.key.String()); !ok || live.withdrawn || live.generation != m.generation {
 		d.Withdrawn = true
 	}
 	return d
