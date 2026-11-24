@@ -196,7 +196,8 @@ type Tree struct {
 	cuts     map[CutID]*TreeCut
 	prepared map[PreparedID]*preparedCall
 	outcomes map[ReceiptID]Outcome
-	receipts []ReceiptID
+	// receipts lists, per cut, the receipts of the calls prepared on that cut.
+	receipts map[CutID][]ReceiptID
 	// dispatched maps a receipt id the tree issued to the id the dispatcher
 	// issued; the two are never the same namespace.
 	dispatched map[ReceiptID]ReceiptID
@@ -221,7 +222,7 @@ func New(cfg Config) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Tree{cfg: cfg, Registry: registry, cuts: map[CutID]*TreeCut{}, prepared: map[PreparedID]*preparedCall{}, outcomes: map[ReceiptID]Outcome{}, dispatched: map[ReceiptID]ReceiptID{}}, nil
+	return &Tree{cfg: cfg, Registry: registry, cuts: map[CutID]*TreeCut{}, prepared: map[PreparedID]*preparedCall{}, outcomes: map[ReceiptID]Outcome{}, receipts: map[CutID][]ReceiptID{}, dispatched: map[ReceiptID]ReceiptID{}}, nil
 }
 
 // Capture reads one cut of the semantic graph and the registrations of the tree
@@ -413,7 +414,7 @@ func (t *Tree) Call(ctx context.Context, prepared Prepared, options CallOptions)
 	t.sequence++
 	public := ReceiptID(fmt.Sprintf("receipt-%d", t.sequence))
 	t.dispatched[public] = receipt.ID
-	t.receipts = append(t.receipts, public)
+	t.receipts[call.cut] = append(t.receipts[call.cut], public)
 	t.mu.Unlock()
 	return Receipt{ID: public, Method: call.method, Result: receipt.Result}, nil
 }
@@ -449,7 +450,7 @@ func (t *Tree) callNative(ctx context.Context, prepared Prepared, call *prepared
 	}
 	t.mu.Lock()
 	t.outcomes[id] = outcome
-	t.receipts = append(t.receipts, id)
+	t.receipts[call.cut] = append(t.receipts[call.cut], id)
 	t.mu.Unlock()
 	return Receipt{ID: id, Method: call.method}, nil
 }
@@ -958,6 +959,11 @@ func (c *TreeCut) readSemantic(key Key) (Value, error) {
 			return Value{}, err
 		}
 		out.Encoded = document
+		if parts[1] == "outcomes" {
+			// The cut's outcomes can still gain a receipt, so the list is a live read
+			// of this cut's own calls, never a pinned value.
+			out.Status, out.Pinned = StatusLiveOnly, false
+		}
 		return out, nil
 	}
 	fact, err := ParseFactSegment(key.Segment)
@@ -1006,7 +1012,7 @@ func (c *TreeCut) index(category string) ([]byte, error) {
 	case "outcomes":
 		c.tree.mu.Lock()
 		defer c.tree.mu.Unlock()
-		return json.Marshal(append([]ReceiptID{}, c.tree.receipts...))
+		return json.Marshal(append([]ReceiptID{}, c.tree.receipts[c.id]...))
 	case "resources", "capabilities", "sources":
 		return c.snapshotIndex(category)
 	}

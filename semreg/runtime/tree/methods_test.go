@@ -173,3 +173,30 @@ func TestNativeMethodIsCalledOnlyWhenCalled(t *testing.T) {
 		t.Fatalf("an unregistered native method = %v", err)
 	}
 }
+
+func TestOutcomesIndexListsOnlyTheCutsOwnReceiptsAndIsNotPinned(t *testing.T) {
+	w := threeResourceWorld(t)
+	cutA := w.capture()
+	cutB := w.capture()
+	method := semanticMethodRef(t, setCurrent)
+	prepared, err := w.tree.Prepare(ctx, cutB.ID(), method, tree.Input{Request: &driver.OperationRequest{Timeout: time.Second}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := w.tree.Call(ctx, prepared, tree.CallOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcomes := tree.Ref(tree.Key{Node: tree.NodePath{Installation: installation}, Facet: tree.KeywordAttributes, Domain: tree.KeywordSem, Segment: mustSegment(t, tree.IndexPart, "outcomes")}.String())
+	a, err := cutA.Read(ctx, outcomes, tree.ReadOptions{})
+	if err != nil || string(a.Encoded) != `[]` {
+		t.Fatalf("cut A outcomes = %s, %v; it holds another cut's receipt", a.Encoded, err)
+	}
+	b, err := cutB.Read(ctx, outcomes, tree.ReadOptions{})
+	if err != nil || string(b.Encoded) != `["`+string(receipt.ID)+`"]` {
+		t.Fatalf("cut B outcomes = %s, %v", b.Encoded, err)
+	}
+	if a.Pinned || b.Pinned || a.Status != tree.StatusLiveOnly || b.Status != tree.StatusLiveOnly {
+		t.Fatalf("a list that can still gain receipts is presented as pinned: A %+v B %+v", a.Status, b.Status)
+	}
+}
