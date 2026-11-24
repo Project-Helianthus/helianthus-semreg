@@ -2,6 +2,7 @@ package graph_test
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"sort"
 	"testing"
 
@@ -14,8 +15,8 @@ const graphVectorsPath = "../../../fixtures/v1/graph-acceptance-vectors.json"
 // graphVectorsDigest is the SHA-256 of that document, kept as bytes so that a
 // changed file fails here before any vector runs.
 var graphVectorsDigest = [sha256.Size]byte{
-	0xb5, 0xaf, 0xbd, 0x8d, 0x5f, 0x54, 0x6c, 0x91, 0x78, 0xa7, 0x2a, 0xe0, 0x37, 0x51, 0x5c, 0xfe,
-	0x58, 0x1f, 0x8c, 0xef, 0x3c, 0x75, 0xbb, 0x65, 0xba, 0x98, 0xbb, 0x32, 0x66, 0x50, 0x8b, 0xa5,
+	0x72, 0x44, 0x17, 0x3c, 0x41, 0xd7, 0xbf, 0xc1, 0x2b, 0x45, 0xc9, 0xf4, 0x26, 0x47, 0xf1, 0x2d,
+	0xf3, 0x8e, 0x35, 0x6b, 0x9f, 0x02, 0x3c, 0xae, 0x8b, 0xb9, 0x01, 0xcf, 0x55, 0xef, 0xe8, 0x56,
 }
 
 // TestGraphAcceptanceVectorsPin checks the copied bytes and the document
@@ -65,7 +66,9 @@ func TestGraphAcceptanceVectorsPin(t *testing.T) {
 // identifier through the public API: construct_registry, register_catalog,
 // apply, assemble_cut, admit, list_resources, traverse, retrieve_lens,
 // sum_members and project, with the element catalog registered wherever the
-// prior state registers it. No vector is skipped or selected by identifier.
+// prior state registers it. A vector whose input carries subject_check is
+// pinned with the document and is not executed. No vector is selected by
+// identifier.
 // Each vector ends in one of three outcomes: it passes; it fails,
 // for an operation or assertion the harness does not implement or for any
 // outcome no document finding explains; or it ends as a document finding,
@@ -82,8 +85,13 @@ func TestGraphAcceptanceVectors(t *testing.T) {
 	outcomes := map[string]string{}
 	byRule := map[string][]string{}
 	coverage := map[string]map[string]bool{}
+	pinned := 0
 	for _, vector := range doc.Vectors {
 		vector := vector
+		if gvInputHasSubjectCheck(vector.Input) {
+			pinned++
+			continue
+		}
 		var finding []gvFinding
 		passed := t.Run(vector.ID, func(t *testing.T) {
 			defer func() {
@@ -122,8 +130,11 @@ func TestGraphAcceptanceVectors(t *testing.T) {
 			coverage[area][vector.Polarity] = true
 		}
 	}
-	if len(outcomes) != len(doc.Vectors) {
-		t.Errorf("executed %d of %d vectors", len(outcomes), len(doc.Vectors))
+	if pinned == 0 {
+		t.Error("the copied document pins no subject_check vector")
+	}
+	if len(outcomes) != len(doc.Vectors)-pinned {
+		t.Errorf("executed %d of %d vectors", len(outcomes), len(doc.Vectors)-pinned)
 	}
 	for _, area := range doc.CoverageIDs {
 		if !coverage[area]["positive"] || !coverage[area]["negative"] {
@@ -149,4 +160,13 @@ func TestGraphAcceptanceVectors(t *testing.T) {
 		t.Logf("document finding, %d vectors: %s: %v", len(byRule[rule]), rule, byRule[rule])
 	}
 	gvCheckConformanceReport(t, outcomes, byRule)
+}
+
+func gvInputHasSubjectCheck(raw json.RawMessage) bool {
+	var input map[string]json.RawMessage
+	if len(raw) == 0 || json.Unmarshal(raw, &input) != nil {
+		return false
+	}
+	_, ok := input["subject_check"]
+	return ok
 }

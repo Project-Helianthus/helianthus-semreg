@@ -2,11 +2,13 @@ package pv
 
 import (
 	"bytes"
-	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
-	operation "github.com/Project-Helianthus/helianthus-semreg/semreg/v1/operation"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
+
+	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+	operation "github.com/Project-Helianthus/helianthus-semreg/semreg/v1/operation"
 )
 
 func TestActivePowerOperationAndReadback(t *testing.T) {
@@ -378,11 +380,22 @@ func must(id semreg.DefinitionID) fieldSpec {
 }
 func testKey(s fieldSpec) semreg.FactKey {
 	n := "id"
-	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: s.id, Dimensions: []semreg.Dimension{{ID: s.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &n}}}}
+	dims := make([]semreg.Dimension, 0, 1+len(fieldQualifiers[s.id]))
+	for _, id := range fieldQualifiers[s.id] {
+		token := qualifierSymbols[id][0]
+		dims = append(dims, semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}})
+	}
+	dims = append(dims, semreg.Dimension{ID: s.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &n}})
+	sort.Slice(dims, func(i, j int) bool { return dims[i].ID < dims[j].ID })
+	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: s.id, Dimensions: dims}
 }
 func testValue(s fieldSpec) semreg.Value {
 	if s.kind == semreg.ValueSymbol {
 		return semreg.Value{Kind: s.kind, Symbol: &semreg.Symbol{Namespace: s.id, Token: strings.TrimPrefix(s.symbols[0], string(s.id)+"."), Known: true}}
+	}
+	if s.kind == semreg.ValueBoolean {
+		value := true
+		return semreg.Value{Kind: s.kind, Boolean: &value}
 	}
 	n := semreg.Decimal{Coefficient: "0"}
 	if s.minimum != nil {

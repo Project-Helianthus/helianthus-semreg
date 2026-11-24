@@ -55,7 +55,7 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 	if err := json.Unmarshal(raw, &tables); err != nil {
 		t.Fatal(err)
 	}
-	for key, want := range map[string]int{"field_specs": 23, "services": 7, "capabilities": 5, "relations": 6, "operations": 2, "effects": 2, "portal_contributions": 5} {
+	for key, want := range map[string]int{"field_specs": 25, "services": 7, "capabilities": 5, "relations": 6, "operations": 2, "effects": 2, "portal_contributions": 5} {
 		if got := len(tables[key].([]any)); got != want {
 			t.Fatalf("%s=%d", key, got)
 		}
@@ -73,16 +73,16 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 // fixtures/v1/storage-bms-contract-tables.json.
 var (
 	storageVectorFixtureSHA256 = [sha256.Size]byte{
-		0x10, 0x53, 0x43, 0x7b, 0xd1, 0x22, 0x37, 0x02,
-		0x6f, 0x9c, 0xee, 0xdf, 0xbe, 0x3d, 0x4f, 0xe3,
-		0xfb, 0xa4, 0x62, 0x25, 0x86, 0xec, 0x62, 0x6c,
-		0xf0, 0xb3, 0xee, 0x57, 0x3d, 0x82, 0x7d, 0x82,
+		0xdb, 0xb5, 0xe3, 0x01, 0x56, 0xfe, 0x13, 0xb9,
+		0x8b, 0x3c, 0x10, 0x04, 0x02, 0x73, 0xf6, 0x06,
+		0xe9, 0x3d, 0xff, 0x0c, 0x99, 0x45, 0x1e, 0x10,
+		0xf0, 0xf0, 0x0c, 0x56, 0xa6, 0x42, 0x0b, 0x81,
 	}
 	storageContractTablesSHA256 = [sha256.Size]byte{
-		0xea, 0x91, 0x8b, 0x7a, 0x4d, 0x98, 0x37, 0x6d,
-		0x8d, 0x71, 0x5d, 0x4b, 0x6e, 0x11, 0xcd, 0x62,
-		0x85, 0x6c, 0x3e, 0x14, 0x8e, 0xe9, 0xab, 0x9b,
-		0x24, 0x44, 0x36, 0x85, 0x87, 0xc5, 0x69, 0x03,
+		0x27, 0x26, 0xbb, 0x51, 0x59, 0x0e, 0x63, 0x0f,
+		0xbc, 0x51, 0x29, 0x0c, 0xa2, 0xb2, 0x43, 0x89,
+		0x12, 0xb4, 0xa7, 0x6e, 0x7c, 0xa9, 0x68, 0x31,
+		0xde, 0x64, 0xbc, 0x6a, 0x92, 0xbf, 0x8f, 0x79,
 	}
 )
 
@@ -159,7 +159,7 @@ func validateStorageVectorBaseline(t *testing.T, document map[string]any) {
 	for _, count := range []struct {
 		value any
 		want  int
-	}{{definitions["fields"], 23}, {definitions["dimensions"], 7}, {definitions["relations"], 6}, {catalog["domain_catalog"], 5}, {index.Fields, 23}, {index.Services, 7}, {index.Capabilities, 5}, {index.Operations, 2}, {index.EffectRules, 2}} {
+	}{{definitions["fields"], 25}, {definitions["dimensions"], 7}, {definitions["relations"], 6}, {catalog["domain_catalog"], 5}, {index.Fields, 25}, {index.Services, 7}, {index.Capabilities, 5}, {index.Operations, 2}, {index.EffectRules, 2}} {
 		if storageVectorLen(t, count.value) != count.want {
 			t.Fatalf("catalog count = %d, want %d", storageVectorLen(t, count.value), count.want)
 		}
@@ -205,7 +205,7 @@ func storageVectorFailure(t *testing.T, id string, document map[string]any) stri
 		}
 	case "ST-NEG-004":
 		fields := storageVectorArray(t, storageVectorObject(t, catalog["definitions"])["fields"])
-		if storageVectorString(t, storageVectorArray(t, storageVectorObject(t, fields[22])["symbols"])[1]) != "storage.status.interlock.clear" {
+		if storageVectorString(t, storageVectorArray(t, storageVectorObject(t, fields[24])["symbols"])[1]) != "storage.status.interlock.clear" {
 			return "field catalog"
 		}
 	default:

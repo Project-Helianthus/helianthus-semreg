@@ -42,8 +42,25 @@ var fields = []fieldSpec{
 	{"pv.ac.aggregate_apparent_power", semreg.ValueQuantity, "unit.volt_ampere", "pv.dimension.inverter", bound("0", 0), bound("1", 7), nil}, {"pv.ac.aggregate_reactive_power", semreg.ValueQuantity, "unit.volt_ampere_reactive", "pv.dimension.inverter", bound("-1", 7), bound("1", 7), nil},
 	{"pv.energy.yield_day", semreg.ValueQuantity, "unit.joule", "pv.dimension.system", bound("0", 0), bound("36", 17), nil}, {"pv.energy.yield_month", semreg.ValueQuantity, "unit.joule", "pv.dimension.system", bound("0", 0), bound("36", 17), nil}, {"pv.energy.yield_year", semreg.ValueQuantity, "unit.joule", "pv.dimension.system", bound("0", 0), bound("36", 17), nil},
 	{"pv.limit.active_power_ratio", semreg.ValueQuantity, "unit.ratio", "pv.dimension.inverter", bound("0", 0), bound("1", 0), nil},
+	{"pv.accuracy.measured", semreg.ValueBoolean, "", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.ratio_maximum", semreg.ValueQuantity, "unit.ratio", "pv.dimension.inverter", nil, nil, nil},
 }
 var dimensions = map[semreg.DefinitionID]semreg.ValueKind{"pv.dimension.system": semreg.ValueText, "pv.dimension.inverter": semreg.ValueText, "pv.dimension.array": semreg.ValueText, "pv.dimension.string": semreg.ValueText, "pv.dimension.input": semreg.ValueText, "pv.dimension.phase": semreg.ValueText}
+
+var measurementSymbols = []string{
+	"active_current", "active_power", "apparent_current", "apparent_energy", "apparent_power",
+	"electrical_energy", "frequency", "neutral_current", "power_factor", "reactive_current",
+	"reactive_energy", "reactive_power", "rms_current", "rms_power", "rms_voltage", "unspecified", "voltage",
+}
+
+var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
+	"pv.accuracy.measured":      {"pv.dimension.measurement_type"},
+	"pv.accuracy.ratio_maximum": {"pv.dimension.measurement_type"},
+}
+
+var qualifierSymbols = map[semreg.DefinitionID][]string{
+	"pv.dimension.measurement_type": measurementSymbols,
+}
 var services = map[semreg.DefinitionID]semreg.DefinitionID{"pv.service.system": "pv.dimension.system", "pv.service.inverter": "pv.dimension.inverter", "pv.service.array": "pv.dimension.array", "pv.service.string": "pv.dimension.string", "pv.service.input": "pv.dimension.input", "pv.service.phase": "pv.dimension.phase"}
 
 type capabilitySpec struct {

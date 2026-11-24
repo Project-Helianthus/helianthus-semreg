@@ -30,7 +30,7 @@ const CatalogOrder = "owner kind, pack id, pack version, element id, element ver
 // copy of the accepted catalog. Load accepts no other bytes, and a
 // graph-enforced registry of the root package accepts no catalog with another
 // digest.
-const PinnedDigest semreg.Digest = "sha256:6c8d5c5c65327ef289c504db8378bc824c7170f5d7cb55e714625728feb526a4"
+const PinnedDigest semreg.Digest = "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb"
 
 // Status is the document status.
 type Status string
@@ -333,10 +333,13 @@ type RelationAttributes struct {
 }
 
 // DimensionAttributes are the attributes of a dimension. ResourceKind is set
-// only for the resource role.
+// only for the resource role. ValueKind and Symbols are set only for a
+// qualifier dimension whose value kind is symbol.
 type DimensionAttributes struct {
 	Role         DimensionRole
 	ResourceKind semreg.DefinitionID
+	ValueKind    semreg.ValueKind
+	Symbols      []string
 }
 
 // ServiceAttributes are the attributes of a service.
@@ -362,13 +365,15 @@ type SignReference struct {
 }
 
 // FactAttributes are the attributes of a fact. SignReference is set exactly
-// when Direction is signed.
+// when Direction is signed. Qualifiers lists the qualifier dimensions of the
+// fact, in document order, and is empty when the fact names none.
 type FactAttributes struct {
 	ValueKind     semreg.ValueKind
 	Subject       FactSubject
 	Aggregation   Aggregation
 	Direction     Direction
 	SignReference *SignReference
+	Qualifiers    []ElementRef
 }
 
 // CapabilityAttributes are the attributes of a capability.
@@ -740,8 +745,10 @@ type relationWire struct {
 }
 
 type dimensionWire struct {
-	Role         string  `json:"role"`
-	ResourceKind *string `json:"resource_kind,omitempty"`
+	Role         string   `json:"role"`
+	ResourceKind *string  `json:"resource_kind,omitempty"`
+	ValueKind    *string  `json:"value_kind,omitempty"`
+	Symbols      []string `json:"symbols,omitempty"`
 }
 
 type serviceWire struct {
@@ -762,6 +769,7 @@ type factWire struct {
 	Aggregation   string          `json:"aggregation"`
 	Direction     string          `json:"direction"`
 	SignReference json.RawMessage `json:"sign_reference,omitempty"`
+	Qualifiers    []refWire       `json:"qualifiers,omitempty"`
 }
 
 type capabilityWire struct {
@@ -798,6 +806,7 @@ var (
 	nativeRepoPattern   = regexp.MustCompile(`^https://github\.com/Project-Helianthus/helianthus-docs-[a-z0-9-]+$`)
 	kernelTypePattern   = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
 	kernelValuePattern  = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+	symbolTokenPattern  = regexp.MustCompile(`^[a-z][a-z0-9._]*$`)
 )
 
 var (
@@ -1110,6 +1119,9 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 			}
 			attributes.ResourceKind = semreg.DefinitionID(*wire.ResourceKind)
 		}
+		if err := decodeDimensionValue(attributes, wire); err != nil {
+			return err
+		}
 		element.Dimension = attributes
 	case KindService:
 		var wire serviceWire
@@ -1294,8 +1306,55 @@ func decodeFact(element *Element, raw json.RawMessage) error {
 		}
 		attributes.SignReference = sign
 	}
+	if len(wire.Qualifiers) > 0 {
+		qualifiers, err := decodeQualifierList(wire.Qualifiers)
+		if err != nil {
+			return err
+		}
+		attributes.Qualifiers = qualifiers
+	}
 	element.Fact = attributes
 	return nil
+}
+
+func decodeDimensionValue(attributes *DimensionAttributes, wire dimensionWire) error {
+	if attributes.Role != RoleQualifier {
+		if wire.ValueKind != nil || len(wire.Symbols) > 0 {
+			return newError(semreg.InvalidValue, "a resource dimension names no value kind")
+		}
+		return nil
+	}
+	if wire.ValueKind == nil || *wire.ValueKind != string(semreg.ValueSymbol) || len(wire.Symbols) == 0 {
+		return newError(semreg.InvalidValue, "a qualifier dimension names the symbol value kind")
+	}
+	seen := map[string]struct{}{}
+	for _, symbol := range wire.Symbols {
+		if !symbolTokenPattern.MatchString(symbol) {
+			return errorf(semreg.InvalidIdentifier, "symbol %q", symbol)
+		}
+		if _, dup := seen[symbol]; dup {
+			return errorf(semreg.InvalidValue, "symbol %q repeated", symbol)
+		}
+		seen[symbol] = struct{}{}
+	}
+	attributes.ValueKind = semreg.ValueSymbol
+	attributes.Symbols = append([]string(nil), wire.Symbols...)
+	return nil
+}
+
+func decodeQualifierList(wires []refWire) ([]ElementRef, error) {
+	refs, err := decodeRefs(wires...)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[ElementRef]struct{}{}
+	for _, ref := range refs {
+		if _, dup := seen[ref]; dup {
+			return nil, newError(semreg.InvalidValue, "qualifier repeated")
+		}
+		seen[ref] = struct{}{}
+	}
+	return refs, nil
 }
 
 func decodeSubject(wire subjectWire) (FactSubject, error) {

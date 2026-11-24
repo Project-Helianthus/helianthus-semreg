@@ -1,7 +1,7 @@
 {
   "contract": "helianthus.semantic.graph.acceptance/v1",
   "kernel_contract": "helianthus.semantic.kernel/v1",
-  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140"},
+  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb"},
   "synthetic_identification_schemes": ["synthetic.serial"],
   "error_ids": [
     "ambiguous_route",
@@ -14949,7 +14949,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15008,7 +15008,7 @@
             {
               "contract": "helianthus.semantic.lens-result/v1",
               "lens": "lens.equipment_composition",
-              "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+              "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
               "cut": {
                 "completeness": "complete",
                 "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15059,7 +15059,7 @@
             {
               "contract": "helianthus.semantic.lens-result/v1",
               "lens": "lens.equipment_composition",
-              "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+              "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
               "cut": {
                 "completeness": "complete",
                 "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15208,7 +15208,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.energy_flow",
-          "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
           "cut": {
             "completeness": "partial",
             "cut_id": "sha256:ab58e4e3b210de8c104d2b037b1a40a7be92f6dd5ae5ad28ebb9254f08497966",
@@ -90686,7 +90686,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:f9d648bb3d1596e1096063f72fe2efa02f8c8ddc6fae9a3d13bb2690cc2c4be8",
@@ -91067,7 +91067,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:09e3d6d9758c1cecfedf36a1ff542a1a39dabce087b187a0c5ba7a27afb672a8",
@@ -91291,7 +91291,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:de232c42e636703b0da52fd0fd40a705cbe363113bac8b5aa27edfa702d6e140",
+          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:c8c1b3d6a01d8b133b3de559e0915b353361857d495c0acf4aa499963ea4f647",
@@ -93788,6 +93788,114 @@
         }
       ],
       "criterion": "TGT-2: a disposition that cites a relation which is not coherent is projection_incomplete."
+    },
+    {
+      "id": "G-POS-SUBJ-CLASS-1",
+      "polarity": "positive",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "element_catalog"
+      ],
+      "prior_state": "no-registry",
+      "input": {
+        "subject_check": {
+          "anchor_classes": [
+            "component",
+            "equipment"
+          ],
+          "anchor_class": "equipment"
+        }
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "class_level_subject_admitted"
+        ]
+      },
+      "definitions": [],
+      "criterion": "A class-level subject admits a resource whose anchor class is one of the declared anchor classes. The PV inverter family is equipment."
+    },
+    {
+      "id": "G-NEG-SUBJ-CLASS-1",
+      "polarity": "negative",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "element_catalog"
+      ],
+      "prior_state": "no-registry",
+      "input": {
+        "subject_check": {
+          "anchor_classes": [
+            "equipment"
+          ],
+          "anchor_class": "function"
+        }
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "identity_drift",
+        "state_unchanged": true
+      },
+      "definitions": [],
+      "criterion": "A resource class outside the declared anchor classes is identity_drift."
+    },
+    {
+      "id": "G-POS-QUAL-1",
+      "polarity": "positive",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "element_catalog"
+      ],
+      "prior_state": "no-registry",
+      "input": {
+        "subject_check": {
+          "declared_qualifiers": [
+            "measurement_type"
+          ],
+          "key_qualifiers": [
+            "measurement_type"
+          ]
+        }
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "declared_qualifiers_admitted"
+        ]
+      },
+      "definitions": [],
+      "criterion": "A fact key that carries exactly the declared qualifiers is admitted."
+    },
+    {
+      "id": "G-NEG-QUAL-1",
+      "polarity": "negative",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "element_catalog"
+      ],
+      "prior_state": "no-registry",
+      "input": {
+        "subject_check": {
+          "declared_qualifiers": [
+            "measurement_type"
+          ],
+          "key_qualifiers": [
+            "measurement_type",
+            "range"
+          ]
+        }
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "unknown_member",
+        "state_unchanged": true
+      },
+      "definitions": [],
+      "criterion": "A fact key that carries a qualifier the fact does not declare is unknown_member."
     }
   ]
 }

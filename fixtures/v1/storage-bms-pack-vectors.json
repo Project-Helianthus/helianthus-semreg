@@ -97,12 +97,6 @@
         },
         {
           "dimension": "storage.dimension.pack",
-          "id": "storage.energy.nominal_capacity",
-          "kind": "quantity",
-          "unit": "unit.joule"
-        },
-        {
-          "dimension": "storage.dimension.pack",
           "id": "storage.energy.remaining",
           "kind": "quantity",
           "unit": "unit.joule"
@@ -110,6 +104,12 @@
         {
           "dimension": "storage.dimension.pack",
           "id": "storage.energy.usable_capacity",
+          "kind": "quantity",
+          "unit": "unit.joule"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.energy.nominal_capacity",
           "kind": "quantity",
           "unit": "unit.joule"
         },
@@ -160,6 +160,18 @@
           "id": "storage.limit.discharge_power",
           "kind": "quantity",
           "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.limit.charge_current",
+          "kind": "quantity",
+          "unit": "unit.ampere"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.limit.discharge_current",
+          "kind": "quantity",
+          "unit": "unit.ampere"
         },
         {
           "dimension": "storage.dimension.pack",
@@ -413,7 +425,7 @@
         "mutations": [
           {
             "op": "set",
-            "path": "definitions.fields.22.symbols.1",
+            "path": "definitions.fields.24.symbols.1",
             "value": "storage.status.interlock.active"
           }
         ]
