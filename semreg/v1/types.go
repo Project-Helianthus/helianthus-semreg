@@ -430,11 +430,20 @@ const (
 )
 
 // Qualification is the evidence state of a fact, service or capability. It is
-// independent of the other Quality axes.
+// independent of the other Quality axes. qualified means the native owner
+// declares the mapping from the specification or the public documentation it
+// pins, and the declaration is bound at runtime. A hardware test is recorded
+// beside the qualification as a verification level and never changes it.
 type Qualification string
 
-// Qualification values. Unsupported and rejected candidates carry no value;
-// only qualified records may be promoted or actionable.
+// EvidenceKindTestedOnHardware is the evidence kind of a recorded hardware
+// test. A hardware test never changes qualification.
+const EvidenceKindTestedOnHardware DefinitionID = "verification.tested_on_hardware"
+
+// Qualification values. Unsupported and rejected candidates carry no value. A
+// qualification alone neither forbids promotion nor gates observation
+// visibility or operation admission; the other axes and the separate capability
+// and projection rules apply.
 const (
 	QualificationCandidate   Qualification = "candidate"
 	QualificationQualified   Qualification = "qualified"
@@ -443,12 +452,13 @@ const (
 	QualificationRejected    Qualification = "rejected"
 )
 
-// Promotion states whether a qualified value is exposed as a supported
-// semantic fact.
+// Promotion states whether a value is exposed as a supported semantic fact.
 type Promotion string
 
-// Promotion values. PromotionPromoted requires qualified qualification, good
-// or suspect validity, and available or degraded availability.
+// Promotion values. A candidate state is never by itself a veto of promotion:
+// Quality.Validate holds no cross-axis promotion predicate, so a promoted
+// candidate keeps its actual qualification, validity and availability. Conflict
+// derivation still considers only qualified, promoted candidates.
 const (
 	PromotionUnpromoted Promotion = "unpromoted"
 	PromotionPromoted   Promotion = "promoted"

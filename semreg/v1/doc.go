@@ -14,6 +14,12 @@
 // boundary through ValidateFactCandidate, ValidateService, ValidateCapability,
 // or ValidateField so one exact registered owner hook is dispatched.
 //
+// A qualified Qualification is declared by the specification or public
+// documentation the native owner pins and is bound at runtime. A hardware test
+// is recorded beside it as a verification level (EvidenceKindTestedOnHardware)
+// and never changes qualification. Qualification alone does not forbid
+// promotion: Quality.Validate holds no cross-axis promotion predicate.
+//
 // The records of the semantic resource graph (Resource, RelationInstance and
 // RelationAbsence with their keys) and the graph members of IdentityLink,
 // ServiceInstance, PublicationBatch, Snapshot and RevisionVector are optional

@@ -1,36 +1,54 @@
-// Package catalog defines the protocol-neutral family catalog: one row per
-// device or protocol family with the qualification state its published
-// evidence supports today. A row never creates a native mapping, route,
+// Package catalog defines the protocol-neutral family record and the family
+// catalog document: one record per device or protocol family with the
+// qualification state its published evidence supports, the composition
+// evidence that names the registration of the driver that declares it, and the
+// recorded hardware-test level. A driver declares its own families through the
+// driver contract; SemReg stores no vendor family row and no gateway
+// composition record. A record never creates a native mapping, route,
 // authority or live operation; it only records state and where the evidence
-// lives. The catalog imports no transport, protocol, vendor or gateway code.
+// lives, and it carries no write-authority field and no default-deny rule. The
+// catalog imports no transport, protocol, vendor, gateway or driver code.
 //
 // # Contract family-catalog/v1
 //
 // The document is a JSON object with members contract, semantic_docs_pin,
 // states and families. Each family has family_id, name, native_owner,
-// semantic_pack, state, composition, composition_verified, reason and
-// evidence (owner, kind, locator, statement). native_owner and semantic_pack
-// may be empty when no owner or pack exists. The optional member
-// further_semantic_packs names the family's other accepted packs; it is
-// omitted when empty, needs a non-empty semantic_pack, and holds unique exact
-// PackRef strings in ascending byte order after semantic_pack, so Packs lists
-// every pack of the row in canonical order. state is exactly one of the
-// semantic Qualification values (candidate, qualified, unsupported, unknown,
-// rejected) and the declared states member must equal that set. composition is
-// composed, composed_legacy, provider_local or not_composed. A claimed
-// composition requires composition_verified=true and a gateway_composition
-// evidence reference; otherwise composition_verified is false and the value
-// is unverified; a not_composed row must be unverified and carry no
-// gateway_composition evidence. reason is one of the Reason constants below.
+// semantic_pack, state, composition, reason, evidence (owner, kind, locator,
+// statement), composition_verified and verification, and the optional members
+// module and version. native_owner and semantic_pack may be empty when no
+// owner or pack exists. The optional member further_semantic_packs names the
+// family's other accepted packs; it is omitted when empty, needs a non-empty
+// semantic_pack, and holds unique exact PackRef strings, with no count bound,
+// in ascending byte order after semantic_pack, so Packs lists every pack of the
+// row in canonical order. state is exactly one of the semantic Qualification
+// values (candidate, qualified, unsupported, unknown, rejected) and the
+// declared states member must equal that set. A qualified row is declared by
+// the specification or public documentation its native owner pins and bound at
+// runtime: it has the reason declared_by_specification and a specification
+// evidence entry. verification is tested_on_hardware or not_tested_on_hardware;
+// it is a recorded level beside state and never changes it, and
+// tested_on_hardware needs a hardware_test_record evidence entry. composition
+// is composed, composed_legacy, provider_local or not_composed. module and
+// version are the evidence of the registration of the driver that declares the
+// family; each is omitted when empty. A claimed composition requires
+// composition_verified=true and both module and version; a not_composed row has
+// composition_verified=false and carries neither. reason is one of the Reason
+// constants below.
 //
-// Compatibility rule: within v1 only additive values (new families, reasons,
-// compositions or evidence kinds) may be added; from the 0.7 release on,
-// removing or renaming a value, changing a member's meaning, or adding a
-// member requires v2, and before it such a change is an in-place edit. The
-// optional further_semantic_packs member is such an in-place edit. The document
-// rejects duplicate and unknown members at every object level. The
+// A document must hold every family in RequiredFamilyIDs; a missing required
+// family and an unknown member of a Family object are rejected, and a valid
+// additional family that a driver declares is accepted. There is no fixed
+// family count.
+//
+// Compatibility rule: the members verification, module and version, the
+// reasons declared_by_specification and specification_conflict and the
+// evidence kinds specification and hardware_test_record are in place in v1
+// before the 0.7 release, as are the removal of the gateway_composition
+// evidence kind and the evidence-grade reasons and of the further_semantic_packs
+// count bound; no alias and no revision bump carries the earlier form. The
+// document rejects duplicate and unknown members at every object level. The
 // contract page is api/v1/family-catalog-v1.md in
-// Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e; the page is authoritative.
+// Project-Helianthus/helianthus-docs-semantic; the page is authoritative.
 package catalog
 
 import (
@@ -59,57 +77,34 @@ const (
 	// not through a SemReg pack.
 	CompositionComposedLegacy Composition = "composed_legacy"
 	// CompositionProviderLocal means the native provider emits the family and no
-	// gateway composition is claimed.
+	// composition through SemReg is claimed.
 	CompositionProviderLocal Composition = "provider_local"
 	// CompositionNotComposed means no composition is claimed.
 	CompositionNotComposed Composition = "not_composed"
 )
 
-// Reason explains why a row is not qualified. The semantic contract has no
-// "evidence-blocked" or "no admissible profile" qualification value, so those
-// conditions stay candidate or unknown and are named here instead.
+// Reason states the basis of a row's state. A qualified row is declared by the
+// specification or public documentation its native owner pins and bound at
+// runtime; a hardware test is recorded beside it as Verification and never
+// changes it.
 type Reason string
 
 // Reason values. The set is closed: Validate rejects any other value, and a
-// value keeps its meaning for the whole of v1. Each value names the strongest
-// evidence the row cites; none of them grants live, write or support authority.
+// value keeps its meaning for the whole of v1. None of them grants live, write
+// or support authority.
 const (
-	// ReasonOfflineProfileOnly means the cited native disposition admits an
-	// offline profile only, without live qualification or write authority.
-	ReasonOfflineProfileOnly Reason = "offline_profile_only"
-	// ReasonOfflineMappingGateOnly means the cited evidence is an accepted
-	// read-only mapping gate over offline observations; it establishes neither
-	// device support nor physical qualification.
-	ReasonOfflineMappingGateOnly Reason = "offline_mapping_gate_only"
-	// ReasonFamilyCompatibleOffline means the cited native evidence is offline
-	// and family-compatible only, with no sender, control route or live
-	// authority. Narrower restrictions belong to the owning pack or mapping.
-	ReasonFamilyCompatibleOffline Reason = "family_compatible_offline"
-	// ReasonNoAdmissibleProfile means the pinned native sources establish no
-	// admissible exact profile tuple for the family.
-	ReasonNoAdmissibleProfile Reason = "no_admissible_profile"
-	// ReasonQualificationTestReadyOnly means a native qualification card reports
-	// the qualification as test-ready only; hardware, live, catalog, support and
-	// write qualification are all still absent. The wire value is
-	// qualification_test_ready_offline.
-	ReasonQualificationTestReadyOnly Reason = "qualification_test_ready_offline"
-	// ReasonEvidenceBlocked means a native qualification card or disposition
-	// reports the qualification as blocked on evidence.
-	ReasonEvidenceBlocked Reason = "evidence_blocked"
-	// ReasonNoGoMissingEvidence means the native owner recorded a no-go for lack
-	// of evidence and removed typed decoding, discovery and acquisition.
-	ReasonNoGoMissingEvidence Reason = "no_go_missing_evidence"
-	// ReasonOfflineReplayOnly means the cited evidence is offline replay
-	// qualification of receive-only observations.
-	ReasonOfflineReplayOnly Reason = "offline_replay_only"
+	// ReasonDeclaredBySpecification means the pinned native specification or
+	// public documentation declares the family's mapping and the declaration is
+	// bound at runtime. A qualified row has this reason and a specification
+	// evidence entry.
+	ReasonDeclaredBySpecification Reason = "declared_by_specification"
+	// ReasonSpecificationConflict means two public sources state conflicting
+	// facts; both are recorded as evidence.
+	ReasonSpecificationConflict Reason = "specification_conflict"
 	// ReasonSemanticMappingUnknown means native receive-side evidence exists but
 	// no semantic mapping of the family is established; native state stays
 	// opaque.
 	ReasonSemanticMappingUnknown Reason = "semantic_mapping_unknown"
-	// ReasonLegacyLayerComposition means the cited gateway composition evidence
-	// shows the family reaching consumers through the legacy semantic layer,
-	// not through a SemReg pack publication.
-	ReasonLegacyLayerComposition Reason = "legacy_layer_composition"
 	// ReasonUnknownPendingNormativeSource means the family stays unknown
 	// while the normative source the accepted packs record under this same
 	// coded value is unresolved; no normative mapping or conformance claim
@@ -121,17 +116,35 @@ const (
 	ReasonNoProducer Reason = "no_producer"
 )
 
-// EvidenceKindGatewayComposition marks evidence citing gateway code at an
-// exact revision for a composition claim.
-const EvidenceKindGatewayComposition = "gateway_composition"
+// Evidence kinds a validation rule names. The kind vocabulary is otherwise
+// open and additive.
+const (
+	// EvidenceKindSpecification marks evidence citing the pinned native
+	// specification or public documentation that declares the family's mapping.
+	EvidenceKindSpecification = "specification"
+	// EvidenceKindHardwareTestRecord marks evidence citing a public hardware
+	// test record in a project repository.
+	EvidenceKindHardwareTestRecord = "hardware_test_record"
+)
 
-const gatewayOwnerPrefix = "Project-Helianthus/helianthus-gateway@"
+// Verification is the recorded hardware-test level of a family. It is recorded
+// beside State and never raises or lowers qualification, promotion or an
+// operation.
+type Verification string
+
+// Verification values.
+const (
+	// VerificationTestedOnHardware means a public hardware test record exists;
+	// the row carries a hardware_test_record evidence entry.
+	VerificationTestedOnHardware Verification = "tested_on_hardware"
+	// VerificationNotTestedOnHardware means no hardware test is recorded. It
+	// holds no row below qualified.
+	VerificationNotTestedOnHardware Verification = "not_tested_on_hardware"
+)
 
 var reasons = map[Reason]struct{}{
-	ReasonOfflineProfileOnly: {}, ReasonOfflineMappingGateOnly: {}, ReasonFamilyCompatibleOffline: {},
-	ReasonNoAdmissibleProfile: {}, ReasonQualificationTestReadyOnly: {}, ReasonEvidenceBlocked: {},
-	ReasonNoGoMissingEvidence: {}, ReasonOfflineReplayOnly: {}, ReasonSemanticMappingUnknown: {},
-	ReasonLegacyLayerComposition: {}, ReasonUnknownPendingNormativeSource: {}, ReasonNoProducer: {},
+	ReasonDeclaredBySpecification: {}, ReasonSpecificationConflict: {}, ReasonSemanticMappingUnknown: {},
+	ReasonUnknownPendingNormativeSource: {}, ReasonNoProducer: {},
 }
 
 var compositions = map[Composition]struct{}{
@@ -147,30 +160,33 @@ type Evidence struct {
 	Statement string `json:"statement"`
 }
 
-// Family is one catalog row. Its fields are declared in the member order of
-// the fixture, so a decoded row re-encodes to the same bytes.
+// Family is one family record, declared by a driver or held in a catalog
+// document. Its fields are declared in the member order of the fixture, so a
+// decoded record re-encodes to the same bytes.
 type Family struct {
 	FamilyID     string `json:"family_id"`
 	Name         string `json:"name"`
 	NativeOwner  string `json:"native_owner"`
 	SemanticPack string `json:"semantic_pack"`
 	// FurtherSemanticPacks names the other accepted packs the family maps to.
-	// It is omitted when empty; when present it holds 1 through
-	// MaxFurtherSemanticPacks exact PackRef strings in ascending byte order,
-	// each sorting after SemanticPack. No pack of a row is primary.
+	// It is omitted when empty; when present it holds one or more exact
+	// PackRef strings in ascending byte order, each sorting after
+	// SemanticPack, with no count bound. No pack of a row is primary.
 	FurtherSemanticPacks []string             `json:"further_semantic_packs,omitempty"`
 	State                semreg.Qualification `json:"state"`
 	Composition          Composition          `json:"composition"`
 	Reason               Reason               `json:"reason"`
 	Evidence             []Evidence           `json:"evidence"`
-	// CompositionVerified is true only when gateway code at a pinned revision
-	// is cited as gateway_composition evidence for a claimed composition.
+	// CompositionVerified is true only for a claimed composition whose Module
+	// and Version name the registration of the declaring driver.
 	CompositionVerified bool `json:"composition_verified"`
+	// Verification is the recorded hardware-test level; it never changes State.
+	Verification Verification `json:"verification"`
+	// Module and Version are the composition evidence of the registration of
+	// the driver that declares the family. Each is omitted when empty.
+	Module  string `json:"module,omitempty"`
+	Version string `json:"version,omitempty"`
 }
-
-// MaxFurtherSemanticPacks bounds FurtherSemanticPacks: with five accepted
-// capability packs, a row names at most four besides SemanticPack.
-const MaxFurtherSemanticPacks = 4
 
 // Packs returns the row's packs in canonical order: SemanticPack followed by
 // FurtherSemanticPacks. It is empty when the row names no pack. The returned
@@ -199,14 +215,11 @@ func AllowedStates() []semreg.Qualification {
 	}
 }
 
-// RequiredFamilyIDs lists the families of the INT-07 draft that the catalog
-// must cover.
+// RequiredFamilyIDs lists the families a catalog document must hold: the one
+// family that names no vendor or protocol. Every other family is declared by
+// its driver.
 func RequiredFamilyIDs() []string {
-	return []string{
-		"sunspec-fronius-pv", "growatt-bms-rs485-v202", "tesla-gen3-evse", "tesla-legacy-fbe0-fde0",
-		"growatt-protocol-ii", "huawei-smartlogger", "huawei-emma", "huawei-sdongle", "outback-axs",
-		"growatt-bms-can-v104", "gree-vrf-can", "vaillant-ebus-thermal", "eebus-inbound", "infrastructure",
-	}
+	return []string{"infrastructure"}
 }
 
 // Decode strictly decodes and validates a catalog document.
@@ -324,10 +337,7 @@ func (c Catalog) Validate() error {
 	if !strings.HasPrefix(c.SemanticDocsPin, pinPrefix) || !isCommitSHA(strings.TrimPrefix(c.SemanticDocsPin, pinPrefix)) {
 		return errors.New("family catalog: semantic docs pin must name a full commit")
 	}
-	allowed := map[semreg.Qualification]struct{}{}
-	for _, s := range AllowedStates() {
-		allowed[s] = struct{}{}
-	}
+	allowed := allowedStates()
 	declared := map[semreg.Qualification]struct{}{}
 	for _, s := range c.States {
 		if _, ok := allowed[s]; !ok {
@@ -343,7 +353,7 @@ func (c Catalog) Validate() error {
 	}
 	seen := map[string]struct{}{}
 	for _, f := range c.Families {
-		if err := f.validate(allowed); err != nil {
+		if err := f.Validate(); err != nil {
 			return fmt.Errorf("family %q: %w", f.FamilyID, err)
 		}
 		if _, dup := seen[f.FamilyID]; dup {
@@ -361,17 +371,26 @@ func (c Catalog) Validate() error {
 		sort.Strings(missing)
 		return fmt.Errorf("family catalog: missing families %v", missing)
 	}
-	if len(seen) != len(RequiredFamilyIDs()) {
-		return errors.New("family catalog: unlisted family")
-	}
 	return nil
 }
 
-func (f Family) validate(allowed map[semreg.Qualification]struct{}) error {
+func allowedStates() map[semreg.Qualification]struct{} {
+	allowed := map[semreg.Qualification]struct{}{}
+	for _, s := range AllowedStates() {
+		allowed[s] = struct{}{}
+	}
+	return allowed
+}
+
+// Validate checks one family record as a driver declares it: identity, an
+// allowed state, composition, reason and verification, packs, evidence, the
+// qualified and tested_on_hardware evidence rules and the composition evidence.
+// It never invents or upgrades a state.
+func (f Family) Validate() error {
 	if f.FamilyID == "" || f.Name == "" {
 		return errors.New("identity is required")
 	}
-	if _, ok := allowed[f.State]; !ok {
+	if _, ok := allowedStates()[f.State]; !ok {
 		return fmt.Errorf("state %q is not allowed", f.State)
 	}
 	if _, ok := compositions[f.Composition]; !ok {
@@ -380,49 +399,55 @@ func (f Family) validate(allowed map[semreg.Qualification]struct{}) error {
 	if _, ok := reasons[f.Reason]; !ok {
 		return fmt.Errorf("reason %q is not allowed", f.Reason)
 	}
+	if f.Verification != VerificationTestedOnHardware && f.Verification != VerificationNotTestedOnHardware {
+		return fmt.Errorf("verification %q is not allowed", f.Verification)
+	}
 	if err := f.validatePacks(); err != nil {
 		return err
 	}
 	if len(f.Evidence) == 0 {
 		return errors.New("evidence reference is required")
 	}
-	gateway := false
+	specification, hardware := false, false
 	for _, e := range f.Evidence {
 		if e.Owner == "" || e.Kind == "" || e.Locator == "" || e.Statement == "" {
 			return errors.New("every evidence reference needs owner, kind, locator and statement")
 		}
-		if e.Kind == EvidenceKindGatewayComposition {
-			if !strings.HasPrefix(e.Owner, gatewayOwnerPrefix) || !isCommitSHA(strings.TrimPrefix(e.Owner, gatewayOwnerPrefix)) {
-				return errors.New("gateway composition evidence must pin a full gateway commit")
-			}
-			gateway = true
+		switch e.Kind {
+		case EvidenceKindSpecification:
+			specification = true
+		case EvidenceKindHardwareTestRecord:
+			hardware = true
 		}
 	}
-	if f.Composition != CompositionNotComposed && !(f.CompositionVerified && gateway) {
-		return errors.New("claimed composition needs composition_verified and gateway composition evidence")
+	if f.Verification == VerificationTestedOnHardware && !hardware {
+		return errors.New("tested_on_hardware needs a hardware_test_record evidence entry")
 	}
-	if f.Composition == CompositionNotComposed && (f.CompositionVerified || gateway) {
-		return errors.New("not_composed rows stay unverified and carry no gateway composition evidence")
+	if f.State == semreg.QualificationQualified && (f.Reason != ReasonDeclaredBySpecification || !specification) {
+		return errors.New("a qualified row needs the reason declared_by_specification and a specification evidence entry")
 	}
-	if f.CompositionVerified && !gateway {
-		return errors.New("composition_verified needs gateway composition evidence")
+	if f.Composition == CompositionNotComposed {
+		if f.CompositionVerified || f.Module != "" || f.Version != "" {
+			return errors.New("not_composed rows have composition_verified=false and carry neither module nor version")
+		}
+		return nil
+	}
+	if !f.CompositionVerified || f.Module == "" || f.Version == "" {
+		return errors.New("claimed composition needs composition_verified and both module and version")
 	}
 	return nil
 }
 
-// validatePacks checks further_semantic_packs: absent, or 1 through
-// MaxFurtherSemanticPacks exact PackRef strings after a non-empty
-// semantic_pack, unique, none equal to semantic_pack and in ascending byte
-// order. A row in any other order is rejected, never reordered.
+// validatePacks checks further_semantic_packs: absent, or one or more exact
+// PackRef strings after a non-empty semantic_pack, unique, none equal to
+// semantic_pack and in ascending byte order. A row in any other order is
+// rejected, never reordered.
 func (f Family) validatePacks() error {
 	if f.FurtherSemanticPacks == nil {
 		return nil
 	}
 	if len(f.FurtherSemanticPacks) == 0 {
 		return errors.New("further_semantic_packs is present but empty")
-	}
-	if len(f.FurtherSemanticPacks) > MaxFurtherSemanticPacks {
-		return fmt.Errorf("further_semantic_packs holds %d entries, not 1 through %d", len(f.FurtherSemanticPacks), MaxFurtherSemanticPacks)
 	}
 	if f.SemanticPack == "" {
 		return errors.New("further_semantic_packs needs a non-empty semantic_pack, got an empty semantic_pack")

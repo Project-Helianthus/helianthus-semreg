@@ -286,9 +286,6 @@ func (q Quality) Validate() error {
 	if q.Freshness != FreshnessFresh && q.Freshness != FreshnessStale && q.Freshness != FreshnessExpired && q.Freshness != FreshnessUnknown {
 		errs = append(errs, errID(InvalidEnum, "freshness"))
 	}
-	if q.Promotion == PromotionPromoted && (q.Qualification != QualificationQualified || (q.Validity != ValidityGood && q.Validity != ValiditySuspect) || (q.Availability != AvailabilityAvailable && q.Availability != AvailabilityDegraded)) {
-		errs = append(errs, errID(InvalidValue, "promotion"))
-	}
 	if len(q.Reasons) > 16 {
 		errs = append(errs, errID(BoundsExceeded, "reasons"))
 	}
