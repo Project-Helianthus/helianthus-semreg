@@ -296,16 +296,22 @@ func (a *Allocator) Home(resource semreg.ResourceID, asset semreg.AssetID) (semr
 	return home, nil
 }
 
-// forget drops what this allocator held in memory, so that Resolve, Home and
-// the parent check follow only the store, as a fresh allocator over it does. A
-// restore calls it after it replaced the content of the store.
-func (a *Allocator) forget() {
+// replaceStore replaces the content of the store and drops what this allocator
+// held in memory, so that Resolve, Home and the parent check follow only the
+// store, as a fresh allocator over it does. The replacement and the drop happen
+// under the same hold as every allocator operation, so each Resolve, Supersede
+// or Home runs wholly before the replacement or wholly after it.
+func (a *Allocator) replaceStore(table Table) error {
 	storeMu.Lock()
 	defer storeMu.Unlock()
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if err := a.store.Replace(table); err != nil {
+		return err
+	}
 	a.held = make(map[AnchorKey]heldAnchor)
 	a.kinds = make(map[semreg.ResourceID]semreg.DefinitionID)
+	return nil
 }
 
 func (a *Allocator) parentKnown(anchor Anchor) error {

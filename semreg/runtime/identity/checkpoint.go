@@ -186,10 +186,9 @@ func (l *Ledger) Restore(data []byte) error {
 	// restore or the state after it.
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if err := l.allocator.store.Replace(doc.Anchors); err != nil {
+	if err := l.allocator.replaceStore(doc.Anchors); err != nil {
 		return fmt.Errorf("%w: %w", ErrStore, err)
 	}
-	l.allocator.forget()
 	l.nodes, l.links, l.matches, l.serials = state.nodes, state.links, state.matches, state.serials
 	l.certs, l.rebinds, l.sources, l.sites = state.certs, state.rebinds, state.sources, state.sites
 	return nil

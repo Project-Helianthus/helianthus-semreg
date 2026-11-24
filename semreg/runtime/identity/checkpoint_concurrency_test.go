@@ -84,6 +84,44 @@ func TestRestoreDoesNotSplitANodeFromItsAnchor(t *testing.T) {
 	}
 }
 
+// An allocator operation that already began on the allocator never commits into
+// the table a restore is installing: it waits for the restore and runs after it.
+func TestRestoreWaitsForAnAllocatorOperationAndRunsItAfter(t *testing.T) {
+	store := newPausingStore()
+	l := ledgerOn(t, store, embeddedCatalog(t))
+	empty, err := l.Export()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.pauseReplace = true
+	restored := make(chan struct{})
+	go func() {
+		defer close(restored)
+		if err := l.Restore(empty); err != nil {
+			t.Error(err)
+		}
+	}()
+	<-store.paused
+	resolved := make(chan struct{})
+	go func() {
+		defer close(resolved)
+		if _, _, err := l.allocator.Resolve(kindEquipment, tokenAnchor("token-a", "x")); err != nil {
+			t.Error(err)
+		}
+	}()
+	select {
+	case <-resolved:
+		t.Error("an allocator operation committed while the restore was replacing the table")
+	case <-time.After(200 * time.Millisecond):
+	}
+	close(store.release)
+	<-restored
+	<-resolved
+	if table, err := store.Table(); err != nil || len(table.Anchors) == 0 {
+		t.Fatalf("the operation that ran after the restore left no anchor: %v %v", table, err)
+	}
+}
+
 func TestExportDoesNotPairAnchorsFromBeforeWithNodesFromAfter(t *testing.T) {
 	store := newPausingStore()
 	l := ledgerOn(t, store, embeddedCatalog(t))
