@@ -234,7 +234,9 @@ func (t *Tree) Capture(ctx context.Context, options CutOptions) (*TreeCut, error
 	}
 	// The capture is answered from a body it retained itself, with its own
 	// omission vector, not from the source's shared store.
-	if view, err = retainOwn(view); err != nil {
+	// The member snapshots and setting routes are copied too, so a later edit of
+	// what the source handed over leaves this capture's reads unchanged.
+	if view, err = detachView(view); err != nil {
 		return nil, err
 	}
 	t.mu.Lock()
@@ -440,7 +442,8 @@ func (t *Tree) callNative(ctx context.Context, prepared Prepared, call *prepared
 	id := ReceiptID(fmt.Sprintf("receipt-%d", t.sequence))
 	t.mu.Unlock()
 	result, callErr := live.call(ctx, cut.takeNativeInput(prepared.ID))
-	outcome := Outcome{Receipt: id, Native: result}
+	// The method may return a buffer it reuses; the receipt keeps its own copy.
+	outcome := Outcome{Receipt: id, Native: cloneBytes(result)}
 	if callErr != nil {
 		outcome.Error = callErr.Error()
 	}
@@ -458,6 +461,8 @@ func (t *Tree) Outcome(ctx context.Context, id ReceiptID) (Outcome, error) {
 	port, dispatched := t.dispatched[id]
 	t.mu.Unlock()
 	if ok {
+		// A caller's edit of what it was handed never reaches the stored outcome.
+		outcome.Native = cloneBytes(outcome.Native)
 		return outcome, nil
 	}
 	if !dispatched {
@@ -606,7 +611,7 @@ func (c *TreeCut) nodeDescriptor(path NodePath) (Descriptor, bool) {
 	level, _ := path.Level()
 	d := Descriptor{Ref: Ref(path.String()), Kind: EntryNode, Level: level, Namespace: record.namespace, Instance: record.instance}
 	if record.spec != nil {
-		d.NodeKind, d.Contract, d.Subject, d.Local = record.spec.Kind, record.spec.Contract, record.spec.Subject, string(record.spec.Local)
+		d.NodeKind, d.Contract, d.Subject, d.Local = record.spec.Kind, record.spec.Contract, cloneNodeRef(record.spec.Subject), string(record.spec.Local)
 		d.Withdrawn = c.liveWithdrawn(path, record.generation)
 	}
 	d.State = c.tree.state(record.instance)
@@ -627,7 +632,7 @@ func (c *TreeCut) memberDescriptor(m memberRecord) Descriptor {
 	d := Descriptor{
 		Ref: Ref(m.key.String()), Kind: EntryAttribute, Domain: KeywordNative, Namespace: m.namespace, Instance: m.instance,
 		Local: string(m.spec.Local), Schema: m.spec.Schema, Unit: m.spec.Units, Mode: m.spec.Mode, Visibility: m.spec.Visibility,
-		Channel: m.spec.Channel, Scope: m.spec.Scope, Bounds: m.spec.Bounds, State: c.tree.state(m.instance),
+		Channel: m.spec.Channel, Scope: m.spec.Scope, Bounds: cloneLimits(m.spec.Bounds), State: c.tree.state(m.instance),
 	}
 	if live, ok := c.tree.Registry.member(m.key.String()); !ok || live.withdrawn || live.generation != m.generation {
 		d.Withdrawn = true

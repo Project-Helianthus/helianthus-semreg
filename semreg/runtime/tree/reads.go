@@ -218,6 +218,9 @@ var _ driver.SemanticInput = (*ScopedInput)(nil)
 
 // SemanticInput returns the scoped semantic input of a session with the scope.
 func (t *Tree) SemanticInput(scope driver.Filter) *ScopedInput {
+	// The session keeps its own copy of the scope: a later edit of the caller's
+	// slice never widens or narrows what the session may read.
+	scope.Assets = append([]semreg.AssetID(nil), scope.Assets...)
 	return &ScopedInput{tree: t, scope: scope, views: map[string]CutView{}}
 }
 
@@ -226,7 +229,8 @@ func (s *ScopedInput) narrow(filter driver.Filter) (driver.Filter, error) {
 		return filter, nil
 	}
 	if len(filter.Assets) == 0 {
-		return s.scope, nil
+		// The source is handed a copy, never the session's own scope slice.
+		return driver.Filter{Assets: append([]semreg.AssetID(nil), s.scope.Assets...)}, nil
 	}
 	allowed := map[semreg.AssetID]struct{}{}
 	for _, asset := range s.scope.Assets {

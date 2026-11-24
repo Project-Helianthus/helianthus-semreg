@@ -340,6 +340,7 @@ func (b *InstanceRegistry) Node(spec driver.NodeSpec) (driver.NodeRef, error) {
 		return driver.NodeRef{}, fmt.Errorf("%w: %s", ErrDuplicate, child.String())
 	}
 	stored := spec
+	stored.Parent, stored.Subject = cloneNodeRef(spec.Parent), cloneNodeRef(spec.Subject)
 	b.r.nodes[child.String()] = &nodeRecord{path: child, spec: &stored, namespace: b.ns, instance: b.instance, generation: b.generation}
 	b.r.record(ChangeNode, child.String())
 	return ref, nil
@@ -383,6 +384,7 @@ func (b *InstanceRegistry) ObserveMember(ref driver.NodeRef, spec driver.MemberS
 	if held, ok := b.r.members[key.String()]; ok && !(held.withdrawn && held.generation < b.generation) {
 		return fmt.Errorf("%w: %s", ErrDuplicate, key.String())
 	}
+	spec.Bounds = cloneLimits(spec.Bounds)
 	b.r.members[key.String()] = &memberRecord{key: key, spec: spec, read: read, namespace: b.ns, instance: b.instance, generation: b.generation}
 	b.r.record(ChangeMember, key.String())
 	return nil
@@ -471,4 +473,36 @@ func sortedKeys[T any](m map[string]T) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// cloneNodeRef copies a node reference so the copy shares no pointer with the
+// registration it came from or is stored for.
+func cloneNodeRef(in *driver.NodeRef) *driver.NodeRef {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	return &out
+}
+
+// cloneLimits copies value limits, the quantities they point to and the evidence
+// they carry, so the copy shares no pointer or slice with the original.
+func cloneLimits(in *driver.ValueLimits) *driver.ValueLimits {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	out.Min, out.Max, out.Step = cloneQuantity(in.Min), cloneQuantity(in.Max), cloneQuantity(in.Step)
+	if in.Evidence != nil {
+		out.Evidence = append([]semreg.EvidenceRef{}, in.Evidence...)
+	}
+	return &out
+}
+
+func cloneQuantity(in *semreg.Quantity) *semreg.Quantity {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	return &out
 }
