@@ -34,7 +34,7 @@ func Invert[S any](t Table[S], w Writing[S]) (WriteResult, error) {
 	var withWrite []BindingRow
 	var seen bool
 	for _, b := range t.Bindings {
-		if b.NativeID != w.NativeID || b.SubjectRole != w.SubjectRole {
+		if b.NativeID != w.NativeID || b.SubjectRole != w.SubjectRole || !b.When.check(w.Qualifiers).ok {
 			continue
 		}
 		seen = true
@@ -48,7 +48,7 @@ func Invert[S any](t Table[S], w Writing[S]) (WriteResult, error) {
 	switch len(withWrite) {
 	case 0:
 		for _, b := range t.Bindings {
-			if b.NativeID == w.NativeID && b.SubjectRole == w.SubjectRole && b.Write == nil {
+			if b.NativeID == w.NativeID && b.SubjectRole == w.SubjectRole && b.Write == nil && b.When.check(w.Qualifiers).ok {
 				return noPayload(ReasonNoWrite, "the element has no semantic write")
 			}
 		}

@@ -15,6 +15,9 @@ const (
 	RoundHalfEven   = "half_even"
 )
 
+// maxDecimalExponent is the largest exponent magnitude of a v1.Decimal.
+const maxDecimalExponent = 18
+
 func pow10(e int64) *big.Int { return new(big.Int).Exp(big.NewInt(10), big.NewInt(e), nil) }
 
 func ratOf(d v1.Decimal) (*big.Rat, error) {
@@ -106,6 +109,11 @@ func affineOf(a Affine, x v1.Decimal, exponent int64, round string) (v1.Decimal,
 		return v1.Decimal{}, err
 	}
 	r.Mul(r, big.NewRat(a.Num, a.Den))
+	// A Decimal holds exponents from -18 to 18; a scaling by a power of ten
+	// outside that range is refused before the power is built.
+	if exponent < -maxDecimalExponent || exponent > maxDecimalExponent {
+		return v1.Decimal{}, fmt.Errorf("scaling by 10^%d is outside the decimal exponent range", exponent)
+	}
 	if exponent >= 0 {
 		r.Mul(r, new(big.Rat).SetInt(pow10(exponent)))
 	} else {

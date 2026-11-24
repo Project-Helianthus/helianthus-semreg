@@ -29,6 +29,7 @@ type convEnv[S any] struct {
 	row       RowID
 	dir       Direction
 	citations []v1.EvidenceRef
+	visiting  map[string]bool
 }
 
 func orderOf(m map[string]Order, id string) (Order, bool) {
@@ -221,6 +222,25 @@ func (e *convEnv[S]) exponent(id string) (int64, Reason, string) {
 	if err != nil {
 		return 0, ReasonDecode, "exponent row " + id + ": " + err.Error()
 	}
+	if e.visiting[id] {
+		return 0, ReasonCyclicExponent, "exponent row chain returns to " + id
+	}
+	visiting := map[string]bool{id: true}
+	for k := range e.visiting {
+		visiting[k] = true
+	}
+	unit := v1.DefinitionID(row.Unit)
+	sub := &convEnv[S]{table: e.table, desc: e.desc, payload: e.payload, qualifier: e.qualifier, inputs: e.inputs,
+		row: RowID(row.ID), dir: e.dir, visiting: visiting}
+	v, reason, detail := sub.apply(row.Decode, quantityOf(n, unit), unit)
+	e.citations = append(e.citations, sub.citations...)
+	if reason != "" {
+		return 0, reason, "exponent row " + id + ": " + detail
+	}
+	if v.Kind != v1.ValueQuantity || v.Quantity == nil {
+		return 0, ReasonConversion, "exponent row " + id + " is not a number"
+	}
+	n = v.Quantity.Number
 	if r, detail := boundsReason(row.Domain, n); r != "" {
 		return 0, r, "exponent row " + id + ": " + detail
 	}
