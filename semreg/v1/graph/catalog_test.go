@@ -15,7 +15,7 @@ import (
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/graph"
 )
 
-const fixturePath = "../../../fixtures/v1/element-catalog-v1.json"
+const fixturePath = "embedded/element-catalog-v1.json"
 
 var (
 	evsePack    = semreg.PackRef{ID: "helianthus.pack.evse", Version: "1.0.0"}
