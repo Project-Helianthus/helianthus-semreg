@@ -955,10 +955,14 @@ func (s *Service) runUntyped(d *driverState) {
 			return
 		}
 		if !out.SemanticCleaned {
-			// No slot retains this cleanup: block admission so a later
-			// START or RESTART cannot proceed over unfinished withdrawal.
+			// Block admission so a later START or RESTART cannot proceed
+			// over unfinished withdrawal. The attempt stays the driver's
+			// untyped work: a STOP accepted meanwhile synthesizes the
+			// cancellation with this correlation and its obligations, so the
+			// withdrawal stays settleable (also after a restart) and STOPPED
+			// is published only once it is cleared.
 			s.settle(d, a, func() {
-				d.corr, d.untyped, d.autoStartDone = a.corr, nil, true
+				d.corr, d.autoStartDone = a.corr, true
 				d.recoveryBlocked = true
 			})
 			s.appendDiagnostic(d, Transition{Kind: KindStart}, "CLEANUP_STALLED")

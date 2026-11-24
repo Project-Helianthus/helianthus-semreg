@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -150,4 +151,57 @@ func countOp(calls []execCall, op string) int {
 		}
 	}
 	return n
+}
+
+// An initial start that failed terminally and whose semantic withdrawal never
+// succeeds keeps its correlation: a STOP accepted meanwhile persists the
+// failed start's epoch, generation and pending withdrawal, so a reopened
+// store settles it under that correlation and reports STOPPED only after the
+// withdrawal is proven.
+func TestUntypedUnwithdrawnStartKeepsCorrelationForStop(t *testing.T) {
+	var origin LifecycleCorrelation
+	f := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver)),
+		setup: func(f *svcFixture) {
+			e := f.execs[nativeDriver]
+			e.setStart(func(_ context.Context, c LifecycleCorrelation) error {
+				origin = c
+				return errors.New("start refused")
+			})
+			e.setStop(func(context.Context, LifecycleCorrelation) StopOutcome {
+				return StopOutcome{NativeClosed: true, SemanticCleaned: false}
+			})
+		}})
+	waitFor(t, "cleanup stalled", func() bool {
+		return f.status(nativeDriver).ObservedState == ObservedFailed &&
+			hasDiagnostic(f.svc.Diagnostics(nativeDriver), "CLEANUP_STALLED")
+	})
+	f.mustDecide(MethodStop, nativeDriver)
+	cur := f.record(nativeDriver).Current
+	if cur == nil || cur.Epoch != origin.Epoch || cur.Generation != origin.Generation || !cur.SemanticCleanupPending {
+		t.Fatalf("slot after STOP = %+v; want the failed start's correlation %+v with the withdrawal pending", cur, origin)
+	}
+	if st := f.status(nativeDriver); st.ObservedState == ObservedStopped {
+		t.Fatalf("status = %+v; STOPPED before the withdrawal was proven", st)
+	}
+
+	data := f.fileBytes()
+	g := newFixture(t, svcOpts{drivers: enabled(string(nativeDriver)), incarnation: "inc2",
+		state: func(t *testing.T, path string) {
+			if err := os.WriteFile(path, data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}})
+	g.waitObserved(nativeDriver, ObservedStopped)
+	var settled bool
+	for _, c := range g.execs[nativeDriver].snapshot() {
+		if c.Op == "stop" && c.Corr.Epoch == origin.Epoch && c.Corr.Generation == origin.Generation {
+			settled = true
+		}
+		if c.Op == "start" {
+			t.Fatalf("calls = %+v; a stopped instance must not start", g.execs[nativeDriver].snapshot())
+		}
+	}
+	if !settled {
+		t.Fatalf("calls = %+v; want a Stop of the failed start's correlation", g.execs[nativeDriver].snapshot())
+	}
 }
