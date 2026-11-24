@@ -1,6 +1,10 @@
 package graph_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"os"
 	"reflect"
 	"testing"
 
@@ -512,5 +516,65 @@ func TestGraphEnforcementResourceLookupsAgreeWithTheCatalog(t *testing.T) {
 	}
 	if _, ok := nilCatalog.PackDimension(pv, "pv.dimension.inverter"); ok {
 		t.Fatal("nil catalog has a dimension")
+	}
+}
+
+// replayErrorID is the stable identifier of err, or nil when there is no error.
+func replayErrorID(err error) string {
+	if err == nil {
+		return "nil"
+	}
+	return string(semreg.ErrorIdentifier(err))
+}
+
+// TestMoveReplayEmbeddedAndEnforced prints the outputs of graph.Embedded and
+// graph.Enforced and of the admission lookups, for the replay of the move
+// against the old binary.
+func TestMoveReplayEmbeddedAndEnforced(t *testing.T) {
+	catalog, err := graph.Embedded()
+	if err != nil {
+		fmt.Printf("replay embedded %s nil nil\n", replayErrorID(err))
+	} else {
+		sum := sha256.Sum256(catalog.Bytes())
+		fmt.Printf("replay embedded nil %s %s\n", catalog.Digest(), hex.EncodeToString(sum[:]))
+	}
+	validators := acceptedValidators()
+	registry, err := graph.Enforced(validators...)
+	if err != nil {
+		fmt.Printf("replay enforced %s nil false nil false\n", replayErrorID(err))
+	} else {
+		digest, ok := registry.CatalogDigest()
+		fmt.Printf("replay enforced nil %t %s %t\n", registry.GraphEnforced(), digest, ok)
+	}
+	for _, validator := range validators {
+		index := validator.Definitions()
+		for _, ref := range index.Operations {
+			err := registry.GraphAdmissionError(ref, semreg.DefinitionRef{})
+			fmt.Printf("replay admission operation %s %s %s\n", ref.Pack.ID, ref.ID, replayErrorID(err))
+		}
+		for _, ref := range index.EffectRules {
+			err := registry.GraphAdmissionError(semreg.DefinitionRef{}, ref)
+			fmt.Printf("replay admission effect %s %s %s\n", ref.Pack.ID, ref.ID, replayErrorID(err))
+		}
+	}
+}
+
+// TestMoveEmbeddedFileIsThePinnedFixtureCopy checks that the embedded data file
+// is byte-identical to the fixture and hashes to the pinned digest.
+func TestMoveEmbeddedFileIsThePinnedFixtureCopy(t *testing.T) {
+	embeddedFile, err := os.ReadFile("embedded/element-catalog-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture, err := os.ReadFile("../../../fixtures/v1/element-catalog-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(embeddedFile) != string(fixture) {
+		t.Fatal("embedded data file differs from the fixture")
+	}
+	sum := sha256.Sum256(embeddedFile)
+	if digest := semreg.Digest("sha256:" + hex.EncodeToString(sum[:])); digest != graph.PinnedDigest {
+		t.Fatalf("embedded data file digest %s", digest)
 	}
 }

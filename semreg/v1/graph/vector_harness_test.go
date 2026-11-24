@@ -58,7 +58,7 @@ const (
 	gvEvidenceOwner    = "helianthus.example"
 	gvEvidenceKind     = "evidence.synthetic"
 	gvEvidenceContract = "helianthus.example.evidence/v1"
-	gvCatalogPath      = "../../../fixtures/v1/element-catalog-v1.json"
+	gvCatalogPath      = "embedded/element-catalog-v1.json"
 )
 
 // ------------------------------------------------------------ the document
