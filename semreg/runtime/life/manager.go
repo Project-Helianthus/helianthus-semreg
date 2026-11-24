@@ -396,6 +396,9 @@ type managedDriver struct {
 
 type attemptControl struct {
 	cancel context.CancelFunc
+	// constructing is true while the runtime's Start or Replace of the attempt
+	// has not returned; it is guarded by the driver's lock.
+	constructing bool
 }
 
 func NewManager(cfg ManagerConfig) (*Manager, error) {
@@ -746,6 +749,11 @@ func (manager *Manager) stopLocked(ctx context.Context, driver *managedDriver) C
 	// runtime quarantine dominate, so a nil Stop result alone is never taken
 	// as proof by a caller of StopWithReport.
 	class := ClassifyClose(err, driver.runtimeQuarantined())
+	if class.Proven() && attempt != nil && attempt.constructing {
+		// The canceled construction is still in flight and may yet admit late:
+		// nothing is proven until its retirement reports.
+		class = CloseInternalError
+	}
 	switch {
 	case err == nil:
 		driver.needsReplace = false
@@ -797,11 +805,17 @@ func (manager *Manager) startAttempt(ctx context.Context, driver *managedDriver,
 	}
 	var generation uint64
 	var err error
+	driver.mu.Lock()
+	control.constructing = true
+	driver.mu.Unlock()
 	if replace {
 		generation, err = driver.cfg.Runtime.Replace(attemptCtx)
 	} else {
 		generation, err = driver.cfg.Runtime.Start(attemptCtx)
 	}
+	driver.mu.Lock()
+	control.constructing = false
+	driver.mu.Unlock()
 	driver.mu.RLock()
 	superseded := manager.closed.Load() || driver.activeOperation != operation || driver.desired != DesiredRunning
 	currentGeneration := driver.generation

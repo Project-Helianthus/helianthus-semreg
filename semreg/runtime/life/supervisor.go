@@ -271,6 +271,15 @@ func (s *Supervisor) Close(ctx context.Context) error {
 			safe = false
 		}
 	}
+	// The generations the native owners published are withdrawn once those
+	// owners have stopped; a failed withdrawal is reported.
+	var withdrawn []error
+	for _, pi := range s.set.Instances {
+		if werr := s.byID[pi.Ref.ID()].executor.withdrawRemaining(ctx); werr != nil {
+			withdrawn = append(withdrawn, werr)
+		}
+	}
+	err = errors.Join(append([]error{err}, withdrawn...)...)
 	s.opts.Store.Close()
 	if safe {
 		s.opts.Store.Release()

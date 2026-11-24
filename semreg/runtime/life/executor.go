@@ -42,6 +42,11 @@ type epochState struct {
 	recovering bool
 	admitted   bool
 
+	// bound reports that a start of this process bound the epoch; withdrawn
+	// that the semantic withdrawal of the latest bound correlation succeeded.
+	bound     bool
+	withdrawn bool
+
 	stopMu     sync.Mutex
 	closed     bool
 	closeClass CloseClass
@@ -94,6 +99,7 @@ func (e *instanceExecutor) bind(corr LifecycleCorrelation) (*epochState, error) 
 			return nil, executorFailure(ReasonInternalError, errExecutorStale)
 		}
 		st.corr = corr
+		st.withdrawn = false
 		e.current = st
 		return st, nil
 	}
@@ -105,7 +111,7 @@ func (e *instanceExecutor) bind(corr LifecycleCorrelation) (*epochState, error) 
 			return nil, executorFailure(ReasonInternalError, errExecutorPredecessor)
 		}
 	}
-	st := &epochState{corr: corr, fenceCh: make(chan struct{})}
+	st := &epochState{corr: corr, fenceCh: make(chan struct{}), bound: true}
 	e.epochs[corr.Epoch] = st
 	e.current = st
 	return st, nil
@@ -327,7 +333,44 @@ func (e *instanceExecutor) Stop(ctx context.Context, corr LifecycleCorrelation) 
 
 	native := e.ensureNativeStop(ctx, st, isCurrent)
 	semantic := e.pub.Withdraw(ctx, corr) == nil
+	if semantic {
+		e.mu.Lock()
+		if st.corr == corr {
+			st.withdrawn = true
+		}
+		e.mu.Unlock()
+	}
 	return StopOutcome{NativeClosed: native, SemanticCleaned: semantic}
+}
+
+// withdrawRemaining withdraws the publications of every generation this
+// process started and no stop has withdrawn, so shutdown leaves nothing
+// registered after its native owner stopped. A failed withdrawal is reported.
+func (e *instanceExecutor) withdrawRemaining(ctx context.Context) error {
+	e.mu.Lock()
+	var todo []*epochState
+	for _, st := range e.epochs {
+		if st.bound && !st.withdrawn {
+			todo = append(todo, st)
+		}
+	}
+	e.mu.Unlock()
+	var errs []error
+	for _, st := range todo {
+		e.mu.Lock()
+		corr := st.corr
+		e.mu.Unlock()
+		if err := e.pub.Withdraw(ctx, corr); err != nil {
+			errs = append(errs, fmt.Errorf("life: withdrawing %s at shutdown: %w", e.id, err))
+			continue
+		}
+		e.mu.Lock()
+		if st.corr == corr {
+			st.withdrawn = true
+		}
+		e.mu.Unlock()
+	}
+	return errors.Join(errs...)
 }
 
 // ensureNativeStop closes the epoch's native generation through the manager. A
@@ -359,11 +402,8 @@ func (e *instanceExecutor) ensureNativeStop(ctx context.Context, st *epochState,
 // shutdown stop included. It takes no epoch lock: the manager calls it while a
 // stop of the epoch may be in flight.
 func (e *instanceExecutor) observeClose(report CloseReport) {
-	if report.Class.Proven() {
-		return
-	}
 	e.mu.Lock()
-	e.unproven = true
+	e.unproven = !report.Class.Proven()
 	e.mu.Unlock()
 }
 

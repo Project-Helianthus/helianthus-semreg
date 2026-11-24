@@ -25,6 +25,17 @@ type Publication interface {
 	Withdraw(ctx context.Context, corr LifecycleCorrelation) error
 }
 
+// withdrawPendingError is a start refused while the withdrawal of an earlier
+// failed start is still outstanding. It is a retryable failure: the manager's
+// retry series owns the next attempt, which settles the withdrawal first.
+type withdrawPendingError struct{ err error }
+
+func (e *withdrawPendingError) Error() string {
+	return "life: the withdrawal of the failed start is still pending: " + e.err.Error()
+}
+func (e *withdrawPendingError) Unwrap() error   { return e.err }
+func (e *withdrawPendingError) Retryable() bool { return true }
+
 var errFencedGeneration = errors.New("life: the generation is fenced")
 
 // tracker follows the publication transactions of one native generation. A
@@ -146,6 +157,11 @@ type instanceRuntime struct {
 	generation  uint64
 	revision    uint64
 	quarantined bool
+	// pending is the correlation of a failed start whose withdrawal did not
+	// complete: the cleanup obligation stays until a withdrawal succeeds, and no
+	// later start proceeds over it.
+	pending    LifecycleCorrelation
+	hasPending bool
 }
 
 func newInstanceRuntime(id InstanceID, pi PlannedInstance, pub Publication) *instanceRuntime {
@@ -197,7 +213,18 @@ func (r *instanceRuntime) FenceWithdrawal() {
 func (r *instanceRuntime) Start(ctx context.Context) (uint64, error) {
 	r.mu.Lock()
 	corr := r.corr
+	pending, hasPending := r.pending, r.hasPending
 	r.mu.Unlock()
+	if hasPending {
+		if err := r.pub.Withdraw(ctx, pending); err != nil {
+			return 0, &withdrawPendingError{err: err}
+		}
+		r.mu.Lock()
+		if r.hasPending && r.pending == pending {
+			r.hasPending = false
+		}
+		r.mu.Unlock()
+	}
 	inst, err := r.factory.Construct(ctx, r.plan)
 	if err != nil {
 		return 0, err
@@ -207,6 +234,9 @@ func (r *instanceRuntime) Start(ctx context.Context) (uint64, error) {
 	}
 	session, err := r.pub.OpenSession(ctx, corr)
 	if err != nil {
+		// The constructed instance is stopped before the error is returned: its
+		// close result decides quarantine and the release of the store lock.
+		r.retire(inst, newTracker())
 		return 0, err
 	}
 	track := newTracker()
@@ -215,6 +245,9 @@ func (r *instanceRuntime) Start(ctx context.Context) (uint64, error) {
 	r.mu.Unlock()
 	if err := inst.Start(ctx, trackedSession{Session: session, track: track}); err != nil {
 		r.retire(inst, track)
+		if werr := r.withdrawFailed(corr); werr != nil {
+			return 0, errors.Join(err, werr)
+		}
 		return 0, err
 	}
 	r.mu.Lock()
@@ -283,6 +316,23 @@ func (r *instanceRuntime) retire(inst driver.Instance, track *tracker) {
 	if !report.Confirmed {
 		r.quarantined = true
 	}
+}
+
+// withdrawFailed withdraws what a failed start registered, on the manager's
+// independent late-retirement deadline. A withdrawal that fails stays pending,
+// and the next start settles it first.
+func (r *instanceRuntime) withdrawFailed(corr LifecycleCorrelation) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultLateRetireTimeout)
+	defer cancel()
+	err := r.pub.Withdraw(ctx, corr)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err != nil {
+		r.pending, r.hasPending = corr, true
+		return fmt.Errorf("life: withdrawing the failed start: %w", err)
+	}
+	r.hasPending = false
+	return nil
 }
 
 // holdAdmission is the manager's admission hold: the generation is admitted

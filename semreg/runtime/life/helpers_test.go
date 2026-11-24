@@ -273,8 +273,9 @@ type testPublication struct {
 	opened    []LifecycleCorrelation
 	withdrawn []LifecycleCorrelation
 	sessions  []*testPublisher
-	// withdrawErr, when set, makes Withdraw fail.
+	// withdrawErr, when set, makes Withdraw fail; openErr makes OpenSession fail.
 	withdrawErr error
+	openErr     error
 	log         *callLog
 	// onWithdraw, when set, runs on every Withdraw before it returns.
 	onWithdraw func(LifecycleCorrelation)
@@ -284,6 +285,9 @@ func (p *testPublication) OpenSession(_ context.Context, corr LifecycleCorrelati
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.opened = append(p.opened, corr)
+	if p.openErr != nil {
+		return nil, p.openErr
+	}
 	pub := &testPublisher{}
 	p.sessions = append(p.sessions, pub)
 	p.log.add("open")

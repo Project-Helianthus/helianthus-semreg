@@ -145,12 +145,16 @@ func (s *FileStore) Exclusive() bool {
 	return s.lock != nil
 }
 
-// Close ends the store's use. The lock stays held until Release, so a native
-// owner that can still publish is never joined by a second host.
+// Close ends the store's use and waits for the write in flight, so no write of
+// this owner lands after Close returns and the lock can be released. The lock
+// stays held until Release, so a native owner that can still publish is never
+// joined by a second host.
 func (s *FileStore) Close() {
 	s.mu.Lock()
 	s.closed = true
 	s.mu.Unlock()
+	s.writeSem <- struct{}{}
+	s.releaseWrite()
 }
 
 // Release relinquishes the store lock.
