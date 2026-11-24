@@ -214,3 +214,62 @@ func TestStorageGroupingKeepsItsIdentitiesAcrossLifecycles(t *testing.T) {
 		t.Fatalf("runs = %+v, want %+v", runs, want)
 	}
 }
+
+// The site this ledger returned, default or declared, is a known parent: a
+// resource anchored under it is allocated.
+func TestTheSiteIsAKnownParent(t *testing.T) {
+	catalog := embeddedCatalog(t)
+	declared := semreg.ResourceID("resource:declared-site")
+	for name, id := range map[string]*semreg.ResourceID{"default": nil, "declared": &declared} {
+		l := ledgerOn(t, NewMemoryStore(), catalog)
+		key := slotKey(installation, "driver-x", "i1", "resource.zone", "", "zone-1")
+		site, err := l.Site(bridge, installation, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key.Anchor.Parent = site.ID
+		if _, err := l.Node(bridge, key); err != nil {
+			t.Fatalf("%s: a resource under the site: %v", name, err)
+		}
+	}
+}
+
+// The catalog's meter relation runs from the grid connection to the meter: each
+// current meter is linked from the current grid connection with the basis
+// configuration, and a withdrawn meter or grid connection has no claim.
+func TestSiteRelationsLinkTheMeterFromTheGridConnection(t *testing.T) {
+	catalog := embeddedCatalog(t)
+	site := ref(idSite)
+	resources := []semreg.Resource{
+		current("resource:grid", "resource.grid_connection", semreg.ResourceCurrent),
+		current("resource:meter", "resource.meter", semreg.ResourceCurrent),
+		current("resource:meter-withdrawn", "resource.meter", semreg.ResourceWithdrawn),
+	}
+	const meterRelation = "infrastructure.relation.grid_connection_meter"
+	var meters []driver.LinkClaim
+	for _, claim := range SiteRelations(catalog, site, resources) {
+		if claim.Key.Type.ID == meterRelation {
+			meters = append(meters, claim)
+		}
+	}
+	if len(meters) != 1 || meters[0].Key.From.ID != "resource:grid" || meters[0].Key.To.ID != "resource:meter" {
+		t.Fatalf("meter claims = %+v", meters)
+	}
+	if err := meters[0].Validate(); err != nil || len(meters[0].Basis) != 1 || meters[0].Basis[0].Owner != OperatorEvidenceOwner {
+		t.Fatalf("meter claim %+v: %v", meters[0], err)
+	}
+	if relation, ok := catalog.Relation(graph.PackElement(meters[0].Key.Type)); !ok || relation.BasisClasses[0] != "configuration" {
+		t.Fatalf("relation %v is not a configuration relation of the catalog", meters[0].Key.Type)
+	}
+	// Withdrawing the meter or the grid connection drops the claim.
+	for name, rest := range map[string][]semreg.Resource{
+		"meter withdrawn": {resources[0], current("resource:meter", "resource.meter", semreg.ResourceWithdrawn)},
+		"grid withdrawn":  {current("resource:grid", "resource.grid_connection", semreg.ResourceWithdrawn), resources[1]},
+	} {
+		for _, claim := range SiteRelations(catalog, site, rest) {
+			if claim.Key.Type.ID == meterRelation {
+				t.Errorf("%s: claim %+v", name, claim)
+			}
+		}
+	}
+}

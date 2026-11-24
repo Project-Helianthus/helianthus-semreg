@@ -42,7 +42,9 @@ func (a *Allocator) Allocate(key driver.NodeKey) (semreg.ResourceID, error) {
 	}
 	entry, listed := a.catalog.CoreEntry(key.Kind)
 	if !listed || entry.ResourceKind == nil || entry.ResourceKind.InstallationRoot {
-		return pathNodeID(key), nil
+		id := pathNodeID(key)
+		a.know(id, key.Kind)
+		return id, nil
 	}
 	return a.allocateLegacy(key, entry.ResourceKind.AnchorClass)
 }
@@ -60,6 +62,9 @@ func (a *Allocator) allocateLegacy(key driver.NodeKey, class semreg.AnchorClass)
 	defer storeMu.Unlock()
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if err := a.parentKnown(Anchor{Parent: anchorKey.Parent}); err != nil {
+		return "", err
+	}
 	entry, recorded, err := a.lookup(anchorKey)
 	if err != nil {
 		return "", err
@@ -76,4 +81,12 @@ func (a *Allocator) allocateLegacy(key driver.NodeKey, class semreg.AnchorClass)
 	a.held[anchorKey] = heldAnchor{resource: id, class: class, basis: basis}
 	a.kinds[id] = key.Kind
 	return id, nil
+}
+
+// know records an identifier this allocator returned for a path node, so that
+// it is a known parent of a resource anchored under it.
+func (a *Allocator) know(id semreg.ResourceID, kind semreg.DefinitionID) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.kinds[id] = kind
 }

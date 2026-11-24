@@ -71,6 +71,8 @@ func (l *Ledger) Site(bridge driver.BridgeID, installation string, declared *sem
 		key, _ := SiteKey(installation, l.allocator.catalog)
 		l.addKey(site, key)
 	}
+	root, _ := l.allocator.catalog.InstallationRoot()
+	l.allocator.know(site.ID, root)
 	l.sites[installation] = site
 	return site, nil
 }
@@ -96,12 +98,28 @@ func SiteRelations(catalog *graph.Catalog, site driver.NodeRef, current []semreg
 	}
 	for _, element := range catalog.Elements() {
 		ref, packed := element.Ref.DefinitionRef()
-		if element.Relation == nil || element.Disposition != graph.DispositionMember || !packed || !containsKind(element.Relation.FromKinds, root) {
+		if element.Relation == nil || element.Disposition != graph.DispositionMember || !packed {
 			continue
 		}
-		for _, resource := range current {
-			if resource.State == semreg.ResourceCurrent && containsKind(element.Relation.ToKinds, resource.Kind) && configuredRoot(resource) {
-				claims = append(claims, configurationClaim(ref, site, driver.NodeRef{Bridge: site.Bridge, ID: resource.ResourceID}))
+		switch {
+		case containsKind(element.Relation.FromKinds, root):
+			for _, resource := range current {
+				if resource.State == semreg.ResourceCurrent && containsKind(element.Relation.ToKinds, resource.Kind) && configuredRoot(resource) {
+					claims = append(claims, configurationClaim(ref, site, driver.NodeRef{Bridge: site.Bridge, ID: resource.ResourceID}))
+				}
+			}
+		case containsKind(element.Relation.FromKinds, gridConnectionKind) && containsKind(element.Relation.ToKinds, meterKind) && containsBasis(element.Relation.BasisClasses, semreg.RelationBasis("configuration")):
+			// The meter relation runs from the grid connection, not from the
+			// site: each current grid connection links each current meter.
+			for _, grid := range current {
+				if grid.State != semreg.ResourceCurrent || grid.Kind != gridConnectionKind {
+					continue
+				}
+				for _, meter := range current {
+					if meter.State == semreg.ResourceCurrent && meter.Kind == meterKind {
+						claims = append(claims, configurationClaim(ref, driver.NodeRef{Bridge: site.Bridge, ID: grid.ResourceID}, driver.NodeRef{Bridge: site.Bridge, ID: meter.ResourceID}))
+					}
+				}
 			}
 		}
 	}
@@ -110,9 +128,28 @@ func SiteRelations(catalog *graph.Catalog, site driver.NodeRef, current []semreg
 		if a.Type.ID != b.Type.ID {
 			return a.Type.ID < b.Type.ID
 		}
+		if c := compareRef(a.From, b.From); c != 0 {
+			return c < 0
+		}
 		return compareRef(a.To, b.To) < 0
 	})
 	return claims
+}
+
+// The kinds of the grid connection and of the meter the catalog's meter
+// relation runs between.
+const (
+	gridConnectionKind semreg.DefinitionID = "resource.grid_connection"
+	meterKind          semreg.DefinitionID = "resource.meter"
+)
+
+func containsBasis(bases []semreg.RelationBasis, basis semreg.RelationBasis) bool {
+	for _, b := range bases {
+		if b == basis {
+			return true
+		}
+	}
+	return false
 }
 
 // genericEquipment is the kind of a generic equipment root, which is linked to

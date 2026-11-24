@@ -62,8 +62,13 @@ func TestAllocateKeepsTheLegacyIDsOfCatalogResourceKinds(t *testing.T) {
 	}
 	const zoneParent = "resource:00000000000000000000000000000001"
 	zone := slotKey("inst-a", "driver-x", "i1", "resource.zone", zoneParent, "zone-1")
-	if got, err := allocator.Allocate(zone); err != nil || got != "resource:a0b7d12925ca145e10e3670e018086ce" {
-		t.Fatalf("legacy slot id = %q, %v", got, err)
+	// The contract's literal parent is no id this allocator returned: the legacy
+	// minter gives the vector, and Allocate commits nothing under that parent.
+	if got := resourceID(AnchorKey{Kind: "resource.zone", Parent: zoneParent, Slot: "zone-1"}); got != "resource:a0b7d12925ca145e10e3670e018086ce" {
+		t.Fatalf("legacy slot id = %q", got)
+	}
+	if got, err := allocator.Allocate(zone); got != "" || !errors.Is(err, ErrUnknownResource) {
+		t.Fatalf("a parent never returned: id = %q, %v", got, err)
 	}
 	digest, _ := IdentityKey("scheme.ieee.eui48", "", "0A1B2C3D4E5F")
 	equipment := driver.NodeKey{Installation: "inst-a", Driver: "driver-x", Instance: "i1", Kind: "resource.equipment", Anchor: driver.AnchorKey{Scheme: "scheme.ieee.eui48", Key: digest}}
@@ -175,5 +180,55 @@ func TestAllocateDoesNotDependOnOrder(t *testing.T) {
 		if id, _ := reverse.Allocate(keys[i]); id != got[i] {
 			t.Errorf("key %d: %q after %q", i, id, got[i])
 		}
+	}
+}
+
+// A path-node id this allocator returned is a known parent: a resource anchored
+// under it is allocated, resolved and superseded, and allocating the path node
+// again makes it known. A legacy anchor whose parent was never returned is not
+// committed.
+func TestAPathNodeIDIsAKnownParent(t *testing.T) {
+	catalog := embeddedCatalog(t)
+	store := NewMemoryStore()
+	allocator, _ := NewAllocator(store, catalog)
+	bridge := slotKey("inst-a", "driver-x", "i1", "resource.bridge", "", "primary")
+	child := func(parent semreg.ResourceID) driver.NodeKey {
+		return slotKey("inst-a", "driver-x", "i1", "resource.zone", parent, "zone-1")
+	}
+	unknown := pathNodeID(bridge)
+	if id, err := allocator.Allocate(child(unknown)); id != "" || !errors.Is(err, ErrUnknownResource) {
+		t.Fatalf("a parent never returned: id = %q, %v", id, err)
+	}
+	if _, ok, _ := store.Lookup(AnchorKey{Kind: "resource.zone", Parent: unknown, Slot: "zone-1"}); ok {
+		t.Fatal("an anchor under an unknown parent was committed")
+	}
+	parent, err := allocator.Allocate(bridge)
+	if err != nil || parent != unknown {
+		t.Fatalf("path node = %q, %v", parent, err)
+	}
+	zone, err := allocator.Allocate(child(parent))
+	if err != nil {
+		t.Fatalf("a zone under the returned path node: %v", err)
+	}
+	under := zoneAnchor(semreg.AnchorOperatorSlot, "zone-1", "parent")
+	under.Parent = parent
+	if got, _, err := allocator.Resolve("resource.zone", under); err != nil || got != zone {
+		t.Fatalf("Resolve under the path node = %q, %v; want %q", got, err, zone)
+	}
+	native := zoneAnchor(semreg.AnchorNativeSlot, "zone-1", "native")
+	native.Parent = parent
+	if got, _, err := allocator.Supersede(Claim{"resource.zone", under}, Claim{"resource.zone", native}, continuity(ContinuityBinding, "zone")); err != nil || got != zone {
+		t.Fatalf("Supersede under the path node = %q, %v; want %q", got, err, zone)
+	}
+	// The same holds from a fresh allocator once the path node is allocated again.
+	again, _ := NewAllocator(store, catalog)
+	if _, err := again.Allocate(child(parent)); !errors.Is(err, ErrUnknownResource) {
+		t.Fatalf("fresh allocator before the path node: %v", err)
+	}
+	if _, err := again.Allocate(bridge); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := again.Allocate(child(parent)); err != nil || got != zone {
+		t.Fatalf("fresh allocator after the path node = %q, %v", got, err)
 	}
 }
