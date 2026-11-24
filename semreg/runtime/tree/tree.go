@@ -197,6 +197,9 @@ type Tree struct {
 	prepared map[PreparedID]*preparedCall
 	outcomes map[ReceiptID]Outcome
 	receipts []ReceiptID
+	// dispatched maps a receipt id the tree issued to the id the dispatcher
+	// issued; the two are never the same namespace.
+	dispatched map[ReceiptID]ReceiptID
 }
 
 type preparedCall struct {
@@ -205,6 +208,8 @@ type preparedCall struct {
 	native bool
 	port   PortPrepared
 	used   bool
+	// generation is the generation of the native registration the cut holds.
+	generation uint64
 }
 
 // New returns a Tree over the three injected ports.
@@ -216,7 +221,7 @@ func New(cfg Config) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Tree{cfg: cfg, Registry: registry, cuts: map[CutID]*TreeCut{}, prepared: map[PreparedID]*preparedCall{}, outcomes: map[ReceiptID]Outcome{}}, nil
+	return &Tree{cfg: cfg, Registry: registry, cuts: map[CutID]*TreeCut{}, prepared: map[PreparedID]*preparedCall{}, outcomes: map[ReceiptID]Outcome{}, dispatched: map[ReceiptID]ReceiptID{}}, nil
 }
 
 // Capture reads one cut of the semantic graph and the registrations of the tree
@@ -231,9 +236,10 @@ func (t *Tree) Capture(ctx context.Context, options CutOptions) (*TreeCut, error
 	t.sequence++
 	id := CutID(fmt.Sprintf("%s:%d", view.Ref.CutID, t.sequence))
 	t.mu.Unlock()
+	reg, position := t.Registry.detach()
 	cut := &TreeCut{
-		tree: t, id: id, view: view, reg: t.Registry.detach(),
-		cursor: Cursor{Incarnation: t.cfg.Registry.Incarnation, Native: t.Registry.Position(), Semantic: view.Cursor},
+		tree: t, id: id, view: view, reg: reg,
+		cursor: Cursor{Incarnation: t.cfg.Registry.Incarnation, Native: position, Semantic: view.Cursor},
 		pinned: map[string]Observation{}, baseline: map[string]Observation{},
 	}
 	for key, member := range cut.reg.members {
@@ -311,21 +317,22 @@ func (t *Tree) Prepare(ctx context.Context, id CutID, method MethodRef, input In
 	}
 	call := &preparedCall{method: method, cut: id}
 	if key.Domain == KeywordNative {
-		if _, ok := cut.reg.methods[key.String()]; !ok {
+		held, ok := cut.reg.methods[key.String()]
+		if !ok {
 			return Prepared{}, treeError(semreg.DanglingReference, "method is not in the cut")
 		}
 		live, ok := t.Registry.method(key.String())
 		if !ok || live.withdrawn {
 			return Prepared{}, fmt.Errorf("%w: method %s is withdrawn (%s)", ErrUnavailable, method, t.stateText(live.instance))
 		}
+		if live.generation != held.generation {
+			return Prepared{}, fmt.Errorf("%w: method %s was replaced by another generation", ErrUnavailable, method)
+		}
 		call.native = true
-		t.mu.Lock()
-		t.sequence++
-		call.port.ID = PreparedID(fmt.Sprintf("prepared-%d", t.sequence))
-		t.prepared[call.port.ID] = call
-		t.mu.Unlock()
-		cut.nativeInput(call.port.ID, input.Encoded)
-		return Prepared{ID: call.port.ID, Method: method, Cut: id}, nil
+		call.generation = held.generation
+		public := t.register(call)
+		cut.nativeInput(public, input.Encoded)
+		return Prepared{ID: public, Method: method, Cut: id}, nil
 	}
 	definition, err := ParseDefinitionSegment(key.Segment)
 	if err != nil {
@@ -342,10 +349,30 @@ func (t *Tree) Prepare(ctx context.Context, id CutID, method MethodRef, input In
 		return Prepared{}, err
 	}
 	call.port = port
+	public := t.register(call)
+	return Prepared{ID: public, Method: method, Cut: id}, nil
+}
+
+// register stores a prepared call under a handle the tree owns, so a handle the
+// dispatcher issues can never collide with another prepared call.
+func (t *Tree) register(call *preparedCall) PreparedID {
 	t.mu.Lock()
-	t.prepared[port.ID] = call
-	t.mu.Unlock()
-	return Prepared{ID: port.ID, Method: method, Cut: id}, nil
+	defer t.mu.Unlock()
+	t.sequence++
+	public := PreparedID(fmt.Sprintf("prepared-%d", t.sequence))
+	t.prepared[public] = call
+	return public
+}
+
+// claim moves a prepared call from unused to used. Only one caller wins.
+func (t *Tree) claim(call *preparedCall) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if call.used {
+		return ErrUsed
+	}
+	call.used = true
+	return nil
 }
 
 // Call calls a prepared method once. A semantic call without the finite
@@ -368,17 +395,20 @@ func (t *Tree) Call(ctx context.Context, prepared Prepared, options CallOptions)
 	if call.port.Request.Timeout <= 0 && options.Timeout <= 0 {
 		return Receipt{}, treeError(semreg.AuthorityMissing, "a prepared call needs a finite deadline")
 	}
-	t.mu.Lock()
-	call.used = true
-	t.mu.Unlock()
+	if err := t.claim(call); err != nil {
+		return Receipt{}, err
+	}
 	receipt, err := t.cfg.Operations.Call(ctx, call.port, options)
 	if err != nil {
 		return Receipt{}, err
 	}
 	t.mu.Lock()
-	t.receipts = append(t.receipts, receipt.ID)
+	t.sequence++
+	public := ReceiptID(fmt.Sprintf("receipt-%d", t.sequence))
+	t.dispatched[public] = receipt.ID
+	t.receipts = append(t.receipts, public)
 	t.mu.Unlock()
-	return Receipt{ID: receipt.ID, Method: call.method, Result: receipt.Result}, nil
+	return Receipt{ID: public, Method: call.method, Result: receipt.Result}, nil
 }
 
 func (t *Tree) callNative(ctx context.Context, prepared Prepared, call *preparedCall) (Receipt, error) {
@@ -394,8 +424,13 @@ func (t *Tree) callNative(ctx context.Context, prepared Prepared, call *prepared
 	if !ok || live.call == nil || live.withdrawn {
 		return Receipt{}, fmt.Errorf("%w: method %s is withdrawn (%s)", ErrUnavailable, call.method, t.stateText(live.instance))
 	}
+	if live.generation != call.generation {
+		return Receipt{}, fmt.Errorf("%w: method %s was replaced by another generation", ErrUnavailable, call.method)
+	}
+	if err := t.claim(call); err != nil {
+		return Receipt{}, err
+	}
 	t.mu.Lock()
-	call.used = true
 	t.sequence++
 	id := ReceiptID(fmt.Sprintf("receipt-%d", t.sequence))
 	t.mu.Unlock()
@@ -415,11 +450,15 @@ func (t *Tree) callNative(ctx context.Context, prepared Prepared, call *prepared
 func (t *Tree) Outcome(ctx context.Context, id ReceiptID) (Outcome, error) {
 	t.mu.Lock()
 	outcome, ok := t.outcomes[id]
+	port, dispatched := t.dispatched[id]
 	t.mu.Unlock()
 	if ok {
 		return outcome, nil
 	}
-	result, err := t.cfg.Operations.Outcome(ctx, id)
+	if !dispatched {
+		return Outcome{}, treeError(semreg.DanglingReference, "receipt")
+	}
+	result, err := t.cfg.Operations.Outcome(ctx, port)
 	if err != nil {
 		return Outcome{}, err
 	}

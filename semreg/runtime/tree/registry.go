@@ -426,7 +426,9 @@ type registered struct {
 	methods map[string]methodRecord
 }
 
-func (r *Registry) detach() registered {
+// detach copies every registration together with the log position of the same
+// moment: each registration is either in the copy or after the position.
+func (r *Registry) detach() (registered, uint64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	out := registered{nodes: map[string]nodeRecord{}, members: map[string]memberRecord{}, methods: map[string]methodRecord{}}
@@ -439,7 +441,7 @@ func (r *Registry) detach() registered {
 	for k, v := range r.methods {
 		out.methods[k] = *v
 	}
-	return out
+	return out, uint64(len(r.log))
 }
 
 func (r *Registry) member(key string) (memberRecord, bool) {
