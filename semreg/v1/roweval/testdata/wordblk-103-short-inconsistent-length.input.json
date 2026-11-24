@@ -1,0 +1,9 @@
+{
+  "case": "wordblk-103-short-inconsistent-length",
+  "length": 30,
+  "model": 103,
+  "models": [
+    1,
+    103
+  ]
+}

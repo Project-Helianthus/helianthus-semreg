@@ -1,0 +1,7 @@
+{
+  "case": "wordblk-103-short-inconsistent-length",
+  "disposition": {
+    "admitted": false,
+    "reason": "INVALID_CHAIN"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "case": "frame-312-count",
+  "donor_observed": {
+    "classifier": "rejects",
+    "recv": "accepts"
+  },
+  "expected": {
+    "reason": "both counts are specified as 1 to 254; 255 is outside the range",
+    "verdict": "reject"
+  },
+  "input": {
+    "byte4_pack_count": 1,
+    "byte7_total_cell_count": 255,
+    "frame_312_hex": "0080000001aabbff"
+  }
+}

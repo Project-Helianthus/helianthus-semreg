@@ -1,0 +1,43 @@
+{
+  "case": "313-soc-sentinel-ff",
+  "note": "sentinel: SOC 0xff",
+  "result": {
+    "profile": "",
+    "projection": null
+  },
+  "steps": [
+    {
+      "frame": {
+        "data_hex": "023800fa01f40043",
+        "extended": false,
+        "identifier": 785
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    },
+    {
+      "frame": {
+        "data_hex": "0080000002aabb10",
+        "extended": false,
+        "identifier": 786
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    },
+    {
+      "frame": {
+        "data_hex": "1400fff6012cffff",
+        "extended": false,
+        "identifier": 787
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": false
+    }
+  ]
+}

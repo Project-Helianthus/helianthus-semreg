@@ -1,0 +1,58 @@
+{
+  "case": "312-count-0",
+  "note": "boundary: count byte 4 equal to 0",
+  "result": {
+    "diagnostics": {
+      "AcceptedFrames": 3,
+      "ForeignInterface": 0,
+      "MalformedListed": 1,
+      "Publications": 0,
+      "ReceiveTerminated": false,
+      "RejectedRecords": 0
+    }
+  },
+  "steps": [
+    {
+      "dlc": 8,
+      "frame": {
+        "data_hex": "023800fa01f40043",
+        "extended": false,
+        "identifier": 785,
+        "len8_dlc": 0,
+        "payload_length": 8
+      },
+      "listed": true,
+      "observe_continues": true,
+      "raw_dlc": 8,
+      "valid": true
+    },
+    {
+      "dlc": 8,
+      "frame": {
+        "data_hex": "0080000000aabb10",
+        "extended": false,
+        "identifier": 786,
+        "len8_dlc": 0,
+        "payload_length": 8
+      },
+      "listed": true,
+      "observe_continues": true,
+      "raw_dlc": 8,
+      "valid": false
+    },
+    {
+      "dlc": 8,
+      "frame": {
+        "data_hex": "1400fff6012c50ff",
+        "extended": false,
+        "identifier": 787,
+        "len8_dlc": 0,
+        "payload_length": 8
+      },
+      "listed": true,
+      "observe_continues": true,
+      "raw_dlc": 8,
+      "valid": true
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "case": "wordblk-103-w-sentinel-8000",
+  "length": 50,
+  "model": 103,
+  "words": {
+    "14": 32768,
+    "15": 0
+  }
+}

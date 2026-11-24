@@ -1,0 +1,43 @@
+{
+  "case": "312-count4-eq-1-byte7-eq-255",
+  "note": "312 with count byte 4 equal to 1 and byte 7 equal to 255",
+  "result": {
+    "profile": "",
+    "projection": null
+  },
+  "steps": [
+    {
+      "frame": {
+        "data_hex": "023800fa01f40043",
+        "extended": false,
+        "identifier": 785
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    },
+    {
+      "frame": {
+        "data_hex": "0080000001aabbff",
+        "extended": false,
+        "identifier": 786
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": false
+    },
+    {
+      "frame": {
+        "data_hex": "1400fff6012c50ff",
+        "extended": false,
+        "identifier": 787
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "case": "wordblk-103-w-1500-sf0",
+  "disposition": {
+    "admitted": true,
+    "reason": "ADMITTED"
+  },
+  "native": {
+    "number": "1500",
+    "unit": "W"
+  }
+}

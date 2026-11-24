@@ -1,0 +1,517 @@
+{
+  "case": "0005-measured-temperature",
+  "input": {
+    "Evaluation": {
+      "evaluate_monotonic": {
+        "clock_epoch_id": "clock:synthetic",
+        "nanoseconds": "20"
+      },
+      "evaluated_at": {
+        "clock_id": "clock.synthetic",
+        "uncertainty_ns": "0",
+        "unix_nanoseconds": "20"
+      }
+    },
+    "Identity": {
+      "Asset": "asset:a",
+      "AssociationRevision": "1",
+      "Binding": "binding:a",
+      "BindingRevision": "1",
+      "DecoderRevision": "1",
+      "Epoch": "epoch:a",
+      "Family": "controller-family",
+      "Generation": "1",
+      "Native": "native:dhw",
+      "Profile": "profile:synthetic",
+      "ProfileRevision": "1",
+      "Selector": {
+        "Direction": "target_to_initiator",
+        "Group": 1,
+        "Instance": 0,
+        "Opcode": 2,
+        "Operation": 0,
+        "PB": 181,
+        "Register": 5,
+        "SB": 36
+      },
+      "SemanticRevision": "1",
+      "Service": "service:a",
+      "Source": "source:a"
+    },
+    "Measurement": {
+      "Attempt": {
+        "Correlated": true,
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "EvidenceStatus": "Unknown",
+        "FreshForNS": "100",
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 5,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Outcome": "ok",
+        "RawReply": "AgEAAAA0Qg==",
+        "RawRequest": "AgEA",
+        "Receipt": {
+          "clock_epoch_id": "clock:synthetic",
+          "nanoseconds": "10"
+        },
+        "ReceivedAt": {
+          "clock_id": "clock.synthetic",
+          "uncertainty_ns": "0",
+          "unix_nanoseconds": "10"
+        },
+        "Value": "AAA0Qg=="
+      },
+      "Codec": {
+        "BoundsKnown": true,
+        "Codec": "f32-le",
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 5,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Maximum": 150,
+        "Minimum": -50,
+        "Qualified": true,
+        "Unit": "native.celsius"
+      },
+      "Previous": null
+    },
+    "Presence": {
+      "Attempt": {
+        "Correlated": true,
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "EvidenceStatus": "Unknown",
+        "FreshForNS": "100",
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 1,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Outcome": "ok",
+        "RawReply": "AgEAAQA=",
+        "RawRequest": "AgEA",
+        "Receipt": {
+          "clock_epoch_id": "clock:synthetic",
+          "nanoseconds": "10"
+        },
+        "ReceivedAt": {
+          "clock_id": "clock.synthetic",
+          "uncertainty_ns": "0",
+          "unix_nanoseconds": "10"
+        },
+        "Value": "AQA="
+      },
+      "Codec": {
+        "BoundsKnown": true,
+        "Codec": "uin16-le",
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 1,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Maximum": 150,
+        "Minimum": -50,
+        "Qualified": true,
+        "Unit": "native.uin"
+      },
+      "Previous": null
+    }
+  },
+  "mapper": "mapDHWMeasuredTemperature",
+  "note": "native measured temperature 45 C (f32 little endian 0x42340000) with qualified presence",
+  "output": {
+    "Celsius": 45,
+    "Facts": [],
+    "Identity": {
+      "Asset": "asset:a",
+      "AssociationRevision": "1",
+      "Binding": "binding:a",
+      "BindingRevision": "1",
+      "DecoderRevision": "1",
+      "Epoch": "epoch:a",
+      "Family": "controller-family",
+      "Generation": "1",
+      "Native": "native:dhw",
+      "Profile": "profile:synthetic",
+      "ProfileRevision": "1",
+      "Selector": {
+        "Direction": "target_to_initiator",
+        "Group": 1,
+        "Instance": 0,
+        "Opcode": 2,
+        "Operation": 0,
+        "PB": 181,
+        "Register": 5,
+        "SB": 36
+      },
+      "SemanticRevision": "1",
+      "Service": "service:a",
+      "Source": "source:a"
+    },
+    "Loss": "",
+    "Measurement": {
+      "Attempt": {
+        "Correlated": true,
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "EvidenceStatus": "Unknown",
+        "FreshForNS": "100",
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 5,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Outcome": "ok",
+        "RawReply": "AgEAAAA0Qg==",
+        "RawRequest": "AgEA",
+        "Receipt": {
+          "clock_epoch_id": "clock:synthetic",
+          "nanoseconds": "10"
+        },
+        "ReceivedAt": {
+          "clock_id": "clock.synthetic",
+          "uncertainty_ns": "0",
+          "unix_nanoseconds": "10"
+        },
+        "Value": "AAA0Qg=="
+      },
+      "AttemptLoss": "",
+      "Freshness": "fresh",
+      "History": null,
+      "LastGoodValue": 45,
+      "Selected": {
+        "Correlated": true,
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "EvidenceStatus": "Unknown",
+        "FreshForNS": "100",
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 5,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Outcome": "ok",
+        "RawReply": "AgEAAAA0Qg==",
+        "RawRequest": "AgEA",
+        "Receipt": {
+          "clock_epoch_id": "clock:synthetic",
+          "nanoseconds": "10"
+        },
+        "ReceivedAt": {
+          "clock_id": "clock.synthetic",
+          "uncertainty_ns": "0",
+          "unix_nanoseconds": "10"
+        },
+        "Value": "AAA0Qg=="
+      }
+    },
+    "Presence": {
+      "Attempt": {
+        "Correlated": true,
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "EvidenceStatus": "Unknown",
+        "FreshForNS": "100",
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 1,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Outcome": "ok",
+        "RawReply": "AgEAAQA=",
+        "RawRequest": "AgEA",
+        "Receipt": {
+          "clock_epoch_id": "clock:synthetic",
+          "nanoseconds": "10"
+        },
+        "ReceivedAt": {
+          "clock_id": "clock.synthetic",
+          "uncertainty_ns": "0",
+          "unix_nanoseconds": "10"
+        },
+        "Value": "AQA="
+      },
+      "AttemptLoss": "",
+      "Freshness": "fresh",
+      "History": null,
+      "LastGoodValue": 1,
+      "Selected": {
+        "Correlated": true,
+        "Evidence": {
+          "access": "public",
+          "contract": "test.native/v1",
+          "digest": "sha256:068962f7e589628c821ac1b698f660928a93c4da376d1f267541b7da1bfffaa3",
+          "kind": "test.fixture",
+          "owner": "test.native",
+          "redaction": "none"
+        },
+        "EvidenceStatus": "Unknown",
+        "FreshForNS": "100",
+        "Identity": {
+          "Asset": "asset:a",
+          "AssociationRevision": "1",
+          "Binding": "binding:a",
+          "BindingRevision": "1",
+          "DecoderRevision": "1",
+          "Epoch": "epoch:a",
+          "Family": "controller-family",
+          "Generation": "1",
+          "Native": "native:dhw",
+          "Profile": "profile:synthetic",
+          "ProfileRevision": "1",
+          "Selector": {
+            "Direction": "target_to_initiator",
+            "Group": 1,
+            "Instance": 0,
+            "Opcode": 2,
+            "Operation": 0,
+            "PB": 181,
+            "Register": 1,
+            "SB": 36
+          },
+          "SemanticRevision": "1",
+          "Service": "service:a",
+          "Source": "source:a"
+        },
+        "Outcome": "ok",
+        "RawReply": "AgEAAQA=",
+        "RawRequest": "AgEA",
+        "Receipt": {
+          "clock_epoch_id": "clock:synthetic",
+          "nanoseconds": "10"
+        },
+        "ReceivedAt": {
+          "clock_id": "clock.synthetic",
+          "uncertainty_ns": "0",
+          "unix_nanoseconds": "10"
+        },
+        "Value": "AQA="
+      }
+    },
+    "Target": {
+      "CanonicalUnit": {
+        "id": "unit.kelvin",
+        "pack": {
+          "id": "helianthus.pack.thermal",
+          "version": "1.0.0"
+        },
+        "version": "1.0.0"
+      },
+      "Dimension": {
+        "id": "thermal.dimension.dhw",
+        "pack": {
+          "id": "helianthus.pack.thermal",
+          "version": "1.0.0"
+        },
+        "version": "1.0.0"
+      },
+      "Ref": {
+        "id": "thermal.measurement.dhw_temperature",
+        "pack": {
+          "id": "helianthus.pack.thermal",
+          "version": "1.0.0"
+        },
+        "version": "1.0.0"
+      }
+    },
+    "Withheld": "final fact key and decimal policy unresolved"
+  },
+  "selector": "B5/24 opcode 02 group 01 instance 00 register 0005"
+}
