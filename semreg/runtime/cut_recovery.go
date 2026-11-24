@@ -320,26 +320,8 @@ func (r *Recovery) specFor(record journalRecord) SessionSpec {
 func (r *Recovery) Secure(ctx context.Context, id life.InstanceID, terminal life.Transition) (*life.RecoveryMaterial, error) {
 	r.seqMu.Lock()
 	defer r.seqMu.Unlock()
-	r.mu.Lock()
-	if r.amb != nil {
-		r.mu.Unlock()
-		return nil, r.refusal()
-	}
-	pending := append([]byte(nil), r.pending...)
-	r.mu.Unlock()
-	if pending != nil {
-		if err := r.store.CommitRecovery(ctx, r.material(pending)); err != nil {
-			if !r.store.AdmissionOpen() {
-				r.mu.Lock()
-				prev := append([]byte(nil), r.memory...)
-				r.mu.Unlock()
-				return nil, r.hold(&ambiguousWrite{payload: pending, prev: prev}, err)
-			}
-			return nil, err
-		}
-		r.mu.Lock()
-		r.memory, r.pending = pending, nil
-		r.mu.Unlock()
+	if err := r.settlePending(ctx); err != nil {
+		return nil, err
 	}
 	if !transitionMatters(terminal) {
 		return nil, nil
@@ -439,9 +421,42 @@ func (r *Recovery) ReadbackResolved() {
 	}
 }
 
+// settlePending writes an accepted outcome the publisher already applied when
+// that outcome is not yet the committed envelope. The next commit has to
+// build on it. Leaving the unapplied intent in memory and then clearing the
+// pending outcome drops the accepted publication from recovery.
+func (r *Recovery) settlePending(ctx context.Context) error {
+	r.mu.Lock()
+	if r.amb != nil {
+		r.mu.Unlock()
+		return r.refusal()
+	}
+	pending := append([]byte(nil), r.pending...)
+	r.mu.Unlock()
+	if pending == nil {
+		return nil
+	}
+	if err := r.store.CommitRecovery(ctx, r.material(pending)); err != nil {
+		if !r.store.AdmissionOpen() {
+			r.mu.Lock()
+			prev := append([]byte(nil), r.memory...)
+			r.mu.Unlock()
+			return r.hold(&ambiguousWrite{payload: pending, prev: prev}, err)
+		}
+		return err
+	}
+	r.mu.Lock()
+	r.memory, r.pending = pending, nil
+	r.mu.Unlock()
+	return nil
+}
+
 func (r *Recovery) commit(ctx context.Context, session *Session, staged stagedCommit) error {
 	r.seqMu.Lock()
 	defer r.seqMu.Unlock()
+	if err := r.settlePending(ctx); err != nil {
+		return err
+	}
 	r.mu.Lock()
 	if r.amb != nil {
 		r.mu.Unlock()

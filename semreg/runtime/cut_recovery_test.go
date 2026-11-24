@@ -65,6 +65,7 @@ type gateStore struct {
 	fail     bool
 	persist  bool
 	failOpen bool
+	openFail int
 	held     *life.RecoveryMaterial
 	entered  chan struct{}
 	release  chan struct{}
@@ -77,6 +78,11 @@ func (g *gateStore) CommitRecovery(ctx context.Context, material *life.RecoveryM
 	if g.failOpen {
 		g.mu.Unlock()
 		return &life.Refusal{Code: life.RefusalUnavailable, Row: 3, Reason: "secure write failed"}
+	}
+	if g.openFail > 0 {
+		g.openFail--
+		g.mu.Unlock()
+		return &life.Refusal{Code: life.RefusalUnavailable, Row: 3, Reason: "outcome write failed"}
 	}
 	if g.fail {
 		g.fail = false
@@ -687,6 +693,114 @@ func TestRecoveryAmbiguousIntentAndOutcome(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRecoveryPendingOutcomePrecedesNextCommit(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		readback bool
+	}{
+		{name: "outcome write leaves admission open"},
+		{name: "readback reverts the outcome", readback: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			clock := newTestClock()
+			svc := openService(t, clock)
+			id := instanceOf("unit.held")
+			inner := life.NewMemoryStore()
+			registerIDs(t, inner, false, id)
+			gate := &gateStore{MemoryStore: inner}
+			recovery := svc.BindRecovery(gate)
+			node := memberNode(t, svc, "unit.held", "slot.held")
+			session := openPlain(t, svc, "unit.held", "asset:held", "source:held", "epoch:held", "1")
+			first := keepFresh(observedFact(session.spec, "candidate:first", "binding:held", "1", "11111", clock.Now(), 100))
+			source := declareFact(node, node, "path.held", 30, first)
+			publishFact(t, session, "binding:held", source, first)
+			held := first
+			held.CandidateID = "candidate:held"
+			held.Origin.OriginID = "origin:candidate:held"
+			heldValue := kelvinQuantity("22222", -2)
+			held.Value = &v1.Value{Kind: v1.ValueQuantity, Quantity: &heldValue}
+			var entered, release chan struct{}
+			recovery.beforeApply = func() {
+				if tc.readback {
+					entered, release = gate.arm(false)
+					return
+				}
+				gate.mu.Lock()
+				gate.openFail = 1
+				gate.mu.Unlock()
+			}
+			err := commitErr(session, func(b *v1.PublicationBatch) {
+				b.FactUpserts = []v1.FactCandidate{held}
+			}, func(tx *transaction) {
+				if err := tx.StageSample(driver.Sample{From: source, Candidate: held}); err != nil {
+					t.Fatal(err)
+				}
+			})
+			requireRetryable(t, "outcome", err)
+			recovery.beforeApply = nil
+			if coefficientOf(assetSnap(t, svc, "asset:held"), "candidate:held") != "22222" {
+				t.Fatal("the accepted publication was not applied")
+			}
+			if tc.readback {
+				close(release)
+				if err := gate.ResolveReadback(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+				recovery.ReadbackResolved()
+				if entered == nil {
+					t.Fatal("the outcome write did not arm readback")
+				}
+			}
+			recovery.mu.Lock()
+			pending := append([]byte(nil), recovery.pending...)
+			recovery.mu.Unlock()
+			if pending == nil || recovery.blocked() {
+				t.Fatal("the accepted outcome is not waiting to be settled")
+			}
+			later := first
+			later.CandidateID = "candidate:later"
+			later.Origin.OriginID = "origin:candidate:later"
+			laterValue := kelvinQuantity("33333", -2)
+			later.Value = &v1.Value{Kind: v1.ValueQuantity, Quantity: &laterValue}
+			commit(t, session, func(b *v1.PublicationBatch) {
+				b.FactUpserts = []v1.FactCandidate{later}
+			}, func(tx *transaction) {
+				if err := tx.StageSample(driver.Sample{From: source, Candidate: later}); err != nil {
+					t.Fatal(err)
+				}
+			})
+			got := acceptedCandidates(t, gate.Recovery().Payload)
+			if !got["candidate:first"] || !got["candidate:held"] || !got["candidate:later"] {
+				t.Fatalf("committed outcomes %+v", got)
+			}
+			restored := openService(t, clock)
+			memberNode(t, restored, "unit.held", "slot.held")
+			openPlain(t, restored, "unit.held", "asset:held", "source:held", "epoch:held", "1")
+			if err := restored.BindRecovery(life.NewMemoryStore()).Restore(context.Background(), gate.Recovery()); err != nil {
+				t.Fatal(err)
+			}
+			snap := assetSnap(t, restored, "asset:held")
+			if coefficientOf(snap, "candidate:first") != "11111" || coefficientOf(snap, "candidate:held") != "22222" || coefficientOf(snap, "candidate:later") != "33333" {
+				t.Fatalf("restored first %s held %s later %s", coefficientOf(snap, "candidate:first"), coefficientOf(snap, "candidate:held"), coefficientOf(snap, "candidate:later"))
+			}
+		})
+	}
+}
+
+func acceptedCandidates(t *testing.T, payload []byte) map[string]bool {
+	t.Helper()
+	got := map[string]bool{}
+	for _, record := range journalOf(t, payload) {
+		if record.Outcome != "accepted" || !record.Applied {
+			continue
+		}
+		for _, fact := range record.Batch.FactUpserts {
+			got[string(fact.CandidateID)] = true
+		}
+	}
+	return got
 }
 
 func TestRecoverySecureFailureKeepsSlotAndObligations(t *testing.T) {

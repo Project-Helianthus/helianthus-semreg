@@ -532,6 +532,87 @@ func TestPublishDependencyClosureAndExplicitWithdrawal(t *testing.T) {
 	}
 }
 
+func TestPublishReplayLeavesLaterCandidate(t *testing.T) {
+	clock := newTestClock()
+	svc := openService(t, clock)
+	node := memberNode(t, svc, "unit.heat", "slot.heat")
+	inputS := openPlain(t, svc, "unit.input", "asset:heat", "source:input", "epoch:input", "1")
+	derivedS := openPlain(t, svc, "unit.derived", "asset:heat", "source:derived", "epoch:derived", "1")
+	inputFact := keepFresh(observedFact(inputS.spec, "candidate:input", "binding:input", "1", "32165", clock.Now(), 100))
+	derivedFact := inferredFact("candidate:derived", "thermal.measurement.derived.heat", "45001", inputFact, clock.Now())
+	inputSource := declareFact(node, node, "path.input", 20, inputFact)
+	derivedSource := declareFact(node, node, "path.derived", 40, derivedFact)
+	batch, err := inputS.Prepare(func(b *v1.PublicationBatch) {
+		b.SourceUpserts = []v1.SourceDescriptor{descriptorOf(inputS.spec, "registry:"+string(inputS.spec.Source))}
+		b.BindingUpserts = []v1.NativeBinding{bindingOf(inputS.spec, "binding:input", "native-resource:binding:input")}
+		b.IdentityLinkUpserts = []v1.IdentityLink{linkOf(inputS.spec, "binding:input", "basis:binding:input", nil)}
+		b.FactUpserts = []v1.FactCandidate{inputFact}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := inputS.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := first.(*transaction).Stage(batch); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.(*transaction).DeclareSource(inputSource); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.(*transaction).StageSample(driver.Sample{From: inputSource, Candidate: inputFact}); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.Commit(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	publishInferred(t, derivedS, derivedSource, derivedFact)
+	before := assetSnap(t, svc, "asset:heat")
+	if !snapshotHas(before, "candidate:derived") || coefficientOf(before, "candidate:derived") != "45001" {
+		t.Fatal("the later inferred candidate is not current")
+	}
+	position := svc.positionUnsafe()
+	retry, err := inputS.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := retry.(*transaction).Stage(batch); err != nil {
+		t.Fatal(err)
+	}
+	if err := retry.Commit(context.Background()); err != nil {
+		t.Fatalf("exact replay: %v", err)
+	}
+	if svc.positionUnsafe() != position || assetSnap(t, svc, "asset:heat").SnapshotID != before.SnapshotID {
+		t.Fatal("replaying an accepted batch advanced the cursor")
+	}
+	heat := assetSnap(t, svc, "asset:heat")
+	if !snapshotHas(heat, "candidate:derived") || coefficientOf(heat, "candidate:derived") != "45001" || coefficientOf(heat, "candidate:input") != "32165" {
+		t.Fatalf("replay current derived %s input %s", coefficientOf(heat, "candidate:derived"), coefficientOf(heat, "candidate:input"))
+	}
+	view, err := svc.CaptureView(context.Background(), driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	el := svc.Element(derivedSource.For, view)
+	if sourceState(el, "path.derived").Disposition != sources.DispositionCurrent || valueCoefficient(el.Value) != "45001" {
+		t.Fatalf("replay disposition %s value %s", sourceState(el, "path.derived").Disposition, valueCoefficient(el.Value))
+	}
+	mutated := batch
+	mutated.BatchID = "batch:mutated-replay"
+	rejected, err := inputS.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rejected.(*transaction).Stage(mutated); err != nil {
+		t.Fatal(err)
+	}
+	requireIdent(t, rejected.Commit(context.Background()), v1.SequenceConflict)
+	if svc.positionUnsafe() != position || coefficientOf(assetSnap(t, svc, "asset:heat"), "candidate:derived") != "45001" {
+		t.Fatal("a conflicting replay changed the later candidate")
+	}
+}
+
 func TestPublishCrossAssetFrozenLineage(t *testing.T) {
 	clock := newTestClock()
 	svc := openService(t, clock)

@@ -645,6 +645,13 @@ func (s *Service) apply(ctx context.Context, session *Session, staged stagedComm
 		return errors.New("runtime: the asset has no publication kernel")
 	}
 	before, _, _ := kernel.Current()
+	// An equal sequence is this source's accepted batch. Apply returns the
+	// historical snapshot and leaves the kernel's current member unchanged,
+	// so admission and the runtime cursor must not follow that snapshot.
+	if acceptedSequence(before, staged.batch) {
+		_, _, err := kernel.Apply(staged.batch, mono)
+		return err
+	}
 	fork, err := kernel.Fork()
 	if err != nil {
 		return err
@@ -663,10 +670,14 @@ func (s *Service) apply(ctx context.Context, session *Session, staged stagedComm
 	if err != nil {
 		return err
 	}
-	if before.SnapshotID != "" && before.SnapshotID == after.SnapshotID {
+	current, _, ok := kernel.Current()
+	if !ok {
+		current = after
+	}
+	if before.SnapshotID != "" && current.SnapshotID == before.SnapshotID {
 		return nil
 	}
-	if err := s.admitLocked(session, staged, before, after); err != nil {
+	if err := s.admitLocked(session, staged, before, current); err != nil {
 		return err
 	}
 	if live {
@@ -711,6 +722,17 @@ func (s *Service) routesForLocked(asset v1.AssetID) []driver.SettingRoute {
 		}
 	}
 	return routeViews(routes, snaps, &graph.Cut{})
+}
+
+// acceptedSequence reports that this source's cursor already accepted the
+// batch sequence. The kernel then replays that digest or rejects a conflict.
+func acceptedSequence(current v1.Snapshot, batch v1.PublicationBatch) bool {
+	for _, cursor := range current.Cursors {
+		if cursor.SourceID == batch.SourceID && cursor.SourceEpochID == batch.SourceEpochID && cursor.DriverGeneration == batch.DriverGeneration {
+			return cursor.LastSequence == batch.Sequence
+		}
+	}
+	return false
 }
 
 func cursorSequence(snap v1.Snapshot, spec SessionSpec) uint64 {
