@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/sources"
 	v1 "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/driver"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/graph"
@@ -333,6 +334,79 @@ func TestCaptureSameDigestKeepsScopedLens(t *testing.T) {
 	}
 	if len(third.Cut.NotIncluded) != 2 {
 		t.Fatalf("new scope %+v", third.Cut.NotIncluded)
+	}
+}
+
+func TestCaptureEvaluationFollowsTheClock(t *testing.T) {
+	clock := newTestClock()
+	svc := openService(t, clock)
+	node := memberNode(t, svc, "unit.one", "slot.one")
+	session := openPlain(t, svc, "unit.one", "asset:one", "source:one", "epoch:one", "1")
+	fact := keepFresh(observedFact(session.spec, "candidate:one", "binding:one", "1", "32165", clock.Now(), 1000))
+	fact.Times.ReceiptMonotonic = monoNS(1000)
+	fact.Times.EvaluateMonotonic = monoNS(1000)
+	fact.FreshnessPolicy.FreshForNS = "1000"
+	fact.FreshnessPolicy.RetainForNS = "5000"
+	source := declareFact(node, node, "path.one", 30, fact)
+	publishFact(t, session, "binding:one", source, fact)
+	if assetSnap(t, svc, "asset:one").EvaluateMonotonic.Nanoseconds != "1000" {
+		t.Fatalf("publication point %s", assetSnap(t, svc, "asset:one").EvaluateMonotonic.Nanoseconds)
+	}
+	first, err := svc.CaptureView(context.Background(), driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Evaluation.EvaluateMonotonic.Nanoseconds != "1000" || svc.Element(source.For, first).Freshness != v1.FreshnessFresh {
+		t.Fatalf("first view %s %s", first.Evaluation.EvaluateMonotonic.Nanoseconds, svc.Element(source.For, first).Freshness)
+	}
+	clock.advance(2000 * time.Nanosecond)
+	stale, err := svc.CaptureView(context.Background(), driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stale.Evaluation.EvaluateMonotonic.Nanoseconds != "3000" || svc.Element(source.For, stale).Freshness != v1.FreshnessStale {
+		t.Fatalf("stale view %s %s", stale.Evaluation.EvaluateMonotonic.Nanoseconds, svc.Element(source.For, stale).Freshness)
+	}
+	if first.Evaluation.EvaluateMonotonic.Nanoseconds != "1000" || svc.Element(source.For, first).Freshness != v1.FreshnessFresh {
+		t.Fatal("the earlier view changed with the clock")
+	}
+	clock.advance(4000 * time.Nanosecond)
+	expired, err := svc.CaptureView(context.Background(), driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gone := svc.Element(source.For, expired)
+	if gone.Freshness != v1.FreshnessExpired || gone.Value != nil || sourceState(gone, "path.one").Disposition != sources.DispositionExpired {
+		t.Fatalf("expired %+v %s", gone.Freshness, valueCoefficient(gone.Value))
+	}
+	if svc.Element(source.For, first).Freshness != v1.FreshnessFresh {
+		t.Fatal("the retained view was reevaluated")
+	}
+	later := retitle(fact, "thermal.measurement.later.heat", "candidate:later")
+	later.Times.ReceiptMonotonic = monoNS(6500)
+	later.Times.EvaluateMonotonic = monoNS(6500)
+	later.FreshnessPolicy.FreshForNS = "1000"
+	later.FreshnessPolicy.RetainForNS = "5000"
+	laterSource := declareFact(node, node, "path.later", 30, later)
+	commit(t, session, func(b *v1.PublicationBatch) {
+		b.FactUpserts = []v1.FactCandidate{later}
+	}, func(tx *transaction) {
+		if err := tx.DeclareSource(laterSource); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.StageSample(driver.Sample{From: laterSource, Candidate: later}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if assetSnap(t, svc, "asset:one").EvaluateMonotonic.Nanoseconds != "7000" {
+		t.Fatalf("later publication point %s", assetSnap(t, svc, "asset:one").EvaluateMonotonic.Nanoseconds)
+	}
+	view, err := svc.CaptureView(context.Background(), driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sourceState(svc.Element(laterSource.For, view), "path.later").Freshness != v1.FreshnessFresh {
+		t.Fatalf("later receipt %s", sourceState(svc.Element(laterSource.For, view), "path.later").Freshness)
 	}
 }
 

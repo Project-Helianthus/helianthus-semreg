@@ -15,6 +15,45 @@ import (
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/graph"
 )
 
+func TestPublishUndeclaredSampleLeavesKernelUnchanged(t *testing.T) {
+	clock := newTestClock()
+	svc := openService(t, clock)
+	node := memberNode(t, svc, "unit.one", "slot.one")
+	session := openPlain(t, svc, "unit.one", "asset:one", "source:one", "epoch:one", "1")
+	fact := keepFresh(observedFact(session.spec, "candidate:one", "binding:one", "1", "32165", clock.Now(), 100))
+	decoy := declareFact(node, node, "path.decoy", 10, fact)
+	missing := declareFact(node, node, "path.missing", 20, fact)
+	err := commitErr(session, func(b *v1.PublicationBatch) {
+		b.SourceUpserts = []v1.SourceDescriptor{descriptorOf(session.spec, "registry:one")}
+		b.BindingUpserts = []v1.NativeBinding{bindingOf(session.spec, "binding:one", "native-resource:binding:one")}
+		b.IdentityLinkUpserts = []v1.IdentityLink{linkOf(session.spec, "binding:one", "basis:one", nil)}
+		b.FactUpserts = []v1.FactCandidate{fact}
+	}, func(tx *transaction) {
+		if err := tx.DeclareSource(decoy); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.StageSample(driver.Sample{From: missing, Candidate: fact}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if !errors.Is(err, sources.ErrUndeclared) {
+		t.Fatalf("commit error %v", err)
+	}
+	if _, _, ok := currentOf(svc, "asset:one"); ok {
+		t.Fatal("a rejected sample published the kernel")
+	}
+	if svc.positionUnsafe() != 0 {
+		t.Fatal("a rejected sample advanced the cursor")
+	}
+	if len(svc.Ledger().Sources()) != 0 {
+		t.Fatal("a rejected sample recorded a source")
+	}
+	publishFact(t, session, "binding:one", declareFact(node, node, "path.one", 30, fact), fact)
+	if coefficientOf(assetSnap(t, svc, "asset:one"), "candidate:one") != "32165" || svc.positionUnsafe() != 1 {
+		t.Fatal("the following commit did not take the rejected sequence")
+	}
+}
+
 func TestPublishFencedGenerationLeavesStoreUnchanged(t *testing.T) {
 	clock := newTestClock()
 	svc := openService(t, clock)
@@ -317,6 +356,11 @@ func TestPublishMirrorStopAndGenerationWithdrawal(t *testing.T) {
 	mirrorFact := keepFresh(observedFact(mirror.spec, "candidate:mirror", "binding:mirror", "1", "11111", clock.Now(), 100))
 	mirrorFact.Key = primaryFact.Key
 	otherFact := keepFresh(observedFact(other.spec, "candidate:primary", "binding:other", "1", "99999", clock.Now(), 100))
+	// The mirror commit below advances the clock by a millisecond. Retention
+	// has to outlast that sample or the primary basis expires before the stop.
+	primaryFact.FreshnessPolicy.RetainForNS = "10000000000"
+	mirrorFact.FreshnessPolicy.RetainForNS = "10000000000"
+	otherFact.FreshnessPolicy.RetainForNS = "10000000000"
 	primarySource := declareFact(node, node, "path.primary", 40, primaryFact)
 	mirrorSource := declareFact(node, node, "path.mirror", 10, mirrorFact)
 	publishFact(t, primary, "binding:primary", primarySource, primaryFact)

@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -648,8 +649,15 @@ func (s *Service) apply(ctx context.Context, session *Session, staged stagedComm
 	if err != nil {
 		return err
 	}
-	if _, _, err := fork.Apply(staged.batch, mono); err != nil {
+	probed, _, err := fork.Apply(staged.batch, mono)
+	if err != nil {
 		return err
+	}
+	unchanged := before.SnapshotID != "" && before.SnapshotID == probed.SnapshotID
+	if !unchanged {
+		if err := s.admissionReady(session, staged, probed); err != nil {
+			return err
+		}
 	}
 	after, _, err := kernel.Apply(staged.batch, mono)
 	if err != nil {
@@ -670,7 +678,10 @@ func (s *Service) apply(ctx context.Context, session *Session, staged stagedComm
 }
 
 func (s *Service) publicationMono() (v1.MonotonicPoint, error) {
-	return s.eval, nil
+	if point, ok := s.receipt.publicationPoint(); ok {
+		return point, nil
+	}
+	return s.liveMono()
 }
 
 func (s *Service) currentLocked() []v1.Snapshot {
@@ -717,6 +728,140 @@ func cursorSequence(snap v1.Snapshot, spec SessionSpec) uint64 {
 		}
 	}
 	return max
+}
+
+// admissionReady reports the error admitLocked would return, without changing
+// the kernel, the source table or the cursor.
+func (s *Service) admissionReady(session *Session, staged stagedCommit, after v1.Snapshot) error {
+	declared := map[string]driver.Source{}
+	for key, source := range s.declared {
+		declared[key] = source
+	}
+	for _, source := range staged.sources {
+		if err := source.Validate(); err != nil {
+			return err
+		}
+		ref := driver.SourceRef{For: source.For, Producer: source.Producer, PathKey: source.PathKey}
+		if _, err := v1.CanonicalJSON(ref); err != nil {
+			return err
+		}
+		declared[sourceKeyOf(source)] = source
+	}
+	for _, ref := range staged.drop {
+		delete(declared, string(sources.KeyOf(ref)))
+	}
+	for _, sample := range staged.samples {
+		candidate := factCandidate(after, sample.Candidate.CandidateID, sample.Candidate.Revision)
+		if candidate == nil {
+			continue
+		}
+		if err := admitReady(declared, driver.Sample{From: sample.From, Candidate: *candidate}, after); err != nil {
+			return err
+		}
+	}
+	sessionSources := append(append([]driver.Source{}, session.sources...), staged.sources...)
+	if len(sessionSources) > 0 {
+		for _, source := range sessionSources {
+			for _, envelope := range after.Facts {
+				if !sameFactKey(envelope.Key, source.For.Key) {
+					continue
+				}
+				for _, candidate := range envelope.Candidates {
+					if !upserted(staged.batch, candidate.CandidateID) || !sampleStaged(staged.samples, source, candidate.CandidateID) {
+						continue
+					}
+					if err := admitReady(declared, driver.Sample{From: source, Candidate: candidate}, after); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	publisher := identity.Publisher{Driver: session.spec.Driver, Instance: session.spec.Instance}
+	if len(staged.serials) > 0 {
+		if err := publisher.Validate(); err != nil {
+			return err
+		}
+	}
+	for _, claim := range staged.serials {
+		if err := claim.Validate(); err != nil {
+			return err
+		}
+		node, ok := s.ledger.Lookup(claim.Member)
+		if !ok {
+			return identity.ErrUnknownMember
+		}
+		owned := false
+		for _, key := range node.Keys {
+			if key.Driver == publisher.Driver && key.Instance == publisher.Instance {
+				owned = true
+				break
+			}
+		}
+		if !owned {
+			return identity.ErrNotOwner
+		}
+	}
+	if len(staged.links) > 0 {
+		if err := publisher.Validate(); err != nil {
+			return fmt.Errorf("publisher: %w", err)
+		}
+	}
+	for _, claim := range staged.links {
+		if err := claim.Validate(); err != nil {
+			return err
+		}
+		if _, err := v1.CanonicalJSON(claim.Key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func admitReady(declared map[string]driver.Source, sample driver.Sample, member v1.Snapshot) error {
+	if err := sample.From.Validate(); err != nil {
+		return fmt.Errorf("from: %w", err)
+	}
+	if err := sample.Candidate.Validate(); err != nil {
+		return fmt.Errorf("candidate: %w", err)
+	}
+	if err := member.AssetID.Validate(); err != nil {
+		return fmt.Errorf("member: %w", err)
+	}
+	source, ok := declared[sourceKeyOf(sample.From)]
+	if !ok {
+		return sources.ErrUndeclared
+	}
+	if canonicalFactKey(sample.Candidate.Key) != canonicalFactKey(source.For.Key) {
+		return errors.New("the candidate is not a fact of the source's element")
+	}
+	if !memberCarries(member, sample.Candidate.Key, sample.Candidate.CandidateID, sample.Candidate.Revision) {
+		return errors.New("the member does not carry the exact candidate and revision")
+	}
+	return nil
+}
+
+func canonicalFactKey(key v1.FactKey) string {
+	raw, err := v1.CanonicalJSON(key)
+	if err != nil {
+		raw, _ = json.Marshal(key)
+	}
+	return string(raw)
+}
+
+func memberCarries(member v1.Snapshot, key v1.FactKey, id v1.CandidateID, revision v1.Uint64) bool {
+	want := canonicalFactKey(key)
+	for _, envelope := range member.Facts {
+		if envelope.AssetID != member.AssetID || canonicalFactKey(envelope.Key) != want {
+			continue
+		}
+		for _, candidate := range envelope.Candidates {
+			if candidate.CandidateID == id && candidate.Revision == revision {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (s *Service) admitLocked(session *Session, staged stagedCommit, before, after v1.Snapshot) error {

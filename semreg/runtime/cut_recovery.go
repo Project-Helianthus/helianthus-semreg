@@ -22,6 +22,10 @@ type Recovery struct {
 	svc   *Service
 	store life.Store
 
+	// seqMu covers one intent, its apply and its outcome, and Secure.
+	// Field locks do not: two commits can otherwise snapshot the same
+	// envelope and the later write drops the other's accepted record.
+	seqMu         sync.Mutex
 	mu            sync.Mutex
 	arm           func()
 	memory        []byte
@@ -64,27 +68,28 @@ type ownerBlob struct {
 }
 
 type journalRecord struct {
-	Seq        uint64                           `json:"seq"`
-	Batch      v1.PublicationBatch              `json:"batch"`
-	Sources    []driver.Source                  `json:"sources,omitempty"`
-	Routes     []driver.SettingRoute            `json:"routes,omitempty"`
-	Serials    []driver.ManufacturerSerialClaim `json:"serials,omitempty"`
-	Samples    []driver.Sample                  `json:"samples,omitempty"`
-	Links      []driver.LinkClaim               `json:"links,omitempty"`
-	Drop       []driver.SourceRef               `json:"drop,omitempty"`
-	Ops        []identity.OperatorLink          `json:"ops,omitempty"`
-	Receipt    v1.MonotonicPoint                `json:"receipt"`
-	Instance   life.InstanceID                  `json:"instance"`
-	Generation v1.Uint64                        `json:"generation"`
-	Asset      v1.AssetID                       `json:"asset"`
-	Outcome    string                           `json:"outcome"`
-	Position   uint64                           `json:"position"`
-	Applied    bool                             `json:"applied"`
-	Graph      bool                             `json:"graph,omitempty"`
-	Driver     driver.DriverKind                `json:"driver"`
-	Owner      driver.InstanceKey               `json:"owner"`
-	Source     v1.SourceID                      `json:"source"`
-	Epoch      v1.SourceEpochID                 `json:"epoch"`
+	Seq         uint64                           `json:"seq"`
+	Batch       v1.PublicationBatch              `json:"batch"`
+	Sources     []driver.Source                  `json:"sources,omitempty"`
+	Routes      []driver.SettingRoute            `json:"routes,omitempty"`
+	Serials     []driver.ManufacturerSerialClaim `json:"serials,omitempty"`
+	Samples     []driver.Sample                  `json:"samples,omitempty"`
+	Links       []driver.LinkClaim               `json:"links,omitempty"`
+	Drop        []driver.SourceRef               `json:"drop,omitempty"`
+	Ops         []identity.OperatorLink          `json:"ops,omitempty"`
+	Receipt     v1.MonotonicPoint                `json:"receipt"`
+	Instance    life.InstanceID                  `json:"instance"`
+	Generation  v1.Uint64                        `json:"generation"`
+	Asset       v1.AssetID                       `json:"asset"`
+	Outcome     string                           `json:"outcome"`
+	Position    uint64                           `json:"position"`
+	Publication v1.MonotonicPoint                `json:"publication,omitempty"`
+	Applied     bool                             `json:"applied"`
+	Graph       bool                             `json:"graph,omitempty"`
+	Driver      driver.DriverKind                `json:"driver"`
+	Owner       driver.InstanceKey               `json:"owner"`
+	Source      v1.SourceID                      `json:"source"`
+	Epoch       v1.SourceEpochID                 `json:"epoch"`
 }
 
 // BindRecovery attaches the control store. Later commits of every session go
@@ -148,6 +153,7 @@ func (r *Recovery) Restore(ctx context.Context, material *life.RecoveryMaterial)
 	}
 	var failed []life.InstanceID
 	var cause error
+	var items []replayItem
 	for _, owner := range env.Owners {
 		var records []journalRecord
 		if err := json.Unmarshal(owner.Records, &records); err != nil {
@@ -162,14 +168,27 @@ func (r *Recovery) Restore(ctx context.Context, material *life.RecoveryMaterial)
 			if record.Outcome != "accepted" || !record.Applied {
 				continue
 			}
-			if err := r.replay(ctx, record); err != nil {
-				failed = append(failed, owner.Instance)
-				if cause == nil {
-					cause = err
-				}
-				r.svc.markFailed(owner.Instance)
-				break
+			items = append(items, replayItem{owner: owner.Instance, record: record})
+		}
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].record.Position != items[j].record.Position {
+			return items[i].record.Position < items[j].record.Position
+		}
+		return items[i].record.Seq < items[j].record.Seq
+	})
+	skip := map[life.InstanceID]bool{}
+	for _, item := range items {
+		if skip[item.owner] {
+			continue
+		}
+		if err := r.replay(ctx, item.record); err != nil {
+			skip[item.owner] = true
+			failed = append(failed, item.owner)
+			if cause == nil {
+				cause = err
 			}
+			r.svc.markFailed(item.owner)
 		}
 	}
 	r.noteContinuity(env)
@@ -219,6 +238,11 @@ func (r *Recovery) Continuity() (uint64, error) {
 	return r.continuity, r.continuityErr
 }
 
+type replayItem struct {
+	owner  life.InstanceID
+	record journalRecord
+}
+
 func (r *Recovery) replay(ctx context.Context, record journalRecord) error {
 	// The kernel rejects an older sequence. A prefix the cursor has already
 	// passed was accepted; applying it again would fail a second restore.
@@ -234,6 +258,9 @@ func (r *Recovery) replay(ctx context.Context, record journalRecord) error {
 	}
 	r.svc.mu.Unlock()
 	r.svc.receipt.force(record.Receipt)
+	if record.Publication.Nanoseconds != "" {
+		r.svc.receipt.pinPublication(record.Publication)
+	}
 	defer r.svc.receipt.clear()
 	staged := stagedCommit{
 		batch: record.Batch, sources: record.Sources, routes: record.Routes, serials: record.Serials,
@@ -291,6 +318,8 @@ func (r *Recovery) specFor(record journalRecord) SessionSpec {
 // One close obligation does not clear the other. A readback still pending
 // refuses without a store write.
 func (r *Recovery) Secure(ctx context.Context, id life.InstanceID, terminal life.Transition) (*life.RecoveryMaterial, error) {
+	r.seqMu.Lock()
+	defer r.seqMu.Unlock()
 	r.mu.Lock()
 	if r.amb != nil {
 		r.mu.Unlock()
@@ -411,10 +440,17 @@ func (r *Recovery) ReadbackResolved() {
 }
 
 func (r *Recovery) commit(ctx context.Context, session *Session, staged stagedCommit) error {
+	r.seqMu.Lock()
+	defer r.seqMu.Unlock()
 	r.mu.Lock()
 	if r.amb != nil {
 		r.mu.Unlock()
 		return r.refusal()
+	}
+	mono, err := r.svc.publicationMono()
+	if err != nil {
+		r.mu.Unlock()
+		return err
 	}
 	r.seq++
 	seq := r.seq
@@ -425,7 +461,7 @@ func (r *Recovery) commit(ctx context.Context, session *Session, staged stagedCo
 		Samples: staged.samples, Links: staged.links, Drop: staged.drop, Ops: staged.ops, Receipt: receipt,
 		Instance: session.id, Generation: session.spec.Generation, Asset: session.spec.Asset, Outcome: "",
 		Graph: session.spec.Graph, Driver: session.spec.Driver, Owner: session.spec.Instance,
-		Source: session.spec.Source, Epoch: session.spec.Epoch,
+		Source: session.spec.Source, Epoch: session.spec.Epoch, Publication: mono,
 	}
 	intent, err := r.finish(appendRecord(prev, record))
 	if err != nil {
@@ -447,6 +483,7 @@ func (r *Recovery) commit(ctx context.Context, session *Session, staged stagedCo
 		before()
 	}
 	r.svc.receipt.force(receipt)
+	r.svc.receipt.pinPublication(mono)
 	err = r.svc.apply(ctx, session, staged, true)
 	r.svc.receipt.clear()
 	if err != nil {

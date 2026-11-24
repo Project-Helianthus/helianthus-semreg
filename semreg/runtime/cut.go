@@ -69,6 +69,7 @@ type Service struct {
 	store        *graph.CutStore
 	clock        life.Clock
 	eval         v1.MonotonicPoint
+	opened       uint64
 	incarnation  string
 	ledger       *identity.Ledger
 	table        *sources.Table
@@ -132,9 +133,10 @@ type histRec struct {
 }
 
 type receiptClock struct {
-	mu     sync.Mutex
-	sample func() v1.MonotonicPoint
-	forced *v1.MonotonicPoint
+	mu          sync.Mutex
+	sample      func() v1.MonotonicPoint
+	forced      *v1.MonotonicPoint
+	publication *v1.MonotonicPoint
 }
 
 func (c *receiptClock) now() v1.MonotonicPoint {
@@ -152,9 +154,25 @@ func (c *receiptClock) force(p v1.MonotonicPoint) {
 	c.mu.Unlock()
 }
 
+func (c *receiptClock) pinPublication(p v1.MonotonicPoint) {
+	c.mu.Lock()
+	c.publication = &p
+	c.mu.Unlock()
+}
+
+func (c *receiptClock) publicationPoint() (v1.MonotonicPoint, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.publication == nil {
+		return v1.MonotonicPoint{}, false
+	}
+	return *c.publication, true
+}
+
 func (c *receiptClock) clear() {
 	c.mu.Lock()
 	c.forced = nil
+	c.publication = nil
 	c.mu.Unlock()
 }
 
@@ -168,6 +186,10 @@ func Open(opts Options) (*Service, error) {
 	}
 	if err := opts.EvaluateMonotonic.Validate(); err != nil {
 		return nil, fmt.Errorf("runtime: evaluate monotonic: %w", err)
+	}
+	opened, err := opts.Clock.Sample()
+	if err != nil {
+		return nil, fmt.Errorf("runtime: clock: %w", err)
 	}
 	catalog := opts.Catalog
 	if catalog == nil {
@@ -189,6 +211,7 @@ func Open(opts Options) (*Service, error) {
 		catalog:     catalog,
 		clock:       opts.Clock,
 		eval:        opts.EvaluateMonotonic,
+		opened:      opened,
 		incarnation: opts.Incarnation,
 		ledger:      ledger,
 		kernels:     map[v1.AssetID]*v1.PublicationKernel{},
@@ -245,8 +268,38 @@ func (s *Service) wall() v1.TimePoint {
 	}
 }
 
-func (s *Service) context() v1.EvaluationContext {
-	return v1.EvaluationContext{EvaluatedAt: s.wall(), EvaluateMonotonic: s.eval}
+func (s *Service) context() (v1.EvaluationContext, error) {
+	mono, err := s.liveMono()
+	if err != nil {
+		return v1.EvaluationContext{}, err
+	}
+	return v1.EvaluationContext{EvaluatedAt: s.wall(), EvaluateMonotonic: mono}, nil
+}
+
+// liveMono is the owner's evaluation point plus the clock's elapsed sample
+// since Open. A captured view keeps the point it stored. A pinned publication
+// point belongs to replay and is not used here.
+func (s *Service) liveMono() (v1.MonotonicPoint, error) {
+	sample, err := s.clock.Sample()
+	if err != nil {
+		return v1.MonotonicPoint{}, fmt.Errorf("runtime: clock: %w", err)
+	}
+	if sample < s.opened {
+		return v1.MonotonicPoint{}, errors.New("runtime: the evaluation clock moved backward")
+	}
+	return addMono(s.eval, sample-s.opened)
+}
+
+func addMono(base v1.MonotonicPoint, delta uint64) (v1.MonotonicPoint, error) {
+	n, err := strconv.ParseUint(string(base.Nanoseconds), 10, 64)
+	if err != nil {
+		return v1.MonotonicPoint{}, fmt.Errorf("runtime: evaluate monotonic: %w", err)
+	}
+	sum := n + delta
+	if sum < n {
+		return v1.MonotonicPoint{}, errors.New("runtime: the evaluation clock overflowed")
+	}
+	return v1.MonotonicPoint{ClockEpochID: base.ClockEpochID, Nanoseconds: v1.Uint64(strconv.FormatUint(sum, 10))}, nil
 }
 
 func (s *Service) cursorAt(position uint64) driver.Cursor {
@@ -274,7 +327,11 @@ func (s *Service) CaptureView(ctx context.Context, filter driver.Filter) (View, 
 	}
 	s.mu.Lock()
 	snaps, position, known := s.consistent()
-	eval := s.context()
+	eval, err := s.context()
+	if err != nil {
+		s.mu.Unlock()
+		return View{}, err
+	}
 	overlay := append([]OverlayLink(nil), s.overlay...)
 	sourcesNow := s.ledger.Sources()
 	nodes := append([]placedNode(nil), s.nodes...)

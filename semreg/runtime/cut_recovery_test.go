@@ -373,6 +373,134 @@ func TestRecoveryDurablePublishWithdrawAndRestore(t *testing.T) {
 	}
 }
 
+func TestRecoveryRestoresSharedAssetInCommitOrder(t *testing.T) {
+	clock := newTestClock()
+	svc := openService(t, clock)
+	store := life.NewMemoryStore()
+	registerIDs(t, store, false, instanceOf("unit.primary"), instanceOf("unit.mirror"))
+	svc.BindRecovery(store)
+	primaryNode := memberNode(t, svc, "unit.primary", "slot.primary")
+	mirrorNode := memberNode(t, svc, "unit.mirror", "slot.mirror")
+	primary := openPlain(t, svc, "unit.primary", "asset:shared", "source:primary", "epoch:primary", "1")
+	mirror := openPlain(t, svc, "unit.mirror", "asset:shared", "source:mirror", "epoch:mirror", "1")
+	primaryFact := keepFresh(observedFact(primary.spec, "candidate:primary", "binding:primary", "1", "11111", clock.Now(), 100))
+	mirrorFact := keepFresh(observedFact(mirror.spec, "candidate:mirror", "binding:mirror", "1", "22222", clock.Now(), 100))
+	revised := primaryFact
+	revised.Revision = "2"
+	value := kelvinQuantity("33333", -2)
+	revised.Value = &v1.Value{Kind: v1.ValueQuantity, Quantity: &value}
+	publishFact(t, primary, "binding:primary", declareFact(primaryNode, primaryNode, "path.primary", 30, primaryFact), primaryFact)
+	publishFact(t, mirror, "binding:mirror", declareFact(mirrorNode, mirrorNode, "path.mirror", 30, mirrorFact), mirrorFact)
+	commit(t, primary, func(b *v1.PublicationBatch) {
+		b.FactUpserts = []v1.FactCandidate{revised}
+	}, func(tx *transaction) {
+		if err := tx.StageSample(driver.Sample{From: declareFact(primaryNode, primaryNode, "path.primary", 30, revised), Candidate: revised}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	payload := append([]byte(nil), store.Recovery().Payload...)
+	restored := openService(t, clock)
+	openPlain(t, restored, "unit.primary", "asset:shared", "source:primary", "epoch:primary", "1")
+	openPlain(t, restored, "unit.mirror", "asset:shared", "source:mirror", "epoch:mirror", "1")
+	if err := restored.BindRecovery(life.NewMemoryStore()).Restore(context.Background(), &life.RecoveryMaterial{Payload: payload}); err != nil {
+		t.Fatal(err)
+	}
+	snap := assetSnap(t, restored, "asset:shared")
+	if coefficientOf(snap, "candidate:primary") != "33333" || coefficientOf(snap, "candidate:mirror") != "22222" {
+		t.Fatalf("restored primary %s mirror %s", coefficientOf(snap, "candidate:primary"), coefficientOf(snap, "candidate:mirror"))
+	}
+}
+
+func TestRecoveryConcurrentCommitsKeepEveryAcceptedRecord(t *testing.T) {
+	clock := newTestClock()
+	svc := openService(t, clock)
+	store := life.NewMemoryStore()
+	alphaID := instanceOf("unit.alpha")
+	registerIDs(t, store, false, alphaID, instanceOf("unit.beta"))
+	recovery := svc.BindRecovery(store)
+	alphaNode := memberNode(t, svc, "unit.alpha", "slot.alpha")
+	betaNode := memberNode(t, svc, "unit.beta", "slot.beta")
+	alpha := openPlain(t, svc, "unit.alpha", "asset:alpha", "source:alpha", "epoch:alpha", "1")
+	beta := openPlain(t, svc, "unit.beta", "asset:beta", "source:beta", "epoch:beta", "1")
+	alphaFact := keepFresh(observedFact(alpha.spec, "candidate:alpha", "binding:alpha", "1", "11111", clock.Now(), 100))
+	betaFact := keepFresh(observedFact(beta.spec, "candidate:beta", "binding:beta", "1", "22222", clock.Now(), 100))
+	alphaSource := declareFact(alphaNode, alphaNode, "path.alpha", 30, alphaFact)
+	betaSource := declareFact(betaNode, betaNode, "path.beta", 30, betaFact)
+	alphaDone := make(chan error, 1)
+	betaDone := make(chan error, 1)
+	secDone := make(chan error, 1)
+	var once sync.Once
+	recovery.beforeApply = func() {
+		once.Do(func() {
+			go func() {
+				betaDone <- commitErr(beta, func(b *v1.PublicationBatch) {
+					b.SourceUpserts = []v1.SourceDescriptor{descriptorOf(beta.spec, "registry:beta")}
+					b.BindingUpserts = []v1.NativeBinding{bindingOf(beta.spec, "binding:beta", "native-resource:binding:beta")}
+					b.IdentityLinkUpserts = []v1.IdentityLink{linkOf(beta.spec, "binding:beta", "basis:beta", nil)}
+					b.FactUpserts = []v1.FactCandidate{betaFact}
+				}, func(tx *transaction) {
+					if err := tx.DeclareSource(betaSource); err != nil {
+						panic(err)
+					}
+					if err := tx.StageSample(driver.Sample{From: betaSource, Candidate: betaFact}); err != nil {
+						panic(err)
+					}
+				})
+			}()
+			go func() {
+				_, err := recovery.Secure(context.Background(), alphaID, life.Transition{Phase: life.PhaseCleanup, NativeClosePending: false, SemanticCleanupPending: true, AttemptsUsed: 1})
+				secDone <- err
+			}()
+			time.Sleep(400 * time.Millisecond)
+		})
+	}
+	go func() {
+		alphaDone <- commitErr(alpha, func(b *v1.PublicationBatch) {
+			b.SourceUpserts = []v1.SourceDescriptor{descriptorOf(alpha.spec, "registry:alpha")}
+			b.BindingUpserts = []v1.NativeBinding{bindingOf(alpha.spec, "binding:alpha", "native-resource:binding:alpha")}
+			b.IdentityLinkUpserts = []v1.IdentityLink{linkOf(alpha.spec, "binding:alpha", "basis:alpha", nil)}
+			b.FactUpserts = []v1.FactCandidate{alphaFact}
+		}, func(tx *transaction) {
+			if err := tx.DeclareSource(alphaSource); err != nil {
+				panic(err)
+			}
+			if err := tx.StageSample(driver.Sample{From: alphaSource, Candidate: alphaFact}); err != nil {
+				panic(err)
+			}
+		})
+	}()
+	timeout := time.After(8 * time.Second)
+	var alphaErr, betaErr, secureErr error
+	for n := 0; n < 3; {
+		select {
+		case alphaErr = <-alphaDone:
+			n++
+		case betaErr = <-betaDone:
+			n++
+		case secureErr = <-secDone:
+			n++
+		case <-timeout:
+			t.Fatal("the commits did not finish")
+		}
+	}
+	if alphaErr != nil || betaErr != nil || secureErr != nil {
+		t.Fatalf("alpha %v beta %v secure %v", alphaErr, betaErr, secureErr)
+	}
+	if !recovery.Obligation(alphaID).NativeClosed {
+		t.Fatal("Secure lost the recorded close")
+	}
+	payload := append([]byte(nil), store.Recovery().Payload...)
+	restored := openService(t, clock)
+	openPlain(t, restored, "unit.alpha", "asset:alpha", "source:alpha", "epoch:alpha", "1")
+	openPlain(t, restored, "unit.beta", "asset:beta", "source:beta", "epoch:beta", "1")
+	if err := restored.BindRecovery(life.NewMemoryStore()).Restore(context.Background(), &life.RecoveryMaterial{Payload: payload}); err != nil {
+		t.Fatal(err)
+	}
+	if coefficientOf(assetSnap(t, restored, "asset:alpha"), "candidate:alpha") != "11111" || coefficientOf(assetSnap(t, restored, "asset:beta"), "candidate:beta") != "22222" {
+		t.Fatal("restore dropped an accepted record")
+	}
+}
+
 func TestRecoveryAmbiguousIntentAndOutcome(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
