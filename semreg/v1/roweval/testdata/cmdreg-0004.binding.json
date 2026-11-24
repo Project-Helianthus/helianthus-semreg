@@ -1,0 +1,29 @@
+{
+  "case": "cmdreg-0004",
+  "expected": {
+    "dimension": "thermal.dimension.dhw",
+    "fact": "thermal.setpoint.dhw_temperature_setpoint",
+    "identity_loss": null,
+    "qualification_loss": null,
+    "quality": "the supplied quality of the caller metadata operand",
+    "value": {
+      "derivation": "50 + 273.15",
+      "number": "323.15",
+      "unit": "K"
+    }
+  },
+  "input": {
+    "direction": "controller to initiator",
+    "native_value": {
+      "number": "50",
+      "unit": "native.celsius"
+    },
+    "presentation": "controller",
+    "selector": "B5/24 opcode 02 group 01 instance 00 register 0004",
+    "subject": {
+      "resolved": true,
+      "role": "hot-water subject supplied by the caller's resolution"
+    }
+  },
+  "kind": "new-binding"
+}

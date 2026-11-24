@@ -1,0 +1,8 @@
+{
+  "case": "wordblk-neighbour-offset-13",
+  "expected": {
+    "binding": "miss",
+    "publication": "none"
+  },
+  "word": 13
+}

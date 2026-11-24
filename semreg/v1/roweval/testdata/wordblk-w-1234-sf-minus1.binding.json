@@ -1,0 +1,22 @@
+{
+  "binding": {
+    "policy": "pv.telemetry.fast.v1",
+    "subject": "inverter",
+    "target": "pv.ac.aggregate_active_power",
+    "unit": "W"
+  },
+  "case": "wordblk-w-1234-sf-minus1",
+  "expected": {
+    "value": {
+      "number": "123.4",
+      "unit": "W"
+    }
+  },
+  "input": {
+    "length": 50,
+    "model": 103,
+    "word14": 1234,
+    "word15": -1
+  },
+  "kind": "new-binding"
+}

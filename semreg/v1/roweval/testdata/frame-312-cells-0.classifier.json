@@ -1,0 +1,43 @@
+{
+  "case": "312-cells-0",
+  "note": "boundary: cell count byte 7 equal to 0",
+  "result": {
+    "profile": "",
+    "projection": null
+  },
+  "steps": [
+    {
+      "frame": {
+        "data_hex": "023800fa01f40043",
+        "extended": false,
+        "identifier": 785
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    },
+    {
+      "frame": {
+        "data_hex": "0080000002aabb00",
+        "extended": false,
+        "identifier": 786
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": false
+    },
+    {
+      "frame": {
+        "data_hex": "1400fff6012c50ff",
+        "extended": false,
+        "identifier": 787
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    }
+  ]
+}

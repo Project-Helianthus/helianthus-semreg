@@ -1,0 +1,145 @@
+{
+  "case": "tuple-card",
+  "note": "complete 311/312/313 tuple",
+  "result": {
+    "projection": {
+      "Interface": {},
+      "Limits": {
+        "ChargeCurrentDeciamps": 250,
+        "ChargeVoltageDecivolts": 568,
+        "DischargeCurrentDeciamps": 500,
+        "RawStatus": 67
+      },
+      "LimitsEvidence": {
+        "Frame": {},
+        "Interface": {},
+        "Monotonic": 1000000000,
+        "RawRecord": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "Sequence": 1
+      },
+      "Measurements": {
+        "CurrentDeciamps": -10,
+        "MaximumCellTemperatureDeciC": 300,
+        "SOCPercent": 80,
+        "SOHValid": true,
+        "SOHValue": 127,
+        "VoltageCentivolts": 5120
+      },
+      "MeasurementsEvidence": {
+        "Frame": {},
+        "Interface": {},
+        "Monotonic": 3000000000,
+        "RawRecord": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "Sequence": 3
+      },
+      "Status": {
+        "Manufacturer": [
+          170,
+          187
+        ],
+        "PackCount": 2,
+        "Protection": [
+          0,
+          128
+        ],
+        "TotalCellCount": 16,
+        "Warning": [
+          0,
+          0
+        ]
+      },
+      "StatusEvidence": {
+        "Frame": {},
+        "Interface": {},
+        "Monotonic": 2000000000,
+        "RawRecord": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "Sequence": 2
+      }
+    }
+  },
+  "steps": [
+    {
+      "frame": {
+        "data_hex": "023800fa01f40043",
+        "extended": false,
+        "identifier": 785
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    },
+    {
+      "frame": {
+        "data_hex": "0080000002aabb10",
+        "extended": false,
+        "identifier": 786
+      },
+      "geometry": true,
+      "listed": true,
+      "profile": "",
+      "valid": true
+    },
+    {
+      "frame": {
+        "data_hex": "1400fff6012c50ff",
+        "extended": false,
+        "identifier": 787
+      },
+      "geometry": true,
+      "listed": true,
+      "valid": true
+    }
+  ]
+}

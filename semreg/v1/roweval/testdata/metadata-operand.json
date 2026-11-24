@@ -1,0 +1,31 @@
+{
+  "format": "helianthus-oracle-spec-ss02-candidate-metadata/1",
+  "origin": "specification",
+  "purpose": "the caller-supplied metadata of a fact candidate; it is an input operand of every new-binding case and is part of no native record and no new-binding record",
+  "fields": [
+    "origin",
+    "derivation",
+    "identity",
+    "quality",
+    "time",
+    "evidence",
+    "freshness_policy"
+  ],
+  "synthetic_values": {
+    "origin": "origin.synthetic",
+    "derivation": "derivation.observed",
+    "identity": "candidate.synthetic.1",
+    "quality": {
+      "assertion": "observed",
+      "validity": "good",
+      "freshness": "fresh"
+    },
+    "time": {
+      "received_at_ns": "100",
+      "clock_id": "clock.synthetic"
+    },
+    "evidence": "evidence.synthetic.1",
+    "freshness_policy": "policy.synthetic"
+  },
+  "note": "the quality named here is the value the new binding passes through as the supplied quality"
+}

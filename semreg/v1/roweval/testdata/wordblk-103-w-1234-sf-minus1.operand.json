@@ -1,0 +1,11 @@
+{
+  "case": "wordblk-103-w-1234-sf-minus1",
+  "disposition": {
+    "admitted": true,
+    "reason": "ADMITTED"
+  },
+  "native": {
+    "number": "123.4",
+    "unit": "W"
+  }
+}

@@ -1,0 +1,381 @@
+{
+  "case": "0004-sentinel-no-value",
+  "input": {
+    "bindings": [
+      {
+        "Domain": {
+          "Evidence": [
+            {
+              "access": "public",
+              "contract": "test.synthetic/v1",
+              "digest": "sha256:0c27c53f67a1b2418e7abda1e592e2de4258783b9bb3c56a83d7c0fa2352603c",
+              "kind": "test.synthetic",
+              "owner": "test.dhw",
+              "redaction": "none"
+            }
+          ],
+          "Maximum": {
+            "number": {
+              "coefficient": "7",
+              "exponent10": 1
+            },
+            "unit": "native.celsius"
+          },
+          "Minimum": {
+            "number": {
+              "coefficient": "35",
+              "exponent10": 0
+            },
+            "unit": "native.celsius"
+          },
+          "Qualification": "qualified"
+        },
+        "Evidence": [
+          {
+            "access": "public",
+            "contract": "test.synthetic/v1",
+            "digest": "sha256:0c27c53f67a1b2418e7abda1e592e2de4258783b9bb3c56a83d7c0fa2352603c",
+            "kind": "test.synthetic",
+            "owner": "test.dhw",
+            "redaction": "none"
+          }
+        ],
+        "Identity": {
+          "Asset": "asset:synthetic",
+          "AssociationRevision": "9",
+          "Binding": "binding:synthetic",
+          "BindingRevision": "7",
+          "DriverGeneration": "2",
+          "Selector": {
+            "Codec": "f32:qualified",
+            "Controller": "controller:synthetic",
+            "Direction": "controller_to_initiator",
+            "Group": 1,
+            "Initiator": "initiator:synthetic",
+            "Instance": 0,
+            "Opcode": 2,
+            "OperationType": 0,
+            "PB": 181,
+            "Profile": "profile:synthetic",
+            "Register": 4,
+            "SB": 36
+          },
+          "Service": "dhw:synthetic",
+          "Source": "source:synthetic",
+          "SourceEpoch": "epoch:synthetic"
+        },
+        "Qualification": "qualified",
+        "Service": {
+          "asset_id": "asset:synthetic",
+          "availability": "available",
+          "binding_id": "binding:synthetic",
+          "definition": {
+            "id": "thermal.service.dhw",
+            "pack": {
+              "id": "helianthus.pack.thermal",
+              "version": "1.0.0"
+            },
+            "version": "1.0.0"
+          },
+          "driver_generation": "2",
+          "instance_id": "dhw:synthetic",
+          "qualification": "qualified",
+          "revision": "3",
+          "source_epoch_id": "epoch:synthetic"
+        }
+      }
+    ],
+    "evaluation": {
+      "evaluate_monotonic": {
+        "clock_epoch_id": "clock:synthetic",
+        "nanoseconds": "200"
+      },
+      "evaluated_at": {
+        "clock_id": "clock.synthetic",
+        "uncertainty_ns": "0",
+        "unix_nanoseconds": "200"
+      }
+    },
+    "observations": [
+      {
+        "Evidence": [
+          {
+            "access": "public",
+            "contract": "test.synthetic/v1",
+            "digest": "sha256:0c27c53f67a1b2418e7abda1e592e2de4258783b9bb3c56a83d7c0fa2352603c",
+            "kind": "test.synthetic",
+            "owner": "test.dhw",
+            "redaction": "none"
+          }
+        ],
+        "Identity": {
+          "Asset": "asset:synthetic",
+          "AssociationRevision": "9",
+          "Binding": "binding:synthetic",
+          "BindingRevision": "7",
+          "DriverGeneration": "2",
+          "Selector": {
+            "Codec": "f32:qualified",
+            "Controller": "controller:synthetic",
+            "Direction": "controller_to_initiator",
+            "Group": 1,
+            "Initiator": "initiator:synthetic",
+            "Instance": 0,
+            "Opcode": 2,
+            "OperationType": 0,
+            "PB": 181,
+            "Profile": "profile:synthetic",
+            "Register": 4,
+            "SB": 36
+          },
+          "Service": "dhw:synthetic",
+          "Source": "source:synthetic",
+          "SourceEpoch": "epoch:synthetic"
+        },
+        "Presentation": "controller",
+        "Quality": {
+          "assertion": "observed",
+          "availability": "available",
+          "freshness": "fresh",
+          "promotion": "",
+          "qualification": "qualified",
+          "reasons": [],
+          "validity": "good"
+        },
+        "RawReply": "AABIQg==",
+        "Times": {
+          "evaluate_monotonic": {
+            "clock_epoch_id": "",
+            "nanoseconds": ""
+          },
+          "evaluated_at": {
+            "clock_id": "",
+            "uncertainty_ns": "",
+            "unix_nanoseconds": ""
+          },
+          "receipt_monotonic": {
+            "clock_epoch_id": "clock:synthetic",
+            "nanoseconds": "100"
+          },
+          "received_at": {
+            "clock_id": "clock.synthetic",
+            "uncertainty_ns": "0",
+            "unix_nanoseconds": "100"
+          }
+        },
+        "Value": null
+      }
+    ]
+  },
+  "mapper": "mapThermalDhwSetpoints",
+  "note": "sentinel: the decoded value is absent",
+  "output": {
+    "Disposition": {
+      "item_id": "thermal.setpoint.dhw_temperature_setpoint",
+      "kind": "fact",
+      "loss": [
+        {
+          "description": "hot-water resource identity is not allocated before graph publication",
+          "kind": "identity",
+          "reversible": false,
+          "source_items": [
+            "thermal.setpoint.dhw_temperature_setpoint"
+          ]
+        }
+      ],
+      "outcome": "withheld",
+      "source_keys": []
+    },
+    "Sources": [
+      {
+        "Binding": {
+          "Domain": {
+            "Evidence": [
+              {
+                "access": "public",
+                "contract": "test.synthetic/v1",
+                "digest": "sha256:0c27c53f67a1b2418e7abda1e592e2de4258783b9bb3c56a83d7c0fa2352603c",
+                "kind": "test.synthetic",
+                "owner": "test.dhw",
+                "redaction": "none"
+              }
+            ],
+            "Maximum": {
+              "number": {
+                "coefficient": "7",
+                "exponent10": 1
+              },
+              "unit": "native.celsius"
+            },
+            "Minimum": {
+              "number": {
+                "coefficient": "35",
+                "exponent10": 0
+              },
+              "unit": "native.celsius"
+            },
+            "Qualification": "qualified"
+          },
+          "Evidence": [
+            {
+              "access": "public",
+              "contract": "test.synthetic/v1",
+              "digest": "sha256:0c27c53f67a1b2418e7abda1e592e2de4258783b9bb3c56a83d7c0fa2352603c",
+              "kind": "test.synthetic",
+              "owner": "test.dhw",
+              "redaction": "none"
+            }
+          ],
+          "Identity": {
+            "Asset": "asset:synthetic",
+            "AssociationRevision": "9",
+            "Binding": "binding:synthetic",
+            "BindingRevision": "7",
+            "DriverGeneration": "2",
+            "Selector": {
+              "Codec": "f32:qualified",
+              "Controller": "controller:synthetic",
+              "Direction": "controller_to_initiator",
+              "Group": 1,
+              "Initiator": "initiator:synthetic",
+              "Instance": 0,
+              "Opcode": 2,
+              "OperationType": 0,
+              "PB": 181,
+              "Profile": "profile:synthetic",
+              "Register": 4,
+              "SB": 36
+            },
+            "Service": "dhw:synthetic",
+            "Source": "source:synthetic",
+            "SourceEpoch": "epoch:synthetic"
+          },
+          "Qualification": "qualified",
+          "Service": {
+            "asset_id": "asset:synthetic",
+            "availability": "available",
+            "binding_id": "binding:synthetic",
+            "definition": {
+              "id": "thermal.service.dhw",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              },
+              "version": "1.0.0"
+            },
+            "driver_generation": "2",
+            "instance_id": "dhw:synthetic",
+            "qualification": "qualified",
+            "revision": "3",
+            "source_epoch_id": "epoch:synthetic"
+          }
+        },
+        "Eligible": false,
+        "Identity": {
+          "Asset": "asset:synthetic",
+          "AssociationRevision": "9",
+          "Binding": "binding:synthetic",
+          "BindingRevision": "7",
+          "DriverGeneration": "2",
+          "Selector": {
+            "Codec": "f32:qualified",
+            "Controller": "controller:synthetic",
+            "Direction": "controller_to_initiator",
+            "Group": 1,
+            "Initiator": "initiator:synthetic",
+            "Instance": 0,
+            "Opcode": 2,
+            "OperationType": 0,
+            "PB": 181,
+            "Profile": "profile:synthetic",
+            "Register": 4,
+            "SB": 36
+          },
+          "Service": "dhw:synthetic",
+          "Source": "source:synthetic",
+          "SourceEpoch": "epoch:synthetic"
+        },
+        "Loss": [
+          {
+            "description": "requested temperature requires an exact native Celsius quantity",
+            "kind": "unit",
+            "reversible": false,
+            "source_items": [
+              "thermal.setpoint.dhw_temperature_setpoint"
+            ]
+          }
+        ],
+        "Observation": {
+          "Evidence": [
+            {
+              "access": "public",
+              "contract": "test.synthetic/v1",
+              "digest": "sha256:0c27c53f67a1b2418e7abda1e592e2de4258783b9bb3c56a83d7c0fa2352603c",
+              "kind": "test.synthetic",
+              "owner": "test.dhw",
+              "redaction": "none"
+            }
+          ],
+          "Identity": {
+            "Asset": "asset:synthetic",
+            "AssociationRevision": "9",
+            "Binding": "binding:synthetic",
+            "BindingRevision": "7",
+            "DriverGeneration": "2",
+            "Selector": {
+              "Codec": "f32:qualified",
+              "Controller": "controller:synthetic",
+              "Direction": "controller_to_initiator",
+              "Group": 1,
+              "Initiator": "initiator:synthetic",
+              "Instance": 0,
+              "Opcode": 2,
+              "OperationType": 0,
+              "PB": 181,
+              "Profile": "profile:synthetic",
+              "Register": 4,
+              "SB": 36
+            },
+            "Service": "dhw:synthetic",
+            "Source": "source:synthetic",
+            "SourceEpoch": "epoch:synthetic"
+          },
+          "Presentation": "controller",
+          "Quality": {
+            "assertion": "observed",
+            "availability": "available",
+            "freshness": "fresh",
+            "promotion": "",
+            "qualification": "qualified",
+            "reasons": [],
+            "validity": "good"
+          },
+          "RawReply": "AABIQg==",
+          "Times": {
+            "evaluate_monotonic": {
+              "clock_epoch_id": "clock:synthetic",
+              "nanoseconds": "200"
+            },
+            "evaluated_at": {
+              "clock_id": "clock.synthetic",
+              "uncertainty_ns": "0",
+              "unix_nanoseconds": "200"
+            },
+            "receipt_monotonic": {
+              "clock_epoch_id": "clock:synthetic",
+              "nanoseconds": "100"
+            },
+            "received_at": {
+              "clock_id": "clock.synthetic",
+              "uncertainty_ns": "0",
+              "unix_nanoseconds": "100"
+            }
+          },
+          "Value": null
+        },
+        "Value": null
+      }
+    ]
+  },
+  "selector": "B5/24 opcode 02 group 01 instance 00 register 0004"
+}

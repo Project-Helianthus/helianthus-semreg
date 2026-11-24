@@ -1,0 +1,17 @@
+{
+  "case": "frame-313-current",
+  "expected": {
+    "condition": "after pack attribution",
+    "derivation": "-10 * 0.1",
+    "fact": "storage.pack.current",
+    "unit": "A",
+    "value": {
+      "number": "-1.0"
+    }
+  },
+  "input": {
+    "current_raw_signed": -10,
+    "frame_313_hex": "1400fff6012c50ff"
+  },
+  "kind": "new-binding"
+}

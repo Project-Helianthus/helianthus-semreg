@@ -1,0 +1,20 @@
+{
+  "binding": {
+    "policy": "pv.telemetry.fast.v1",
+    "subject": "inverter",
+    "target": "pv.ac.aggregate_active_power",
+    "unit": "W"
+  },
+  "case": "wordblk-w-sentinel-8000",
+  "expected": {
+    "reason": "raw 0x8000 is the not-implemented value of an int16 point",
+    "value": "unknown"
+  },
+  "input": {
+    "length": 50,
+    "model": 103,
+    "word14": -32768,
+    "word15": 0
+  },
+  "kind": "new-binding"
+}

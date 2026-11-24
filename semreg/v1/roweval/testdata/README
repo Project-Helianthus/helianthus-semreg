@@ -1,0 +1,95 @@
+# Comparison inputs of the row evaluator tests
+
+Every file here is an input of a comparison in `roweval`. The expected values of those comparisons come from these
+files and never from the evaluator. Case names are geometry names:
+
+- `cmdreg-*`: command, operation, group, instance, register and direction.
+- `wordblk-*`: function, table, block or model occurrence, word offset and count.
+- `frame-*`: identifier, format, data length code, multiplexor and signal slice.
+- `metadata-operand.json`: the caller-supplied candidate metadata of every new-binding case.
+
+Kinds:
+
+- `byte copy`: the file is the recorded record, byte for byte. The first hash equals the source hash.
+- `neutral extract`: the recorded record with every member that spells a source or point name removed, and nothing
+  else changed. Selector numbers, payload bytes, native values, units and dispositions are kept as recorded.
+- `neutral operand (point-name field removed)`: the native value, unit and disposition fields of the recorded
+  record, with the point-name field removed and no other change. The unit keeps its recorded value.
+
+The record each file comes from stays with the oracle that owns it; the last column is the SHA-256 of that full
+record, so a file here links to it by hash. `testdata_test.go` recomputes the first hash of every file and compares it with this table.
+
+| file | sha256 | kind | source record sha256 |
+| --- | --- | --- | --- |
+| cmdreg-0004-above-bound-71.donor.json | 938ee47322f18016840a7988a32f28a59206416933804e25f8e9e0c17a08be54 | byte copy | 938ee47322f18016840a7988a32f28a59206416933804e25f8e9e0c17a08be54 |
+| cmdreg-0004-below-bound-34.donor.json | 5340bbb46a9e78e40033b3a6532690cda4b402f242ea0ec1f24c707961459958 | byte copy | 5340bbb46a9e78e40033b3a6532690cda4b402f242ea0ec1f24c707961459958 |
+| cmdreg-0004-boiler-direct-presentation.donor.json | 2a66087b45bc26febf885c43fdcdda6845ff355391106c78ca51d8627d6ace1a | byte copy | 2a66087b45bc26febf885c43fdcdda6845ff355391106c78ca51d8627d6ace1a |
+| cmdreg-0004-boundary-35.donor.json | 4ebed97d0e9065dd668260487dbbd82898495fcfb4fa8559876aff5ec3a8659b | byte copy | 4ebed97d0e9065dd668260487dbbd82898495fcfb4fa8559876aff5ec3a8659b |
+| cmdreg-0004-boundary-70.donor.json | bdb3d8ba5064aa123b3815480ef822ff56d007edfc6e52c3027176b6c734e1e1 | byte copy | bdb3d8ba5064aa123b3815480ef822ff56d007edfc6e52c3027176b6c734e1e1 |
+| cmdreg-0004-mirror-presentation.donor.json | 6c379ba43be81400b2991ca65bd9ba173502622d59f0fdccf4bf9556772aba42 | byte copy | 6c379ba43be81400b2991ca65bd9ba173502622d59f0fdccf4bf9556772aba42 |
+| cmdreg-0004-neighbouring-group-02.donor.json | 129893f4cdb51c191df753fb8f7cbe33249907d80c0e90ca8178e186c9739fd9 | byte copy | 129893f4cdb51c191df753fb8f7cbe33249907d80c0e90ca8178e186c9739fd9 |
+| cmdreg-0004-neighbouring-register-0005.donor.json | fe93a9ee996f46581f367df51efbce69bb31398bf6102949093dfb04db15b7e3 | byte copy | fe93a9ee996f46581f367df51efbce69bb31398bf6102949093dfb04db15b7e3 |
+| cmdreg-0004-neighbouring-sb-23.donor.json | ccc2e7a6c738cdfa3ed46eabce6049a899c75199134b6dd0941850b98b35fa04 | byte copy | ccc2e7a6c738cdfa3ed46eabce6049a899c75199134b6dd0941850b98b35fa04 |
+| cmdreg-0004-sentinel-no-value.donor.json | 09688d5d545b22c3655a780683b150b7f78b2acef7c419c8376ecf9c3aa6707f | byte copy | 09688d5d545b22c3655a780683b150b7f78b2acef7c419c8376ecf9c3aa6707f |
+| cmdreg-0004-short-empty-raw-reply.donor.json | 8abf72ae27d3334d630c7e5442e255b49297fbf7176d61debdda3bbf43d3ff61 | byte copy | 8abf72ae27d3334d630c7e5442e255b49297fbf7176d61debdda3bbf43d3ff61 |
+| cmdreg-0004-value-50.donor.json | c4b77050dfe86ccf195207a5b8df02af586e1e8cc75ec7dcb977a65ef7c761b4 | byte copy | c4b77050dfe86ccf195207a5b8df02af586e1e8cc75ec7dcb977a65ef7c761b4 |
+| cmdreg-0004.binding.json | 19101bb3d2a35f94c89d9b67e2cdc0a13e55cc4082f21433e6035e2e7d20b2c1 | neutral extract | 295302e08f48c54e5d1efbb64fa678b5643141379c7cb1ce60c7e85d9f3b14b2 |
+| cmdreg-0005-measured-temperature.donor.json | 516bbd978a51ee7d25c28d5097b7c2f8953a827306b61f216c779c6aeeaadf82 | byte copy | 516bbd978a51ee7d25c28d5097b7c2f8953a827306b61f216c779c6aeeaadf82 |
+| cmdreg-0005-neighbouring-register-0004.donor.json | c3f41c0cf1c1238d1c789c047245715133192cf5b669b9aa07776ba64a0aa4b7 | byte copy | c3f41c0cf1c1238d1c789c047245715133192cf5b669b9aa07776ba64a0aa4b7 |
+| cmdreg-0005-presence-zero.donor.json | aa669cef1ee5ee3a89d7be06b3ca6e6b4eccaa99dc2e5339c6b242fd41946bfc | byte copy | aa669cef1ee5ee3a89d7be06b3ca6e6b4eccaa99dc2e5339c6b242fd41946bfc |
+| cmdreg-0005-sentinel-nan.donor.json | 012173beaff8e4fdec2d1b0b9626ed8f43814b7ecf4657817968b00aeecf02e1 | byte copy | 012173beaff8e4fdec2d1b0b9626ed8f43814b7ecf4657817968b00aeecf02e1 |
+| cmdreg-0005-short-measurement-reply.donor.json | 7cd41fe33f3b4a270aa8025de389f90fee61b75137ec37ee774d7e2ad1564330 | byte copy | 7cd41fe33f3b4a270aa8025de389f90fee61b75137ec37ee774d7e2ad1564330 |
+| cmdreg-0005-version-miss-sb-23.donor.json | 961163180bf2362a1f23ec9bc621b850e4139f98500afdf020ecc38083e354db | byte copy | 961163180bf2362a1f23ec9bc621b850e4139f98500afdf020ecc38083e354db |
+| frame-311-short-7-bytes.classifier.json | e50972e4c7ad620f1d94d848283ef5fa346f6d6fbe2da7999840de0bd637aef4 | neutral extract | 51df6f25e683dc7c1c8513c058bc2321d3f5550076b2006cd9d6e3ed322c4f7c |
+| frame-311-short-7-bytes.recv.json | 2f07e0fb3781e6e2ded8f1dcdcf7253bba3075243b1d10affadcd4ba5e82e0f2 | neutral extract | d0dcd145c3ec4ee9c0c601912bb055c0e73dd62c6dd24442f3211f921c3fe106 |
+| frame-312-cells-0.classifier.json | 7e8eed14b7267317d56e503f7a9d53325b23526baf0c1bd2516da8b58660b36b | neutral extract | 2d92aeae00838ea49746a74ab8f26eec0409d6c2cdd3bc011e6257ca7097f214 |
+| frame-312-cells-0.recv.json | 40552e27b0582b686b78b53869aff3f13256df281b9f49c9acc5b1858e0cd90d | neutral extract | 9a9019f492aafcb10e779bf5fe77e8d9ab0583204c3d4af53ab51bd9af907188 |
+| frame-312-count-0.classifier.json | acaaf5974448febbdc2d60ec1a9ea0a862fd2794d29d60ac2c8a4a82e930de3a | neutral extract | ce5f5112933fabf38266f32dc72386b96fc89263f2a3548305335ff5e16d7bf9 |
+| frame-312-count-0.recv.json | 71751a1c0bb10b339a10a2f680f5bcf461c8839e8d891bc0a3f9ec545b0d54c6 | neutral extract | 9aa2a891868dd18bb8f3d56b59958efa1c28fc734adab665c4fbd3107cb9d0c8 |
+| frame-312-count-254-cells-254.classifier.json | a669d52023939093331248547c90a115eeadc94ff5e5cd132f27470d766ac8d8 | neutral extract | 78a89a026dab9ce3099efdd31b3ed3a6594b198bd9f07954b943784aa87821b9 |
+| frame-312-count-254-cells-254.recv.json | f32e82a78188345c6bf77d847a3c86ca753abfe6b7b876dd45e3534e988beb40 | neutral extract | 2aa7e8881ebd3bdf0db87a0d80037b6bb9c919f4bde9f131dde7b5b65c5e994e |
+| frame-312-count-255-cells-16.classifier.json | 7d035c358c353a7badf0af084d8b3a9726e8f78b30f5b04685c928543a187f61 | neutral extract | e3be1c1443c2c5fcbe1b281a35dee84db97d60904b11a10d4cae8d13aa93a7c2 |
+| frame-312-count-255-cells-16.recv.json | 9c65c88316e5ba8f0278f5842ed62a35a378f67d88ddbd4cef30a6d35d53a8e9 | neutral extract | 15bb2e939e654de7f0ae61faa05bc7608c7dd5abf37f012c64068c58e12ffe4f |
+| frame-312-count.specification.json | 1d5a515f7a14ccbbe09c27e9a939506694eb50ab60902fbc2926af0335db574e | neutral extract | abac7379735e024c1165e74a3707efbb208c93384b36152ad033cad3dd52c46d |
+| frame-312-count4-eq-1-byte7-eq-255.classifier.json | 5b011b52beb7690d32a420bfe5487d7181da1e31b339a86843c0b91fa8edc460 | neutral extract | 632e67f81ccf7aacd10f7a7b0aa426a68273ef579f59143cbf3dfde3bdf044df |
+| frame-312-count4-eq-1-byte7-eq-255.recv.json | e5e3cf4a8e2c1e0d4117962e72c4bd3c1b3f8c15cebf999c247fa4cbee585332 | neutral extract | 8e5bb3d7fb4a455a9e5571e825452ebaabbaf34be7d630e96ec9d53a66d08bcd |
+| frame-312-extended-identifier.classifier.json | b964b0640d23eb5c251ddb85ff7025eae3eb611eab9e45063defd7c735e3acd2 | neutral extract | 00986b406e7d33ba6b786e188b4a444faf9be1711ed3f7025ac29b8241406ed1 |
+| frame-312-extended-identifier.recv.json | d1eebb587a2eadf300859f7b0d02621afc1a46b27d4a280c4846ae87cc60ea27 | neutral extract | e5403dc91e46ee019ec6ea946dab02675e1f5544b69ee84586e26a5ba5556e96 |
+| frame-313-current.binding.json | c5be68a26fa2cbd6ca143818e8d44285ce411a6d1cbafb4a77d0ac86e0e4f2d2 | neutral extract | 025a1ed0ab212301d53ff66f49ac39a4266e5d5e016c258a03f65ba97184550c |
+| frame-313-soc-100.classifier.json | 03014a9e30ab7c005cd1d23976e9f28cf64da12625796de66b1e46da85bff2d4 | neutral extract | 20d12084571db9b7c38a74db5bd0b8d383042d8bbf9ff5a460f6a0c5727d1a26 |
+| frame-313-soc-100.recv.json | 8b2b368d03590857ac7d8c2af226bf5155978a13e587432f24e29cddc2480283 | neutral extract | 5c94ee7c9af1460926273e169659519afef32121e40f730018267f1843ca5717 |
+| frame-313-soc-101.classifier.json | 6fe793d0fb896504c815602d5d6d48474283b6a0e74e5eec819f6e5c4238ce55 | neutral extract | de6862e81af3fffe5ec5e085619ccca88943aaaca49f9d0e24a4ac094e6dea75 |
+| frame-313-soc-101.recv.json | 42ab5aabafcea0284b32b95abbb3744f8995a624d76e70909aff5cfc5f9f3d1b | neutral extract | 65f8b15b625b88433e59b31be2314827e34c821b699fd2e139cc1cd7b46ad450 |
+| frame-313-soc-sentinel-ff.classifier.json | 5743915fa19581dd953d33d81bb3a285eb4ac951e62404a989f4d3b361277e68 | neutral extract | 096fff602ebbe08142c57d67e3b6f95e0d096d78885d9652c9bf59b7854d24e1 |
+| frame-313-soc-sentinel-ff.recv.json | 376809f1a52b57f30d8011358502201866b55bb105e3fd59f745f90d6d9ac257 | neutral extract | af81d8765b90238a5de93c7228fe6df30ebe496a74f63852a71fbd3b0abd3440 |
+| frame-neighbour-310.classifier.json | 9c1e7727591c59c4e45f66b4d996ebfed98b27e63bbd48e408431bcd779b49a5 | neutral extract | cbc3f7ecf54844f0fe41416e3fc9080cf37e35fb905828c3bdf7309a8e29f2c5 |
+| frame-neighbour-310.recv.json | 682f26615d94ec122014cfbbb85c5f9b9b4bf6d42ee3cb850b72431848e9918c | neutral extract | 4e7a64420d6599a56e518268841718ee404fcb7e78a827ade6f3b80b4bae0701 |
+| frame-neighbour-314.classifier.json | 871dbae56eaeb769737ee8d419f006e757e7fa7fa11d240fcad63b745f990fc4 | neutral extract | ee0df5e56afb54d270be655d0fc0bdd2e15ee34e70e44c02b74a604b3e46fdf2 |
+| frame-neighbour-314.recv.json | d7d6a7b9a53d6b744167bbbfb3cd58f27bc9f4112a7a21b96de9aa39cc3562bc | neutral extract | 3036c79e86cb496f6e807d0919d30e895b13fd3dfdb4f1ea45c1c50b78071b72 |
+| frame-tuple-card.classifier.json | 6451e1b17d82d3989863352d6e929a9bfdd83b8d900415b549319ff031697939 | neutral extract | 1e5acaa42a4c48fce8efc60cace7570b561787816a25aab3bbcbc3435d53f110 |
+| frame-tuple-card.recv.json | 9448663b366d2c371eaf3636b90773cba67c53559cf40042a5aa32809ac996d8 | neutral extract | 56b2a81ef28602d7f24a253d0f860514f85179829257e73affbd78a8336392b2 |
+| metadata-operand.json | 3edfd0e978c50a9c6c554c13ce348b0805751bf8375f011dd1e69396db517db6 | byte copy | 3edfd0e978c50a9c6c554c13ce348b0805751bf8375f011dd1e69396db517db6 |
+| wordblk-103-sf-minus11.input.json | 109e45baf993a293875fc7976ff8702d2ad2b73e708e7824d8be844db720251d | neutral extract | 38654b82dddd07a85f0c423ae63850e4b72d6402962b4d880ef0e37158220d12 |
+| wordblk-103-sf-minus11.operand.json | 6fd3c4fd87642471123ef02dac8cc01c0c3fa5d1b268ec6853abfd7e98fb13c7 | neutral operand (point-name field removed) | 38654b82dddd07a85f0c423ae63850e4b72d6402962b4d880ef0e37158220d12 |
+| wordblk-103-sf-plus11.input.json | 7f152479a9932093ed9b9810c3e07a2c5f7435fcc1b71e6d8ec924ca59cb602e | neutral extract | 1dde9bdff46a74763385809304dd400960e76b4865487acc8d9eaa914b6f3429 |
+| wordblk-103-sf-plus11.operand.json | b2fcfdbf8b3d1199397b4b28d773c6fbe09a14f3670d7ed578c52e31419a6964 | neutral operand (point-name field removed) | 1dde9bdff46a74763385809304dd400960e76b4865487acc8d9eaa914b6f3429 |
+| wordblk-103-short-inconsistent-length.input.json | 70ff8e582301e315df047224d638db7a916e3bf2632c5f8c8106f13d76dbd159 | neutral extract | 5ded8c9325a19e9457f16ffee6a6c7e41bc50cab00d48dddf0b947c5420c2d91 |
+| wordblk-103-short-inconsistent-length.operand.json | 1bcc99ef157f5462a4348f33e2b17f9cc76b11aa59f095145b763c8b72fdc18a | neutral operand (point-name field removed) | 5ded8c9325a19e9457f16ffee6a6c7e41bc50cab00d48dddf0b947c5420c2d91 |
+| wordblk-103-w-1234-sf-minus1.input.json | 9342bbdfaff61de2f287de5d6b5fe2137c74d2714c1450c320315e3155e72741 | neutral extract | e96ffd246889708db42b6f9fe35acec6f8ac3ae4f06ff94dde0eaa7dbb26fb47 |
+| wordblk-103-w-1234-sf-minus1.operand.json | 5d6ec30df222f9b990085dd9dec1694d4987522ede08757c82ffcb333eeffa32 | neutral operand (point-name field removed) | e96ffd246889708db42b6f9fe35acec6f8ac3ae4f06ff94dde0eaa7dbb26fb47 |
+| wordblk-103-w-1500-sf0.input.json | b447c7ccf4b5adcfc87d709351e0d3c364a07f00eba81b28b2c254be6125a855 | neutral extract | 20c0d63a72a303a4c7b8d8c622ed11e3ec7afa3a156c9703ed8496e5b8f6e59f |
+| wordblk-103-w-1500-sf0.operand.json | 90a50c67d283aa007fd7578438efd73191eb8ae9ff54e04dd5935f437bf04548 | neutral operand (point-name field removed) | 20c0d63a72a303a4c7b8d8c622ed11e3ec7afa3a156c9703ed8496e5b8f6e59f |
+| wordblk-103-w-minus50-sf1.input.json | d7e9db807601e1fedcfe19fdd3b04855fcd58699d8327e5ee03ee707ccac8e98 | neutral extract | 72279477e7d3d1a21c75d5d749a9abac14142b52d38f73a4388b0db2752a89bf |
+| wordblk-103-w-minus50-sf1.operand.json | 3d3551b647d9e76d444a97b5c979f9613cfc96b20484ffa8aac64883ecbf8af5 | neutral operand (point-name field removed) | 72279477e7d3d1a21c75d5d749a9abac14142b52d38f73a4388b0db2752a89bf |
+| wordblk-103-w-sentinel-8000.input.json | c5327f6d96badb15611c861c9121c9da9c5637e810d2746946fb7feadbff70ce | neutral extract | 657bd69803a518358294ae21d02bf745fa1786b8545b28ce7e2fc82252120ba5 |
+| wordblk-103-w-sentinel-8000.operand.json | 4d251c5b380c2d0207b04f43f002692448f476f59d395a2a01034c621ee0f2a7 | neutral operand (point-name field removed) | 657bd69803a518358294ae21d02bf745fa1786b8545b28ce7e2fc82252120ba5 |
+| wordblk-common-then-101.input.json | 545dd1a2d502df74603581c217278a7b9baad4dd2d8aeaf1b44f72c67ff0782d | neutral extract | 962d0919e7678cb335558c6e4c4bd57f7782bab3eb9294014ef9088e1533644e |
+| wordblk-common-then-101.operand.json | b2ce01d438d58855f6c7435050673afafb2450601275aeafa5bf70740132d3f1 | neutral operand (point-name field removed) | 962d0919e7678cb335558c6e4c4bd57f7782bab3eb9294014ef9088e1533644e |
+| wordblk-neighbour-offset-13.specification.json | d02d948827ae933843f508047ca881478e6ec091a4c30cb7ebbd0fcee0e5bc5c | neutral extract | e0dc2ce0dabefe061c7fa266d9e9fc05c2c3556a32322b5ed2f458a5d965f0af |
+| wordblk-neighbour-offset-16.specification.json | 8d4c28ebf12389aaa297735fe26a77a9528e46ad4d056c56d55d5a8d885573ad | neutral extract | c8962cdaf534f266d5330cddd06b4af1a61ff08df2a333ca1b8dfc7d6cffdd55 |
+| wordblk-sf-minus11.binding.json | 3e11abaa3afe58de5dc73523bffae25c42455bf683027922de02abe895ddb989 | neutral extract | 0577cc480e860b5f30b7466593dac9f7a3fcdd142d01ad4d9c176913ca4b5fce |
+| wordblk-sf-plus11.binding.json | 561657462add78723d2f1455b88bac44b828d047f5a3ca9de635b49fb5683a9b | neutral extract | 2d1d3df727d3e4ae3cbea09a1b1c2181a81ee5b243b71e2903278167037f6a9a |
+| wordblk-w-1234-sf-minus1.binding.json | d95286196f1a36a8203472ab014ebcc07c5d447ee0733913449de247d1a32eb7 | neutral extract | 39cf93320c367c85db786f6bdbae41809110cf607aa6f503d01f469eb56fcb15 |
+| wordblk-w-1500-sf0.binding.json | d5f665dc42632efd2b036dec4f07c3c9462888cfccc5552041cf7625a63a89b0 | neutral extract | 1d4255c71b900350b1587f1b49f5b0f4389ef551bd7f3c5740b2c9351dce2abd |
+| wordblk-w-minus50-sf1.binding.json | 75325d12becd092aa758d638b84bf88fb5bc09da8bdd289c59f03fc26298af39 | neutral extract | 5436d968b97423f7934040eea5976be703f75df7cbf9f3e4fdd3bfbea0ac86c2 |
+| wordblk-w-sentinel-8000.binding.json | 4662913531ee469a80f5a753b9878253accbd9c604e9d47c80c2156fd7a2bdcd | neutral extract | 7dd346df6d830ec8573dcb417eca412b7f173eae357dfc579468b079a033a0f9 |

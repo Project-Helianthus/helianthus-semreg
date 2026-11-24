@@ -1,0 +1,92 @@
+{
+  "case": "312-count4-eq-1-byte7-eq-255",
+  "note": "312 with count byte 4 equal to 1 and byte 7 equal to 255",
+  "result": {
+    "diagnostics": {
+      "AcceptedFrames": 3,
+      "ForeignInterface": 0,
+      "MalformedListed": 0,
+      "Publications": 1,
+      "ReceiveTerminated": false,
+      "RejectedRecords": 0
+    },
+    "snapshot": {
+      "admitted": true,
+      "limits": {
+        "charge_current_deciamps": 250,
+        "charge_voltage_decivolts": 568,
+        "discharge_current_deciamps": 500,
+        "raw_status": 67
+      },
+      "measurements": {
+        "current_deciamps": -10,
+        "maximum_cell_temperature_decic": 300,
+        "soc_percent": 80,
+        "soh_valid": true,
+        "soh_value": 127,
+        "voltage_centivolts": 5120
+      },
+      "outbound_allowed": false,
+      "status": {
+        "manufacturer": [
+          170,
+          187
+        ],
+        "pack_count": 1,
+        "protection": [
+          0,
+          128
+        ],
+        "total_cell_count": 255,
+        "warning": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "steps": [
+    {
+      "dlc": 8,
+      "frame": {
+        "data_hex": "023800fa01f40043",
+        "extended": false,
+        "identifier": 785,
+        "len8_dlc": 0,
+        "payload_length": 8
+      },
+      "listed": true,
+      "observe_continues": true,
+      "raw_dlc": 8,
+      "valid": true
+    },
+    {
+      "dlc": 8,
+      "frame": {
+        "data_hex": "0080000001aabbff",
+        "extended": false,
+        "identifier": 786,
+        "len8_dlc": 0,
+        "payload_length": 8
+      },
+      "listed": true,
+      "observe_continues": true,
+      "raw_dlc": 8,
+      "valid": true
+    },
+    {
+      "dlc": 8,
+      "frame": {
+        "data_hex": "1400fff6012c50ff",
+        "extended": false,
+        "identifier": 787,
+        "len8_dlc": 0,
+        "payload_length": 8
+      },
+      "listed": true,
+      "observe_continues": true,
+      "raw_dlc": 8,
+      "valid": true
+    }
+  ]
+}
