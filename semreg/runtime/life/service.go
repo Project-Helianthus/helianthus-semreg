@@ -33,6 +33,10 @@ var (
 	ErrStaleSlot       = errors.New("life: work slot no longer current")
 	ErrInvalidWork     = errors.New("life: invalid work update")
 	ErrInvalidRecovery = errors.New("life: invalid recovery material")
+	// ErrInstanceAbsent reports that a served instance is not in the cached
+	// view. Absence is not a desired or observed outcome; a committed failure
+	// is an entry of that view.
+	ErrInstanceAbsent = errors.New("life: instance absent from the cached view")
 	// ErrReadbackUnresolved reports that the bounded readback resolver ended
 	// without reopening admission; control stays closed (fail closed).
 	ErrReadbackUnresolved = errors.New("life: ambiguous persistence unresolved")
@@ -601,8 +605,10 @@ func (s *Service) List() Catalog {
 	return copyCatalog(s.view.Load())
 }
 
-// Get returns one entry of the current cached view with its revision, or a
-// NOT_FOUND refusal for a noncanonical or unserved ID.
+// Get returns one entry of the current cached view with its revision, a
+// NOT_FOUND refusal for a noncanonical or unserved ID, or ErrInstanceAbsent
+// when a served instance is not in the view. Absence has no desired or
+// observed state; it is not a committed failure.
 func (s *Service) Get(id InstanceID) (DriverStatus, error) {
 	if !validInstanceID(id) {
 		return DriverStatus{}, &Refusal{Code: RefusalNotFound, Row: 2, Reason: "driver not registered"}
@@ -611,13 +617,14 @@ func (s *Service) Get(id InstanceID) (DriverStatus, error) {
 		return DriverStatus{}, &Refusal{Code: RefusalNotFound, Row: 2, Reason: "driver not registered"}
 	}
 	view := s.view.Load()
-	for _, entry := range view.Drivers {
-		if entry.InstanceID == id {
-			return entry, nil
+	if view != nil {
+		for _, entry := range view.Drivers {
+			if entry.InstanceID == id {
+				return entry, nil
+			}
 		}
 	}
-	return DriverStatus{InstanceID: id, Revision: view.Revision, DesiredState: DesiredStopped,
-		ObservedState: ObservedFailed, Reason: ReasonInternalError}, nil
+	return DriverStatus{}, ErrInstanceAbsent
 }
 
 // viewEntry returns the entry the current cached view carries for a served
