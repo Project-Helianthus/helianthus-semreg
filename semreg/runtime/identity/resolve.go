@@ -2,6 +2,7 @@ package identity
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -138,11 +139,11 @@ func (l *Ledger) Resolve(cut *graph.Cut) (Resolution, error) {
 		case serial == "":
 			findings = append(findings, Finding{Kind: FindingIncomplete, Members: []driver.NodeRef{member}, Reason: "the reported serial is missing"})
 		default:
-			add("manufacturer-serial\x00"+manufacturer+"\x00"+serial, attestation{member, record.Publisher})
+			add(groupKey("manufacturer-serial", manufacturer, serial), attestation{member, record.Publisher})
 		}
 	}
 	for key, record := range l.matches {
-		add("match\x00"+key.scheme+"\x00"+key.issuer+"\x00"+string(record.Claim.Key), attestation{key.member, record.Publisher})
+		add(groupKey("match", key.scheme, key.issuer, string(record.Claim.Key)), attestation{key.member, record.Publisher})
 	}
 	sort.Strings(groupKeys)
 	for _, key := range groupKeys {
@@ -266,4 +267,16 @@ func (l *Ledger) certifiedPairs() []pairGroup {
 		return compareRef(a.B, b.B) < 0
 	})
 	return groups
+}
+
+// groupKey joins the parts of an equivalence class key with a length before each
+// part, so that two unequal lists of parts never give one key whatever bytes the
+// parts hold.
+func groupKey(kind string, parts ...string) string {
+	var b strings.Builder
+	b.WriteString(kind)
+	for _, part := range parts {
+		fmt.Fprintf(&b, "\x00%d:%s", len(part), part)
+	}
+	return b.String()
 }

@@ -75,12 +75,36 @@ func (a *Allocator) allocateLegacy(key driver.NodeKey, class semreg.AnchorClass)
 			return "", ErrAnchorSuperseded
 		}
 		id, class, basis = entry.Resource, entry.Class, entry.Basis
+	} else if err := anchorShape(class, basis, anchorKey); err != nil {
+		return "", err
 	} else if err := a.store.Commit(Supersession{Resource: id, Class: class, Previous: anchorKey, PreviousBasis: basis, PreviousParent: anchorKey.Parent, PreviousSlot: anchorKey.Slot, Next: anchorKey, NextBasis: basis, NextParent: anchorKey.Parent, NextSlot: anchorKey.Slot}); err != nil {
 		return "", fmt.Errorf("%w: %w", ErrStore, err)
 	}
 	a.held[anchorKey] = heldAnchor{resource: id, class: class, basis: basis}
 	a.kinds[id] = key.Kind
 	return id, nil
+}
+
+// anchorShape refuses a key that carries less than its class needs, so that no
+// anchor is committed that Anchor.Validate would refuse: a component or episode
+// needs a parent and a slot, a function needs a slot, and an equipment needs a
+// slot unless its identity is native.
+func anchorShape(class semreg.AnchorClass, basis semreg.AnchorBasis, key AnchorKey) error {
+	switch class {
+	case semreg.AnchorComponent, semreg.AnchorEpisode:
+		if key.Parent == "" || key.Slot == "" {
+			return fmt.Errorf("%w: a %s anchor needs a parent and a slot", ErrIncompleteKey, class)
+		}
+	case semreg.AnchorFunction:
+		if key.Slot == "" {
+			return fmt.Errorf("%w: a function anchor needs a slot", ErrIncompleteKey)
+		}
+	case semreg.AnchorEquipment:
+		if basis != semreg.AnchorNativeIdentity && key.Slot == "" {
+			return fmt.Errorf("%w: an equipment anchor needs a slot", ErrIncompleteKey)
+		}
+	}
+	return nil
 }
 
 // know records an identifier this allocator returned for a path node, so that

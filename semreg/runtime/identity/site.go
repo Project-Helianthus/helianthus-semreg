@@ -110,15 +110,22 @@ func SiteRelations(catalog *graph.Catalog, site driver.NodeRef, current []semreg
 			}
 		case containsKind(element.Relation.FromKinds, gridConnectionKind) && containsKind(element.Relation.ToKinds, meterKind) && containsBasis(element.Relation.BasisClasses, semreg.RelationBasis("configuration")):
 			// The meter relation runs from the grid connection, not from the
-			// site: each current grid connection links each current meter.
+			// site: the relation is one to many, so a meter has one grid
+			// connection. With exactly one current grid connection it links each
+			// current meter; with several, nothing in the published resources
+			// says which one a meter belongs to, so no meter is linked.
+			var grids []semreg.Resource
 			for _, grid := range current {
-				if grid.State != semreg.ResourceCurrent || grid.Kind != gridConnectionKind {
-					continue
+				if grid.State == semreg.ResourceCurrent && grid.Kind == gridConnectionKind {
+					grids = append(grids, grid)
 				}
-				for _, meter := range current {
-					if meter.State == semreg.ResourceCurrent && meter.Kind == meterKind {
-						claims = append(claims, configurationClaim(ref, driver.NodeRef{Bridge: site.Bridge, ID: grid.ResourceID}, driver.NodeRef{Bridge: site.Bridge, ID: meter.ResourceID}))
-					}
+			}
+			if len(grids) != 1 {
+				continue
+			}
+			for _, meter := range current {
+				if meter.State == semreg.ResourceCurrent && meter.Kind == meterKind {
+					claims = append(claims, configurationClaim(ref, driver.NodeRef{Bridge: site.Bridge, ID: grids[0].ResourceID}, driver.NodeRef{Bridge: site.Bridge, ID: meter.ResourceID}))
 				}
 			}
 		}

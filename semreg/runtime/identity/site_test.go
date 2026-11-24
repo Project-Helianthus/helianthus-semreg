@@ -273,3 +273,35 @@ func TestSiteRelationsLinkTheMeterFromTheGridConnection(t *testing.T) {
 		}
 	}
 }
+
+// The meter relation is one to many from the grid connection: a meter is the
+// target of at most one claim, so with two current grid connections no meter is
+// linked, and with one it is linked from that one.
+func TestSiteRelationsLinkEachMeterFromAtMostOneGridConnection(t *testing.T) {
+	catalog := embeddedCatalog(t)
+	site := ref(idSite)
+	const meterRelation = "infrastructure.relation.grid_connection_meter"
+	meterClaims := func(resources []semreg.Resource) []driver.LinkClaim {
+		var meters []driver.LinkClaim
+		for _, claim := range SiteRelations(catalog, site, resources) {
+			if claim.Key.Type.ID == meterRelation {
+				meters = append(meters, claim)
+			}
+		}
+		return meters
+	}
+	grid1 := current("resource:grid-1", "resource.grid_connection", semreg.ResourceCurrent)
+	grid2 := current("resource:grid-2", "resource.grid_connection", semreg.ResourceCurrent)
+	meter := current("resource:meter", "resource.meter", semreg.ResourceCurrent)
+	if got := meterClaims([]semreg.Resource{grid1, grid2, meter}); len(got) != 0 {
+		t.Fatalf("two current grid connections: %+v", got)
+	}
+	if got := meterClaims([]semreg.Resource{grid2, grid1, meter}); len(got) != 0 {
+		t.Fatalf("two current grid connections, reversed: %+v", got)
+	}
+	// A withdrawn second grid connection leaves one.
+	withdrawn := current("resource:grid-2", "resource.grid_connection", semreg.ResourceWithdrawn)
+	if got := meterClaims([]semreg.Resource{grid1, withdrawn, meter}); len(got) != 1 || got[0].Key.From.ID != "resource:grid-1" || got[0].Key.To.ID != "resource:meter" {
+		t.Fatalf("one current grid connection: %+v", got)
+	}
+}

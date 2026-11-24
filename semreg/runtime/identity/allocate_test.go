@@ -232,3 +232,31 @@ func TestAPathNodeIDIsAKnownParent(t *testing.T) {
 		t.Fatalf("fresh allocator after the path node = %q, %v", got, err)
 	}
 }
+
+// A key whose class needs a parent or a slot the key does not carry gets no id
+// and no anchor in the store; an equipment native digest still allocates.
+func TestAllocateRefusesAKeyThatLacksWhatItsClassNeeds(t *testing.T) {
+	catalog := embeddedCatalog(t)
+	store := NewMemoryStore()
+	allocator, _ := NewAllocator(store, catalog)
+	parent := pathNodeID(slotKey("inst-a", "driver-x", "i1", "resource.bridge", "", "primary"))
+	allocator.know(parent, "resource.bridge")
+	for name, key := range map[string]driver.NodeKey{
+		"component from a native digest": nativeKey(t, "inst-a", "driver-x", "i1", "resource.battery_cell", "cell-1"),
+		"component without a parent":     slotKey("inst-a", "driver-x", "i1", "resource.battery_cell", "", "cell-1"),
+	} {
+		id, err := allocator.Allocate(key)
+		if id != "" || !errors.Is(err, ErrIncompleteKey) || err.Error() == ErrIncompleteKey.Error() {
+			t.Errorf("%s: id=%q err=%v, want no id and a reason", name, id, err)
+		}
+	}
+	if table, err := store.Table(); err != nil || len(table.Anchors) != 0 {
+		t.Fatalf("the store holds %v (%v)", table, err)
+	}
+	if id, err := allocator.Allocate(slotKey("inst-a", "driver-x", "i1", "resource.battery_cell", parent, "cell-1")); err != nil || id == "" {
+		t.Fatalf("a component with a parent and a slot: id=%q err=%v", id, err)
+	}
+	if id, err := allocator.Allocate(nativeKey(t, "inst-a", "driver-x", "i1", "resource.equipment", "token-a")); err != nil || id == "" {
+		t.Fatalf("an equipment native digest: id=%q err=%v", id, err)
+	}
+}

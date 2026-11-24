@@ -429,3 +429,19 @@ func TestRevocationIsRecordedAndUnappliesTheJoin(t *testing.T) {
 		t.Fatal("a new statement did not join")
 	}
 }
+
+// Unequal reported pairs stay in different classes whatever bytes the strings
+// hold: a separator inside a string never moves a byte from one field to the
+// other.
+func TestUnequalPairsWithSeparatorBytesStayTwoResources(t *testing.T) {
+	p := newPair(t, embeddedCatalog(t), "resource.inverter")
+	if err := p.l.AdmitManufacturerSerial(p.pa, serialClaim(p.a, "ACME", "\x001", "first")); err != nil {
+		t.Skipf("the claim record refuses the bytes: %v", err)
+	}
+	if err := p.l.AdmitManufacturerSerial(p.pb, serialClaim(p.b, "ACME\x00", "1", "second")); err != nil {
+		t.Skipf("the claim record refuses the bytes: %v", err)
+	}
+	if out := p.resolve(t); len(out.Resources) != 2 || len(out.Findings) != 0 {
+		t.Fatalf("%+v", out)
+	}
+}
