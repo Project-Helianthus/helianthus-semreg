@@ -114,8 +114,15 @@ func (c *TreeCut) RetrieveLens(ctx context.Context, request graph.LensRequest) (
 }
 
 func retrieveLens(view CutView, digest semreg.Digest, request graph.LensRequest) (graph.LensResult, error) {
+	// The graph function shares the resource bodies and candidate values of the
+	// members it is handed with the result it returns, so it is handed a copy:
+	// a consumer's edit of the result never reaches the retained capture.
+	members, err := cloneSnapshots(view.Members)
+	if err != nil {
+		return graph.LensResult{}, err
+	}
 	request.CutID = &digest
-	request.Members = view.Members
+	request.Members = members
 	request.NotIncluded = omissions(view)
 	result, err := graph.RetrieveLens(view.Store, view.Catalog, request, view.Evaluation)
 	if err != nil {

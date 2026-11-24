@@ -173,3 +173,44 @@ func TestScopedCaptureHandedSnapshotsAreTheConsumersOwn(t *testing.T) {
 		t.Fatalf("the sum changed with the consumer's edit: %+v vs %+v, %v", sumAfter, sumBefore, err)
 	}
 }
+
+func TestLensResultIsDetachedFromTheRetainedCapture(t *testing.T) {
+	w := scopedWorld(t)
+	cut := w.capture()
+	before, err := cut.RetrieveLens(ctx, lensRequest(5))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(before.Resources) == 0 || before.Resources[0].Resource.Anchor.Slot == nil || len(before.Resources[0].Resource.Anchor.Evidence) == 0 {
+		t.Fatalf("lens result has no anchored resource: %+v", before.Resources)
+	}
+	wantSlot := *before.Resources[0].Resource.Anchor.Slot
+	wantEvidence := before.Resources[0].Resource.Anchor.Evidence[0]
+
+	// Editing nested fields of a returned result, through the capture and through
+	// the tree's unpinned read, must not reach what later reads are answered from.
+	for _, read := range []func() (graph.LensResult, error){
+		func() (graph.LensResult, error) { return cut.RetrieveLens(ctx, lensRequest(5)) },
+		func() (graph.LensResult, error) { return w.tree.RetrieveLens(ctx, lensRequest(5)) },
+	} {
+		result, err := read()
+		if err != nil {
+			t.Fatal(err)
+		}
+		*result.Resources[0].Resource.Anchor.Slot = "slot-edited"
+		result.Resources[0].Resource.Anchor.Evidence[0].Digest = "sha256:edited"
+	}
+	after, err := cut.RetrieveLens(ctx, lensRequest(5))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := *after.Resources[0].Resource.Anchor.Slot; got != wantSlot {
+		t.Fatalf("a consumer's edit of a lens result reached the retained capture: slot %q, want %q", got, wantSlot)
+	}
+	if got := after.Resources[0].Resource.Anchor.Evidence[0]; got != wantEvidence {
+		t.Fatalf("a consumer's edit of a lens result reached the retained capture: evidence %+v, want %+v", got, wantEvidence)
+	}
+	if !reflect.DeepEqual(after, before) {
+		t.Fatal("a later read differs from the first after the consumer edited a returned result")
+	}
+}
