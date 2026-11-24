@@ -571,6 +571,14 @@ func TestRecoveredExecutorProvesCloseOnlyForTheFormerProcess(t *testing.T) {
 	if !out.NativeClosed || out.SemanticCleaned {
 		t.Fatalf("native settled, semantic pending: %+v", out)
 	}
+	// An epoch that names no former owner proves nothing, lock held or not.
+	exec, pub, _ = build(true)
+	anonymous := former
+	anonymous.Epoch = "nodots"
+	out = exec.Stop(context.Background(), anonymous)
+	if out.NativeClosed || !out.SemanticCleaned || len(pub.withdrawals()) != 1 {
+		t.Fatalf("epoch with no identifiable owner: %+v", out)
+	}
 	foreign := former
 	foreign.InstanceID = ref("bus.other").ID()
 	if out := exec.Stop(context.Background(), foreign); out.NativeClosed || out.SemanticCleaned {

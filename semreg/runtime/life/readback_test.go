@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-// ledgerEntry is one entry of the synthetic adapter's write-ahead ledger: an
+// journalEntry is one entry of the synthetic adapter's write-ahead journal: an
 // intent that the publisher has not applied, or its accepted outcome.
-type ledgerEntry struct {
+type journalEntry struct {
 	Seq      int  `json:"seq"`
 	Accepted bool `json:"accepted"`
 }
@@ -25,12 +25,12 @@ type ambiguousWrite struct {
 	intent  bool
 }
 
-// ledgerAdapter is a synthetic self-writing recovery adapter: it keeps a
-// write-ahead ledger in the recovery envelope through the store, around one
+// journalAdapter is a synthetic self-writing recovery adapter: it keeps a
+// write-ahead journal in the recovery envelope through the store, around one
 // call of a synthetic publisher. It binds the service's readback resolver and
 // settles its held material against the committed bytes when the service
 // reports the readback resolved.
-type ledgerAdapter struct {
+type journalAdapter struct {
 	store Store
 	log   *orderLog
 
@@ -46,40 +46,40 @@ type ledgerAdapter struct {
 	unresolved int
 }
 
-func newLedger(store Store, log *orderLog) *ledgerAdapter {
-	return &ledgerAdapter{store: store, log: log, publisher: map[int]int{}, replayed: map[int]int{}}
+func newJournal(store Store, log *orderLog) *journalAdapter {
+	return &journalAdapter{store: store, log: log, publisher: map[int]int{}, replayed: map[int]int{}}
 }
 
-func encodeLedger(entries []ledgerEntry) []byte {
+func encodeJournal(entries []journalEntry) []byte {
 	raw, _ := json.Marshal(entries)
 	return raw
 }
 
-func decodeLedger(raw []byte) []ledgerEntry {
-	var entries []ledgerEntry
+func decodeJournal(raw []byte) []journalEntry {
+	var entries []journalEntry
 	if len(raw) > 0 {
 		_ = json.Unmarshal(raw, &entries)
 	}
 	return entries
 }
 
-func (a *ledgerAdapter) material(payload []byte) *RecoveryMaterial {
+func (a *journalAdapter) material(payload []byte) *RecoveryMaterial {
 	return &RecoveryMaterial{DriverIDs: []InstanceID{"fam.alpha"}, MaxDesiredRevision: 1, Payload: payload}
 }
 
-func (a *ledgerAdapter) BindReadback(arm func()) {
+func (a *journalAdapter) BindReadback(arm func()) {
 	a.log.add("bind")
 	a.mu.Lock()
 	a.arm = arm
 	a.mu.Unlock()
 }
 
-func (a *ledgerAdapter) Restore(_ context.Context, m *RecoveryMaterial) error {
+func (a *journalAdapter) Restore(_ context.Context, m *RecoveryMaterial) error {
 	a.log.add("restore")
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.memory = append([]byte(nil), m.Payload...)
-	for _, e := range decodeLedger(m.Payload) {
+	for _, e := range decodeJournal(m.Payload) {
 		if e.Accepted {
 			a.replayed[e.Seq]++
 		} else {
@@ -92,13 +92,13 @@ func (a *ledgerAdapter) Restore(_ context.Context, m *RecoveryMaterial) error {
 	return nil
 }
 
-func (a *ledgerAdapter) refusal() error {
+func (a *journalAdapter) refusal() error {
 	return &Refusal{Code: RefusalUnavailable, Row: 3, Reason: "readback after ambiguous persistence still pending"}
 }
 
 // hold records the ambiguous write and arms the resolver after the adapter
 // lock is released.
-func (a *ledgerAdapter) hold(w *ambiguousWrite, err error) error {
+func (a *journalAdapter) hold(w *ambiguousWrite, err error) error {
 	a.mu.Lock()
 	a.amb = w
 	if !w.intent {
@@ -113,7 +113,7 @@ func (a *ledgerAdapter) hold(w *ambiguousWrite, err error) error {
 }
 
 // publish runs one intent, one publisher call and one outcome.
-func (a *ledgerAdapter) publish(ctx context.Context) (accepted bool, err error) {
+func (a *journalAdapter) publish(ctx context.Context) (accepted bool, err error) {
 	a.mu.Lock()
 	if a.amb != nil {
 		a.mu.Unlock()
@@ -122,7 +122,7 @@ func (a *ledgerAdapter) publish(ctx context.Context) (accepted bool, err error) 
 	a.seq++
 	seq := a.seq
 	prev := append([]byte(nil), a.memory...)
-	intent := encodeLedger(append(decodeLedger(prev), ledgerEntry{Seq: seq}))
+	intent := encodeJournal(append(decodeJournal(prev), journalEntry{Seq: seq}))
 	a.mu.Unlock()
 
 	if err := a.store.CommitRecovery(ctx, a.material(intent)); err != nil {
@@ -140,13 +140,13 @@ func (a *ledgerAdapter) publish(ctx context.Context) (accepted bool, err error) 
 	}
 	a.mu.Lock()
 	a.publisher[seq]++
-	entries := decodeLedger(intent)
+	entries := decodeJournal(intent)
 	for i := range entries {
 		if entries[i].Seq == seq {
 			entries[i].Accepted = true
 		}
 	}
-	outcome := encodeLedger(entries)
+	outcome := encodeJournal(entries)
 	a.mu.Unlock()
 
 	if err := a.store.CommitRecovery(ctx, a.material(outcome)); err != nil {
@@ -166,7 +166,7 @@ func (a *ledgerAdapter) publish(ctx context.Context) (accepted bool, err error) 
 
 // Secure makes a pending accepted outcome durable; with a readback pending it
 // refuses retryably and writes nothing.
-func (a *ledgerAdapter) Secure(ctx context.Context, _ InstanceID, _ Transition) (*RecoveryMaterial, error) {
+func (a *journalAdapter) Secure(ctx context.Context, _ InstanceID, _ Transition) (*RecoveryMaterial, error) {
 	a.mu.Lock()
 	if a.amb != nil {
 		a.mu.Unlock()
@@ -188,7 +188,7 @@ func (a *ledgerAdapter) Secure(ctx context.Context, _ InstanceID, _ Transition) 
 // ReadbackResolved settles the held material against the committed bytes: an
 // intent whose publisher call never ran is not applied, and an accepted outcome
 // is adopted exactly when it is committed, otherwise it stays pending.
-func (a *ledgerAdapter) ReadbackResolved() {
+func (a *journalAdapter) ReadbackResolved() {
 	committed := a.store.Recovery()
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -208,13 +208,13 @@ func (a *ledgerAdapter) ReadbackResolved() {
 	a.amb = nil
 }
 
-func (a *ledgerAdapter) snapshot() (memory []byte, amb *ambiguousWrite) {
+func (a *journalAdapter) snapshot() (memory []byte, amb *ambiguousWrite) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return append([]byte(nil), a.memory...), a.amb
 }
 
-func (a *ledgerAdapter) publisherCalls() int {
+func (a *journalAdapter) publisherCalls() int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	n := 0
@@ -277,12 +277,12 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var hold *holdStore
-			var ledger *ledgerAdapter
+			var journal *journalAdapter
 			f := newFixture(t, svcOpts{drivers: enabled("fam.alpha"), noStart: true,
 				wrap: func(s Store) Store { hold = &holdStore{Store: s}; return hold }})
-			ledger = newLedger(f.store, f.log)
+			journal = newJournal(f.store, f.log)
 			// The fixture's service takes the adapter at construction: rebuild it.
-			svc, err := NewService(ServiceOptions{Store: f.store, Recovery: ledger, Incarnation: "inc1",
+			svc, err := NewService(ServiceOptions{Store: f.store, Recovery: journal, Incarnation: "inc1",
 				Drivers:    []ServiceInstance{{InstanceID: "fam.alpha", Executor: f.execs["fam.alpha"]}},
 				RetryDelay: func(int) time.Duration { return 2 * time.Millisecond }, OnError: f.errs.add})
 			if err != nil {
@@ -299,8 +299,8 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 				t.Fatalf("the resolver is bound before restoration and admission: %v", got)
 			}
 			ctx := context.Background()
-			// One clean publication first, so the ledger holds a committed entry.
-			if _, err := ledger.publish(ctx); err != nil {
+			// One clean publication first, so the journal holds a committed entry.
+			if _, err := journal.publish(ctx); err != nil {
 				t.Fatal(err)
 			}
 
@@ -325,14 +325,14 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 			if tc.intent {
 				inject()
 			} else {
-				ledger.beforeHub = inject
+				journal.beforeHub = inject
 			}
 			entered, release := hold.arm()
-			accepted, err := ledger.publish(ctx)
+			accepted, err := journal.publish(ctx)
 			if err == nil {
 				t.Fatal("the ambiguous write reported success")
 			}
-			_, amb := ledger.snapshot()
+			_, amb := journal.snapshot()
 			if amb == nil || amb.intent != tc.intent || !bytes.Equal(amb.prev, previousOr(amb, previous, tc.intent)) {
 				t.Fatalf("the ambiguous write was not retained as staged: %+v", amb)
 			}
@@ -349,12 +349,12 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 			case <-time.After(5 * time.Second):
 				t.Fatal("the ambiguous adapter write did not arm the service resolver")
 			}
-			writes, calls := hookWrites(f), ledger.publisherCalls()
-			_, serr := ledger.Secure(ctx, "fam.alpha", Transition{})
+			writes, calls := hookWrites(f), journal.publisherCalls()
+			_, serr := journal.Secure(ctx, "fam.alpha", Transition{})
 			retryable("Secure", serr)
-			_, perr := ledger.publish(ctx)
+			_, perr := journal.publish(ctx)
 			retryable("publication", perr)
-			if hookWrites(f) != writes || ledger.publisherCalls() != calls {
+			if hookWrites(f) != writes || journal.publisherCalls() != calls {
 				t.Fatal("the window reached the store or the publisher")
 			}
 			if f.store.AdmissionOpen() {
@@ -366,7 +366,7 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 
 			close(release)
 			waitFor(t, "readback settled", func() bool {
-				_, held := ledger.snapshot()
+				_, held := journal.snapshot()
 				return held == nil && f.store.AdmissionOpen()
 			})
 			committed := f.store.Recovery().Payload
@@ -377,7 +377,7 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 			if !bytes.Equal(committed, want) {
 				t.Fatal("the readback settled on unexpected committed bytes")
 			}
-			memory, _ := ledger.snapshot()
+			memory, _ := journal.snapshot()
 			switch {
 			case tc.intent && tc.persisted:
 				if !bytes.Equal(memory, previous) || bytes.Equal(memory, committed) {
@@ -393,34 +393,34 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 				}
 			}
 
-			if _, err := ledger.Secure(ctx, "fam.alpha", Transition{}); err != nil {
+			if _, err := journal.Secure(ctx, "fam.alpha", Transition{}); err != nil {
 				t.Fatalf("Secure after the readback: %v", err)
 			}
 			if !tc.intent {
-				for _, e := range decodeLedger(f.store.Recovery().Payload) {
+				for _, e := range decodeJournal(f.store.Recovery().Payload) {
 					if !e.Accepted {
 						t.Fatalf("the accepted outcome is not durable after Secure: %+v", e)
 					}
 				}
 			}
-			ledger.beforeHub = nil
-			calls = ledger.publisherCalls()
-			if _, err := ledger.publish(ctx); err != nil {
+			journal.beforeHub = nil
+			calls = journal.publisherCalls()
+			if _, err := journal.publish(ctx); err != nil {
 				t.Fatalf("the next publication: %v", err)
 			}
-			if ledger.publisherCalls() != calls+1 {
-				t.Fatalf("publisher calls %d, want %d", ledger.publisherCalls(), calls+1)
+			if journal.publisherCalls() != calls+1 {
+				t.Fatalf("publisher calls %d, want %d", journal.publisherCalls(), calls+1)
 			}
-			for _, e := range decodeLedger(f.store.Recovery().Payload) {
+			for _, e := range decodeJournal(f.store.Recovery().Payload) {
 				if !e.Accepted {
-					t.Fatalf("a pending intent was left in the committed ledger: %+v", e)
+					t.Fatalf("a pending intent was left in the committed journal: %+v", e)
 				}
 			}
-			memory, _ = ledger.snapshot()
+			memory, _ = journal.snapshot()
 			if !bytes.Equal(memory, f.store.Recovery().Payload) {
 				t.Fatal("memory diverged from the committed envelope")
 			}
-			for seq, n := range ledger.publisher {
+			for seq, n := range journal.publisher {
 				if n != 1 {
 					t.Fatalf("intent %d reached the publisher %d times", seq, n)
 				}
@@ -432,7 +432,7 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 			_ = f.m.Stop(context.Background())
 			reopened := openManager(t, f.path, &blockHooks{}, enabled("fam.alpha"))
 			t.Cleanup(func() { _ = reopened.Stop(context.Background()) })
-			second := newLedger(&managerStore{m: reopened}, &orderLog{})
+			second := newJournal(&managerStore{m: reopened}, &orderLog{})
 			svc2, err := NewService(ServiceOptions{Store: &managerStore{m: reopened}, Recovery: second, Incarnation: "inc2",
 				Drivers: []ServiceInstance{{InstanceID: "fam.alpha", Executor: &fakeExec{id: "fam.alpha"}}}})
 			if err != nil {
@@ -453,8 +453,8 @@ func TestAmbiguousAdapterCommitArmsTheServiceReadback(t *testing.T) {
 				}
 			}
 			sort.Ints(seqs)
-			if len(seqs) != len(decodeLedger(f.store.Recovery().Payload)) {
-				t.Fatalf("replayed %v of the committed ledger", seqs)
+			if len(seqs) != len(decodeJournal(f.store.Recovery().Payload)) {
+				t.Fatalf("replayed %v of the committed journal", seqs)
 			}
 		})
 	}

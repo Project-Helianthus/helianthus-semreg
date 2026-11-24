@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -420,5 +421,52 @@ func TestNewSupervisorRequiresItsInputs(t *testing.T) {
 	noClock.Clock = nil
 	if _, err := NewSupervisor(noClock, good); err == nil {
 		t.Error("a missing clock was accepted")
+	}
+}
+
+// advanceFailStore is a control store whose catalog advance can be made to fail.
+type advanceFailStore struct {
+	ControlStore
+	fail atomic.Bool
+}
+
+func (a *advanceFailStore) AdvanceCatalog(ctx context.Context) (CatalogRevision, error) {
+	if a.fail.Load() {
+		return 0, errors.New("synthetic advance failure")
+	}
+	return a.ControlStore.AdvanceCatalog(ctx)
+}
+
+// A failed initial view commit leaves every launched instance absent from the
+// cached view; WaitInitial stays pending for it until the view shows a
+// publication or an outcome, and never counts the absence as a reported failure.
+func TestWaitInitialStaysPendingWhenTheInitialViewCommitFails(t *testing.T) {
+	t.Parallel()
+	store := &advanceFailStore{ControlStore: NewMemoryStore()}
+	store.fail.Store(true)
+	r := threeBusRig(t, store)
+	defer r.close()
+	release := make(chan struct{})
+	r.factory.script["bus.two"] = &startScript{stage: release}
+	r.build("inc1", false)
+	if err := r.sup.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	if err := r.sup.WaitInitial(ctx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("WaitInitial = %v, want it pending while the initial view is uncommitted", err)
+	}
+	store.fail.Store(false)
+	close(release)
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel2()
+	if err := r.sup.WaitInitial(ctx2); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range threeBuses {
+		if got := r.status(key).ObservedState; got != ObservedRunning {
+			t.Fatalf("%s = %s", key, got)
+		}
 	}
 }

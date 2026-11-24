@@ -620,6 +620,29 @@ func (s *Service) Get(id InstanceID) (DriverStatus, error) {
 		ObservedState: ObservedFailed, Reason: ReasonInternalError}, nil
 }
 
+// viewEntry returns the entry the current cached view carries for a served
+// driver; ok is false when the view does not carry it.
+func (s *Service) viewEntry(id InstanceID) (DriverStatus, bool) {
+	for _, entry := range s.view.Load().Drivers {
+		if entry.InstanceID == id {
+			return entry, true
+		}
+	}
+	return DriverStatus{}, false
+}
+
+// recoveryWithheld reports whether a failed recovery withheld the driver from
+// executors and admission.
+func (s *Service) recoveryWithheld(id InstanceID) bool {
+	d, ok := s.drivers[id]
+	if !ok {
+		return false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.recoveryBlocked
+}
+
 // Diagnostics returns a copy of the driver's bounded terminal-summary ring.
 func (s *Service) Diagnostics(id InstanceID) []Diagnostic {
 	d, ok := s.drivers[id]

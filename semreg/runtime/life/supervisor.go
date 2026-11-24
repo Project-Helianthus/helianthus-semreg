@@ -170,7 +170,7 @@ func (s *Supervisor) noteExpected(plan []ControlStartup) {
 		if entry.Action != StartupStarting {
 			continue
 		}
-		if st, err := s.service.Get(entry.InstanceID); err == nil && st.ObservedState == ObservedFailed {
+		if s.service.recoveryWithheld(entry.InstanceID) {
 			continue
 		}
 		s.expected = append(s.expected, entry.InstanceID)
@@ -188,11 +188,10 @@ func (s *Supervisor) WaitInitial(ctx context.Context) error {
 		notify := s.service.EventNotify()
 		pending := false
 		for _, id := range expected {
-			st, err := s.service.Get(id)
-			if err != nil {
-				return err
-			}
-			if st.ObservedState == ObservedStarting || st.ObservedState == "" {
+			// An instance the cached view does not carry has published nothing
+			// and recorded no outcome: it stays pending.
+			st, published := s.service.viewEntry(id)
+			if !published || st.ObservedState == ObservedStarting || st.ObservedState == "" {
 				pending = true
 				break
 			}

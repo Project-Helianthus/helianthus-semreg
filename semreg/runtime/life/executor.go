@@ -322,7 +322,9 @@ func (e *instanceExecutor) Stop(ctx context.Context, corr LifecycleCorrelation) 
 	if st == nil {
 		e.mu.Unlock()
 		out := StopOutcome{}
-		if e.exclusive != nil && e.exclusive() {
+		// Only an epoch that names its former owner can prove that owner's
+		// handles gone; an epoch with no identifiable owner stays unproven.
+		if _, named := epochIncarnation(corr.Epoch); named && e.exclusive != nil && e.exclusive() {
 			out.NativeClosed = true
 		}
 		out.SemanticCleaned = e.pub.Withdraw(ctx, corr) == nil
