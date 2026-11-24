@@ -18,6 +18,20 @@ type PublicationTransaction interface {
 	// AdmitManufacturerSerial admits a driver's own device-reported
 	// manufacturer and serial evidence in this transaction.
 	AdmitManufacturerSerial(ManufacturerSerialClaim) error
+	// Stage adds a kernel publication batch (facts, sources, bindings, identity
+	// links, services, capabilities and their withdrawals) to this transaction.
+	Stage(v1.PublicationBatch) error
+	// DeclareSource stages the declaration of a source of one element, with its
+	// driver-supplied priority, in this transaction.
+	DeclareSource(Source) error
+	// DeclareSettingRoute stages the route to the owner of one setting in this
+	// transaction, so the source, its candidate and its route commit together.
+	DeclareSettingRoute(SettingRoute) error
+	// Commit publishes everything staged in this transaction under its ownership
+	// stamp as one commit.
+	Commit(context.Context) error
+	// Abort discards everything staged and ends the transaction.
+	Abort(context.Context) error
 }
 
 // Publisher is the session's own transactional publisher.

@@ -150,8 +150,44 @@ func (n *syntheticNative) Method(_ driver.NodeRef, s driver.MethodSpec, m driver
 }
 
 type syntheticTransaction struct {
-	links  []v1.IdentityLink
-	claims []driver.ManufacturerSerialClaim
+	links     []v1.IdentityLink
+	claims    []driver.ManufacturerSerialClaim
+	batches   []v1.PublicationBatch
+	sources   []driver.Source
+	routes    []driver.SettingRoute
+	committed bool
+	aborted   bool
+}
+
+func (t *syntheticTransaction) Stage(b v1.PublicationBatch) error {
+	t.batches = append(t.batches, b)
+	return nil
+}
+
+func (t *syntheticTransaction) DeclareSource(s driver.Source) error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	t.sources = append(t.sources, s)
+	return nil
+}
+
+func (t *syntheticTransaction) DeclareSettingRoute(r driver.SettingRoute) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	t.routes = append(t.routes, r)
+	return nil
+}
+
+func (t *syntheticTransaction) Commit(context.Context) error {
+	t.committed = true
+	return nil
+}
+
+func (t *syntheticTransaction) Abort(context.Context) error {
+	t.aborted = true
+	return nil
 }
 
 func (t *syntheticTransaction) OperatorLinks(bindings []v1.NativeBinding) []v1.IdentityLink {

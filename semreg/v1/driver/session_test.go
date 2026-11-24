@@ -88,6 +88,49 @@ func TestManufacturerSerialAdmissionThroughTheSessionPublisher(t *testing.T) {
 	}
 }
 
+// publishThroughThePort compiles a driver publication against the session
+// contract alone: a batch, a source, its setting route and the commit.
+func publishThroughThePort(ctx context.Context, s driver.Session, b v1.PublicationBatch, src driver.Source, r driver.SettingRoute) error {
+	tx, err := s.Publisher().Begin(ctx)
+	if err != nil {
+		return err
+	}
+	for _, step := range []error{tx.Stage(b), tx.DeclareSource(src), tx.DeclareSettingRoute(r)} {
+		if step != nil {
+			_ = tx.Abort(ctx)
+			return step
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func TestDriverPublishesAndCommitsThroughTheSessionPort(t *testing.T) {
+	session := newSession()
+	batch := v1.PublicationBatch{BatchID: "batch:one", AssetID: "asset:one", SourceID: "source:one", SourceEpochID: "epoch:one", DriverGeneration: "1"}
+	if err := publishThroughThePort(context.Background(), session, batch, source("flow", 1), settingRoute("flow")); err != nil {
+		t.Fatal(err)
+	}
+	tx := session.publisher.tx
+	if !tx.committed || tx.aborted {
+		t.Errorf("committed=%v aborted=%v", tx.committed, tx.aborted)
+	}
+	if len(tx.batches) != 1 || tx.batches[0].BatchID != "batch:one" || len(tx.sources) != 1 || len(tx.routes) != 1 {
+		t.Errorf("staged batches=%d sources=%d routes=%d", len(tx.batches), len(tx.sources), len(tx.routes))
+	}
+}
+
+func TestInvalidStagingAbortsWithoutCommit(t *testing.T) {
+	session := newSession()
+	err := publishThroughThePort(context.Background(), session, v1.PublicationBatch{}, driver.Source{}, settingRoute("flow"))
+	if err == nil {
+		t.Fatal("an invalid source was staged")
+	}
+	tx := session.publisher.tx
+	if tx.committed || !tx.aborted {
+		t.Errorf("committed=%v aborted=%v", tx.committed, tx.aborted)
+	}
+}
+
 func TestCalendarPortReturnsTheDonorOperands(t *testing.T) {
 	session := newSession()
 	calendar := driver.Calendar(session.Calendar())
