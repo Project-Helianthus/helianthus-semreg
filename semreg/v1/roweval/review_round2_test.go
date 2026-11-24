@@ -1,6 +1,10 @@
 package roweval
 
-import "testing"
+import (
+	"testing"
+
+	v1 "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+)
 
 // A scaling exponent outside the decimal exponent range is accepted when the
 // exact result is a decimal: ten at 10^-19 is 10^-18. A scaling no operand can
@@ -14,6 +18,18 @@ func TestAffineScalingByTheResultNotTheExponent(t *testing.T) {
 	got, err = affineOf(Affine{Num: 1, Den: 1, Add: dec("-1000000000000000000")}, dec("1"), 20, "")
 	if err != nil || !sameNumber(got, "99000000000000000000") {
 		t.Errorf("1 x 10^20 - 10^18: %+v %v", got, err)
+	}
+	// The operand's own exponent supplies headroom: 2x10^-10 scaled by 10^22 is
+	// 2x10^12, and 10^-18 scaled by 10^22 through 10^36 is 10^4 through 10^18.
+	got, err = affineOf(id, v1.Decimal{Coefficient: "2", Exponent10: -10}, 22, "")
+	if err != nil || !sameNumber(got, "2000000000000") {
+		t.Errorf("2e-10 x 10^22: %+v %v", got, err)
+	}
+	for e, want := range map[int64]string{22: "10000", 30: "1000000000000", 36: "1000000000000000000"} {
+		got, err = affineOf(id, v1.Decimal{Coefficient: "1", Exponent10: -18}, e, "")
+		if err != nil || !sameNumber(got, want) {
+			t.Errorf("1e-18 x 10^%d: %+v %v", e, got, err)
+		}
 	}
 	for _, e := range []int64{1 << 40, -(1 << 40), -1 << 63} {
 		if _, err := affineOf(id, dec("1"), e, RoundTowardZero); err == nil {
