@@ -911,6 +911,9 @@ func (s *Service) runUntyped(d *driverState) {
 			d.autoStartDone = true
 			if obs.quarantined {
 				d.quarantined = true
+				// The unproven close stays this instance's current work: a
+				// STOP settles the same correlation through the executor.
+				d.live = a
 			}
 			if admit {
 				a.admitted = true
@@ -944,7 +947,9 @@ func (s *Service) runUntyped(d *driverState) {
 		}
 		if !out.NativeClosed {
 			s.settle(d, a, func() {
-				d.corr, d.untyped, d.autoStartDone = a.corr, nil, true
+				// Keep the unproven generation as live work so a STOP settles
+				// its native close and withdrawal before reporting STOPPED.
+				d.corr, d.untyped, d.autoStartDone, d.live = a.corr, nil, true, a
 			})
 			s.quarantine(d, Transition{Kind: KindStart})
 			return
@@ -967,7 +972,9 @@ func (s *Service) runUntyped(d *driverState) {
 			return
 		}
 		if attempts >= s.maxAttempts || !s.now().Before(deadline) {
-			finishUntyped(observation{state: ObservedFailed, reason: ReasonRetryExhausted}, false)
+			// Retire the attempt's epoch through the executor before it is
+			// dropped, so a later start can bind a new epoch.
+			withdrawLate(ReasonRetryExhausted)
 			return
 		}
 		attempts++
@@ -1026,7 +1033,7 @@ func (s *Service) runUntyped(d *driverState) {
 			}
 			continue
 		}
-		finishUntyped(observation{state: ObservedFailed, reason: failureReason(err)}, false)
+		withdrawLate(failureReason(err))
 		return
 	}
 }
