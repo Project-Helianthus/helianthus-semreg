@@ -133,10 +133,12 @@ func unmapped(v v1.Value) bool {
 // leader selects the authority among the declarations of one element: the
 // highest declared priority; among the tied leaders the latest runtime receipt;
 // among indistinguishable receipts the lower source key. Receipts in different
-// monotonic epochs are never ordered against each other, so the receipt orders
-// the tied leaders only when every one of them holds a receipt of one epoch;
-// a pairwise switch between receipt and key order would not be transitive. A
-// leader with no receipt ranks below one with a receipt.
+// monotonic epochs are never ordered against each other, so a tied leader is
+// outranked only by a tied leader whose receipt is later in the same epoch. The
+// leaders no other leader outranks are the candidates, and the lower source key
+// picks among them: the answer is one stable winner that does not depend on the
+// order the declarations are visited. A leader with no receipt ranks below one
+// with a receipt.
 func leader(group []*entry) *entry {
 	top := group[0].source.Priority
 	for _, e := range group[1:] {
@@ -159,29 +161,37 @@ func leader(group []*entry) *entry {
 	if len(withReceipt) > 0 {
 		leaders = withReceipt
 	}
-	byTime := len(withReceipt) > 1
-	for _, e := range withReceipt {
-		if e.acq.stamp.At.ClockEpochID != withReceipt[0].acq.stamp.At.ClockEpochID {
-			byTime = false
+	var best *entry
+	for _, e := range leaders {
+		if outranked(e, leaders) {
+			continue
 		}
-	}
-	best := leaders[0]
-	for _, e := range leaders[1:] {
-		if byTime {
-			x, xok := bigOf(string(e.acq.stamp.At.Nanoseconds))
-			y, yok := bigOf(string(best.acq.stamp.At.Nanoseconds))
-			if xok && yok && x.Cmp(y) != 0 {
-				if x.Cmp(y) > 0 {
-					best = e
-				}
-				continue
-			}
-		}
-		if compareRef(refOf(e.source), refOf(best.source)) < 0 {
+		if best == nil || compareRef(refOf(e.source), refOf(best.source)) < 0 {
 			best = e
 		}
 	}
 	return best
+}
+
+// outranked reports whether another leader holds a later receipt of the same
+// monotonic epoch.
+func outranked(e *entry, leaders []*entry) bool {
+	if e.acq == nil {
+		return false
+	}
+	x, xok := bigOf(string(e.acq.stamp.At.Nanoseconds))
+	if !xok {
+		return false
+	}
+	for _, f := range leaders {
+		if f == e || f.acq == nil || f.acq.stamp.At.ClockEpochID != e.acq.stamp.At.ClockEpochID {
+			continue
+		}
+		if y, yok := bigOf(string(f.acq.stamp.At.Nanoseconds)); yok && y.Cmp(x) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func effective(stored v1.Availability, freshness v1.Freshness) v1.Availability {

@@ -289,11 +289,33 @@ func TestTiedLeadersAcrossReceiptEpochsGiveOneStableWinner(t *testing.T) {
 	l.epoch = "clock:old"
 	c.publish(c.obs("cand:c", quantity("32165", -2), "1", 100, "c1"))
 	l.now = 110
-	// Receipts of different monotonic epochs are never ordered, so the tied
-	// leaders order by source key: the answer cannot depend on map iteration.
+	// a is outranked by c, whose receipt is later in the same epoch. b's receipt
+	// is in another epoch and is ordered against neither, so b and c remain and
+	// the lower source key picks b: the answer cannot depend on map iteration.
 	for i := 0; i < 64; i++ {
-		if e := l.element(); !isWinner(e, a) {
-			t.Fatalf("read %d: tied leaders in different receipt epochs order by source key: %s", i, mustJSON(t, e.Resolution))
+		if e := l.element(); !isWinner(e, b) {
+			t.Fatalf("read %d: the unoutranked tied leaders order by source key: %s", i, mustJSON(t, e.Resolution))
+		}
+	}
+}
+
+func TestLaterReceiptOutranksEarlierOneDespiteAnotherEpochTiedLeader(t *testing.T) {
+	l := newLab(t)
+	step := quantity("5", -1)
+	a := l.addDriver("a", "asset:a", 30, &step)
+	c := l.addDriver("c", "asset:c", 30, &step)
+	d := l.addDriver("d", "asset:d", 30, &step)
+	l.now = 100
+	l.epoch = "clock:old"
+	a.publish(a.obs("cand:a", quantity("32165", -2), "1", 100, "a1"))
+	l.epoch = "clock:new"
+	d.publish(d.obs("cand:d", quantity("32165", -2), "1", 100, "d1"))
+	l.epoch = "clock:old"
+	c.publish(c.obs("cand:c", quantity("32165", -2), "1", 100, "c1"))
+	l.now = 110
+	for i := 0; i < 64; i++ {
+		if e := l.element(); !isWinner(e, c) {
+			t.Fatalf("read %d: the later receipt of a shared epoch outranks the earlier one: %s", i, mustJSON(t, e.Resolution))
 		}
 	}
 }
