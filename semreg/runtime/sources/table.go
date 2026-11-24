@@ -213,7 +213,8 @@ func samePtr[T comparable](a, b *T) bool {
 func bigOf(s string) (*big.Int, bool) { return new(big.Int).SetString(s, 10) }
 
 // olderThan reports whether the acquisition a is demonstrably earlier than b
-// under the clock they share: the same monotonic epoch, else the same wall clock.
+// under the clock they share: the same monotonic epoch, else the same wall clock
+// once both uncertainties are included.
 func olderThan(a, b *acquisition) bool {
 	if a.receipt.ClockEpochID == b.receipt.ClockEpochID {
 		x, xok := bigOf(string(a.receipt.Nanoseconds))
@@ -223,7 +224,14 @@ func olderThan(a, b *acquisition) bool {
 	if a.receivedAt.ClockID == b.receivedAt.ClockID {
 		x, xok := bigOf(string(a.receivedAt.UnixNanoseconds))
 		y, yok := bigOf(string(b.receivedAt.UnixNanoseconds))
-		return xok && yok && x.Cmp(y) < 0
+		ua, uaok := bigOf(string(a.receivedAt.UncertaintyNS))
+		ub, ubok := bigOf(string(b.receivedAt.UncertaintyNS))
+		if !xok || !yok || !uaok || !ubok {
+			return false
+		}
+		// Earlier only when the gap exceeds both uncertainties together.
+		gap := new(big.Int).Sub(y, x)
+		return gap.Cmp(new(big.Int).Add(ua, ub)) > 0
 	}
 	return false
 }

@@ -86,12 +86,7 @@ func (t *Table) Element(el driver.Element, evals map[SourceKey]MemberEvaluation)
 		result.Resolution = driver.Resolution{Sources: []driver.SourceView{}}
 		return result
 	}
-	best := group[0]
-	for _, e := range group[1:] {
-		if outranks(e, best) {
-			best = e
-		}
-	}
+	best := leader(group)
 	sort.Slice(group, func(i, j int) bool {
 		if group[i] == best || group[j] == best {
 			return group[i] == best
@@ -135,26 +130,58 @@ func unmapped(v v1.Value) bool {
 	return false
 }
 
-// outranks reports whether a takes authority over b: the higher declared
-// priority; among equal priorities the latest runtime receipt; among
-// indistinguishable receipts the lower source key.
-func outranks(a, b *entry) bool {
-	if a.source.Priority != b.source.Priority {
-		return a.source.Priority > b.source.Priority
-	}
-	switch {
-	case a.acq != nil && b.acq == nil:
-		return true
-	case a.acq == nil && b.acq != nil:
-		return false
-	case a.acq != nil && b.acq != nil && a.acq.stamp.At.ClockEpochID == b.acq.stamp.At.ClockEpochID:
-		x, xok := bigOf(string(a.acq.stamp.At.Nanoseconds))
-		y, yok := bigOf(string(b.acq.stamp.At.Nanoseconds))
-		if xok && yok && x.Cmp(y) != 0 {
-			return x.Cmp(y) > 0
+// leader selects the authority among the declarations of one element: the
+// highest declared priority; among the tied leaders the latest runtime receipt;
+// among indistinguishable receipts the lower source key. Receipts in different
+// monotonic epochs are never ordered against each other, so the receipt orders
+// the tied leaders only when every one of them holds a receipt of one epoch;
+// a pairwise switch between receipt and key order would not be transitive. A
+// leader with no receipt ranks below one with a receipt.
+func leader(group []*entry) *entry {
+	top := group[0].source.Priority
+	for _, e := range group[1:] {
+		if e.source.Priority > top {
+			top = e.source.Priority
 		}
 	}
-	return compareRef(refOf(a.source), refOf(b.source)) < 0
+	leaders := make([]*entry, 0, len(group))
+	for _, e := range group {
+		if e.source.Priority == top {
+			leaders = append(leaders, e)
+		}
+	}
+	withReceipt := make([]*entry, 0, len(leaders))
+	for _, e := range leaders {
+		if e.acq != nil {
+			withReceipt = append(withReceipt, e)
+		}
+	}
+	if len(withReceipt) > 0 {
+		leaders = withReceipt
+	}
+	byTime := len(withReceipt) > 1
+	for _, e := range withReceipt {
+		if e.acq.stamp.At.ClockEpochID != withReceipt[0].acq.stamp.At.ClockEpochID {
+			byTime = false
+		}
+	}
+	best := leaders[0]
+	for _, e := range leaders[1:] {
+		if byTime {
+			x, xok := bigOf(string(e.acq.stamp.At.Nanoseconds))
+			y, yok := bigOf(string(best.acq.stamp.At.Nanoseconds))
+			if xok && yok && x.Cmp(y) != 0 {
+				if x.Cmp(y) > 0 {
+					best = e
+				}
+				continue
+			}
+		}
+		if compareRef(refOf(e.source), refOf(best.source)) < 0 {
+			best = e
+		}
+	}
+	return best
 }
 
 func effective(stored v1.Availability, freshness v1.Freshness) v1.Availability {

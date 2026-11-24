@@ -82,3 +82,19 @@ func TestNewGenerationOfTheSameObservationIsANewAcquisition(t *testing.T) {
 		t.Fatalf("the comparison fields do not cross a fenced generation: %+v", entry.acq)
 	}
 }
+
+func TestOlderWallClockAcrossEpochsNeedsTheGapBeyondBothUncertainties(t *testing.T) {
+	point := func(epoch v1.ClockEpochID, unix string, uncertainty string) *acquisition {
+		return &acquisition{
+			receipt:    v1.MonotonicPoint{ClockEpochID: epoch, Nanoseconds: "1"},
+			receivedAt: v1.TimePoint{UnixNanoseconds: v1.Int64(unix), ClockID: "clock.utc", UncertaintyNS: v1.Uint64(uncertainty)},
+		}
+	}
+	held := point("clock:one", "1000", "0")
+	if !olderThan(point("clock:two", "900", "50"), held) {
+		t.Fatal("a gap of 100 beyond uncertainties of 50 is demonstrably earlier")
+	}
+	if olderThan(point("clock:two", "900", "60"), point("clock:one", "1000", "50")) {
+		t.Fatal("overlapping uncertainty is not demonstrably earlier: the observation follows the new-acquisition path")
+	}
+}

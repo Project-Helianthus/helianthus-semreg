@@ -61,6 +61,7 @@ type lab struct {
 	now     uint64
 	tick    uint64
 	frozen  bool
+	epoch   v1.ClockEpochID
 	kernels map[v1.AssetID]*v1.PublicationKernel
 	drivers []*drv
 	el      *driver.Element
@@ -80,7 +81,11 @@ func newLab(t *testing.T) *lab {
 		if !l.frozen {
 			l.tick++
 		}
-		return v1.MonotonicPoint{ClockEpochID: "clock:table", Nanoseconds: v1.Uint64(strconv.FormatUint(l.tick, 10))}
+		epoch := l.epoch
+		if epoch == "" {
+			epoch = "clock:table"
+		}
+		return v1.MonotonicPoint{ClockEpochID: epoch, Nanoseconds: v1.Uint64(strconv.FormatUint(l.tick, 10))}
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -274,3 +274,26 @@ func TestNewObservationWithTheSameScalarRefreshesReceiptAndTakesAuthority(t *tes
 		t.Fatalf("the refreshed receipt takes authority: %s", mustJSON(t, e))
 	}
 }
+
+func TestTiedLeadersAcrossReceiptEpochsGiveOneStableWinner(t *testing.T) {
+	l := newLab(t)
+	step := quantity("5", -1)
+	a := l.addDriver("a", "asset:a", 30, &step)
+	b := l.addDriver("b", "asset:b", 30, &step)
+	c := l.addDriver("c", "asset:c", 30, &step)
+	l.now = 100
+	l.epoch = "clock:old"
+	a.publish(a.obs("cand:a", quantity("32165", -2), "1", 100, "a1"))
+	l.epoch = "clock:new"
+	b.publish(b.obs("cand:b", quantity("32165", -2), "1", 100, "b1"))
+	l.epoch = "clock:old"
+	c.publish(c.obs("cand:c", quantity("32165", -2), "1", 100, "c1"))
+	l.now = 110
+	// Receipts of different monotonic epochs are never ordered, so the tied
+	// leaders order by source key: the answer cannot depend on map iteration.
+	for i := 0; i < 64; i++ {
+		if e := l.element(); !isWinner(e, a) {
+			t.Fatalf("read %d: tied leaders in different receipt epochs order by source key: %s", i, mustJSON(t, e.Resolution))
+		}
+	}
+}
