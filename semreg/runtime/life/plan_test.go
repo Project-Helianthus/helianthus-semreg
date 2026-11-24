@@ -476,6 +476,68 @@ func TestPlanDeclaresNoSessionNode(t *testing.T) {
 	}
 }
 
+// A link whose key equals the bridge node is a plan error that names the
+// instance, and the returned set is empty. The bridge key is the installation,
+// the runtime driver, the bridge id, the equipment kind and the bridge slot.
+// Each of the three fields the configuration can change on its own — driver,
+// instance and slot — is varied: dropping that field from the comparison
+// rejects a link that is not the bridge.
+func TestPlanLinkWhoseKeyEqualsTheBridgeIsRejected(t *testing.T) {
+	t.Parallel()
+	colliding := claimSpec{Provider: "provider.a", Config: "config.bridge", Domain: "domain.one", Slot: bridgeSlot}
+	t.Run("equal key", func(t *testing.T) {
+		f := newTestFactory(RuntimeDriver)
+		set, err := Plan(planInstallation(f, withClaims(f, "bridge.test", true, colliding)), f)
+		pe := planError(t, err)
+		want := Ref{Driver: RuntimeDriver, Instance: "bridge.test"}
+		if len(pe.Problems) != 1 || !reflect.DeepEqual(pe.Problems[0].Instances, []Ref{want}) {
+			t.Fatalf("problems = %+v", pe.Problems)
+		}
+		if !strings.Contains(err.Error(), want.String()) {
+			t.Fatalf("message does not name the instance: %v", err)
+		}
+		if len(set.Instances) != 0 || len(set.Nodes) != 0 || len(set.Edges) != 0 {
+			t.Fatalf("a rejected plan returned a set: %+v", set)
+		}
+		if f.constructed() != 0 {
+			t.Fatal("a plan error constructed an instance")
+		}
+	})
+	near := []struct {
+		name   string
+		kind   driver.DriverKind
+		key    string
+		slot   string
+		change string
+	}{
+		{name: "driver differs", kind: testKind, key: "bridge.test", slot: bridgeSlot, change: "driver"},
+		{name: "instance differs", kind: RuntimeDriver, key: "bus.other", slot: bridgeSlot, change: "instance"},
+		{name: "slot differs", kind: RuntimeDriver, key: "bridge.test", slot: "slot.other", change: "slot"},
+	}
+	for _, tc := range near {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newTestFactory(tc.kind)
+			spec := colliding
+			spec.Slot = tc.slot
+			set, err := Plan(planInstallation(f, withClaims(f, tc.key, true, spec)), f)
+			if err != nil {
+				t.Fatalf("changing %s was rejected: %v", tc.change, err)
+			}
+			if len(set.Instances) != 1 || len(set.Instances[0].Links) != 1 || len(set.Edges) != 1 || len(set.Nodes) != 2 {
+				t.Fatalf("changing %s dropped the link: instances %d links %d nodes %d edges %d", tc.change, len(set.Instances), len(set.Instances[0].Links), len(set.Nodes), len(set.Edges))
+			}
+			link := set.Instances[0].Links[0].Key
+			bridge := driver.NodeKey{
+				Installation: set.Installation, Driver: RuntimeDriver, Instance: driver.InstanceKey(set.Bridge),
+				Kind: EquipmentKind, Anchor: driver.AnchorKey{Slot: bridgeSlot},
+			}
+			if link == bridge || set.Edges[0].To != link || set.Edges[0].From != bridge {
+				t.Fatalf("changing %s: link %+v bridge %+v edge %+v", tc.change, link, bridge, set.Edges[0])
+			}
+		})
+	}
+}
+
 func TestRefIDIsUnambiguous(t *testing.T) {
 	t.Parallel()
 	a := Ref{Driver: "a", Instance: "b/c"}

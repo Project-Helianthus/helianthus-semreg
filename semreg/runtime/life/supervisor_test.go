@@ -3,6 +3,7 @@ package life
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync/atomic"
 	"testing"
@@ -469,4 +470,70 @@ func TestWaitInitialStaysPendingWhenTheInitialViewCommitFails(t *testing.T) {
 			t.Fatalf("%s = %s", key, got)
 		}
 	}
+}
+
+// A failed initial view commit leaves the cached view empty while enabled
+// instances are starting. Snapshot and Watch must not turn that absence into
+// a desired or observed outcome: a committed failure is an entry of the view,
+// with a desired state and an observed failure, and absence is neither.
+func TestSnapshotAndWatchDoNotInventAFailureWhileTheViewIsEmpty(t *testing.T) {
+	t.Parallel()
+	store := &advanceFailStore{ControlStore: NewMemoryStore()}
+	store.fail.Store(true)
+	r := threeBusRig(t, store)
+	defer r.close()
+	r.factory.script["bus.one"] = &startScript{startErrs: []error{errors.New("synthetic start failure")}}
+	r.build("inc1", false)
+	if err := r.sup.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.sup.service.List().Drivers; len(got) != 0 {
+		t.Fatalf("cached view carries %d instances", len(got))
+	}
+	for _, key := range threeBuses {
+		snap, err := r.sup.Snapshot(ref(key))
+		if reported, why := outcomeReported(snap, err); reported {
+			t.Fatalf("snapshot of %s reported an outcome while the view does not carry it: %s", key, why)
+		}
+		if !errors.Is(err, ErrInstanceAbsent) {
+			t.Fatalf("snapshot of %s error = %v, want %v", key, err, ErrInstanceAbsent)
+		}
+		watched, _, werr := r.sup.Watch(ref(key))
+		if reported, why := outcomeReported(watched, werr); reported {
+			t.Fatalf("watch of %s reported an outcome while the view does not carry it: %s", key, why)
+		}
+		if !errors.Is(werr, ErrInstanceAbsent) {
+			t.Fatalf("watch of %s error = %v, want %v", key, werr, ErrInstanceAbsent)
+		}
+	}
+
+	store.fail.Store(false)
+	waitFor(t, "committed failure of bus.one", func() bool {
+		st, err := r.sup.Snapshot(ref("bus.one"))
+		return err == nil && st.DesiredState == DesiredRunning && st.ObservedState == ObservedFailed && st.Reason == ReasonInternalError
+	})
+	failed, err := r.sup.Snapshot(ref("bus.one"))
+	if err != nil || failed.DesiredState != DesiredRunning || failed.ObservedState != ObservedFailed || failed.Reason != ReasonInternalError {
+		t.Fatalf("committed failure = %+v, %v", failed, err)
+	}
+	watched, _, werr := r.sup.Watch(ref("bus.one"))
+	if werr != nil || watched.DesiredState != DesiredRunning || watched.ObservedState != ObservedFailed || watched.Reason != ReasonInternalError {
+		t.Fatalf("watch of the committed failure = %+v, %v", watched, werr)
+	}
+}
+
+// outcomeReported is a desired or observed outcome. Absence is an error with
+// neither state filled; a committed failure is a nil error with both filled.
+func outcomeReported(st Status, err error) (bool, string) {
+	if err == nil {
+		return true, fmt.Sprintf("nil error with status %+v", st)
+	}
+	if st.DesiredState != "" || st.ObservedState != "" {
+		return true, fmt.Sprintf("error %v with status %+v", err, st)
+	}
+	var refusal *Refusal
+	if errors.As(err, &refusal) {
+		return true, fmt.Sprintf("refusal %+v", refusal)
+	}
+	return false, ""
 }

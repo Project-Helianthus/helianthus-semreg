@@ -214,13 +214,16 @@ func (s *Supervisor) SetDesired(ctx context.Context, ref Ref, method Method, pre
 	return s.service.Decide(ctx, method, Request{InstanceID: ref.ID(), ExpectedRevision: precondition})
 }
 
-// Snapshot returns the current state of one instance.
+// Snapshot returns the cached view's state of one instance. A served instance
+// the view does not carry returns ErrInstanceAbsent and no desired or observed
+// outcome.
 func (s *Supervisor) Snapshot(ref Ref) (Status, error) {
 	return s.service.Get(ref.ID())
 }
 
-// Watch returns the current state of one instance and a channel closed when the
-// state next changes.
+// Watch returns the cached view's state of one instance and a channel closed
+// when that state next changes. A served instance the view does not carry
+// returns ErrInstanceAbsent and no desired or observed outcome.
 func (s *Supervisor) Watch(ref Ref) (Status, <-chan struct{}, error) {
 	id := ref.ID()
 	for {

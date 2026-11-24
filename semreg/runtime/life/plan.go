@@ -340,13 +340,15 @@ func (p *planner) checkTransports(instances []PlannedInstance) {
 // topology declares the bridge and the links as equipment with a relays edge
 // from the bridge to each link, from configuration only. A link the driver
 // publishes itself is keyed by the claim's LinkNodeSlot; any other link takes
-// the slot derived from its claim identity.
+// the slot derived from its claim identity. A link key equal to the bridge
+// node is a plan error naming that instance.
 func (p *planner) topology(set PlanSet) ([]driver.NodeKey, []Edge) {
 	bridge := driver.NodeKey{
 		Installation: set.Installation, Driver: RuntimeDriver, Instance: driver.InstanceKey(set.Bridge),
 		Kind: EquipmentKind, Anchor: driver.AnchorKey{Slot: bridgeSlot},
 	}
-	keys := map[string]driver.NodeKey{nodeText(bridge): bridge}
+	bridgeText := nodeText(bridge)
+	keys := map[string]driver.NodeKey{bridgeText: bridge}
 	owners := map[string][]Ref{}
 	var edges []Edge
 	for i := range set.Instances {
@@ -372,7 +374,10 @@ func (p *planner) topology(set PlanSet) ([]driver.NodeKey, []Edge) {
 		}
 	}
 	for text, refs := range owners {
-		if len(refs) > 1 {
+		switch {
+		case text == bridgeText:
+			p.fail("link key equals the bridge node "+text, refs...)
+		case len(refs) > 1:
 			p.fail("two claims for one static node key "+text, refs...)
 		}
 	}
