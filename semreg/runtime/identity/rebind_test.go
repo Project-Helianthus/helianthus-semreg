@@ -155,3 +155,49 @@ func TestRebindOfAbsentIdentitiesIsRetainedUnapplied(t *testing.T) {
 		t.Fatalf("the rebind did not apply once both were nodes: %+v", got)
 	}
 }
+
+// A rebind that closes a cycle with a recorded rebind is refused while its
+// identities are not nodes yet, so the applied chain stays acyclic and a link
+// declared to one of them is shown at one identity, whatever the other records.
+func TestRebindClosingACycleIsRefusedWhileIdentitiesAreAbsent(t *testing.T) {
+	l := ledgerOn(t, NewMemoryStore(), embeddedCatalog(t))
+	p := Publisher{Driver: "driver-modbus", Instance: "m4"}
+	transport := mustNode(t, l, bridge, slotKey(installation, p.Driver, p.Instance, "resource.transport", "", "transport"))
+	var refs []driver.NodeRef
+	var keys []driver.NodeKey
+	for _, token := range []string{"sn-a", "sn-b", "sn-c"} {
+		key := nativeKey(t, installation, p.Driver, p.Instance, "resource.equipment", token)
+		id, err := l.allocator.Allocate(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		refs, keys = append(refs, ref(string(id))), append(keys, key)
+	}
+	a, b, c := refs[0], refs[1], refs[2]
+	rebind := func(old, next driver.NodeRef, revision string) error {
+		return l.Rebind(old, next, driver.CertifiedJoin{A: old, B: next, Survivor: next, Statement: statement(revision, revision)})
+	}
+	if err := rebind(a, b, "1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rebind(b, a, "2"); !errors.Is(err, ErrRebindCycle) {
+		t.Fatalf("the reverse rebind of an absent pair: %v", err)
+	}
+	if err := rebind(b, c, "3"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rebind(c, a, "4"); !errors.Is(err, ErrRebindCycle) {
+		t.Fatalf("the rebind that closes a longer cycle: %v", err)
+	}
+	if got := len(l.Rebinds()); got != 2 {
+		t.Fatalf("recorded rebinds = %d, want 2", got)
+	}
+	// With every identity a node, a link declared to the first shows at the end of the one chain.
+	_ = l.ClaimLink(p, driver.LinkClaim{Key: driver.LinkKey{Type: reach, From: transport, To: a}, Basis: proof("link")})
+	for _, key := range keys {
+		mustNode(t, l, bridge, key)
+	}
+	if got := l.Links()[0].Key; got != (driver.LinkKey{Type: reach, From: transport, To: c}) {
+		t.Fatalf("the link is shown at %+v, want the end of the chain", got)
+	}
+}

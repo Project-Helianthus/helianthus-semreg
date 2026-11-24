@@ -149,14 +149,31 @@ func carry(built, pending []semreg.IdentityLink) []semreg.IdentityLink {
 }
 
 // CheckOperatorLinks compares the operator links a batch carries with the links
-// pending for its source. A carried set that is exactly the pending set is
-// accepted, and so is a carried set of withdrawals that is exactly the pending
-// withdrawals. A batch that carries no operator link is accepted and leaves the
-// pending links pending. Both sets are ordered by binding.
-func CheckOperatorLinks(carried, pending []semreg.IdentityLink) error {
+// pending for its source. A link of the batch is an operator link when its basis
+// holds operator evidence or when it replaces a published operator link of the
+// snapshot that is not withdrawn; present says whether snapshot is the asset's
+// committed snapshot. A batch that carries no operator link is accepted and
+// leaves the pending links pending. A carried set that is exactly the pending set
+// is accepted, and so is a carried set of withdrawals that is exactly the
+// pending withdrawals. The operator links are ordered by binding, as the pending
+// set is.
+func CheckOperatorLinks(batch []semreg.IdentityLink, snapshot semreg.Snapshot, present bool, pending []semreg.IdentityLink) error {
+	published := make(map[semreg.NativeBindingID]bool)
+	if present {
+		for _, link := range snapshot.IdentityLinks {
+			published[link.BindingID] = link.State != semreg.LinkWithdrawn && OperatorBasis(link.Basis)
+		}
+	}
+	carried := []semreg.IdentityLink{}
+	for _, link := range batch {
+		if OperatorBasis(link.Basis) || published[link.BindingID] {
+			carried = append(carried, link)
+		}
+	}
 	if len(carried) == 0 {
 		return nil
 	}
+	sort.Slice(carried, func(i, j int) bool { return carried[i].BindingID < carried[j].BindingID })
 	if reflect.DeepEqual(carried, pending) {
 		return nil
 	}

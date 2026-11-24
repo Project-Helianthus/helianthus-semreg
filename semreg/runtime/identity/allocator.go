@@ -296,6 +296,18 @@ func (a *Allocator) Home(resource semreg.ResourceID, asset semreg.AssetID) (semr
 	return home, nil
 }
 
+// forget drops what this allocator held in memory, so that Resolve, Home and
+// the parent check follow only the store, as a fresh allocator over it does. A
+// restore calls it after it replaced the content of the store.
+func (a *Allocator) forget() {
+	storeMu.Lock()
+	defer storeMu.Unlock()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.held = make(map[AnchorKey]heldAnchor)
+	a.kinds = make(map[semreg.ResourceID]semreg.DefinitionID)
+}
+
 func (a *Allocator) parentKnown(anchor Anchor) error {
 	if anchor.Parent == "" {
 		return nil

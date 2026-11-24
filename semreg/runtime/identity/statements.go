@@ -102,18 +102,25 @@ func (l *Ledger) Rebind(old, new driver.NodeRef, join driver.CertifiedJoin) erro
 	return nil
 }
 
-// reaches reports whether following the applied rebinds from start arrives at
-// target.
+// reaches reports whether following the recorded rebinds that are not revoked
+// from start arrives at target. A rebind counts whether or not its identities
+// are nodes yet, so a rebind retained until both are present still closes a
+// cycle.
 func (l *Ledger) reaches(start, target driver.NodeRef) bool {
 	for at, steps := start, 0; steps <= len(l.rebinds); steps++ {
 		if at == target {
 			return true
 		}
-		next, moved := l.rebound(at)
+		moved := false
+		for _, record := range l.rebinds {
+			if !record.Revoked && record.Old == at {
+				at, moved = record.New, true
+				break
+			}
+		}
 		if !moved {
 			return false
 		}
-		at = next
 	}
 	return false
 }

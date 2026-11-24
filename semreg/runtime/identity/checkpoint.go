@@ -182,6 +182,7 @@ func (l *Ledger) Restore(data []byte) error {
 	if err := l.allocator.store.Replace(doc.Anchors); err != nil {
 		return fmt.Errorf("%w: %w", ErrStore, err)
 	}
+	l.allocator.forget()
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.nodes, l.links, l.matches, l.serials = state.nodes, state.links, state.matches, state.serials

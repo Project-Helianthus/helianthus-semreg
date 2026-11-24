@@ -192,3 +192,42 @@ func TestRestoreRefusesForeignAndDamagedCheckpoints(t *testing.T) {
 		t.Fatal("a refused checkpoint changed the state")
 	}
 }
+
+// A restore drops what the allocator held in memory: Home, Resolve and the
+// parent check follow only the restored store. A resource the checkpoint does
+// not hold stays unknown, and a supersession the checkpoint does not hold stays
+// rolled back.
+func TestRestoreDropsTheAllocatorsInMemoryState(t *testing.T) {
+	l := ledgerOn(t, NewMemoryStore(), embeddedCatalog(t))
+	allocator := l.allocator
+	anchored := mustResolve(t, allocator, kindEquipment, operatorEquipment("unit-r", "first"))
+	data, err := l.Export()
+	if err != nil {
+		t.Fatal(err)
+	}
+	later := mustResolve(t, allocator, kindEquipment, operatorEquipment("unit-later", "x"))
+	if _, _, err := allocator.Supersede(Claim{kindEquipment, operatorEquipment("unit-r", "first")}, Claim{kindEquipment, tokenAnchor("token-r", "first")}, continuity(ContinuityBinding, "both")); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Restore(data); err != nil {
+		t.Fatal(err)
+	}
+	// The resource the checkpoint does not hold is not known: no home is recorded for it.
+	if _, err := allocator.Home(later, "asset:later"); !errors.Is(err, ErrUnknownResource) {
+		t.Fatalf("Home of a resource the checkpoint does not hold: %v", err)
+	}
+	if home, err := allocator.store.RecordHome(later, "asset:probe"); err != nil || home != "asset:probe" {
+		t.Fatalf("a home was recorded for the dropped resource: %q %v", home, err)
+	}
+	// The rolled-back supersession stays rolled back: the new token is not current on the old resource.
+	next, _, err := allocator.Resolve(kindEquipment, tokenAnchor("token-r", "first"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next == anchored {
+		t.Fatalf("the rolled-back supersession was resolved again onto %s", anchored)
+	}
+	if again, _, err := allocator.Resolve(kindEquipment, operatorEquipment("unit-r", "first")); err != nil || again != anchored {
+		t.Fatalf("the earlier anchor after the restore = %s, %v; want %s", again, err, anchored)
+	}
+}

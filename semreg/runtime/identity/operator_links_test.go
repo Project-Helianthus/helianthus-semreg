@@ -118,7 +118,7 @@ func TestAssociationIsCarriedOnlyByTheOwnersNextBatch(t *testing.T) {
 	// The eligible batch carries it.
 	built := []semreg.IdentityLink{publisherLink(bindingOne, "own again")}
 	carried := CarryOperatorLinks(built, k.pending(declared))
-	if err := CheckOperatorLinks(carried, k.pending(declared)); err != nil {
+	if err := CheckOperatorLinks(carried, k.snapshot(), true, k.pending(declared)); err != nil {
 		t.Fatalf("the carried batch is refused: %v", err)
 	}
 	k.commit(nil, carried)
@@ -212,10 +212,10 @@ func TestWithdrawalsOnlyCarryWhileAnotherAssociationStaysPending(t *testing.T) {
 	if len(withdrawals) != 1 || withdrawals[0].BindingID != bindingOne {
 		t.Fatalf("withdrawals = %+v", withdrawals)
 	}
-	if err := CheckOperatorLinks(withdrawals, pending); err != nil {
+	if err := CheckOperatorLinks(withdrawals, k.snapshot(), true, pending); err != nil {
 		t.Fatalf("a withdrawals-only batch was refused: %v", err)
 	}
-	if err := CheckOperatorLinks(pending, pending); err != nil {
+	if err := CheckOperatorLinks(pending, k.snapshot(), true, pending); err != nil {
 		t.Fatalf("the whole pending set was refused: %v", err)
 	}
 	for name, carried := range map[string][]semreg.IdentityLink{
@@ -223,11 +223,11 @@ func TestWithdrawalsOnlyCarryWhileAnotherAssociationStaysPending(t *testing.T) {
 		"a qualified link and no withdrawal": {pending[1]},
 		"another set":                        {publisherLink(bindingOne, "x"), pending[1]},
 	} {
-		if err := CheckOperatorLinks(carried, pending); !errors.Is(err, ErrOperatorLink) {
+		if err := CheckOperatorLinks(carried, k.snapshot(), true, pending); !errors.Is(err, ErrOperatorLink) {
 			t.Errorf("%s: err=%v", name, err)
 		}
 	}
-	if err := CheckOperatorLinks(nil, pending); err != nil {
+	if err := CheckOperatorLinks(nil, k.snapshot(), true, pending); err != nil {
 		t.Fatalf("a batch carrying no operator link: %v", err)
 	}
 	k.commit(nil, withdrawals)
@@ -236,5 +236,37 @@ func TestWithdrawalsOnlyCarryWhileAnotherAssociationStaysPending(t *testing.T) {
 	}
 	if left := k.pending(declared); len(left) != 1 || left[0].BindingID != bindingTwo || left[0].State != semreg.LinkQualified {
 		t.Fatalf("the qualified association did not stay pending: %+v", left)
+	}
+}
+
+// A batch link counts as an operator link when its basis is operator evidence or
+// when it replaces a published, not withdrawn operator link of the snapshot. A
+// publisher's own link for a binding that holds a published operator association
+// is refused while nothing is pending, and the same link for a binding without
+// one is accepted.
+func TestCheckClassifiesALinkThatReplacesAPublishedOperatorLink(t *testing.T) {
+	var k kernel
+	k.commit([]semreg.NativeBinding{bindingOf(bindingOne, "first", linkGen), bindingOf(bindingTwo, "second", linkGen)}, nil)
+	declared := []OperatorLink{declare("first", selected)}
+	k.commit(nil, CarryOperatorLinks(nil, k.pending(declared)))
+	pending := k.pending(declared)
+	if len(pending) != 0 {
+		t.Fatalf("pending = %+v", pending)
+	}
+	snapshot := k.snapshot()
+	if err := CheckOperatorLinks([]semreg.IdentityLink{publisherLink(bindingOne, "replaces")}, snapshot, true, pending); !errors.Is(err, ErrOperatorLink) {
+		t.Fatalf("a publisher link that replaces the published association: %v", err)
+	}
+	if err := CheckOperatorLinks([]semreg.IdentityLink{publisherLink(bindingTwo, "other")}, snapshot, true, pending); err != nil {
+		t.Fatalf("a publisher link of a binding without an association: %v", err)
+	}
+	// Without the committed snapshot the replacement is not recognised.
+	if err := CheckOperatorLinks([]semreg.IdentityLink{publisherLink(bindingOne, "replaces")}, snapshot, false, pending); err != nil {
+		t.Fatalf("no snapshot: %v", err)
+	}
+	// A withdrawn association is no operator link any more.
+	k.commit(nil, CarryOperatorLinks(nil, k.pending(nil)))
+	if err := CheckOperatorLinks([]semreg.IdentityLink{publisherLink(bindingOne, "after withdrawal")}, k.snapshot(), true, k.pending(nil)); err != nil {
+		t.Fatalf("a publisher link after the withdrawal: %v", err)
 	}
 }
