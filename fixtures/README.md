@@ -273,66 +273,81 @@ tests remain applicable. Synthetic fixtures establish no native qualification,
 route, authority or physical proof.
 
 [`v1/family-catalog-v1.json`](v1/family-catalog-v1.json) is the INT-05 family
-catalog: one row for each of the fourteen INT-07 draft families with the
-qualification state its published evidence supports today, a reason, the
-composition status, and evidence references pinned to immutable revisions
-(modbusreg `1d92f28`, canbusreg `f5b8cbf`, ebusreg `2342a8d`, eebusreg `cdfdf0c`,
-docs-semantic `30f5e5c` for the evidence rows; the document pin is the contract revision above). States come only from the semantic `Qualification`
-vocabulary; "evidence-blocked", "no admissible profile" and NO_GO have no
-vocabulary value, so they stay `unknown` or `candidate` and are named by the
-row's `reason`. No row is `qualified`, and no row creates a native mapping,
-route, authority or live operation. `semreg/v1/catalog` decodes it strictly and
-its tests check completeness, evidence and states.
+catalog document. It holds the one family that names no vendor or protocol,
+`infrastructure`, with its state (`unknown`), its reason (`no_producer`), its
+composition (`not_composed`), its recorded verification level
+(`not_tested_on_hardware`) and evidence references. SemReg stores no vendor
+family row and no gateway composition record: each driver declares its own
+families, with their state, verification level and composition evidence, through
+the driver contract in `semreg/v1/driver`, and any host reads them through
+SemReg. States come only from the semantic `Qualification` vocabulary;
+"evidence-blocked", "no admissible profile" and NO_GO have no vocabulary value
+and no reason, so they stay `unknown` or `candidate` and are named by the row's
+`reason`. A row never creates a native mapping, route, authority or live
+operation, and it carries no write-authority field and no default-deny rule.
+`semreg/v1/catalog` decodes the document strictly and validates one family
+record as a driver declares it with `Family.Validate`; its tests check
+completeness, evidence and states.
 
 Contract `family-catalog/v1` is defined by
 `api/v1/family-catalog-v1.md` in
-`Project-Helianthus/helianthus-docs-semantic@0a49173215c98769acf210b696ca6ac81d6db60e`; the page is authoritative
+`Project-Helianthus/helianthus-docs-semantic@c576fa14be034901deaadf1e32b28c7719a68058`; the page is authoritative
 and this summary follows it. The document has exactly the members `contract`,
 `semantic_docs_pin`, `states` and `families`, all required, with no unknown or
-repeated member at any object level (case variants of a member name count as repeated or unknown), no trailing data, and `semantic_docs_pin` and `gateway_composition` evidence owners require
-exactly 40 lowercase hexadecimal characters for their commit pins. Other
-evidence references may use abbreviated immutable revisions. A family has the
-required members `family_id`, `name`, `native_owner`, `semantic_pack` (both may
-be empty strings), `state`, `composition`, `composition_verified`, `reason` and
-`evidence` (at least one entry with non-empty `owner`, `kind`, `locator`,
-`statement`). `state` is one of `candidate`, `qualified`, `unsupported`,
-`unknown`, `rejected`, and `states` must equal that set exactly, each value
-once. `composition` is `composed`, `composed_legacy`, `provider_local` or
-`not_composed`. Any claim other than `not_composed` requires
-`composition_verified=true` and a `gateway_composition` evidence entry in the
-`@` form pinned to a full 40-character `helianthus-ebusgateway` commit (here
-`e017a547967e449ffbe76ea779d5892596306f07`). A `not_composed` row must have
-`composition_verified=false` and no `gateway_composition` entry; `false` means
-unverified, not asserted absent. Evidence `owner` is
+repeated member at any object level (case variants of a member name count as repeated or unknown), no trailing data, and `semantic_docs_pin` requires
+exactly 40 lowercase hexadecimal characters for its commit pin; the evidence
+`owner` of a family is not checked for a commit pin, since other immutable
+revisions are allowed. The document must hold every family of
+`RequiredFamilyIDs` (today `infrastructure`): a required family missing from
+the document and an unknown member of a `Family` object are rejected, while a
+valid additional family that a driver declares is accepted, and there is no fixed
+family count. A family has the required members `family_id`, `name`,
+`native_owner`, `semantic_pack` (both may be empty strings), `state`,
+`composition`, `reason`, `evidence` (at least one entry with non-empty `owner`,
+`kind`, `locator`, `statement`), `composition_verified` and `verification`, and
+the optional members `module` and `version`, each omitted when empty. `state` is
+one of `candidate`, `qualified`, `unsupported`, `unknown`, `rejected`, and
+`states` must equal that set exactly, each value once. A `qualified` row is
+declared by the specification or public documentation its native owner pins and
+bound at runtime: it has the reason `declared_by_specification` and a
+`specification` evidence entry. `verification` is `tested_on_hardware` or
+`not_tested_on_hardware`; it is a recorded level beside `state` and never changes
+it, and `tested_on_hardware` needs a `hardware_test_record` evidence entry.
+`composition` is `composed`, `composed_legacy`, `provider_local` or
+`not_composed`. `module` and `version` are the composition evidence of the
+registration of the driver that declares the family. Any claim other than
+`not_composed` requires `composition_verified=true` and both `module` and
+`version`. A `not_composed` row must have `composition_verified=false` and carry
+neither `module` nor `version`; `false` means unverified, not asserted absent.
+Evidence `owner` is
 `Project-Helianthus/<repository>@<revision>` (immutable revision) or
 `Project-Helianthus/<repository>#<number>` (issue or pull request thread, only
 for kinds `issue` and `pull_request`; the validator here does not yet enforce
 the two forms or required-member presence; these requirements are recorded on
-the contract page). `kind` is an open, additive vocabulary. `reason` is a closed
-vocabulary defined on the page: `offline_profile_only`,
-`offline_mapping_gate_only`, `family_compatible_offline`, `no_admissible_profile`,
-`qualification_test_ready_offline`, `evidence_blocked`, `no_go_missing_evidence`,
-`offline_replay_only`, `semantic_mapping_unknown`, `legacy_layer_composition`,
-`unknown_pending_normative_source`, `no_producer`. Compatibility: within v1 only additive
-values (families, reasons, compositions, evidence kinds) are allowed; a new
-`state` value, removals, renames, new members or changed meanings need v2.
+the contract page). `kind` is an open, additive vocabulary; the validator names
+`specification` and `hardware_test_record` through the constants
+`EvidenceKindSpecification` and `EvidenceKindHardwareTestRecord`. `reason` is a
+closed vocabulary defined on the page: `declared_by_specification`,
+`specification_conflict`, `semantic_mapping_unknown`,
+`unknown_pending_normative_source`, `no_producer`. Compatibility: the members
+`verification`, `module` and `version`, the reasons `declared_by_specification`
+and `specification_conflict`, the evidence kinds above and the removal of the
+`gateway_composition` evidence kind and of the evidence-grade reasons are made in
+place before the 0.7 release, with no contract revision bump and no alias. A new
+`state` value still needs v2.
 
 A family row may carry the optional member `further_semantic_packs`, added in
-place before the 0.7 release: 1 through 4 exact `PackRef` strings naming the
-family's other accepted packs. It is omitted when empty (a present empty array
-or `null` is rejected), is allowed only with a non-empty `semantic_pack`, holds
-no repeated entry and no entry equal to `semantic_pack`, and is in ascending
-byte order with `semantic_pack` sorting before every entry; a row in any other
-order is rejected, not reordered. No pack of a row is primary, and
-`Family.Packs` lists `semantic_pack` followed by the further packs. No row of
-this fixture carries the member yet, so every row keeps its bytes, which
-`TestExistingRowsKeepTheirBytes` checks by re-encoding the decoded document.
-The check that a row's packs include the pack of every accepted mapping gate of
-its family is not in place yet: the gateway rows of the hybrid inverter family
-set have accepted gates into the PV, Storage and Infrastructure packs, and in
-canonical order
-`helianthus.pack.infrastructure@1.0.0` sorts before their current
-`semantic_pack`.
+place before the 0.7 release: one or more exact `PackRef` strings, with no count
+bound, naming the family's other accepted packs. It is omitted when empty (a
+present empty array or `null` is rejected), is allowed only with a non-empty
+`semantic_pack`, holds no repeated entry and no entry equal to `semantic_pack`,
+and is in ascending byte order with `semantic_pack` sorting before every entry; a
+row in any other order is rejected, not reordered. No pack of a row is primary,
+and `Family.Packs` lists `semantic_pack` followed by the further packs. A row
+that names six accepted packs is accepted. No row of this fixture carries the
+member, so its row keeps its bytes, which `TestExistingRowsKeepTheirBytes`
+checks by re-encoding the decoded document. The check that a row's packs include
+the pack of every accepted mapping gate of its family is not in place yet.
 
 [`v1/element-catalog-v1.json`](v1/element-catalog-v1.json) is a copy of
 `api/v1/element-catalog-v1.json` from

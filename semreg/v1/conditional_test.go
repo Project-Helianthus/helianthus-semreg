@@ -212,7 +212,7 @@ func TestFoundationConditionalInventory(t *testing.T) {
 		v.SourceAt = conditionalPtr(TimePoint{UnixNanoseconds: "0", ClockID: "!", UncertaintyNS: "0"})
 	}, InvalidIdentifier, InvalidIdentifier)
 	conditionalPair(t, "FreshnessPolicy", validPolicy, func(v *FreshnessPolicy) { v.RetainForNS = v.FreshForNS }, InvalidTime, func(v *FreshnessPolicy) { v.PolicyID = "!" }, InvalidIdentifier, InvalidIdentifier)
-	conditionalPair(t, "Quality", validQuality, func(v *Quality) { v.Qualification = QualificationCandidate }, InvalidValue, func(v *Quality) { v.Reasons = []DefinitionID{"reason.a", "reason.a"} }, DuplicateKey, DuplicateKey)
+	conditionalPair(t, "Quality", validQuality, func(v *Quality) { v.Qualification = "invalid" }, InvalidEnum, func(v *Quality) { v.Reasons = []DefinitionID{"reason.a", "reason.a"} }, DuplicateKey, DuplicateKey)
 	conditionalPair(t, "CausalContext", validCausal, func(v *CausalContext) { v.MaxHops = 0 }, CausalBudgetExceeded, func(v *CausalContext) { v.FirstSeenAt.ClockID = "clock.other" }, InvalidTime, InvalidTime)
 	conditionalPair(t, "Conflict", func() Conflict { return conflictingEnvelope(t).Conflicts[0] }, func(v *Conflict) { v.State = "invalid" }, InvalidEnum, func(v *Conflict) { v.Candidates = append(v.Candidates, v.Candidates[0]) }, DuplicateKey, DuplicateKey)
 	conditionalPair(t, "FactEnvelope", func() FactEnvelope { return conflictingEnvelope(t) }, func(v *FactEnvelope) { v.Conflicts = []Conflict{} }, InvalidValue, func(v *FactEnvelope) { v.Candidates[0].Key.FactID = "!" }, InvalidIdentifier, InvalidIdentifier)

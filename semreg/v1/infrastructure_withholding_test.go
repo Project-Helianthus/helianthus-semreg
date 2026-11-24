@@ -48,8 +48,8 @@ func TestK15InfrastructureCapabilityWithholding(t *testing.T) {
 			}
 			promoted := *candidate
 			promoted.Quality.Promotion = semreg.PromotionPromoted
-			if promoted.Validate() == nil {
-				t.Fatal("unqualified observation became promoted")
+			if err := promoted.Validate(); err != nil {
+				t.Fatalf("a qualification other than qualified alone forbids promotion: %v", err)
 			}
 			snapshot.Capabilities = []semreg.CapabilityInstance{}
 			k15Seal(t, &snapshot)
