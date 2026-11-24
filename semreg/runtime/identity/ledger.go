@@ -142,13 +142,16 @@ func (l *Ledger) Node(bridge driver.BridgeID, key driver.NodeKey) (driver.NodeRe
 	if err := bridge.Validate(); err != nil {
 		return driver.NodeRef{}, fmt.Errorf("bridge: %w", err)
 	}
+	// The anchor is committed and the node recorded in one critical section, so
+	// a restore or an export never sees one without the other. Lock order: the
+	// ledger, then the allocator.
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	id, err := l.allocator.Allocate(key)
 	if err != nil {
 		return driver.NodeRef{}, err
 	}
 	ref := driver.NodeRef{Bridge: bridge, ID: id}
-	l.mu.Lock()
-	defer l.mu.Unlock()
 	l.addKey(ref, key)
 	return ref, nil
 }

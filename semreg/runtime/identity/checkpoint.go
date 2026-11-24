@@ -97,12 +97,14 @@ type checkpoint struct {
 // several sources carries every source and its priority. The bytes are the same
 // for the same state.
 func (l *Ledger) Export() ([]byte, error) {
+	// The anchors and the nodes are read under one hold of the ledger, so an
+	// export never pairs the anchors of one state with the nodes of another.
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	table, err := l.allocator.store.Table()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrStore, err)
 	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
 	doc := checkpoint{
 		Format: checkpointFormat, Version: checkpointVersion, Anchors: table,
 		Nodes: []checkpointNode{}, Links: []linkRecord{}, Matches: []matchRecord{}, Serials: []serialRecord{},
@@ -179,12 +181,15 @@ func (l *Ledger) Restore(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrCheckpointDamaged, err)
 	}
+	// The store, the allocator's memory and the maps change under one hold of the
+	// ledger, so a node being recorded or an export sees the state before the
+	// restore or the state after it.
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if err := l.allocator.store.Replace(doc.Anchors); err != nil {
 		return fmt.Errorf("%w: %w", ErrStore, err)
 	}
 	l.allocator.forget()
-	l.mu.Lock()
-	defer l.mu.Unlock()
 	l.nodes, l.links, l.matches, l.serials = state.nodes, state.links, state.matches, state.serials
 	l.certs, l.rebinds, l.sources, l.sites = state.certs, state.rebinds, state.sources, state.sites
 	return nil
