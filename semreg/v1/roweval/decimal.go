@@ -109,10 +109,13 @@ func affineOf(a Affine, x v1.Decimal, exponent int64, round string) (v1.Decimal,
 		return v1.Decimal{}, err
 	}
 	r.Mul(r, big.NewRat(a.Num, a.Den))
-	// A Decimal holds exponents from -18 to 18; a scaling by a power of ten
-	// outside that range is refused before the power is built.
-	if exponent < -maxDecimalExponent || exponent > maxDecimalExponent {
-		return v1.Decimal{}, fmt.Errorf("scaling by 10^%d is outside the decimal exponent range", exponent)
+	// The limit applies to the result, not to the scaling exponent alone. A power
+	// of ten is built only when it is within the digits of the operands plus the
+	// decimal exponent range: a result that is a Decimal cannot need more, so
+	// the work stays bounded without refusing a representable result.
+	if bound := int64(maxDecimalExponent + len(x.Coefficient) + len(a.Add.Coefficient) +
+		len(big.NewInt(a.Num).String()) + len(big.NewInt(a.Den).String())); exponent < -bound || exponent > bound {
+		return v1.Decimal{}, fmt.Errorf("scaling by 10^%d cannot give a decimal", exponent)
 	}
 	if exponent >= 0 {
 		r.Mul(r, new(big.Rat).SetInt(pow10(exponent)))

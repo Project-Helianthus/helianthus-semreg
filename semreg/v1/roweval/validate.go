@@ -115,25 +115,44 @@ func validateNative[S any](t Table[S], d Descriptors[S], row NativeRow[S]) error
 	if err := checkConvert(t, row.ID, row.Decode); err != nil {
 		return err
 	}
-	seen := map[string]bool{row.ID: true}
-	for next := exponentOf(row); next != ""; {
-		if seen[next] {
-			return reject(ReasonCyclicExponent, row.ID, "exponent row chain returns to %q", next)
+	if back := exponentCycle(t, row, []When{row.When}, map[string]bool{row.ID: true}); back != "" {
+		return reject(ReasonCyclicExponent, row.ID, "exponent row chain returns to %q", back)
+	}
+	return nil
+}
+
+// exponentCycle follows the exponent rows of row through every variant of the
+// named ID whose conditions can hold together with those of the chain so far,
+// and returns the ID the chain returns to, or "" when no such chain cycles.
+func exponentCycle[S any](t Table[S], row NativeRow[S], chain []When, seen map[string]bool) string {
+	next := exponentOf(row)
+	if next == "" {
+		return ""
+	}
+	if seen[next] {
+		return next
+	}
+	seen[next] = true
+	defer delete(seen, next)
+	for _, step := range t.Native {
+		if step.ID != next {
+			continue
 		}
-		seen[next] = true
-		var step *NativeRow[S]
-		for i := range t.Native {
-			if t.Native[i].ID == next {
-				step = &t.Native[i]
+		compatible := true
+		for _, w := range chain {
+			if !canOverlap(w, step.When) {
+				compatible = false
 				break
 			}
 		}
-		if step == nil {
-			break
+		if !compatible {
+			continue
 		}
-		next = exponentOf(*step)
+		if back := exponentCycle(t, step, append(chain[:len(chain):len(chain)], step.When), seen); back != "" {
+			return back
+		}
 	}
-	return nil
+	return ""
 }
 
 func exponentOf[S any](r NativeRow[S]) string {
