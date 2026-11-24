@@ -9,9 +9,13 @@ compatibility fixtures.
 Keep the core independent from transports, protocols, registries, gateways,
 vendors, output bindings, and user interfaces. Native repositories retain
 framing and I/O, protocol lifecycle, profile qualification, decoding, native
-identity, and raw evidence. Gateway repositories retain runtime composition and
-driver lifecycle orchestration. Consumers use reviewed promoted contracts and
-must not define upstream semantics.
+identity, and raw evidence. The host-neutral runtime under `semreg/runtime/`
+lives here, including driver instance planning, fencing, desired-state control,
+and supervision through the neutral driver contract. Every host links that
+runtime, so a second host copies nothing from the gateway. A host repository,
+the gateway being one, retains its own process composition: transports, I/O,
+configuration, and that host's bindings. Consumers use reviewed promoted
+contracts and must not define upstream semantics.
 
 Preserve exact values and units, time domains, evidence and source lineage,
 alternatives and conflicts, candidate-versus-qualified status, capability
