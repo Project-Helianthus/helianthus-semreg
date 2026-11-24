@@ -361,8 +361,14 @@ func TestCloseStopsInstancesAndRelinquishesTheStoreOnlyWhenProven(t *testing.T) 
 		r.build("inc1", false)
 		r.start()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		_ = r.sup.Close(ctx)
+		closeErr := r.sup.Close(ctx)
 		cancel()
+		if proven && closeErr != nil {
+			t.Fatalf("proven close returned %v", closeErr)
+		}
+		if !proven && !errors.Is(closeErr, errNativeCloseUnproven) {
+			t.Fatalf("an unproven native close returned %v, want %v", closeErr, errNativeCloseUnproven)
+		}
 		for _, key := range []string{"bus.one", "bus.two"} {
 			if got := r.instancesOf(key)[0].stopCount(); got != 1 {
 				t.Fatalf("proven=%v: %s stop count %d", proven, key, got)

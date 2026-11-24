@@ -280,6 +280,9 @@ func (s *Supervisor) Close(ctx context.Context) error {
 		}
 	}
 	err = errors.Join(append([]error{err}, withdrawn...)...)
+	if err == nil && !safe {
+		err = errNativeCloseUnproven
+	}
 	s.opts.Store.Close()
 	if safe {
 		s.opts.Store.Release()

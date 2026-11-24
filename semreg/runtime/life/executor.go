@@ -14,6 +14,7 @@ var (
 	errExecutorPredecessor  = errors.New("life: the predecessor epoch is not fenced and closed")
 	errExecutorStartFailed  = errors.New("life: native start failed")
 	errExecutorStopRequired = errors.New("life: the instance was stopped")
+	errNativeCloseUnproven  = errors.New("life: a native close is unproven; the store hold is kept")
 )
 
 // executorError is a closed, non-retryable executor failure. The manager stays

@@ -223,3 +223,56 @@ func TestRestartUnconfirmedPredecessorDoesNotRetryClose(t *testing.T) {
 		})
 	}
 }
+
+// An untyped start whose attempt deadline expires while the executor still
+// owns the started native generation settles that generation's close and
+// withdrawal before the attempt is recorded failed; an unproven close stays
+// attached to the same correlation and quarantines the instance.
+func TestUntypedStartDeadlineSettlesTheNativeAttempt(t *testing.T) {
+	id := InstanceID("fam.alpha")
+	expire := func(ctx context.Context, _ LifecycleCorrelation) error {
+		<-ctx.Done()
+		return ctx.Err()
+	}
+	t.Run("proven", func(t *testing.T) {
+		f := newFixture(t, svcOpts{drivers: enabled(string(id)),
+			opts:  func(o *ServiceOptions) { o.OperationBudget = 100 * time.Millisecond },
+			setup: func(f *svcFixture) { f.execs[id].setStart(expire) }})
+		f.waitObserved(id, ObservedFailed)
+		if st := f.status(id); st.Reason != ReasonRetryExhausted {
+			t.Fatalf("status = %+v", st)
+		}
+		calls := f.execs[id].snapshot()
+		var start LifecycleCorrelation
+		stops := 0
+		for _, c := range calls {
+			switch c.Op {
+			case "start":
+				start = c.Corr
+			case "stop":
+				stops++
+				if c.Corr != start {
+					t.Fatalf("stop targeted %+v, want the started generation %+v", c.Corr, start)
+				}
+			}
+		}
+		if stops != 1 {
+			t.Fatalf("stops after the deadline = %d, want 1 (calls %+v)", stops, calls)
+		}
+	})
+	t.Run("unproven", func(t *testing.T) {
+		f := newFixture(t, svcOpts{drivers: enabled(string(id)),
+			opts: func(o *ServiceOptions) { o.OperationBudget = 100 * time.Millisecond },
+			setup: func(f *svcFixture) {
+				f.execs[id].setStart(expire)
+				f.execs[id].setStop(func(context.Context, LifecycleCorrelation) StopOutcome {
+					return StopOutcome{NativeClosed: false, SemanticCleaned: true}
+				})
+			}})
+		f.waitObserved(id, ObservedFailed)
+		waitFor(t, "quarantine", func() bool { return f.status(id).SafetyQuarantined })
+		if n := f.execs[id].count("stop"); n != 1 {
+			t.Fatalf("stops = %d, want 1", n)
+		}
+	})
+}

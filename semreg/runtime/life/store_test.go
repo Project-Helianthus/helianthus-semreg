@@ -1,6 +1,7 @@
 package life
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -553,5 +554,28 @@ func TestStoreRecoveryEnvelopeSurvivesReopeningAndIsDigestChecked(t *testing.T) 
 	failed := openStore(t, dir, nil)
 	if d, _ := failed.ControlLoad(); d != ControlLoadCorrupt {
 		t.Fatalf("a tampered recovery payload loaded as %s", d)
+	}
+}
+
+// A control file with anything but whitespace after the closing object is
+// corrupt: it never loads as committed state.
+func TestDecodeNamespaceRejectsTrailingBytes(t *testing.T) {
+	s, dir := seededStore(t, nil)
+	_ = s.Stop(context.Background())
+	raw, err := os.ReadFile(filepath.Join(dir, controlFileName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = bytes.TrimSpace(raw)
+	if got := decodeNamespace(append(append([]byte(nil), raw...), "\n"...)).status; got != ControlLoadLoaded {
+		t.Fatalf("trailing newline: status %s, want %s", got, ControlLoadLoaded)
+	}
+	for _, suffix := range []string{"garbage", "}", " x", "{}", "1"} {
+		if got := decodeNamespace(append(append([]byte(nil), raw...), suffix...)).status; got != ControlLoadCorrupt {
+			t.Fatalf("suffix %q: status %s, want %s", suffix, got, ControlLoadCorrupt)
+		}
+	}
+	if got := decodeNamespace([]byte(`{"schema_version":1}garbage`)).status; got != ControlLoadCorrupt {
+		t.Fatalf("minimal object with garbage: status %s", got)
 	}
 }

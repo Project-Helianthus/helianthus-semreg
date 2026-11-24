@@ -1011,7 +1011,10 @@ func (s *Service) runUntyped(d *driverState) {
 			return
 		}
 		if errors.Is(a.ctx.Err(), context.DeadlineExceeded) {
-			finishUntyped(observation{state: ObservedFailed, reason: ReasonRetryExhausted}, false)
+			// The executor may still own a started native attempt: settle its
+			// close and withdrawal before the attempt is recorded failed, and
+			// keep any unproved obligation attached to this generation.
+			withdrawLate(ReasonRetryExhausted)
 			return
 		}
 		if retryable(err) && attempts < s.maxAttempts && s.now().Before(deadline) {
