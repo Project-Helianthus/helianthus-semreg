@@ -137,15 +137,13 @@ func TestTopSourceExpiredOmitsItsValueEverywhere(t *testing.T) {
 	if e.state(mirror).Latest == nil || !hasCoefficient(t, e.state(mirror), "32265") {
 		t.Fatal("the mirror stays listed with its own sample")
 	}
-	var pair *driver.Finding
-	for i := range e.Resolution.Findings {
-		f := e.Resolution.Findings[i]
-		if refKey(f.First) == refKey(boiler.ref()) && refKey(f.Second) == refKey(mirror.ref()) {
-			pair = &e.Resolution.Findings[i]
-		}
+	if err := e.Resolution.Validate(); err != nil {
+		t.Fatalf("the resolution must satisfy the driver contract: %v", err)
 	}
-	if pair == nil || !pair.Incomparable || pair.FirstValue != nil || pair.SecondValue == nil || pair.FirstStep == nil || pair.SecondStep == nil || pair.PriorityTie != nil {
-		t.Fatalf("the pair with the mirror is incomparable without the expired value: %s", mustJSON(t, e.Resolution.Findings))
+	for _, f := range e.Resolution.Findings {
+		if f.PriorityTie == nil && (refKey(f.First) == refKey(boiler.ref()) || refKey(f.Second) == refKey(boiler.ref())) {
+			t.Fatalf("no sample finding carries the expired side: %s", mustJSON(t, e.Resolution.Findings))
+		}
 	}
 }
 

@@ -78,21 +78,28 @@ func CheckLineage(self driver.InputRef, origin driver.Origin, formula *driver.Fo
 		return Lineage{}, errors.New("an input resolver is required")
 	}
 	onPath := map[string]bool{inputKey(self): true}
+	visited := map[string]bool{}
 	var walk func(f driver.Formula, top bool) error
 	walk = func(f driver.Formula, top bool) error {
 		for _, ref := range f.Inputs {
+			key := inputKey(ref)
+			if onPath[key] {
+				return &v1.Error{ID: v1.DerivationCycle, Detail: "lineage"}
+			}
 			input, found := resolve(ref)
 			if top {
 				result.Inputs = append(result.Inputs, InputState{Ref: ref, Found: found, Input: clone(input)})
 			}
+			if visited[key] {
+				// An input already folded in contributed its state and subgraph
+				// once; walking it again only repeats the same result.
+				continue
+			}
+			visited[key] = true
 			if !found {
 				result.Freshness = combine(result.Freshness, v1.FreshnessUnknown)
 				result.Named = append(result.Named, ref)
 				continue
-			}
-			key := inputKey(ref)
-			if onPath[key] {
-				return &v1.Error{ID: v1.DerivationCycle, Detail: "lineage"}
 			}
 			contribution := input.Evaluation.Freshness
 			if input.Evaluation.EffectiveAvailability == v1.AvailabilityWithdrawn {

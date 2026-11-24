@@ -77,9 +77,12 @@ func findings(states []SourceState) ([]driver.Finding, []driver.Finding) {
 // compare reports a sample finding for the ordered pair a, b: a disagreement
 // when commensurate, contemporaneous values with known steps differ by more than
 // the larger step, and an incomparable pair otherwise. It reports nothing when a
-// side has no sample or no quantity to compare, or when the pair agrees.
+// side has no sample or no quantity to compare, or when the pair agrees. A pair
+// with an expired side reports nothing either: the driver finding needs both SI
+// values and the expired value is served nowhere, so that side's state stays
+// visible in the source list and the element state instead.
 func compare(a, b SourceState) *driver.Finding {
-	if (!hasValue(a) && !a.Expired) || (!hasValue(b) && !b.Expired) {
+	if !hasValue(a) || !hasValue(b) {
 		return nil
 	}
 	f := driver.Finding{First: refOf(a.Source), Second: refOf(b.Source)}
@@ -92,10 +95,6 @@ func compare(a, b SourceState) *driver.Finding {
 		f.SecondStep = &step
 	}
 	f.FirstValue, f.SecondValue = quantityOf(a), quantityOf(b)
-	if a.Expired || b.Expired {
-		f.Incomparable = true
-		return &f
-	}
 	if f.FirstValue == nil || f.SecondValue == nil {
 		return nil
 	}

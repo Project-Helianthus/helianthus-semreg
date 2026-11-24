@@ -118,6 +118,20 @@ func TestDerivedLineageCycleGivesDerivationCycle(t *testing.T) {
 			t.Fatalf("got %v", err)
 		}
 	})
+	t.Run("self_reference_with_an_unresolved_input", func(t *testing.T) {
+		_, err := CheckLineage(self, derivedOrigin, formulaOf(self), resolverOver(nil, nil))
+		if v1.ErrorIdentifier(err) != v1.DerivationCycle {
+			t.Fatalf("got %v", err)
+		}
+	})
+	t.Run("repeated_ancestor_that_does_not_resolve", func(t *testing.T) {
+		inB := heldInput("b", v1.FreshnessFresh, v1.AvailabilityAvailable)
+		inB.Formula = formulaOf(b)
+		_, err := CheckLineage(self, derivedOrigin, formulaOf(b), resolverOver(map[string]Input{"resource:asset-b/cand:b/1": inB}, nil))
+		if v1.ErrorIdentifier(err) != v1.DerivationCycle {
+			t.Fatalf("got %v", err)
+		}
+	})
 	t.Run("between_foreign_inputs", func(t *testing.T) {
 		inB, inC := heldInput("b", v1.FreshnessFresh, v1.AvailabilityAvailable), heldInput("c", v1.FreshnessFresh, v1.AvailabilityAvailable)
 		inB.Formula, inC.Formula = formulaOf(c), formulaOf(b)
@@ -165,5 +179,31 @@ func TestMeasuredAndDeclaredValuesCarryNoFormulaAndDerivedNeedsOne(t *testing.T)
 	}
 	if _, err := CheckLineage(self, derivedOrigin, nil, nil); err == nil {
 		t.Fatal("a derived value without a formula was accepted")
+	}
+}
+
+func TestSharedLineageIsWalkedOncePerInput(t *testing.T) {
+	self := inputRef("resource:asset-a", "cand:self", "1")
+	const levels = 40
+	ref := func(level, side int) driver.InputRef {
+		return inputRef("resource:asset-b", fmt.Sprintf("cand:l%d-%d", level, side), "1")
+	}
+	inputs := map[string]Input{}
+	for level := 0; level < levels; level++ {
+		for side := 0; side < 2; side++ {
+			in := heldInput("n", v1.FreshnessStale, v1.AvailabilityAvailable)
+			if level+1 < levels {
+				in.Formula = formulaOf(ref(level+1, 0), ref(level+1, 1))
+			}
+			inputs[fmt.Sprintf("resource:asset-b/cand:l%d-%d/1", level, side)] = in
+		}
+	}
+	var seen []driver.InputRef
+	got, err := CheckLineage(self, derivedOrigin, formulaOf(ref(0, 0), ref(0, 1)), resolverOver(inputs, &seen))
+	if err != nil || got.Freshness != v1.FreshnessStale {
+		t.Fatalf("%v %s", err, mustJSON(t, got))
+	}
+	if len(seen) > 4*levels || len(got.Named) != 2*levels {
+		t.Fatalf("a shared input must be resolved and named once: %d resolver calls, %d named", len(seen), len(got.Named))
 	}
 }
