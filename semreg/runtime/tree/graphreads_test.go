@@ -253,3 +253,69 @@ func TestPartialCutNamesTheOmittedAssetAndItsReason(t *testing.T) {
 		t.Fatalf("a complete cut has no omissions: %+v %v", again.NotIncluded, err)
 	}
 }
+
+func TestTreeCutKeepsItsCapturedBodyWhenTheSameDigestIsRetainedAgain(t *testing.T) {
+	w := threeResourceWorld(t)
+	cut := w.capture()
+	listFirst, err := cut.ListResources(ctx, graph.ListRequest{PageSize: 1})
+	if err != nil || listFirst.Page.NextPage == "" {
+		t.Fatalf("list page one = %+v, %v", listFirst.Page, err)
+	}
+	traverseRequest := graph.TraversalRequest{Entry: graph.EntryPoint{Kind: graph.EntrySites}, Lens: lensHierarchy, Direction: graph.DirectionBoth, Depth: 4, PageSize: 1}
+	traverseFirst, err := cut.Traverse(ctx, traverseRequest)
+	if err != nil || traverseFirst.Page.NextPage == "" {
+		t.Fatalf("traverse page one = %+v, %v", traverseFirst.Page, err)
+	}
+	lensFirst, err := cut.RetrieveLens(ctx, lensRequest(1))
+	if err != nil || lensFirst.NextPage == nil {
+		t.Fatalf("lens page one = %+v, %v", lensFirst.Resources, err)
+	}
+
+	// A later capture of the same snapshots that adds an omitted asset keeps the
+	// digest and is retained under it again.
+	w.cuts.declared["asset.pending"] = graph.NotIncludedSourceUnavailable
+	later := w.capture()
+	if mustDigest(t, later) != mustDigest(t, cut) {
+		t.Fatal("the later capture was meant to share the first capture's digest")
+	}
+
+	listSecond, err := cut.ListResources(ctx, graph.ListRequest{PageSize: 1, PageToken: listFirst.Page.NextPage})
+	if err != nil {
+		t.Fatalf("list page two: %v", err)
+	}
+	if listSecond.Page.Completeness != graph.CutComplete || len(listSecond.NotIncluded) != 0 {
+		t.Fatalf("an earlier capture listed the later capture's body: %+v beside %+v", listSecond.Page.Completeness, listSecond.NotIncluded)
+	}
+	traverseRequest.PageToken = traverseFirst.Page.NextPage
+	traverseSecond, err := cut.Traverse(ctx, traverseRequest)
+	if err != nil || traverseSecond.Page.Completeness != graph.CutComplete || len(traverseSecond.NotIncluded) != 0 {
+		t.Fatalf("traverse page two = %+v %+v, %v", traverseSecond.Page.Completeness, traverseSecond.NotIncluded, err)
+	}
+	request := lensRequest(1)
+	request.PageToken = *lensFirst.NextPage
+	lensSecond, err := cut.RetrieveLens(ctx, request)
+	if err != nil {
+		t.Fatalf("lens page two: %v", err)
+	}
+	if lensSecond.Cut.Completeness != graph.CutComplete || len(lensSecond.Cut.NotIncluded) != 0 {
+		t.Fatalf("an earlier capture served the later capture's lens body: %+v", lensSecond.Cut)
+	}
+	fresh, err := later.ListResources(ctx, graph.ListRequest{PageSize: 10})
+	if err != nil || fresh.Page.Completeness != graph.CutPartial || len(fresh.NotIncluded) != 1 {
+		t.Fatalf("the later capture serves its own body: %+v %+v, %v", fresh.Page.Completeness, fresh.NotIncluded, err)
+	}
+
+	// Once the source no longer retains the cut, the read is revision_conflict
+	// naming the revision.
+	w.cuts.add(equipmentAsset("asset.b", "res:eq-b"))
+	w.capture()
+	w.cuts.advance(graph.CutRetention + time.Second)
+	_, err = cut.ListResources(ctx, graph.ListRequest{PageSize: 1, PageToken: listFirst.Page.NextPage})
+	coded := mustCode(t, err, semreg.RevisionConflict)
+	if !strings.Contains(coded.Detail, string(mustDigest(t, cut))) {
+		t.Fatalf("an expired capture does not name its revision: %q", coded.Detail)
+	}
+	if _, err := cut.RetrieveLens(ctx, request); semreg.ErrorIdentifier(err) != semreg.RevisionConflict {
+		t.Fatalf("an expired capture's lens = %v", err)
+	}
+}

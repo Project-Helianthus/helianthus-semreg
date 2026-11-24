@@ -2,7 +2,9 @@ package tree_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/tree"
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
@@ -180,5 +182,75 @@ func TestScopedReadAfterPendingPublicationBetweenCalls(t *testing.T) {
 	}
 	if _, err := input.RetrieveLens(ctx, graph.CutRef{CutID: cut.Ref.CutID}, next); semreg.ErrorIdentifier(err) != semreg.DanglingReference {
 		t.Fatalf("a CutRef this session never captured = %v", err)
+	}
+}
+
+func TestScopedContinuationAfterSecondCaptureWithOnlyALaterClock(t *testing.T) {
+	w := scopedWorld(t)
+	input := w.tree.SemanticInput(driver.Filter{})
+	first, err := input.Capture(ctx, driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page1, err := input.RetrieveLens(ctx, first.Ref, lensRequest(1))
+	if err != nil || page1.NextPage == nil {
+		t.Fatalf("page one = %+v, %v", page1.Resources, err)
+	}
+	w.cuts.advanceEvaluation()
+	second, err := input.Capture(ctx, driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(second.Ref, first.Ref) {
+		t.Fatal("the second capture was meant to yield the same CutRef")
+	}
+	next := lensRequest(1)
+	next.PageToken = *page1.NextPage
+	page2, err := input.RetrieveLens(ctx, first.Ref, next)
+	if err != nil {
+		t.Fatalf("page two after a later capture of the same CutRef: %v", err)
+	}
+	if page2.Cut.CutID != page1.Cut.CutID || len(page2.Resources) != 1 {
+		t.Fatalf("page two = %+v", page2.Cut)
+	}
+	if _, err := input.RetrieveLens(ctx, second.Ref, next); err != nil {
+		t.Fatalf("the same CutRef answers the same continuation: %v", err)
+	}
+}
+
+func TestScopedContinuationOutlivingTheCutRetentionIsRevisionConflict(t *testing.T) {
+	w := scopedWorld(t)
+	input := w.tree.SemanticInput(driver.Filter{})
+	first, err := input.Capture(ctx, driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page1, err := input.RetrieveLens(ctx, first.Ref, lensRequest(1))
+	if err != nil || page1.NextPage == nil {
+		t.Fatalf("page one = %+v, %v", page1.Resources, err)
+	}
+	w.cuts.add(siteAsset("asset.c", "res:site-c", "res:grid-c"))
+	if _, err := w.tree.Capture(ctx, tree.CutOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	next := lensRequest(1)
+	next.PageToken = *page1.NextPage
+	if _, err := input.RetrieveLens(ctx, first.Ref, next); err != nil {
+		t.Fatalf("a continuation inside the retention: %v", err)
+	}
+	w.cuts.advance(graph.CutRetention + time.Second)
+	_, err = input.RetrieveLens(ctx, first.Ref, next)
+	coded := mustCode(t, err, semreg.RevisionConflict)
+	if !strings.Contains(coded.Detail, string(first.Ref.CutID)) {
+		t.Fatalf("revision_conflict does not name the revision: %q", coded.Detail)
+	}
+	if _, err := input.SumMembers(ctx, first.Ref, lensRequest(5), powerFact, "res:site"); semreg.ErrorIdentifier(err) != semreg.RevisionConflict {
+		t.Fatalf("a sum on an expired capture = %v", err)
+	}
+	if _, err := input.Capture(ctx, driver.Filter{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := input.RetrieveLens(ctx, first.Ref, next); semreg.ErrorIdentifier(err) != semreg.RevisionConflict {
+		t.Fatalf("a continuation after the session dropped the view = %v", err)
 	}
 }

@@ -232,6 +232,11 @@ func (t *Tree) Capture(ctx context.Context, options CutOptions) (*TreeCut, error
 	if err != nil {
 		return nil, err
 	}
+	// The capture is answered from a body it retained itself, with its own
+	// omission vector, not from the source's shared store.
+	if view, err = retainOwn(view); err != nil {
+		return nil, err
+	}
 	t.mu.Lock()
 	t.sequence++
 	id := CutID(fmt.Sprintf("%s:%d", view.Ref.CutID, t.sequence))

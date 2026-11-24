@@ -186,6 +186,9 @@ type fakeCuts struct {
 	eval     semreg.EvaluationContext
 	views    map[semreg.Digest]tree.CutView
 	expired  map[semreg.Digest]time.Time
+	// demoted is when a cut stopped being the newest; the source stops
+	// retaining it graph.CutRetention later, as the retained store does.
+	demoted  map[semreg.Digest]time.Time
 	history  []driver.SemanticCut
 	resync   bool
 	captures int
@@ -200,7 +203,7 @@ func newFakeCuts(t *testing.T) *fakeCuts {
 	f := &fakeCuts{
 		t: t, catalog: catalog, now: time.Unix(1_700_000_000, 0).UTC(),
 		assets: map[semreg.AssetID]assetSpec{}, stopped: map[semreg.AssetID]bool{}, declared: map[semreg.AssetID]graph.NotIncludedReason{},
-		views: map[semreg.Digest]tree.CutView{}, expired: map[semreg.Digest]time.Time{},
+		views: map[semreg.Digest]tree.CutView{}, expired: map[semreg.Digest]time.Time{}, demoted: map[semreg.Digest]time.Time{},
 		eval: semreg.EvaluationContext{
 			EvaluatedAt:       semreg.TimePoint{UnixNanoseconds: "130", ClockID: "clock.utc", UncertaintyNS: "0"},
 			EvaluateMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock:tree", Nanoseconds: "20"},
@@ -272,6 +275,12 @@ func (f *fakeCuts) build(filter driver.Filter) (tree.CutView, error) {
 		Cursor: driver.Cursor{Incarnation: "semantic.one", Position: semreg.Uint64(position)},
 	}
 	f.mu.Lock()
+	for other := range f.views {
+		if _, ok := f.demoted[other]; !ok && other != cut.ID() {
+			f.demoted[other] = f.now
+		}
+	}
+	delete(f.demoted, cut.ID())
 	f.views[cut.ID()] = view
 	f.mu.Unlock()
 	return view, nil
@@ -295,6 +304,9 @@ func (f *fakeCuts) Lookup(_ context.Context, ref graph.CutRef) (tree.CutView, er
 	defer f.mu.Unlock()
 	if at, ok := f.expired[ref.CutID]; ok {
 		return tree.CutView{}, &tree.ExpiredError{CutID: ref.CutID, ExpiredAt: at}
+	}
+	if at, ok := f.demoted[ref.CutID]; ok && !f.now.Before(at.Add(graph.CutRetention)) {
+		return tree.CutView{}, &tree.ExpiredError{CutID: ref.CutID, ExpiredAt: at.Add(graph.CutRetention)}
 	}
 	view, ok := f.views[ref.CutID]
 	if !ok {
