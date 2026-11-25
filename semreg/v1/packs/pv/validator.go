@@ -169,7 +169,7 @@ func (v validator) EvaluatePredicate(c semreg.FactCandidate, p semreg.PredicateO
 	return false, fail(semreg.InvalidEnum, "pv predicate")
 }
 func (v validator) ValidateIntent(i operation.Intent) error {
-	if err := i.Validate(); err != nil {
+	if err := i.ValidateWithoutLifetime(); err != nil {
 		return err
 	}
 	op, capability, field, effect, ok := pvOperationShape(i.Kind.ID)

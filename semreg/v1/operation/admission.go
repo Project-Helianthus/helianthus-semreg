@@ -2,6 +2,7 @@ package operation
 
 import (
 	"bytes"
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"sort"
@@ -87,6 +88,7 @@ type Admission struct {
 	admittedRevision semreg.RevisionVector
 	route            Route
 	hasRoute         bool
+	callBound        bool
 	record           *ExecutionRecord
 	recordBytes      []byte
 }
@@ -158,18 +160,23 @@ func newKernel(options KernelOptions, registry *semreg.Registry, validators []se
 // ValidateIntent performs all state-independent validation and exact pack
 // dispatch, including pack-owned expected-effect derivation.
 func (k *Kernel) ValidateIntent(intent Intent) error {
-	validation, _ := k.validateIntent(intent)
+	validation, _ := k.validateIntent(intent, true)
 	return validation
 }
 
 // validateIntent separates typed structural safety from the final ranked
 // admission result. Causal-domain rejections remain safe to inspect and do not
 // suppress independent owner, field, effect, or authority diagnostics.
-func (k *Kernel) validateIntent(intent Intent) (error, bool) {
+func (k *Kernel) validateIntent(intent Intent, lifetime bool) (error, bool) {
 	if k == nil || k.registry == nil {
 		return opError(semreg.DefinitionOwnerMissing, "operation kernel"), false
 	}
-	typedErr := intent.Validate()
+	var typedErr error
+	if lifetime {
+		typedErr = intent.Validate()
+	} else {
+		typedErr = intent.ValidateWithoutLifetime()
+	}
 	if !intentSafeForHooks(typedErr) {
 		return typedErr, false
 	}
@@ -280,6 +287,18 @@ func stableHookError(err error, detail string) error {
 // kernel built by NewGraphKernel first rejects an inadmissible operation or
 // effect rule with membership_missing and installs nothing.
 func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContext, intent Intent, authority AuthorityResolver) (*Admission, error) {
+	return k.admit(snapshot, current, intent, authority, true)
+}
+
+// AdmitCallBound admits one in-process invocation that has no absolute
+// execution deadline and no causal expiry. It does not invent either time.
+// The finite Admit path is unchanged. The returned admission is a process
+// value: Kernel.Record still requires a wire intent.
+func (k *Kernel) AdmitCallBound(snapshot semreg.Snapshot, current semreg.EvaluationContext, intent Intent, authority AuthorityResolver) (*Admission, error) {
+	return k.admit(snapshot, current, intent, authority, false)
+}
+
+func (k *Kernel) admit(snapshot semreg.Snapshot, current semreg.EvaluationContext, intent Intent, authority AuthorityResolver, lifetime bool) (*Admission, error) {
 	if k == nil {
 		return nil, opError(semreg.DefinitionOwnerMissing, "operation kernel")
 	}
@@ -288,9 +307,14 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 			return nil, err
 		}
 	}
-	typedIntentErr := intent.Validate()
+	var typedIntentErr error
+	if lifetime {
+		typedIntentErr = intent.Validate()
+	} else {
+		typedIntentErr = intent.ValidateWithoutLifetime()
+	}
 	snapshotErr, currentErr := snapshot.Validate(), current.Validate()
-	intentErr, constraintsSafe := k.validateIntent(intent)
+	intentErr, constraintsSafe := k.validateIntent(intent, lifetime)
 	if !intentSafeForHooks(typedIntentErr) || snapshotErr != nil || currentErr != nil {
 		return nil, mostSpecific(intentErr, snapshotErr, currentErr)
 	}
@@ -298,7 +322,11 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	var intentBytes []byte
 	if intentErr == nil {
 		var err error
-		intentBytes, err = semreg.CanonicalJSON(intent)
+		if lifetime {
+			intentBytes, err = semreg.CanonicalJSON(intent)
+		} else {
+			intentBytes, err = json.Marshal(intent)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -323,8 +351,12 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 	}
 	view, evaluationErr := semreg.EvaluateSnapshot(snapshot, current)
 	errs = append(errs, evaluationErr)
-	errs = append(errs, deadlineError(current.EvaluatedAt, intent.Deadline))
-	errs = append(errs, causalAdmissionError(intent.Causal, current.EvaluatedAt))
+	if lifetime {
+		errs = append(errs, deadlineError(current.EvaluatedAt, intent.Deadline))
+		errs = append(errs, causalAdmissionError(intent.Causal, current.EvaluatedAt))
+	} else if intent.Causal.Origin.Kind == semreg.OriginNativeObservation || intent.Causal.Origin.Kind == semreg.OriginProjection {
+		errs = append(errs, opError(semreg.EchoSuppressed, "reflected origin cannot authorize intent"))
+	}
 	if evaluationErr == nil {
 		errs = append(errs, k.preconditionError(snapshot, view, intent.Preconditions))
 	}
@@ -351,6 +383,7 @@ func (k *Kernel) Admit(snapshot semreg.Snapshot, current semreg.EvaluationContex
 		admittedRevision: snapshot.Revisions,
 		route:            clone(routes[0]),
 		hasRoute:         true,
+		callBound:        !lifetime,
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -441,12 +474,32 @@ func causalAdmissionError(causal semreg.CausalContext, now semreg.TimePoint) err
 // EnterCausal performs the accepted receiver-ingress order without mutating
 // the caller's context on rejection.
 func EnterCausal(incoming semreg.CausalContext, receiver semreg.TargetID, now semreg.TimePoint) (semreg.CausalContext, error) {
+	return enterCausal(incoming, receiver, now, true)
+}
+
+// EnterCausalWithoutExpiry keeps the echo and hop checks of EnterCausal and
+// does not require an absolute causal expiry.
+func EnterCausalWithoutExpiry(incoming semreg.CausalContext, receiver semreg.TargetID, now semreg.TimePoint) (semreg.CausalContext, error) {
+	return enterCausal(incoming, receiver, now, false)
+}
+
+func enterCausal(incoming semreg.CausalContext, receiver semreg.TargetID, now semreg.TimePoint, lifetime bool) (semreg.CausalContext, error) {
 	incoming = clone(incoming)
-	if err := mostSpecific(incoming.Validate(), receiver.Validate(), now.Validate()); err != nil {
+	var causalErr error
+	if lifetime {
+		causalErr = incoming.Validate()
+	} else {
+		causalErr = incoming.ValidateWithoutExpiry()
+	}
+	if err := mostSpecific(causalErr, receiver.Validate(), now.Validate()); err != nil {
 		return semreg.CausalContext{}, err
 	}
-	if err := causalAdmissionError(incoming, now); err != nil {
-		return semreg.CausalContext{}, err
+	if lifetime {
+		if err := causalAdmissionError(incoming, now); err != nil {
+			return semreg.CausalContext{}, err
+		}
+	} else if incoming.Origin.Kind == semreg.OriginNativeObservation || incoming.Origin.Kind == semreg.OriginProjection {
+		return semreg.CausalContext{}, opError(semreg.EchoSuppressed, "reflected origin cannot authorize intent")
 	}
 	for _, entered := range incoming.Path {
 		if entered == receiver {
@@ -710,6 +763,16 @@ func (a *Admission) AdmittedAt() (semreg.TimePoint, semreg.RevisionVector, bool)
 		return semreg.TimePoint{}, semreg.RevisionVector{}, false
 	}
 	return a.admittedAt, a.admittedRevision, true
+}
+
+// CallBound reports whether AdmitCallBound produced this admission.
+func (a *Admission) CallBound() bool {
+	if a == nil {
+		return false
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.callBound
 }
 
 // GuardClaims returns the exact source epoch, driver generation, route, and

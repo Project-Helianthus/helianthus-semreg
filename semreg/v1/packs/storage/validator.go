@@ -119,21 +119,57 @@ func (v validator) MatchConstraints(c semreg.CapabilityInstance, fs []semreg.Typ
 		return fail(semreg.MissingMember, "constraints")
 	}
 	s := capabilities[c.Definition.ID]
-	if len(fs) != len(s.constraints) {
+	if len(fs) == len(s.constraints) {
+		for i, f := range fs {
+			if f.ID != s.constraints[i] {
+				return fail(semreg.InvalidValue, "storage capability constraint")
+			}
+			if err := v.ValidateField(definition(f.ID), f); err != nil {
+				return err
+			}
+			if !equal(f.Value, c.Constraints[i].Value) {
+				return fail(semreg.InvalidValue, "storage capability constraint value")
+			}
+		}
+		return nil
+	}
+	if len(fs) < len(s.constraints) {
 		return fail(semreg.InvalidValue, "storage capability constraints")
 	}
-	for i, f := range fs {
-		if f.ID != s.constraints[i] {
+	seen := map[semreg.DefinitionID]semreg.TypedField{}
+	for _, f := range fs {
+		if _, dup := seen[f.ID]; dup {
 			return fail(semreg.InvalidValue, "storage capability constraint")
 		}
 		if err := v.ValidateField(definition(f.ID), f); err != nil {
 			return err
 		}
-		if !equal(f.Value, c.Constraints[i].Value) {
+		seen[f.ID] = f
+	}
+	for i, id := range s.constraints {
+		f, ok := seen[id]
+		if !ok || !equal(f.Value, c.Constraints[i].Value) {
 			return fail(semreg.InvalidValue, "storage capability constraint value")
 		}
 	}
+	for id := range seen {
+		if containsID(s.constraints, id) {
+			continue
+		}
+		if !parameterOf(c.Definition.ID, id) {
+			return fail(semreg.InvalidValue, "storage capability constraint")
+		}
+	}
 	return nil
+}
+
+func parameterOf(capability, field semreg.DefinitionID) bool {
+	for id, spec := range operations {
+		if spec.capability == capability && containsID(operationParameters[id], field) {
+			return true
+		}
+	}
+	return false
 }
 func (v validator) EvaluatePredicate(c semreg.FactCandidate, p semreg.PredicateOp, e semreg.Value) (bool, error) {
 	if err := c.Validate(); err != nil {
@@ -171,7 +207,7 @@ func (v validator) EvaluatePredicate(c semreg.FactCandidate, p semreg.PredicateO
 	return false, fail(semreg.InvalidEnum, "storage predicate")
 }
 func (v validator) ValidateIntent(i operation.Intent) error {
-	if err := i.Validate(); err != nil {
+	if err := i.ValidateWithoutLifetime(); err != nil {
 		return err
 	}
 	operationID, capability, field, effect, ok := operationShape(i.Kind.ID)

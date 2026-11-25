@@ -164,15 +164,31 @@ func (e ExpectedEffect) Validate() error {
 // and preconditions. Pack ownership and hooks are checked by
 // Kernel.ValidateIntent.
 func (i Intent) Validate() error {
+	return i.validate(true)
+}
+
+// ValidateWithoutLifetime performs the same structural checks as Validate
+// except the absolute deadline and the causal expiry. A call-bound process
+// intent uses it so a missing deadline is not stored as a wire time.
+func (i Intent) ValidateWithoutLifetime() error {
+	return i.validate(false)
+}
+
+func (i Intent) validate(lifetime bool) error {
 	var errs []error
 	if i.Contract != ContractOperationV1 {
 		errs = append(errs, opError(semreg.InvalidContract, "intent"))
 	}
 	errs = append(errs, i.IntentID.Validate(), i.Kind.Validate(), i.ExpectedEffect.Validate(), i.AssetID.Validate(),
-		i.RequiredCapability.Validate(), i.Authority.Validate(), i.Causal.Validate(), i.ExpectedSourceEpochID.Validate(),
-		i.IdempotencyKey.Validate(), i.Deadline.Validate())
-	if i.Deadline.ClockID != "clock.utc" {
-		errs = append(errs, opError(semreg.InvalidTime, "intent deadline clock"))
+		i.RequiredCapability.Validate(), i.Authority.Validate(), i.ExpectedSourceEpochID.Validate(),
+		i.IdempotencyKey.Validate())
+	if lifetime {
+		errs = append(errs, i.Causal.Validate(), i.Deadline.Validate())
+		if i.Deadline.ClockID != "clock.utc" {
+			errs = append(errs, opError(semreg.InvalidTime, "intent deadline clock"))
+		}
+	} else {
+		errs = append(errs, i.Causal.ValidateWithoutExpiry())
 	}
 	if i.ExpectedEffect.Rule.Pack != i.Kind.Pack {
 		errs = append(errs, opError(semreg.InvalidValue, "effect rule pack"))
