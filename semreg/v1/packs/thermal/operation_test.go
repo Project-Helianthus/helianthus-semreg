@@ -3,6 +3,7 @@ package thermal
 import (
 	"bytes"
 	"reflect"
+	"sort"
 	"testing"
 
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
@@ -408,4 +409,82 @@ func mustField(id semreg.DefinitionID) fieldSpec {
 		panic(id)
 	}
 	return field
+}
+
+func TestSetPresetParameters(t *testing.T) {
+	validator := New().(operation.OperationPackValidator)
+	complete := validIntent("thermal.operation.set_preset")
+	for _, id := range []semreg.DefinitionID{"thermal.preset.cooling_setpoint", "thermal.preset.name", "thermal.preset.scenario"} {
+		complete.Arguments = append(complete.Arguments, semreg.TypedField{ID: id, Value: validValue(mustField(id))})
+	}
+	sort.Slice(complete.Arguments, func(i, j int) bool { return complete.Arguments[i].ID < complete.Arguments[j].ID })
+	if err := validator.ValidateIntent(complete); err != nil {
+		t.Fatal(err)
+	}
+	omitted := validIntent("thermal.operation.set_preset")
+	if err := validator.ValidateIntent(omitted); err != nil {
+		t.Fatalf("omitted parameter: %v", err)
+	}
+	missing := omitted
+	missing.Arguments = []semreg.TypedField{}
+	if semreg.ErrorIdentifier(validator.ValidateIntent(missing)) != semreg.InvalidValue {
+		t.Fatal("missing argument accepted")
+	}
+	repeated := complete
+	repeated.Arguments = append(repeated.Arguments, repeated.Arguments[len(repeated.Arguments)-1])
+	if validator.ValidateIntent(repeated) == nil {
+		t.Fatal("repeated parameter accepted")
+	}
+	unknown := omitted
+	unknown.Arguments = append(append([]semreg.TypedField{}, omitted.Arguments...), semreg.TypedField{ID: "thermal.field.other", Value: omitted.Arguments[0].Value})
+	sort.Slice(unknown.Arguments, func(i, j int) bool { return unknown.Arguments[i].ID < unknown.Arguments[j].ID })
+	if semreg.ErrorIdentifier(validator.ValidateIntent(unknown)) != semreg.InvalidValue {
+		t.Fatal("undeclared field accepted")
+	}
+	readback, err := validator.EvaluateReadback(omitted, validCandidate(omitted.ExpectedEffect.Fact, omitted.ExpectedEffect.Expected))
+	if err != nil || readback != operation.ReadbackConfirms {
+		t.Fatalf("readback %s %v", readback, err)
+	}
+}
+
+func TestZoneModeOnAndRoomOperations(t *testing.T) {
+	validator := New().(operation.OperationPackValidator)
+	for _, token := range []string{"auto", "comfort", "eco", "off", "on"} {
+		intent := validIntent("thermal.operation.set_zone_mode")
+		value := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "thermal.mode.zone", Token: token, Known: true}}
+		intent.Arguments[0].Value = value
+		intent.ExpectedEffect.Expected = value
+		if err := validator.ValidateIntent(intent); err != nil {
+			t.Fatalf("set_zone_mode %s: %v", token, err)
+		}
+	}
+	for _, id := range []semreg.DefinitionID{"thermal.room.operation_set_temperature", "thermal.room.operation_set_zone_mode"} {
+		intent := validIntent(id)
+		if err := validator.ValidateIntent(intent); err != nil {
+			t.Fatalf("%s: %v", id, err)
+		}
+		readback, err := validator.EvaluateReadback(intent, validCandidate(intent.ExpectedEffect.Fact, intent.ExpectedEffect.Expected))
+		if err != nil || readback != operation.ReadbackConfirms {
+			t.Fatalf("%s readback %s %v", id, readback, err)
+		}
+		otherRoom := intent
+		otherRoom.ExpectedEffect.Fact.Dimensions = append([]semreg.Dimension{}, intent.ExpectedEffect.Fact.Dimensions...)
+		room := "room-b"
+		text := otherRoom.ExpectedEffect.Fact.Dimensions[0].Value
+		text.Text = &room
+		otherRoom.ExpectedEffect.Fact.Dimensions[0].Value = text
+		if err := validator.ValidateIntent(otherRoom); err != nil {
+			t.Fatalf("%s other room: %v", id, err)
+		}
+		cross, err := validator.EvaluateReadback(intent, validCandidate(otherRoom.ExpectedEffect.Fact, intent.ExpectedEffect.Expected))
+		if err != nil || cross == operation.ReadbackConfirms {
+			t.Fatalf("%s other room readback %s %v", id, cross, err)
+		}
+	}
+	zone := validIntent("thermal.room.operation_set_temperature")
+	zoneField := mustField("thermal.setpoint.temperature_setpoint")
+	zone.Arguments = []semreg.TypedField{{ID: zoneField.id, Value: validValue(zoneField)}}
+	if validator.ValidateIntent(zone) == nil {
+		t.Fatal("zone argument accepted for the room operation")
+	}
 }

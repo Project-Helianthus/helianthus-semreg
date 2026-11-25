@@ -115,27 +115,38 @@ func definition(id semreg.DefinitionID) semreg.DefinitionRef {
 	return semreg.DefinitionRef{Pack: pack, ID: id, Version: packVersion}
 }
 
+func sortedRefs[V any](table map[semreg.DefinitionID]V) []semreg.DefinitionRef {
+	ids := make([]semreg.DefinitionID, 0, len(table))
+	for id := range table {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	refs := make([]semreg.DefinitionRef, 0, len(ids))
+	for _, id := range ids {
+		refs = append(refs, definition(id))
+	}
+	return refs
+}
+
 func index() semreg.DefinitionIndex {
 	result := semreg.DefinitionIndex{
-		Pack: pack, Fields: make([]semreg.DefinitionRef, 0, len(fields)),
-		Services:     make([]semreg.DefinitionRef, 0, len(services)),
-		Capabilities: make([]semreg.DefinitionRef, 0, len(capabilities)),
-		Operations:   []semreg.DefinitionRef{}, EffectRules: []semreg.DefinitionRef{},
+		Pack: pack, Services: sortedRefs(services), Capabilities: sortedRefs(capabilities),
+		Operations: []semreg.DefinitionRef{}, EffectRules: []semreg.DefinitionRef{},
 	}
+	ids := make([]semreg.DefinitionID, 0, len(fields))
 	for _, field := range fields {
-		result.Fields = append(result.Fields, definition(field.id))
+		ids = append(ids, field.id)
 	}
-	for _, id := range []semreg.DefinitionID{
-		"infrastructure.service.circuit", "infrastructure.service.feeder", "infrastructure.service.grid_connection",
-		"infrastructure.service.line_pair", "infrastructure.service.meter", "infrastructure.service.phase", "infrastructure.service.site",
-	} {
-		result.Services = append(result.Services, definition(id))
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	for _, id := range ids {
+		result.Fields = append(result.Fields, definition(id))
 	}
-	for _, id := range []semreg.DefinitionID{
-		"infrastructure.capability.read.circuit", "infrastructure.capability.read.feeder", "infrastructure.capability.read.grid_connection",
-		"infrastructure.capability.read.meter", "infrastructure.capability.read.phase", "infrastructure.capability.read.site",
-	} {
-		result.Capabilities = append(result.Capabilities, definition(id))
+	if len(unionEvents) > 0 {
+		events := append([]semreg.DefinitionID(nil), unionEvents...)
+		sort.Slice(events, func(i, j int) bool { return events[i] < events[j] })
+		for _, id := range events {
+			result.Events = append(result.Events, definition(id))
+		}
 	}
 	return result
 }
@@ -145,7 +156,7 @@ func Metadata() semreg.PackMetadata {
 	metadata := semreg.PackMetadata{Pack: pack}
 	units := map[semreg.DefinitionID]struct{}{}
 	for _, spec := range fields {
-		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension)}
+		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension), ValueKind: spec.kind}
 		if spec.unit != "" {
 			unit := definition(spec.unit)
 			field.CanonicalUnit, units[spec.unit] = &unit, struct{}{}
@@ -164,6 +175,12 @@ func Metadata() semreg.PackMetadata {
 	sort.Slice(metadata.Units, func(i, j int) bool { return metadata.Units[i].ID < metadata.Units[j].ID })
 	sort.Slice(metadata.Fields, func(i, j int) bool { return metadata.Fields[i].Ref.ID < metadata.Fields[j].Ref.ID })
 	sort.Slice(metadata.Services, func(i, j int) bool { return metadata.Services[i].Ref.ID < metadata.Services[j].Ref.ID })
+	if len(unionEvents) > 0 {
+		for _, id := range unionEvents {
+			metadata.Events = append(metadata.Events, definition(id))
+		}
+	}
 	sort.Slice(metadata.Capabilities, func(i, j int) bool { return metadata.Capabilities[i].Ref.ID < metadata.Capabilities[j].Ref.ID })
+	sort.Slice(metadata.Events, func(i, j int) bool { return metadata.Events[i].ID < metadata.Events[j].ID })
 	return metadata
 }

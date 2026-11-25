@@ -1,7 +1,7 @@
 {
   "contract": "helianthus.semantic.graph.acceptance/v1",
   "kernel_contract": "helianthus.semantic.kernel/v1",
-  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb"},
+  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477"},
   "synthetic_identification_schemes": ["synthetic.serial"],
   "error_ids": [
     "ambiguous_route",
@@ -4676,6 +4676,19 @@
           ]
         }
       ]
+    },
+    {
+      "name": "thermal-room-containment",
+      "registry": {
+        "element_catalog": "registered",
+        "packs": [
+          {
+            "id": "helianthus.pack.thermal",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "batches": []
     }
   ],
   "vectors": [
@@ -14949,7 +14962,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+          "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15008,7 +15021,7 @@
             {
               "contract": "helianthus.semantic.lens-result/v1",
               "lens": "lens.equipment_composition",
-              "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+              "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
               "cut": {
                 "completeness": "complete",
                 "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15059,7 +15072,7 @@
             {
               "contract": "helianthus.semantic.lens-result/v1",
               "lens": "lens.equipment_composition",
-              "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+              "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
               "cut": {
                 "completeness": "complete",
                 "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15208,7 +15221,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.energy_flow",
-          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+          "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
           "cut": {
             "completeness": "partial",
             "cut_id": "sha256:ab58e4e3b210de8c104d2b037b1a40a7be92f6dd5ae5ad28ebb9254f08497966",
@@ -90686,7 +90699,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+          "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:f9d648bb3d1596e1096063f72fe2efa02f8c8ddc6fae9a3d13bb2690cc2c4be8",
@@ -91067,7 +91080,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+          "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:09e3d6d9758c1cecfedf36a1ff542a1a39dabce087b187a0c5ba7a27afb672a8",
@@ -91291,7 +91304,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb",
+          "catalog": "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:c8c1b3d6a01d8b133b3de559e0915b353361857d495c0acf4aa499963ea4f647",
@@ -93896,6 +93909,530 @@
       },
       "definitions": [],
       "criterion": "A fact key that carries a qualifier the fact does not declare is unknown_member."
+    },
+    {
+      "id": "G-POS-ROOM-1",
+      "polarity": "positive",
+      "record_type": "GraphCut",
+      "operation": "assemble_cut",
+      "coverage": [
+        "plane_membership",
+        "relation",
+        "resource"
+      ],
+      "prior_state": "thermal-room-containment",
+      "input": {
+        "completeness": "complete",
+        "snapshots": [
+          {
+            "contract": "helianthus.semantic.kernel/v1",
+            "asset_id": "asset:thermal:room:01",
+            "revisions": {
+              "semantic": "1",
+              "identity": "1",
+              "facts": "1",
+              "services": "1",
+              "capabilities": "1",
+              "structure": "1"
+            },
+            "resources": [
+              {
+                "resource_id": "resource:circuit:01",
+                "kind": "resource.thermal_circuit",
+                "anchor": {
+                  "class": "function",
+                  "basis": "operator_slot",
+                  "slot": "circuit-1",
+                  "evidence": [
+                    {
+                      "owner": "helianthus.example",
+                      "kind": "evidence.synthetic",
+                      "digest": "sha256:9713e11aa288382af38f2b26f5e8d7944ae2027b00ceb1752694a27a7536ee09",
+                      "contract": "helianthus.example.evidence/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ]
+                },
+                "state": "current",
+                "origin": {
+                  "origin_id": "origin:operator:circuit-1",
+                  "kind": "operator",
+                  "source_id": "source:thermal:room:01",
+                  "source_epoch_id": "source-epoch:thermal:room:01",
+                  "evidence": [
+                    {
+                      "owner": "helianthus.example",
+                      "kind": "evidence.synthetic",
+                      "digest": "sha256:d51d5aeae28b879afe58fadf98f18945f8993e0f09561f0855975305d4b56b5d",
+                      "contract": "helianthus.example.evidence/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ]
+                },
+                "revision": "1"
+              },
+              {
+                "resource_id": "resource:zone:01",
+                "kind": "resource.zone",
+                "anchor": {
+                  "class": "function",
+                  "basis": "operator_slot",
+                  "slot": "zone-1",
+                  "evidence": [
+                    {
+                      "owner": "helianthus.example",
+                      "kind": "evidence.synthetic",
+                      "digest": "sha256:1a1e74882355af2d843ae7116528f92b97f8d0bb440bcf04b0ed82bf69b6fe22",
+                      "contract": "helianthus.example.evidence/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ]
+                },
+                "state": "current",
+                "origin": {
+                  "origin_id": "origin:operator:zone-1",
+                  "kind": "operator",
+                  "source_id": "source:thermal:room:01",
+                  "source_epoch_id": "source-epoch:thermal:room:01",
+                  "evidence": [
+                    {
+                      "owner": "helianthus.example",
+                      "kind": "evidence.synthetic",
+                      "digest": "sha256:8cf67330222cf8fdea395076b77299387cc44c6d64fcbff170a037f8c7e48836",
+                      "contract": "helianthus.example.evidence/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ]
+                },
+                "revision": "1"
+              },
+              {
+                "resource_id": "resource:room:01",
+                "kind": "resource.room",
+                "anchor": {
+                  "class": "function",
+                  "basis": "operator_slot",
+                  "slot": "room-1",
+                  "evidence": [
+                    {
+                      "owner": "helianthus.example",
+                      "kind": "evidence.synthetic",
+                      "digest": "sha256:435acd95d1fab82f5c91b7d4e6288f7947751f0a2e7d0d84dc553c5bc3dccd1e",
+                      "contract": "helianthus.example.evidence/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ]
+                },
+                "state": "current",
+                "origin": {
+                  "origin_id": "origin:operator:room-1",
+                  "kind": "operator",
+                  "source_id": "source:thermal:room:01",
+                  "source_epoch_id": "source-epoch:thermal:room:01",
+                  "evidence": [
+                    {
+                      "owner": "helianthus.example",
+                      "kind": "evidence.synthetic",
+                      "digest": "sha256:3d1a34ecc1ca6d28adbaec7df867a2b9af27c8768932e2010c45b16e4180ae7b",
+                      "contract": "helianthus.example.evidence/v1",
+                      "access": "public",
+                      "redaction": "none"
+                    }
+                  ]
+                },
+                "revision": "1"
+              }
+            ],
+            "relations": [
+              {
+                "definition": {
+                  "owner": {
+                    "kind": "pack",
+                    "pack": {
+                      "id": "helianthus.pack.thermal",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "id": "thermal.relation.circuit_zone",
+                  "version": "1.0.0"
+                },
+                "from": "resource:circuit:01",
+                "to": "resource:zone:01",
+                "state": "qualified",
+                "basis_class": "configuration",
+                "basis": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:17bc9d1c1dc08e4aba4b209c71c43307af9a2a980d7bf11b729bf8110becd3c0",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ],
+                "revision": "1"
+              },
+              {
+                "definition": {
+                  "owner": {
+                    "kind": "pack",
+                    "pack": {
+                      "id": "helianthus.pack.thermal",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "id": "thermal.relation.zone_room",
+                  "version": "1.0.0"
+                },
+                "from": "resource:zone:01",
+                "to": "resource:room:01",
+                "state": "qualified",
+                "basis_class": "configuration",
+                "basis": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:a3013ef3203dbe1f123031ae0482a8d79d3dc8108b724be2603853c17744d727",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ],
+                "revision": "1"
+              },
+              {
+                "definition": {
+                  "owner": {
+                    "kind": "pack",
+                    "pack": {
+                      "id": "helianthus.pack.thermal",
+                      "version": "1.0.0"
+                    }
+                  },
+                  "id": "thermal.relation.circuit_room",
+                  "version": "1.0.0"
+                },
+                "from": "resource:circuit:01",
+                "to": "resource:room:01",
+                "state": "qualified",
+                "basis_class": "configuration",
+                "basis": [
+                  {
+                    "owner": "helianthus.example",
+                    "kind": "evidence.synthetic",
+                    "digest": "sha256:d89d7fce980ba42cc879130778509e0e51569553b9b05d20bc67307154d1b8f1",
+                    "contract": "helianthus.example.evidence/v1",
+                    "access": "public",
+                    "redaction": "none"
+                  }
+                ],
+                "revision": "1"
+              }
+            ],
+            "facts": [
+              {
+                "key": {
+                  "pack_id": "helianthus.pack.thermal",
+                  "pack_version": "1.0.0",
+                  "fact_id": "thermal.room.measurement_air_temperature",
+                  "dimensions": [
+                    {
+                      "id": "thermal.dimension.room",
+                      "value": {
+                        "kind": "text",
+                        "text": "resource:room:01"
+                      }
+                    }
+                  ]
+                },
+                "value": {
+                  "kind": "quantity",
+                  "quantity": {
+                    "number": {
+                      "coefficient": "29315",
+                      "exponent10": -2
+                    },
+                    "unit": "unit.kelvin"
+                  }
+                }
+              },
+              {
+                "key": {
+                  "pack_id": "helianthus.pack.thermal",
+                  "pack_version": "1.0.0",
+                  "fact_id": "thermal.room.mode_zone",
+                  "dimensions": [
+                    {
+                      "id": "thermal.dimension.room",
+                      "value": {
+                        "kind": "text",
+                        "text": "resource:room:01"
+                      }
+                    }
+                  ]
+                },
+                "value": {
+                  "kind": "symbol",
+                  "symbol": "thermal.room.mode_zone.auto"
+                }
+              }
+            ],
+            "services": [],
+            "capabilities": [],
+            "snapshot_id": "sha256:b18b689a156a328137517d0ef7610bb8995ed578ebb30dca867fe142712e4901"
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept",
+        "assertions": [
+          "The source room resource:room:01 is in physical, energy and control.",
+          "thermal.relation.circuit_zone and thermal.relation.zone_room form the circuit to zone to room chain.",
+          "thermal.relation.circuit_room is the circuit to room chain.",
+          "thermal.room.measurement_air_temperature and thermal.room.mode_zone stay on thermal.dimension.room."
+        ],
+        "cut": {
+          "cut_id": "sha256:6bf2f71651fe1d7606e1565aa3ef25fabb6bac1727d134fb14898498a28c1048",
+          "completeness": "complete",
+          "members": [
+            {
+              "asset_id": "asset:thermal:room:01",
+              "snapshot_id": "sha256:b18b689a156a328137517d0ef7610bb8995ed578ebb30dca867fe142712e4901"
+            }
+          ],
+          "excluded_members": [],
+          "findings": [],
+          "relation_coherence": [
+            {
+              "asset_id": "asset:thermal:room:01",
+              "definition": {
+                "owner": {
+                  "kind": "pack",
+                  "pack": {
+                    "id": "helianthus.pack.thermal",
+                    "version": "1.0.0"
+                  }
+                },
+                "id": "thermal.relation.circuit_room",
+                "version": "1.0.0"
+              },
+              "from": "resource:circuit:01",
+              "to": "resource:room:01",
+              "state": "qualified",
+              "coherence": "coherent"
+            },
+            {
+              "asset_id": "asset:thermal:room:01",
+              "definition": {
+                "owner": {
+                  "kind": "pack",
+                  "pack": {
+                    "id": "helianthus.pack.thermal",
+                    "version": "1.0.0"
+                  }
+                },
+                "id": "thermal.relation.circuit_zone",
+                "version": "1.0.0"
+              },
+              "from": "resource:circuit:01",
+              "to": "resource:zone:01",
+              "state": "qualified",
+              "coherence": "coherent"
+            },
+            {
+              "asset_id": "asset:thermal:room:01",
+              "definition": {
+                "owner": {
+                  "kind": "pack",
+                  "pack": {
+                    "id": "helianthus.pack.thermal",
+                    "version": "1.0.0"
+                  }
+                },
+                "id": "thermal.relation.zone_room",
+                "version": "1.0.0"
+              },
+              "from": "resource:zone:01",
+              "to": "resource:room:01",
+              "state": "qualified",
+              "coherence": "coherent"
+            }
+          ],
+          "plane_membership": [
+            {
+              "resource_id": "resource:circuit:01",
+              "planes": [
+                "physical"
+              ]
+            },
+            {
+              "resource_id": "resource:room:01",
+              "planes": [
+                "physical",
+                "energy",
+                "control"
+              ]
+            },
+            {
+              "resource_id": "resource:zone:01",
+              "planes": [
+                "physical"
+              ]
+            }
+          ]
+        }
+      },
+      "definitions": [
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.room",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "physical",
+            "energy",
+            "control"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.thermal_circuit",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "physical",
+            "energy",
+            "hydraulic",
+            "control"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "core",
+              "contract": "helianthus.semantic.kernel/v1"
+            },
+            "id": "resource.zone",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "physical",
+            "energy",
+            "hydraulic",
+            "control"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.dimension.room",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "physical",
+            "energy",
+            "control"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.relation.circuit_room",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.relation.circuit_zone",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.relation.zone_room",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.room.measurement_air_temperature",
+            "version": "1.0.0"
+          },
+          "disposition": "member",
+          "planes": [
+            "energy",
+            "control"
+          ]
+        },
+        {
+          "ref": {
+            "owner": {
+              "kind": "pack",
+              "pack": {
+                "id": "helianthus.pack.thermal",
+                "version": "1.0.0"
+              }
+            },
+            "id": "thermal.room.mode_zone",
+            "version": "1.0.0"
+          },
+          "disposition": "member"
+        }
+      ],
+      "criterion": "A source room keeps its air temperature and mode on thermal.dimension.room. Both containment chains are qualified: circuit to zone to room, and circuit to room. The room is in physical, energy and control. The circuit and the zone stay in physical. thermal.relation.fluid_supply is not a parent in either chain."
     }
   ]
 }

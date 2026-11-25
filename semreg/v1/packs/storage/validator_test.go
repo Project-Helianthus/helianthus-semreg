@@ -20,7 +20,7 @@ func TestStorageDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 25 || len(index.Services) != 7 || len(index.Capabilities) != 5 || len(index.Operations) != 2 || len(index.EffectRules) != 2 {
+	if len(index.Fields) != 96 || len(index.Services) != 7 || len(index.Capabilities) != 20 || len(index.Operations) != 17 || len(index.EffectRules) != 17 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {
@@ -90,14 +90,28 @@ func testKey(spec fieldSpec) semreg.FactKey {
 	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
 }
 func testValue(spec fieldSpec) semreg.Value {
-	if spec.kind == semreg.ValueQuantity {
+	switch spec.kind {
+	case semreg.ValueQuantity:
 		n := semreg.Decimal{Coefficient: "0", Exponent10: 0}
 		if spec.minimum != nil {
 			n = spec.minimum.decimal()
 		}
 		return semreg.Value{Kind: spec.kind, Quantity: &semreg.Quantity{Number: n, Unit: spec.unit}}
+	case semreg.ValueBoolean:
+		flag := false
+		return semreg.Value{Kind: spec.kind, Boolean: &flag}
+	case semreg.ValueText:
+		text := "text"
+		return semreg.Value{Kind: spec.kind, Text: &text}
+	case semreg.ValueTime:
+		return semreg.Value{Kind: spec.kind, Time: &semreg.TimePoint{UnixNanoseconds: "0", ClockID: "clock.utc", UncertaintyNS: "0"}}
+	case semreg.ValueSymbols:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: spec.kind, Symbols: []semreg.Symbol{{Namespace: spec.id, Token: token, Known: true}}}
+	default:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: spec.kind, Symbol: &semreg.Symbol{Namespace: spec.id, Token: token, Known: true}}
 	}
-	return semreg.Value{Kind: spec.kind, Symbol: &semreg.Symbol{Namespace: spec.id, Token: strings.TrimPrefix(spec.symbols[0], string(spec.id)+"."), Known: true}}
 }
 func must(id semreg.DefinitionID) fieldSpec {
 	s, ok := findField(id)
@@ -292,5 +306,34 @@ func TestPilotChargeAndDischargeCurrent(t *testing.T) {
 		if err := v.ValidateFact(plainKey, &value); err != nil {
 			t.Fatalf("%s without the catalog: %v", id, err)
 		}
+	}
+}
+
+func TestChargeDirectionIsSeparateFromOperating(t *testing.T) {
+	direction, ok := findField("storage.status.charge_direction")
+	if !ok || direction.dimension != "storage.dimension.pack" || !reflect.DeepEqual(direction.symbols, []string{"charging", "discharging", "idle", "starting"}) {
+		t.Fatalf("charge direction: %+v", direction)
+	}
+	operating, ok := findField("storage.status.operating")
+	if !ok || operating.dimension != "storage.dimension.pack" || !reflect.DeepEqual(operating.symbols, []string{"storage.status.operating.active", "storage.status.operating.idle", "storage.status.operating.standby"}) {
+		t.Fatalf("operating: %+v", operating)
+	}
+	v := New()
+	for _, token := range []string{"starting", "charging", "discharging"} {
+		value := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: direction.id, Token: token, Known: true}}
+		if err := v.ValidateFact(testKey(direction), &value); err != nil {
+			t.Fatalf("%s: %v", token, err)
+		}
+		require(t, v.ValidateFact(testKey(operating), &value), semreg.InvalidValue)
+	}
+	for _, token := range []string{"active", "idle", "standby"} {
+		value := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: operating.id, Token: token, Known: true}}
+		if err := v.ValidateFact(testKey(operating), &value); err != nil {
+			t.Fatalf("operating %s: %v", token, err)
+		}
+	}
+	for _, token := range []string{"active", "standby"} {
+		value := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: direction.id, Token: token, Known: true}}
+		require(t, v.ValidateFact(testKey(direction), &value), semreg.InvalidValue)
 	}
 }

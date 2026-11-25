@@ -15,7 +15,7 @@ import (
 func TestDefinitionIndexIsExactAndReadOnly(t *testing.T) {
 	validator := New()
 	first := validator.Definitions()
-	if first.Pack != pack || len(first.Fields) != 25 || len(first.Services) != 7 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
+	if first.Pack != pack || len(first.Fields) != 68 || len(first.Services) != 8 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
 		t.Fatalf("unexpected definition index: %+v", first)
 	}
 	if err := first.Validate(); err != nil {
@@ -53,6 +53,11 @@ func TestFieldsAcceptTheirExactContract(t *testing.T) {
 		t.Run(string(spec.id), func(t *testing.T) {
 			value := validFieldValue(spec)
 			key := validKey(spec)
+			if spec.kind == semreg.ValueQuantity && spec.unit == "" {
+				invented := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}
+				requireErrorID(t, validator.ValidateFact(key, &invented), semreg.InvalidValue)
+				return
+			}
 			if err := validator.ValidateFact(key, &value); err != nil {
 				t.Fatalf("valid fact: %v", err)
 			}
@@ -189,12 +194,27 @@ func validKey(spec fieldSpec) semreg.FactKey {
 func infrastructureFactKey(spec fieldSpec, text string) semreg.FactKey {
 	dims := make([]semreg.Dimension, 0, 1+len(fieldQualifiers[spec.id]))
 	for _, id := range fieldQualifiers[spec.id] {
-		token := qualifierSymbols[id][0]
-		dims = append(dims, semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}})
+		dims = append(dims, infrastructureQualifier(id))
 	}
 	dims = append(dims, semreg.Dimension{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}})
 	sort.Slice(dims, func(i, j int) bool { return dims[i].ID < dims[j].ID })
 	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: dims}
+}
+
+func infrastructureQualifier(id semreg.DefinitionID) semreg.Dimension {
+	switch qualifierKinds[id] {
+	case semreg.ValueQuantity:
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}}
+	case semreg.ValueText:
+		text := "qualifier"
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}}
+	default:
+		token := qualifierSymbols[id][0]
+		if len(token) > len(id)+1 && token[:len(id)+1] == string(id)+"." {
+			token = token[len(id)+1:]
+		}
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}}
+	}
 }
 
 func validFieldValue(spec fieldSpec) semreg.Value {
@@ -208,6 +228,14 @@ func validFieldValue(spec fieldSpec) semreg.Value {
 	case semreg.ValueBoolean:
 		value := true
 		return semreg.Value{Kind: semreg.ValueBoolean, Boolean: &value}
+	case semreg.ValueText:
+		value := "text"
+		return semreg.Value{Kind: semreg.ValueText, Text: &value}
+	case semreg.ValueTime:
+		return semreg.Value{Kind: semreg.ValueTime, Time: &semreg.TimePoint{UnixNanoseconds: "0", ClockID: "clock.utc", UncertaintyNS: "0"}}
+	case semreg.ValueSymbols:
+		name := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: semreg.ValueSymbols, Symbols: []semreg.Symbol{{Namespace: spec.id, Token: name, Known: true}}}
 	default:
 		name := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
 		return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: name, Known: true}}
@@ -263,6 +291,13 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 	var graphValidator semreg.GraphFactValidator = New().(semreg.GraphFactValidator)
 	for _, spec := range fields {
 		if len(fieldQualifiers[spec.id]) > 0 {
+			continue
+		}
+		if spec.kind == semreg.ValueQuantity && spec.unit == "" {
+			invented := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}
+			if semreg.ErrorIdentifier(New().ValidateFact(validKey(spec), &invented)) != semreg.InvalidValue {
+				t.Fatalf("%s invented unit accepted", spec.id)
+			}
 			continue
 		}
 		key, value := validKey(spec), validFieldValue(spec)

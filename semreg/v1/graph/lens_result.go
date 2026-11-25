@@ -259,7 +259,11 @@ func RetrieveLens(store *CutStore, catalog *Catalog, request LensRequest, evalua
 	if !ok {
 		return LensResult{}, readError(semreg.MembershipMissing, "lens")
 	}
-	if request.Depth > lens.MaxDepth || request.Depth > MaxTraversalDepth {
+	depthBound := lens.MaxDepth
+	if depthBound == 0 {
+		depthBound = MaxTraversalDepth
+	}
+	if request.Depth > depthBound || request.Depth > MaxTraversalDepth {
 		return LensResult{}, readError(semreg.BoundsExceeded, "depth")
 	}
 	definitions, err := lensDefinitions(catalog, lens)

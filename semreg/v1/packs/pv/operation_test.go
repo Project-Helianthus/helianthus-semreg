@@ -382,7 +382,11 @@ func testKey(s fieldSpec) semreg.FactKey {
 	n := "id"
 	dims := make([]semreg.Dimension, 0, 1+len(fieldQualifiers[s.id]))
 	for _, id := range fieldQualifiers[s.id] {
-		token := qualifierSymbols[id][0]
+		if qualifierKinds[id] == semreg.ValueQuantity {
+			dims = append(dims, semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}})
+			continue
+		}
+		token := strings.TrimPrefix(qualifierSymbols[id][0], string(id)+".")
 		dims = append(dims, semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}})
 	}
 	dims = append(dims, semreg.Dimension{ID: s.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &n}})
@@ -390,18 +394,27 @@ func testKey(s fieldSpec) semreg.FactKey {
 	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: s.id, Dimensions: dims}
 }
 func testValue(s fieldSpec) semreg.Value {
-	if s.kind == semreg.ValueSymbol {
+	switch s.kind {
+	case semreg.ValueSymbol:
 		return semreg.Value{Kind: s.kind, Symbol: &semreg.Symbol{Namespace: s.id, Token: strings.TrimPrefix(s.symbols[0], string(s.id)+"."), Known: true}}
-	}
-	if s.kind == semreg.ValueBoolean {
+	case semreg.ValueSymbols:
+		token := strings.TrimPrefix(s.symbols[0], string(s.id)+".")
+		return semreg.Value{Kind: s.kind, Symbols: []semreg.Symbol{{Namespace: s.id, Token: token, Known: true}}}
+	case semreg.ValueBoolean:
 		value := true
 		return semreg.Value{Kind: s.kind, Boolean: &value}
+	case semreg.ValueText:
+		text := "text"
+		return semreg.Value{Kind: s.kind, Text: &text}
+	case semreg.ValueTime:
+		return semreg.Value{Kind: s.kind, Time: &semreg.TimePoint{UnixNanoseconds: "0", ClockID: "clock.utc", UncertaintyNS: "0"}}
+	default:
+		n := semreg.Decimal{Coefficient: "0"}
+		if s.minimum != nil {
+			n = s.minimum.decimal()
+		}
+		return semreg.Value{Kind: s.kind, Quantity: &semreg.Quantity{Number: n, Unit: s.unit}}
 	}
-	n := semreg.Decimal{Coefficient: "0"}
-	if s.minimum != nil {
-		n = s.minimum.decimal()
-	}
-	return semreg.Value{Kind: s.kind, Quantity: &semreg.Quantity{Number: n, Unit: s.unit}}
 }
 func testCapability(id semreg.DefinitionID) semreg.CapabilityInstance {
 	cs := []semreg.TypedField{}

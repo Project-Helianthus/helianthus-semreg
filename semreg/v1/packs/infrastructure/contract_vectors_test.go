@@ -18,10 +18,10 @@ import (
 // infrastructureFixtureSHA256 is the SHA-256 of
 // fixtures/v1/infrastructure-pack-vectors.json.
 var infrastructureFixtureSHA256 = [sha256.Size]byte{
-	0xe9, 0xf5, 0x86, 0xf1, 0x03, 0xd6, 0x05, 0x39,
-	0x83, 0x72, 0x63, 0x82, 0xe2, 0x19, 0xbb, 0x70,
-	0x00, 0xc3, 0x5e, 0xf4, 0xdc, 0x52, 0x02, 0x4a,
-	0x9c, 0x93, 0xee, 0xc6, 0x42, 0xaa, 0x22, 0x65,
+	0x11, 0x04, 0x0b, 0x53, 0xcb, 0x4b, 0xaf, 0x7b,
+	0xc8, 0x1f, 0x6c, 0x7e, 0x9f, 0x1a, 0x05, 0x95,
+	0x2c, 0x77, 0x43, 0x82, 0xda, 0x9c, 0x3e, 0x6c,
+	0x98, 0x38, 0xaf, 0x45, 0xfe, 0xcb, 0x1d, 0xfc,
 }
 
 type machineVector struct {
@@ -97,7 +97,7 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 	catalog := mapValue(t, document["catalog"])
 	definitions := mapValue(t, catalog["definitions"])
 	relations := listValue(t, definitions["relations"])
-	if len(relations) != 5 {
+	if len(relations) != 7 {
 		t.Fatalf("relation count = %d", len(relations))
 	}
 	wantRelations := map[string]struct {
@@ -109,6 +109,8 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		"infrastructure.relation.feeder_circuit":         {"infrastructure.dimension.feeder", "infrastructure.dimension.circuit", "one_to_many", 30},
 		"infrastructure.relation.circuit_phase":          {"infrastructure.dimension.circuit", "infrastructure.dimension.phase", "one_to_many", 40},
 		"infrastructure.relation.grid_connection_meter":  {"infrastructure.dimension.grid_connection", "infrastructure.dimension.meter", "one_to_many", 50},
+		"infrastructure.relation.site_load":              {"infrastructure.dimension.site", "infrastructure.dimension.load", "one_to_many", 60},
+		"infrastructure.relation.load_meter":             {"infrastructure.dimension.meter", "infrastructure.dimension.load", "one_to_many", 70},
 	}
 	for _, item := range relations {
 		relation := mapValue(t, item)
@@ -123,7 +125,7 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		t.Fatalf("missing relations: %#v", wantRelations)
 	}
 	portal := listValue(t, definitions["portal_contributions"])
-	if len(portal) != 7 {
+	if len(portal) != 8 {
 		t.Fatalf("portal read descriptor count = %d", len(portal))
 	}
 	wantPortal := map[string]struct {
@@ -131,12 +133,13 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		fields  []string
 	}{
 		"infrastructure.portal.read.site":            {"infrastructure.service.site", []string{"infrastructure.status.fault"}},
-		"infrastructure.portal.read.grid_connection": {"infrastructure.service.grid_connection", []string{"infrastructure.ac.frequency", "infrastructure.ac.power_factor", "infrastructure.limit.fallback_power", "infrastructure.power.apparent", "infrastructure.power.export_active", "infrastructure.power.export_reactive", "infrastructure.power.import_active", "infrastructure.power.import_reactive", "infrastructure.power.pcc", "infrastructure.status.connection", "infrastructure.status.readiness"}},
+		"infrastructure.portal.read.grid_connection": {"infrastructure.service.grid_connection", []string{"infrastructure.ac.frequency", "infrastructure.ac.power_factor", "infrastructure.limit.fallback_power", "infrastructure.limit.pv_curtailment_factor", "infrastructure.mgcp.ac_current", "infrastructure.mgcp.actor", "infrastructure.mgcp.committed_power_plan", "infrastructure.mgcp.per", "infrastructure.mgcp.slots", "infrastructure.mgcp.use_case_name", "infrastructure.mgcp.use_case_version", "infrastructure.mgcp.value_range_min", "infrastructure.mgcp.value_source", "infrastructure.power.apparent", "infrastructure.power.export_active", "infrastructure.power.export_reactive", "infrastructure.power.import_active", "infrastructure.power.import_reactive", "infrastructure.power.pcc", "infrastructure.status.connection", "infrastructure.status.readiness", "infrastructure.status.supply_condition"}},
 		"infrastructure.portal.read.feeder":          {"infrastructure.service.feeder", []string{}},
-		"infrastructure.portal.read.circuit":         {"infrastructure.service.circuit", []string{"infrastructure.status.breaker", "infrastructure.status.interlock"}},
-		"infrastructure.portal.read.phase":           {"infrastructure.service.phase", []string{"infrastructure.ac.active_power", "infrastructure.ac.apparent_power", "infrastructure.ac.current", "infrastructure.ac.reactive_power", "infrastructure.ac.voltage"}},
-		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum", "infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.self_consumption"}},
+		"infrastructure.portal.read.circuit":         {"infrastructure.service.circuit", []string{"infrastructure.ac.neutral_current", "infrastructure.status.breaker", "infrastructure.status.interlock"}},
+		"infrastructure.portal.read.phase":           {"infrastructure.service.phase", []string{"infrastructure.ac.active_power", "infrastructure.ac.apparent_current", "infrastructure.ac.apparent_power", "infrastructure.ac.current", "infrastructure.ac.harmonic_current", "infrastructure.ac.harmonic_phase", "infrastructure.ac.phase_power_factor", "infrastructure.ac.reactive_current", "infrastructure.ac.reactive_power", "infrastructure.ac.voltage", "infrastructure.energy.phase_export", "infrastructure.energy.phase_import", "infrastructure.load.phase_active_power"}},
+		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum", "infrastructure.energy.apparent_export", "infrastructure.energy.apparent_import", "infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.reactive_export", "infrastructure.energy.reactive_import", "infrastructure.energy.self_consumption", "infrastructure.meter.apparent_power_threshold", "infrastructure.meter.kind", "infrastructure.meter.point_of_delivery", "infrastructure.meter.power_threshold", "infrastructure.meter.power_threshold_source", "infrastructure.meter.protocol_version"}},
 		"infrastructure.portal.read.line_pair":       {"infrastructure.service.line_pair", []string{"infrastructure.ac.voltage_line_line"}},
+		"infrastructure.portal.read.load":            {"infrastructure.service.load", []string{"infrastructure.load.active_power", "infrastructure.load.energy_consumed", "infrastructure.load.energy_produced", "infrastructure.mpc.ac_power", "infrastructure.mpc.ac_voltage", "infrastructure.mpc.actor", "infrastructure.mpc.one", "infrastructure.mpc.per", "infrastructure.mpc.slots", "infrastructure.mpc.use_case_name", "infrastructure.mpc.use_case_version", "infrastructure.mpc.value_range_min", "infrastructure.mpc.value_state"}},
 	}
 	for _, item := range portal {
 		descriptor := mapValue(t, item)
@@ -214,15 +217,20 @@ func exactFields(definitions map[string]any) bool {
 		switch spec.kind {
 		case semreg.ValueQuantity:
 			bounds, ok := item["bounds"].(map[string]any)
-			if !ok || item["unit"] != string(spec.unit) || !sameOptionalDecimal(bounds["minimum"], spec.minimum) || !sameOptionalDecimal(bounds["maximum"], spec.maximum) {
+			unit, _ := item["unit"].(string)
+			if !ok || unit != string(spec.unit) || !sameOptionalDecimal(bounds["minimum"], spec.minimum) || !sameOptionalDecimal(bounds["maximum"], spec.maximum) {
 				return false
 			}
 		case semreg.ValueBoolean:
 			if item["unit"] != nil || item["bounds"] != nil || item["symbols"] != nil {
 				return false
 			}
-		default:
+		case semreg.ValueSymbol, semreg.ValueSymbols:
 			if !sameStrings(item["symbols"], spec.symbols) {
+				return false
+			}
+		default:
+			if item["unit"] != nil || item["symbols"] != nil {
 				return false
 			}
 		}
@@ -255,7 +263,7 @@ func sameIDs(value any, want []semreg.DefinitionID) bool {
 
 func exactQualifierDimensions(definitions map[string]any) bool {
 	entries, ok := definitions["qualifier_dimensions"].([]any)
-	if !ok || len(entries) != len(qualifierSymbols) {
+	if !ok || len(entries) != len(qualifierKinds) {
 		return false
 	}
 	for _, entry := range entries {
@@ -264,9 +272,18 @@ func exactQualifierDimensions(definitions map[string]any) bool {
 			return false
 		}
 		id := semreg.DefinitionID(fmt.Sprint(item["id"]))
-		symbols, known := qualifierSymbols[id]
-		if !known || item["value_kind"] != string(semreg.ValueSymbol) || !sameStrings(item["symbols"], symbols) {
+		kind, known := qualifierKinds[id]
+		if !known || item["value_kind"] != string(kind) {
 			return false
+		}
+		if kind == semreg.ValueSymbol && !sameStrings(item["symbols"], qualifierSymbols[id]) {
+			return false
+		}
+		if kind == semreg.ValueQuantity {
+			unit, _ := item["unit"].(string)
+			if unit != "unit.one" {
+				return false
+			}
 		}
 	}
 	return true
@@ -309,7 +326,7 @@ func exactServicesAndCapabilities(definitions map[string]any) bool {
 
 func exactRelations(definitions map[string]any) bool {
 	entries, ok := definitions["relations"].([]any)
-	return ok && len(entries) == 5 && mapValueNoPanic(entries[2])["cardinality"] == "one_to_many"
+	return ok && len(entries) == 7 && mapValueNoPanic(entries[2])["cardinality"] == "one_to_many"
 }
 
 func sameDecimal(value any, expected semreg.Decimal) bool {

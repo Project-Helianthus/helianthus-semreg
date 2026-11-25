@@ -56,7 +56,7 @@ func (c *Catalog) Covers(index semreg.DefinitionIndex) error {
 		refs []semreg.DefinitionRef
 	}{
 		{KindFact, index.Fields}, {KindService, index.Services}, {KindCapability, index.Capabilities},
-		{KindOperation, index.Operations}, {KindEffectRule, index.EffectRules},
+		{KindOperation, index.Operations}, {KindEffectRule, index.EffectRules}, {KindEvent, index.Events},
 	} {
 		for _, ref := range group.refs {
 			at, ok := c.byRef[PackElement(ref)]
@@ -76,7 +76,7 @@ func (c *Catalog) Covers(index semreg.DefinitionIndex) error {
 		}
 		listed = true
 		switch element.ElementKind {
-		case KindFact, KindService, KindCapability, KindOperation, KindEffectRule:
+		case KindFact, KindService, KindCapability, KindOperation, KindEffectRule, KindEvent:
 			ref, _ := element.Ref.DefinitionRef()
 			if _, ok := declared[ref]; !ok {
 				return errorf(semreg.MembershipMissing, "entry %s is not declared by the registered pack", element.Ref)
@@ -181,6 +181,11 @@ func (c *Catalog) FactSubject(pack semreg.PackRef, fact semreg.DefinitionID) (se
 			return semreg.GraphFactSubject{}, false
 		}
 		result.Dimension, result.Kind = subject.Dimension.ID, subject.Kind
+		if result.Kind == "" {
+			if dimension, ok := c.packEntryOfKind(pack, subject.Dimension.ID, KindDimension); ok && dimension.Dimension != nil {
+				result.Classes = append([]semreg.AnchorClass(nil), dimension.Dimension.AnchorClasses...)
+			}
+		}
 	}
 	qualifiers := make([]semreg.DefinitionID, 0, len(element.Fact.Qualifiers)+1)
 	for _, qualifier := range element.Fact.Qualifiers {
@@ -205,7 +210,10 @@ func (c *Catalog) PackDimension(pack semreg.PackRef, dimension semreg.Definition
 	if element.Dimension.Role != RoleResource {
 		return semreg.GraphDimension{}, true
 	}
-	return semreg.GraphDimension{Resource: true, Kind: element.Dimension.ResourceKind}, true
+	if element.Dimension.ResourceKind != "" {
+		return semreg.GraphDimension{Resource: true, Kind: element.Dimension.ResourceKind}, true
+	}
+	return semreg.GraphDimension{Resource: true, Classes: append([]semreg.AnchorClass(nil), element.Dimension.AnchorClasses...)}, true
 }
 
 // packEntryOfKind returns the pack's entry with the identifier when exactly

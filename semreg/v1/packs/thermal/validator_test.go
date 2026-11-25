@@ -3,6 +3,7 @@ package thermal
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -20,7 +21,7 @@ func TestDefinitionIndexRegistryAndImmutability(t *testing.T) {
 	if err := first.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if first.Pack != pack || len(first.Fields) != 48 || len(first.Services) != 11 || len(first.Capabilities) != 12 || len(first.Operations) != 2 || len(first.EffectRules) != 2 {
+	if first.Pack != pack || len(first.Fields) != 269 || len(first.Services) != 21 || len(first.Capabilities) != 87 || len(first.Operations) != 74 || len(first.EffectRules) != 74 {
 		t.Fatalf("index: %+v", first)
 	}
 	first.Fields[0].ID = "thermal.mutated.field"
@@ -52,21 +53,38 @@ func TestAllFieldContracts(t *testing.T) {
 			}
 			wrong := key
 			wrong.Dimensions = append([]semreg.Dimension(nil), key.Dimensions...)
-			wrong.Dimensions[0].ID = "thermal.dimension.system"
-			if spec.dimension == "thermal.dimension.system" {
-				wrong.Dimensions[0].ID = "thermal.dimension.zone"
+			for i := range wrong.Dimensions {
+				if wrong.Dimensions[i].ID != spec.dimension {
+					continue
+				}
+				if spec.dimension == systemDimension {
+					wrong.Dimensions[i].ID = zoneDimension
+				} else {
+					wrong.Dimensions[i].ID = systemDimension
+				}
 			}
+			sort.Slice(wrong.Dimensions, func(i, j int) bool { return wrong.Dimensions[i].ID < wrong.Dimensions[j].ID })
 			requireID(t, validator.ValidateFact(wrong, &value), semreg.InvalidValue)
 			if spec.kind == semreg.ValueQuantity {
-				minimum := value
-				minimum.Quantity = &semreg.Quantity{Number: spec.minimum.decimal(), Unit: spec.unit}
-				if err := validator.ValidateFact(key, &minimum); err != nil {
-					t.Fatalf("exact minimum: %v", err)
+				if spec.minimum != nil {
+					minimum := value
+					minimum.Quantity = &semreg.Quantity{Number: spec.minimum.decimal(), Unit: spec.unit}
+					if err := validator.ValidateFact(key, &minimum); err != nil {
+						t.Fatalf("exact minimum: %v", err)
+					}
+					belowMinimum := value
+					belowMinimum.Quantity = &semreg.Quantity{Number: below(spec.minimum.decimal()), Unit: spec.unit}
+					requireID(t, validator.ValidateFact(key, &belowMinimum), semreg.BoundsExceeded)
 				}
-				maximum := value
-				maximum.Quantity = &semreg.Quantity{Number: spec.maximum.decimal(), Unit: spec.unit}
-				if err := validator.ValidateFact(key, &maximum); err != nil {
-					t.Fatalf("exact maximum: %v", err)
+				if spec.maximum != nil {
+					maximum := value
+					maximum.Quantity = &semreg.Quantity{Number: spec.maximum.decimal(), Unit: spec.unit}
+					if err := validator.ValidateFact(key, &maximum); err != nil {
+						t.Fatalf("exact maximum: %v", err)
+					}
+					outside := value
+					outside.Quantity = &semreg.Quantity{Number: above(spec.maximum.decimal()), Unit: spec.unit}
+					requireID(t, validator.ValidateFact(key, &outside), semreg.BoundsExceeded)
 				}
 				bad := value
 				unit := semreg.DefinitionID("unit.watt")
@@ -75,16 +93,15 @@ func TestAllFieldContracts(t *testing.T) {
 				}
 				bad.Quantity = &semreg.Quantity{Number: value.Quantity.Number, Unit: unit}
 				requireID(t, validator.ValidateFact(key, &bad), semreg.InvalidValue)
-				outside := value
-				outside.Quantity = &semreg.Quantity{Number: above(spec.maximum.decimal()), Unit: spec.unit}
-				requireID(t, validator.ValidateFact(key, &outside), semreg.BoundsExceeded)
-				belowMinimum := value
-				belowMinimum.Quantity = &semreg.Quantity{Number: below(spec.minimum.decimal()), Unit: spec.unit}
-				requireID(t, validator.ValidateFact(key, &belowMinimum), semreg.BoundsExceeded)
-			} else {
+			} else if spec.kind == semreg.ValueSymbol || spec.kind == semreg.ValueSymbols {
 				bad := value
+				bad.Kind = semreg.ValueSymbol
+				bad.Symbols = nil
 				bad.Symbol = &semreg.Symbol{Namespace: spec.id, Token: "outcome", Known: true}
 				requireID(t, validator.ValidateFact(key, &bad), semreg.InvalidValue)
+			} else {
+				wrongKind := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "0"}, Unit: "unit.watt"}}
+				requireID(t, validator.ValidateFact(key, &wrongKind), semreg.InvalidValue)
 			}
 		})
 	}
@@ -150,28 +167,69 @@ func TestServicesCapabilitiesAndConcurrentAccess(t *testing.T) {
 
 func validKey(spec fieldSpec) semreg.FactKey {
 	name := "identity"
-	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	dims := []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}
+	for _, id := range fieldQualifiers[spec.id] {
+		dims = append(dims, thermalQualifier(id))
+	}
+	sort.Slice(dims, func(i, j int) bool { return dims[i].ID < dims[j].ID })
+	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: dims}
+}
+func thermalQualifier(id semreg.DefinitionID) semreg.Dimension {
+	switch qualifierKinds[id] {
+	case semreg.ValueQuantity:
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}}
+	case semreg.ValueText:
+		text := "qualifier"
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}}
+	default:
+		token := qualifierSymbols[id][0]
+		token = strings.TrimPrefix(token, string(id)+".")
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}}
+	}
 }
 func validValue(spec fieldSpec) semreg.Value {
-	if spec.kind == semreg.ValueQuantity {
-		return semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: spec.minimum.decimal(), Unit: spec.unit}}
+	switch spec.kind {
+	case semreg.ValueQuantity:
+		number := semreg.Decimal{Coefficient: "0"}
+		if spec.minimum != nil {
+			number = spec.minimum.decimal()
+		} else if spec.maximum != nil {
+			number = spec.maximum.decimal()
+		}
+		return semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: number, Unit: spec.unit}}
+	case semreg.ValueBoolean:
+		value := true
+		return semreg.Value{Kind: semreg.ValueBoolean, Boolean: &value}
+	case semreg.ValueText:
+		value := "text"
+		return semreg.Value{Kind: semreg.ValueText, Text: &value}
+	case semreg.ValueTime:
+		return semreg.Value{Kind: semreg.ValueTime, Time: &semreg.TimePoint{UnixNanoseconds: "0", ClockID: "clock.utc", UncertaintyNS: "0"}}
+	case semreg.ValueSymbols:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: semreg.ValueSymbols, Symbols: []semreg.Symbol{{Namespace: spec.id, Token: token, Known: true}}}
+	default:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: token, Known: true}}
 	}
-	token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
-	return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: token, Known: true}}
 }
-func above(value semreg.Decimal) semreg.Decimal {
+func above(value semreg.Decimal) semreg.Decimal { return stepDecimal(value, 1) }
+func below(value semreg.Decimal) semreg.Decimal { return stepDecimal(value, -1) }
+func stepDecimal(value semreg.Decimal, delta int64) semreg.Decimal {
 	var coefficient int64
 	if _, err := fmt.Sscan(value.Coefficient, &coefficient); err != nil {
 		panic(err)
 	}
-	return semreg.Decimal{Coefficient: fmt.Sprintf("%d", coefficient+1), Exponent10: value.Exponent10}
-}
-func below(value semreg.Decimal) semreg.Decimal {
-	var coefficient int64
-	if _, err := fmt.Sscan(value.Coefficient, &coefficient); err != nil {
-		panic(err)
+	coefficient += delta
+	exponent := value.Exponent10
+	if coefficient == 0 {
+		return semreg.Decimal{Coefficient: "0", Exponent10: 0}
 	}
-	return semreg.Decimal{Coefficient: fmt.Sprintf("%d", coefficient-1), Exponent10: value.Exponent10}
+	for coefficient%10 == 0 {
+		coefficient /= 10
+		exponent++
+	}
+	return semreg.Decimal{Coefficient: fmt.Sprintf("%d", coefficient), Exponent10: exponent}
 }
 func validCapability(id semreg.DefinitionID) semreg.CapabilityInstance {
 	spec := capabilities[id]
@@ -211,6 +269,9 @@ func requireID(t *testing.T, err error, want semreg.ErrorID) {
 func TestValidateGraphFactUsesTheResourceDimension(t *testing.T) {
 	var graphValidator semreg.GraphFactValidator = New().(semreg.GraphFactValidator)
 	for _, spec := range fields {
+		if len(fieldQualifiers[spec.id]) > 0 {
+			continue
+		}
 		key, value := validKey(spec), validValue(spec)
 		withText := func(text string) semreg.FactKey {
 			changed := key
@@ -248,15 +309,15 @@ func TestValidateGraphFactUsesTheResourceDimension(t *testing.T) {
 var overrunTypes = []string{"one_time_dhw", "party", "sg_ready_condition_1", "sg_ready_condition_3", "sg_ready_condition_4", "one_day_away", "one_day_at_home", "one_time_ventilation", "hvac_system_off", "valve_kick"}
 
 // TestOverrunStatusesOnTheSystemDimension requires the ten overrun statuses
-// on thermal.dimension.system with exactly four statuses each, read by the
-// system descriptor only, and used by no capability or operation.
+// on thermal.dimension.system with exactly four statuses each. Each status is
+// the argument of its own set operation.
 func TestOverrunStatusesOnTheSystemDimension(t *testing.T) {
 	for _, name := range overrunTypes {
 		id := semreg.DefinitionID("thermal.overrun." + name)
 		prefix := string(id) + "."
 		requireThermalField(t, fieldSpec{id: id, kind: semreg.ValueSymbol, dimension: systemDimension, symbols: []string{prefix + "active", prefix + "finished", prefix + "inactive", prefix + "running"}})
 	}
-	if len(overrunTypes) != 10 || len(capabilities) != 12 || len(operations) != 2 {
+	if len(overrunTypes) != 10 || len(capabilities) != 87 || len(operations) != 74 {
 		t.Fatalf("overrun types %d, capabilities %d, operations %d", len(overrunTypes), len(capabilities), len(operations))
 	}
 }
@@ -276,8 +337,8 @@ func TestOverrunStatusesOnTheSystemDimension(t *testing.T) {
 //   - for a symbol, another namespace, an unknown token and an unknown
 //     symbol: the symbol check.
 //
-// It also requires that no capability constraint, operation argument or
-// effect fact names the field.
+// A capability may name the field only when that capability's operation
+// takes the field as its argument.
 func requireThermalField(t *testing.T, want fieldSpec) {
 	t.Helper()
 	validator := New()
@@ -387,16 +448,19 @@ func requireThermalField(t *testing.T, want fieldSpec) {
 		quantity := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: ratio}}
 		requireID(t, validator.ValidateFact(key, &quantity), semreg.InvalidValue)
 	}
+	owned := map[semreg.DefinitionID]struct{}{}
+	for _, op := range operations {
+		if op.argument == want.id {
+			owned[op.capability] = struct{}{}
+		}
+	}
 	for id, capability := range capabilities {
 		for _, constraint := range capability.constraints {
 			if constraint == want.id {
-				t.Fatalf("%s constrains %s", want.id, id)
+				if _, ok := owned[id]; !ok {
+					t.Fatalf("%s constrains %s", want.id, id)
+				}
 			}
-		}
-	}
-	for id, op := range operations {
-		if op.argument == want.id {
-			t.Fatalf("%s is the argument of %s", want.id, id)
 		}
 	}
 }
@@ -455,7 +519,7 @@ func TestZoneSetpointsAndSystemModes(t *testing.T) {
 // TestPumpSpeedAndValvePosition requires the pump dimension and the pump
 // service keyed by it, pump speed in reciprocal second on the pump dimension
 // from 0 to 1000, and valve position as a 0 to 1 ratio on the terminal-unit
-// dimension. No capability reads the pump service, and compressor speed,
+// dimension. The pump service is read by the pump set capabilities, and compressor speed,
 // flow rate and the pressures keep their contracts.
 func TestPumpSpeedAndValvePosition(t *testing.T) {
 	if kind, ok := dimensions["thermal.dimension.pump"]; !ok || kind != semreg.ValueText {
@@ -466,9 +530,23 @@ func TestPumpSpeedAndValvePosition(t *testing.T) {
 	}
 	requireThermalField(t, fieldSpec{id: "thermal.measurement.pump_speed", kind: semreg.ValueQuantity, unit: reciprocalSecond, dimension: "thermal.dimension.pump", minimum: bound("0", 0), maximum: bound("1", 3)})
 	requireThermalField(t, fieldSpec{id: "thermal.measurement.valve_position", kind: semreg.ValueQuantity, unit: ratio, dimension: terminalDimension, minimum: bound("0", 0), maximum: bound("1", 0)})
+	wantPump := map[semreg.DefinitionID]semreg.DefinitionID{
+		"thermal.capability.set_pump_running":        "thermal.status.pump_running",
+		"thermal.capability.set_pump_operation_mode": "thermal.mode.pump_operation",
+		"thermal.capability.set_pump_control_mode":   "thermal.mode.pump_control",
+		"thermal.capability.set_pump_level":          "thermal.setpoint.pump_level",
+	}
+	for id, argument := range wantPump {
+		capability, ok := capabilities[id]
+		if !ok || capability.service != "thermal.service.pump" || !reflect.DeepEqual(capability.constraints, []semreg.DefinitionID{argument}) {
+			t.Fatalf("%s = %+v", id, capability)
+		}
+	}
 	for id, capability := range capabilities {
 		if capability.service == "thermal.service.pump" {
-			t.Fatalf("%s reads the pump service", id)
+			if _, ok := wantPump[id]; !ok {
+				t.Fatalf("%s reads the pump service", id)
+			}
 		}
 	}
 	validator := New()
@@ -500,5 +578,44 @@ func TestPumpSpeedAndValvePosition(t *testing.T) {
 	requireID(t, validator.ValidateFact(compressorKey, &speed), semreg.InvalidValue)
 	if err := validator.ValidateFact(pumpKey, &speed); err != nil {
 		t.Fatalf("pump speed: %v", err)
+	}
+}
+
+func TestZoneModeOnAndRoomMeasurement(t *testing.T) {
+	zone, ok := findField("thermal.mode.zone")
+	zoneSymbols := []string{"thermal.mode.zone.auto", "thermal.mode.zone.comfort", "thermal.mode.zone.eco", "thermal.mode.zone.off", "thermal.mode.zone.on"}
+	if !ok || !sameThermalSpec(zone, fieldSpec{id: "thermal.mode.zone", kind: semreg.ValueSymbol, dimension: zoneDimension, symbols: zoneSymbols}) {
+		t.Fatalf("thermal.mode.zone: %+v", zone)
+	}
+	roomMode, ok := findField("thermal.room.mode_zone")
+	roomSymbols := []string{"thermal.room.mode_zone.auto", "thermal.room.mode_zone.eco", "thermal.room.mode_zone.off", "thermal.room.mode_zone.on"}
+	if !ok || !sameThermalSpec(roomMode, fieldSpec{id: "thermal.room.mode_zone", kind: semreg.ValueSymbol, dimension: "thermal.dimension.room", symbols: roomSymbols}) {
+		t.Fatalf("thermal.room.mode_zone: %+v", roomMode)
+	}
+	measurement, ok := findField("thermal.room.measurement_air_temperature")
+	if !ok || !sameThermalSpec(measurement, fieldSpec{id: "thermal.room.measurement_air_temperature", kind: semreg.ValueQuantity, unit: kelvin, dimension: "thermal.dimension.room"}) {
+		t.Fatalf("thermal.room.measurement_air_temperature: %+v", measurement)
+	}
+	validator := New()
+	for _, token := range []string{"auto", "comfort", "eco", "off", "on"} {
+		value := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "thermal.mode.zone", Token: token, Known: true}}
+		if err := validator.ValidateFact(validKey(zone), &value); err != nil {
+			t.Fatalf("zone %s: %v", token, err)
+		}
+		if err := validator.ValidateField(definition("thermal.mode.zone"), semreg.TypedField{ID: "thermal.mode.zone", Value: value}); err != nil {
+			t.Fatalf("zone argument %s: %v", token, err)
+		}
+	}
+	for _, token := range []string{"auto", "eco", "off", "on"} {
+		value := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "thermal.room.mode_zone", Token: token, Known: true}}
+		if err := validator.ValidateFact(validKey(roomMode), &value); err != nil {
+			t.Fatalf("room %s: %v", token, err)
+		}
+	}
+	comfort := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "thermal.room.mode_zone", Token: "comfort", Known: true}}
+	requireID(t, validator.ValidateFact(validKey(roomMode), &comfort), semreg.InvalidValue)
+	kelvinValue := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "29315", Exponent10: -2}, Unit: kelvin}}
+	if err := validator.ValidateFact(validKey(measurement), &kelvinValue); err != nil {
+		t.Fatal(err)
 	}
 }

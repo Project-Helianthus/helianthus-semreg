@@ -385,6 +385,9 @@ func resolveWalk(catalog *Catalog, index *cutIndex, request TraversalRequest) (m
 			return nil, 0, nil, "", err
 		}
 		depthBound = lens.MaxDepth
+		if depthBound == 0 {
+			depthBound = MaxTraversalDepth
+		}
 		switch request.Entry.Kind {
 		case EntryLensRoots:
 			entries = resourcesOfKinds(index, lens.RootKinds)

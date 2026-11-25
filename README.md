@@ -29,7 +29,7 @@ pinned by SHA-256 in `graph.PinnedDigest`.
 |---|---|
 | `Decode` | Strictly decodes `helianthus.semantic.element-catalog/v1`: no repeated, unknown or missing member, and every value in its vocabulary. |
 | `Check`, `Validate` | Apply CAT-1 to CAT-9 against the metadata and definition indexes of the given packs; `Validate` returns the first finding as a stable error. |
-| `Load` | Accepts only the pinned bytes, then decodes and validates them against the five accepted packs. |
+| `Load` | Accepts only the pinned bytes, then decodes and validates them against the seven accepted packs. |
 | `Catalog` lookups | Entry by exact `DefinitionRef` or core `DefinitionID`; planes and disposition of an entry; kind of a dimension and a service; core type, orientation, endpoint kinds, cardinality, basis classes and medium of a relation definition; identification schemes and lenses. Every result is a detached copy. |
 | `AssembleCut` | Reads at most 256 snapshots of distinct assets together as one graph cut, with a caller-asserted `complete` or `partial` completeness. It rejects only invalid input: a snapshot that fails validation, two snapshots of one asset (`duplicate_key`) or more than 256 (`bounds_exceeded`). The cut identifier is `sha256:` over the JCS bytes of `{contract:"helianthus.semantic.graph-cut/v1", members}`, the `(asset_id, snapshot_id)` vector sorted by asset; there is no global revision. |
 | `Cut` findings and coherence | `duplicate_identity` excludes both members and makes the cut `partial`; `same_unit`, `contradicted_absence`, `anchor_parent_unresolved` and `ungraphed` are reported without blocking the read. Every relation instance of a kept member is `coherent`, `stale`, `dangling`, `outside_cut`, `excluded` or `conflict`, including cardinality, forest and cycle violations across members and a far end of a kind the definition does not admit. |
@@ -88,16 +88,16 @@ kernel refuses that record with exactly the stable error and detail of that
 rule. A refusal no rule explains fails, and so does a record that breaks a
 rule but is accepted. The test log lists every finding by rule and vector.
 
-Conformance is not reached yet: it requires every vector to pass. 85
+Conformance is not reached yet: it requires every vector to pass. 86
 vectors execute and none are skipped. 6 pass: `G-NEG-ACT-2`, `G-NEG-CAT-1`,
 `G-NEG-CAT-2`, `G-POS-ACT-1`, `G-POS-CAT-1` and `G-POS-CAT-2`. None fail.
 The copied document records the element-catalog digest of the seed it was
 written against. `catalog_digest_exposed` and `digest_equals_pinned_digest`
 require the loaded catalog digest to equal `graph.PinnedDigest`; the recorded
 citation is not an input to either assertion. The pinned catalog is unchanged.
-The other 79 vectors end as document findings: relation definitions are
+The other 80 vectors end as document findings: relation definitions are
 written as owner-tagged catalog references instead of a definition reference
-(34); operator origins carry native source fields (33); decimals are not
+(35); operator origins carry native source fields (33); decimals are not
 canonical (2); snapshot identifiers digest an empty retained-observation list
 the kernel omits (3); and a read snapshot's identifier is of the abbreviated
 object rather than the kernel snapshot (7). Each finding is resolved by an

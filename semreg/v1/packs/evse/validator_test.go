@@ -3,6 +3,7 @@ package evse
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -20,40 +21,51 @@ func TestEVSEDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 16 || len(index.Services) != 5 || len(index.Capabilities) != 6 || len(index.Operations) != 1 || len(index.EffectRules) != 1 {
+	if len(index.Fields) != 298 || len(index.Services) != 6 || len(index.Capabilities) != 18 || len(index.Operations) != 12 || len(index.EffectRules) != 12 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {
 		t.Run(string(spec.id), func(t *testing.T) {
 			key, current := testKey(spec), testValue(spec)
+			if spec.kind == semreg.ValueQuantity && spec.unit == "" {
+				invented := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}
+				require(t, v.ValidateFact(key, &invented), semreg.InvalidValue)
+				return
+			}
 			if err := v.ValidateFact(key, &current); err != nil {
 				t.Fatal(err)
 			}
-			if spec.kind != semreg.ValueQuantity {
+			if spec.kind == semreg.ValueSymbol || spec.kind == semreg.ValueSymbols {
 				bad := current
 				bad.Symbol = &semreg.Symbol{Namespace: spec.id, Token: "unknown", Known: true}
+				bad.Symbols = nil
 				require(t, v.ValidateFact(key, &bad), semreg.InvalidValue)
 				return
 			}
-			for _, tc := range []struct {
-				name  string
-				value semreg.Decimal
-				want  semreg.ErrorID
-			}{
-				{"minimum", spec.minimum.decimal(), ""}, {"maximum", spec.maximum.decimal(), ""},
-				{"below minimum", below(spec.minimum.decimal()), semreg.BoundsExceeded}, {"above maximum", above(spec.maximum.decimal()), semreg.BoundsExceeded},
-			} {
-				t.Run(tc.name, func(t *testing.T) {
-					candidate := current
-					candidate.Quantity = &semreg.Quantity{Number: tc.value, Unit: spec.unit}
-					if tc.want == "" {
-						if err := v.ValidateFact(key, &candidate); err != nil {
-							t.Fatal(err)
-						}
-					} else {
-						require(t, v.ValidateFact(key, &candidate), tc.want)
-					}
-				})
+			if spec.kind != semreg.ValueQuantity {
+				bad := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}
+				require(t, v.ValidateFact(key, &bad), semreg.InvalidValue)
+				return
+			}
+			if spec.minimum != nil {
+				exact := current
+				exact.Quantity = &semreg.Quantity{Number: spec.minimum.decimal(), Unit: spec.unit}
+				if err := v.ValidateFact(key, &exact); err != nil {
+					t.Fatal(err)
+				}
+				under := current
+				under.Quantity = &semreg.Quantity{Number: below(spec.minimum.decimal()), Unit: spec.unit}
+				require(t, v.ValidateFact(key, &under), semreg.BoundsExceeded)
+			}
+			if spec.maximum != nil {
+				exact := current
+				exact.Quantity = &semreg.Quantity{Number: spec.maximum.decimal(), Unit: spec.unit}
+				if err := v.ValidateFact(key, &exact); err != nil {
+					t.Fatal(err)
+				}
+				over := current
+				over.Quantity = &semreg.Quantity{Number: above(spec.maximum.decimal()), Unit: spec.unit}
+				require(t, v.ValidateFact(key, &over), semreg.BoundsExceeded)
 			}
 		})
 	}
@@ -102,13 +114,44 @@ func TestEVSECapabilityConstraintsAndRace(t *testing.T) {
 
 func testKey(spec fieldSpec) semreg.FactKey {
 	name := "id"
-	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	dims := []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}
+	for _, id := range fieldQualifiers[spec.id] {
+		dims = append(dims, evseQualifier(id))
+	}
+	sort.Slice(dims, func(i, j int) bool { return dims[i].ID < dims[j].ID })
+	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: dims}
+}
+func evseQualifier(id semreg.DefinitionID) semreg.Dimension {
+	if qualifierKinds[id] == semreg.ValueQuantity {
+		return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "1"}, Unit: "unit.one"}}}
+	}
+	token := qualifierSymbols[id][0]
+	token = strings.TrimPrefix(token, string(id)+".")
+	return semreg.Dimension{ID: id, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: id, Token: token, Known: true}}}
 }
 func testValue(spec fieldSpec) semreg.Value {
-	if spec.kind == semreg.ValueQuantity {
-		return semreg.Value{Kind: spec.kind, Quantity: &semreg.Quantity{Number: spec.minimum.decimal(), Unit: spec.unit}}
+	switch spec.kind {
+	case semreg.ValueQuantity:
+		number := semreg.Decimal{Coefficient: "0"}
+		if spec.minimum != nil {
+			number = spec.minimum.decimal()
+		}
+		return semreg.Value{Kind: spec.kind, Quantity: &semreg.Quantity{Number: number, Unit: spec.unit}}
+	case semreg.ValueBoolean:
+		flag := false
+		return semreg.Value{Kind: spec.kind, Boolean: &flag}
+	case semreg.ValueText:
+		text := "text"
+		return semreg.Value{Kind: spec.kind, Text: &text}
+	case semreg.ValueTime:
+		return semreg.Value{Kind: spec.kind, Time: &semreg.TimePoint{UnixNanoseconds: "0", ClockID: "clock.utc", UncertaintyNS: "0"}}
+	case semreg.ValueSymbols:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: spec.kind, Symbols: []semreg.Symbol{{Namespace: spec.id, Token: token, Known: true}}}
+	default:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return semreg.Value{Kind: spec.kind, Symbol: &semreg.Symbol{Namespace: spec.id, Token: token, Known: true}}
 	}
-	return semreg.Value{Kind: spec.kind, Symbol: &semreg.Symbol{Namespace: spec.id, Token: strings.TrimPrefix(spec.symbols[0], string(spec.id)+"."), Known: true}}
 }
 func must(id semreg.DefinitionID) fieldSpec {
 	spec, ok := findField(id)
@@ -128,15 +171,21 @@ func testCapability(id semreg.DefinitionID) semreg.CapabilityInstance {
 func testEvidence() semreg.EvidenceRef {
 	return semreg.EvidenceRef{Owner: "owner.test", Kind: "evidence.test", Digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Contract: "test.evidence/v1", Access: semreg.EvidenceAccessPublic, Redaction: semreg.RedactionNone}
 }
-func above(value semreg.Decimal) semreg.Decimal {
+func above(value semreg.Decimal) semreg.Decimal { return stepDecimal(value, 1) }
+func below(value semreg.Decimal) semreg.Decimal { return stepDecimal(value, -1) }
+func stepDecimal(value semreg.Decimal, delta int64) semreg.Decimal {
 	var n int64
 	fmt.Sscan(value.Coefficient, &n)
-	return semreg.Decimal{Coefficient: fmt.Sprint(n + 1), Exponent10: value.Exponent10}
-}
-func below(value semreg.Decimal) semreg.Decimal {
-	var n int64
-	fmt.Sscan(value.Coefficient, &n)
-	return semreg.Decimal{Coefficient: fmt.Sprint(n - 1), Exponent10: value.Exponent10}
+	n += delta
+	exponent := value.Exponent10
+	if n == 0 {
+		return semreg.Decimal{Coefficient: "0"}
+	}
+	for n%10 == 0 {
+		n /= 10
+		exponent++
+	}
+	return semreg.Decimal{Coefficient: fmt.Sprint(n), Exponent10: exponent}
 }
 func require(t *testing.T, err error, want semreg.ErrorID) {
 	t.Helper()
@@ -152,6 +201,9 @@ func require(t *testing.T, err error, want semreg.ErrorID) {
 func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 	var graphValidator semreg.GraphFactValidator = New().(semreg.GraphFactValidator)
 	for _, spec := range fields {
+		if len(fieldQualifiers[spec.id]) > 0 || spec.kind == semreg.ValueQuantity && spec.unit == "" {
+			continue
+		}
 		key, value := testKey(spec), testValue(spec)
 		withText := func(text string) semreg.FactKey {
 			changed := key
@@ -215,15 +267,19 @@ func TestAllocatedCurrentPhaseStaysOffConnector(t *testing.T) {
 	if got := operations["evse.operation.set_allocated_current"]; got.argument != connector.id || got.capability != "evse.capability.set_allocated_current" {
 		t.Fatalf("evse.operation.set_allocated_current: %+v", got)
 	}
+	phaseCapability := capabilities["evse.capability.set_allocated_current_phase"]
+	if phaseCapability.service != "evse.service.phase" || !reflect.DeepEqual(phaseCapability.constraints, []semreg.DefinitionID{phase.id}) {
+		t.Fatalf("evse.capability.set_allocated_current_phase: %+v", phaseCapability)
+	}
 	for id, capability := range capabilities {
 		for _, constraint := range capability.constraints {
-			if constraint == phase.id {
+			if constraint == phase.id && id != "evse.capability.set_allocated_current_phase" {
 				t.Fatalf("%s constrains %s", id, phase.id)
 			}
 		}
 	}
 	for id, op := range operations {
-		if op.argument == phase.id {
+		if op.argument == phase.id && id != "evse.operation.set_allocated_current_phase" {
 			t.Fatalf("%s takes %s", id, phase.id)
 		}
 	}

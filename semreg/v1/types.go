@@ -637,6 +637,7 @@ type DefinitionIndex struct {
 	Capabilities []DefinitionRef `json:"capabilities"`
 	Operations   []DefinitionRef `json:"operations"`
 	EffectRules  []DefinitionRef `json:"effect_rules"`
+	Events       []DefinitionRef `json:"events,omitempty"`
 }
 
 // TypedField is a value for a field definition that an accepted pack declares

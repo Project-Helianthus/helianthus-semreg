@@ -30,7 +30,7 @@ const CatalogOrder = "owner kind, pack id, pack version, element id, element ver
 // copy of the accepted catalog. Load accepts no other bytes, and a
 // graph-enforced registry of the root package accepts no catalog with another
 // digest.
-const PinnedDigest semreg.Digest = "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb"
+const PinnedDigest semreg.Digest = "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477"
 
 // Status is the document status.
 type Status string
@@ -94,6 +94,7 @@ const (
 	KindEvidenceState  ElementKind = "evidence_state"
 	KindLifecycleState ElementKind = "lifecycle_state"
 	KindPresentation   ElementKind = "presentation"
+	KindEvent          ElementKind = "event"
 )
 
 // Disposition is the catalog disposition of an entry. It is distinct from
@@ -332,24 +333,29 @@ type RelationAttributes struct {
 	EndpointDimensions *EndpointDimensions
 }
 
-// DimensionAttributes are the attributes of a dimension. ResourceKind is set
-// only for the resource role. ValueKind and Symbols are set only for a
-// qualifier dimension whose value kind is symbol.
+// DimensionAttributes are the attributes of a dimension. A resource dimension
+// names ResourceKind or AnchorClasses. A qualifier dimension names ValueKind:
+// symbol with Symbols, quantity with Unit, or text.
 type DimensionAttributes struct {
-	Role         DimensionRole
-	ResourceKind semreg.DefinitionID
-	ValueKind    semreg.ValueKind
-	Symbols      []string
+	Role          DimensionRole
+	ResourceKind  semreg.DefinitionID
+	AnchorClasses []semreg.AnchorClass
+	ValueKind     semreg.ValueKind
+	Unit          semreg.DefinitionID
+	Symbols       []string
 }
 
-// ServiceAttributes are the attributes of a service.
+// ServiceAttributes are the attributes of a service. SubjectKind and
+// SubjectClasses are alternatives: one of them is set.
 type ServiceAttributes struct {
 	FactKeyDimension ElementRef
 	SubjectKind      semreg.DefinitionID
+	SubjectClasses   []semreg.AnchorClass
 }
 
-// FactSubject is the subject of a fact. A resolved subject has Dimension and
-// Kind; an unresolved one may name its QualifierDimension.
+// FactSubject is the subject of a fact. A resolved subject has Dimension and,
+// when the dimension names a resource kind, Kind. An unresolved one may name
+// its QualifierDimension.
 type FactSubject struct {
 	Status             SubjectStatus
 	Dimension          *ElementRef
@@ -366,7 +372,8 @@ type SignReference struct {
 
 // FactAttributes are the attributes of a fact. SignReference is set exactly
 // when Direction is signed. Qualifiers lists the qualifier dimensions of the
-// fact, in document order, and is empty when the fact names none.
+// fact, in document order, and is empty when the fact names none. Symbols is
+// set for a symbol or symbols fact that lists them.
 type FactAttributes struct {
 	ValueKind     semreg.ValueKind
 	Subject       FactSubject
@@ -374,6 +381,7 @@ type FactAttributes struct {
 	Direction     Direction
 	SignReference *SignReference
 	Qualifiers    []ElementRef
+	Symbols       []string
 }
 
 // CapabilityAttributes are the attributes of a capability.
@@ -382,11 +390,43 @@ type CapabilityAttributes struct {
 	Operation *ElementRef
 }
 
-// OperationAttributes are the attributes of an operation.
+// OperationAttributes are the attributes of an operation. Parameters keeps
+// the declared order and is empty when the operation names none.
 type OperationAttributes struct {
 	Capability ElementRef
 	Argument   ElementRef
 	EffectRule ElementRef
+	Parameters []ElementRef
+}
+
+// EventCondition is entered, left or changed.
+type EventCondition string
+
+// EventCondition values.
+const (
+	EventEntered EventCondition = "entered"
+	EventLeft    EventCondition = "left"
+	EventChanged EventCondition = "changed"
+)
+
+// EventOrigin is emitted or derived.
+type EventOrigin string
+
+// EventOrigin values.
+const (
+	EventEmitted EventOrigin = "emitted"
+	EventDerived EventOrigin = "derived"
+)
+
+// EventAttributes are the attributes of an event. Payload is empty when the
+// event carries none. Symbols is set when Condition is entered or left.
+type EventAttributes struct {
+	Service   ElementRef
+	Trigger   ElementRef
+	Condition EventCondition
+	Symbols   []string
+	Payload   []ElementRef
+	Origin    EventOrigin
 }
 
 // EffectRuleAttributes are the attributes of an effect rule.
@@ -427,6 +467,7 @@ type Element struct {
 	EffectRule   *EffectRuleAttributes
 	KernelState  *KernelStateAttributes
 	Presentation *PresentationAttributes
+	Event        *EventAttributes
 }
 
 // Catalog is an immutable decoded element catalog.
@@ -585,19 +626,37 @@ func (c *Catalog) DispositionOf(ref ElementRef) (Disposition, bool) {
 // dimension has no kind.
 func (c *Catalog) DimensionKind(ref semreg.DefinitionRef) (semreg.DefinitionID, bool) {
 	at, ok := c.byRef[PackElement(ref)]
-	if !ok || c.elements[at].Dimension == nil || c.elements[at].Dimension.Role != RoleResource {
+	if !ok || c.elements[at].Dimension == nil || c.elements[at].Dimension.Role != RoleResource || c.elements[at].Dimension.ResourceKind == "" {
 		return "", false
 	}
 	return c.elements[at].Dimension.ResourceKind, true
 }
 
-// ServiceSubjectKind returns the subject kind of a service.
+// ServiceSubjectKind returns the scalar subject kind of a service. A service
+// that names anchor classes has no scalar kind.
 func (c *Catalog) ServiceSubjectKind(ref semreg.DefinitionRef) (semreg.DefinitionID, bool) {
 	at, ok := c.byRef[PackElement(ref)]
-	if !ok || c.elements[at].Service == nil {
+	if !ok || c.elements[at].Service == nil || c.elements[at].Service.SubjectKind == "" {
 		return "", false
 	}
 	return c.elements[at].Service.SubjectKind, true
+}
+
+// ServiceSubject returns the scalar subject kind or the anchor classes of a
+// service. Exactly one of the two results is set when ok is true.
+func (c *Catalog) ServiceSubject(ref semreg.DefinitionRef) (semreg.DefinitionID, []semreg.AnchorClass, bool) {
+	at, ok := c.byRef[PackElement(ref)]
+	if !ok || c.elements[at].Service == nil {
+		return "", nil, false
+	}
+	service := c.elements[at].Service
+	if service.SubjectKind != "" {
+		return service.SubjectKind, nil, true
+	}
+	if len(service.SubjectClasses) == 0 {
+		return "", nil, false
+	}
+	return "", append([]semreg.AnchorClass(nil), service.SubjectClasses...), true
 }
 
 // Relation returns the core type, orientation, endpoint kinds, cardinality,
@@ -696,7 +755,7 @@ type lensWire struct {
 	Planes    []string   `json:"planes"`
 	RootKinds []string   `json:"root_kinds"`
 	Relations *[]refWire `json:"relations,omitempty"`
-	MaxDepth  int        `json:"max_depth"`
+	MaxDepth  *int       `json:"max_depth,omitempty"`
 }
 
 type elementWire struct {
@@ -745,15 +804,18 @@ type relationWire struct {
 }
 
 type dimensionWire struct {
-	Role         string   `json:"role"`
-	ResourceKind *string  `json:"resource_kind,omitempty"`
-	ValueKind    *string  `json:"value_kind,omitempty"`
-	Symbols      []string `json:"symbols,omitempty"`
+	Role          string   `json:"role"`
+	ResourceKind  *string  `json:"resource_kind,omitempty"`
+	AnchorClasses []string `json:"anchor_classes,omitempty"`
+	ValueKind     *string  `json:"value_kind,omitempty"`
+	Unit          *string  `json:"unit,omitempty"`
+	Symbols       []string `json:"symbols,omitempty"`
 }
 
 type serviceWire struct {
-	FactKeyDimension refWire `json:"fact_key_dimension"`
-	SubjectKind      string  `json:"subject_kind"`
+	FactKeyDimension refWire  `json:"fact_key_dimension"`
+	SubjectKind      *string  `json:"subject_kind,omitempty"`
+	SubjectClasses   []string `json:"subject_classes,omitempty"`
 }
 
 type subjectWire struct {
@@ -770,6 +832,7 @@ type factWire struct {
 	Direction     string          `json:"direction"`
 	SignReference json.RawMessage `json:"sign_reference,omitempty"`
 	Qualifiers    []refWire       `json:"qualifiers,omitempty"`
+	Symbols       []string        `json:"symbols,omitempty"`
 }
 
 type capabilityWire struct {
@@ -778,9 +841,19 @@ type capabilityWire struct {
 }
 
 type operationWire struct {
-	Capability refWire `json:"capability"`
-	Argument   refWire `json:"argument"`
-	EffectRule refWire `json:"effect_rule"`
+	Capability refWire   `json:"capability"`
+	Argument   refWire   `json:"argument"`
+	EffectRule refWire   `json:"effect_rule"`
+	Parameters []refWire `json:"parameters,omitempty"`
+}
+
+type eventWire struct {
+	Service   refWire   `json:"service"`
+	Trigger   refWire   `json:"trigger"`
+	Condition string    `json:"condition"`
+	Symbols   []string  `json:"symbols,omitempty"`
+	Payload   []refWire `json:"payload"`
+	Origin    string    `json:"origin"`
 }
 
 type effectRuleWire struct {
@@ -810,23 +883,25 @@ var (
 )
 
 var (
-	planeIDs      = set(PlanePhysical, PlaneEnergy, PlaneHydraulic, PlaneControl, PlaneDiagnostic, PlaneProvenance)
-	coreTypeIDs   = set(CoreContains, CoreGroups, CoreSupplies, CoreMeasures, CoreControls, CoreHosts, CoreRelays)
-	structures    = set(StructureForest, StructureAcyclic, StructureGraph)
-	elementKinds  = set(KindResourceKind, KindRelation, KindDimension, KindService, KindFact, KindCapability, KindOperation, KindEffectRule, KindEvidenceState, KindLifecycleState, KindPresentation)
-	dispositions  = set(DispositionMember, DispositionUnsupported, DispositionUnknown)
-	arms          = set(ArmAcceptedPack, ArmAcceptedKernel, ArmOwnerDecision, ArmMatterBaseline, ArmEEBus, ArmTwoVendors, ArmPublicRegistry)
-	orientations  = set(OrientationAsCore, OrientationInverse)
-	cardinalities = set(CardinalityOneToOne, CardinalityOneToMany, CardinalityManyToMany)
-	media         = set(MediumElectrical, MediumHeatTransferFluid, MediumRefrigerant, MediumAir)
-	basisClasses  = set(semreg.RelationNativeObservation, semreg.RelationConfiguration, semreg.RelationGateRule)
-	anchorClasses = set(semreg.AnchorEquipment, semreg.AnchorComponent, semreg.AnchorFunction, semreg.AnchorEpisode)
-	roles         = set(RoleResource, RoleQualifier)
-	valueKinds    = set(semreg.ValueQuantity, semreg.ValueBoolean, semreg.ValueText, semreg.ValueSymbol, semreg.ValueSymbols, semreg.ValueTime)
-	aggregations  = set(AggregationMember, AggregationAggregate, AggregationNotApplicable)
-	directions    = set(DirectionNotApplicable, DirectionNonNegative, DirectionSigned)
-	targets       = set(TargetPortal, TargetProjectionVocabulary)
-	statuses      = set(StatusDraft, StatusAccepted)
+	planeIDs        = set(PlanePhysical, PlaneEnergy, PlaneHydraulic, PlaneControl, PlaneDiagnostic, PlaneProvenance)
+	coreTypeIDs     = set(CoreContains, CoreGroups, CoreSupplies, CoreMeasures, CoreControls, CoreHosts, CoreRelays)
+	structures      = set(StructureForest, StructureAcyclic, StructureGraph)
+	elementKinds    = set(KindResourceKind, KindRelation, KindDimension, KindService, KindFact, KindCapability, KindOperation, KindEffectRule, KindEvidenceState, KindLifecycleState, KindPresentation, KindEvent)
+	eventConditions = set(EventEntered, EventLeft, EventChanged)
+	eventOrigins    = set(EventEmitted, EventDerived)
+	dispositions    = set(DispositionMember, DispositionUnsupported, DispositionUnknown)
+	arms            = set(ArmAcceptedPack, ArmAcceptedKernel, ArmOwnerDecision, ArmMatterBaseline, ArmEEBus, ArmTwoVendors, ArmPublicRegistry)
+	orientations    = set(OrientationAsCore, OrientationInverse)
+	cardinalities   = set(CardinalityOneToOne, CardinalityOneToMany, CardinalityManyToMany)
+	media           = set(MediumElectrical, MediumHeatTransferFluid, MediumRefrigerant, MediumAir)
+	basisClasses    = set(semreg.RelationNativeObservation, semreg.RelationConfiguration, semreg.RelationGateRule)
+	anchorClasses   = set(semreg.AnchorEquipment, semreg.AnchorComponent, semreg.AnchorFunction, semreg.AnchorEpisode)
+	roles           = set(RoleResource, RoleQualifier)
+	valueKinds      = set(semreg.ValueQuantity, semreg.ValueBoolean, semreg.ValueText, semreg.ValueSymbol, semreg.ValueSymbols, semreg.ValueTime)
+	aggregations    = set(AggregationMember, AggregationAggregate, AggregationNotApplicable)
+	directions      = set(DirectionNotApplicable, DirectionNonNegative, DirectionSigned)
+	targets         = set(TargetPortal, TargetProjectionVocabulary)
+	statuses        = set(StatusDraft, StatusAccepted)
 )
 
 const (
@@ -1019,9 +1094,12 @@ func decodeLenses(wires []lensWire) ([]Lens, error) {
 		if err != nil {
 			return nil, err
 		}
-		lens := Lens{ID: semreg.DefinitionID(wire.ID), Question: wire.Question, Planes: planes, RootKinds: roots, MaxDepth: wire.MaxDepth}
-		if wire.MaxDepth < 1 || wire.MaxDepth > maxLensDepth {
-			return nil, errorf(semreg.InvalidValue, "lens %s depth %d outside 1 through %d", wire.ID, wire.MaxDepth, maxLensDepth)
+		lens := Lens{ID: semreg.DefinitionID(wire.ID), Question: wire.Question, Planes: planes, RootKinds: roots}
+		if wire.MaxDepth != nil {
+			if *wire.MaxDepth < 1 || *wire.MaxDepth > maxLensDepth {
+				return nil, errorf(semreg.InvalidValue, "lens %s depth %d outside 1 through %d", wire.ID, *wire.MaxDepth, maxLensDepth)
+			}
+			lens.MaxDepth = *wire.MaxDepth
 		}
 		if wire.Relations != nil {
 			if len(*wire.Relations) == 0 {
@@ -1110,14 +1188,8 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 			return errorf(semreg.InvalidEnum, "dimension role %q", wire.Role)
 		}
 		attributes := &DimensionAttributes{Role: DimensionRole(wire.Role)}
-		if (wire.ResourceKind != nil) != (attributes.Role == RoleResource) {
-			return newError(semreg.InvalidValue, "a dimension names a resource kind exactly when its role is resource")
-		}
-		if wire.ResourceKind != nil {
-			if err := checkDefinitionID(*wire.ResourceKind); err != nil {
-				return err
-			}
-			attributes.ResourceKind = semreg.DefinitionID(*wire.ResourceKind)
+		if err := decodeDimensionRole(attributes, wire); err != nil {
+			return err
 		}
 		if err := decodeDimensionValue(attributes, wire); err != nil {
 			return err
@@ -1132,10 +1204,11 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 		if err != nil {
 			return err
 		}
-		if err := checkDefinitionID(wire.SubjectKind); err != nil {
+		attributes := &ServiceAttributes{FactKeyDimension: dimension}
+		if err := decodeServiceSubject(attributes, wire); err != nil {
 			return err
 		}
-		element.Service = &ServiceAttributes{FactKeyDimension: dimension, SubjectKind: semreg.DefinitionID(wire.SubjectKind)}
+		element.Service = attributes
 	case KindFact:
 		return decodeFact(element, raw)
 	case KindCapability:
@@ -1165,6 +1238,13 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 			return err
 		}
 		element.Operation = &OperationAttributes{Capability: refs[0], Argument: refs[1], EffectRule: refs[2]}
+		if len(wire.Parameters) > 0 {
+			parameters, err := decodeQualifierList(wire.Parameters)
+			if err != nil {
+				return err
+			}
+			element.Operation.Parameters = parameters
+		}
 	case KindEffectRule:
 		var wire effectRuleWire
 		if err := strictDecode(raw, &wire, "effect rule attributes"); err != nil {
@@ -1206,7 +1286,120 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 			return errorf(semreg.InvalidEnum, "presentation target %q", wire.Target)
 		}
 		element.Presentation = &PresentationAttributes{Target: PresentationTarget(wire.Target)}
+	case KindEvent:
+		return decodeEvent(element, raw)
 	}
+	return nil
+}
+
+func decodeDimensionRole(attributes *DimensionAttributes, wire dimensionWire) error {
+	hasKind := wire.ResourceKind != nil
+	hasClasses := len(wire.AnchorClasses) > 0
+	if attributes.Role == RoleResource {
+		if hasKind == hasClasses {
+			return newError(semreg.InvalidValue, "a resource dimension names a resource kind or anchor classes")
+		}
+		if hasKind {
+			if err := checkDefinitionID(*wire.ResourceKind); err != nil {
+				return err
+			}
+			attributes.ResourceKind = semreg.DefinitionID(*wire.ResourceKind)
+			return nil
+		}
+		classes, err := decodeAnchorClasses(wire.AnchorClasses)
+		if err != nil {
+			return err
+		}
+		attributes.AnchorClasses = classes
+		return nil
+	}
+	if hasKind || hasClasses {
+		return newError(semreg.InvalidValue, "a qualifier dimension names no resource kind")
+	}
+	return nil
+}
+
+func decodeServiceSubject(attributes *ServiceAttributes, wire serviceWire) error {
+	hasKind := wire.SubjectKind != nil
+	hasClasses := len(wire.SubjectClasses) > 0
+	if hasKind == hasClasses {
+		return newError(semreg.InvalidValue, "a service names a subject kind or subject classes")
+	}
+	if hasKind {
+		if err := checkDefinitionID(*wire.SubjectKind); err != nil {
+			return err
+		}
+		attributes.SubjectKind = semreg.DefinitionID(*wire.SubjectKind)
+		return nil
+	}
+	classes, err := decodeAnchorClasses(wire.SubjectClasses)
+	if err != nil {
+		return err
+	}
+	attributes.SubjectClasses = classes
+	return nil
+}
+
+func decodeAnchorClasses(values []string) ([]semreg.AnchorClass, error) {
+	if len(values) == 0 || len(values) > 4 {
+		return nil, errorf(semreg.InvalidValue, "%d anchor classes", len(values))
+	}
+	out := make([]semreg.AnchorClass, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		if !inSet(anchorClasses, value) {
+			return nil, errorf(semreg.InvalidEnum, "anchor class %q", value)
+		}
+		if _, dup := seen[value]; dup {
+			return nil, errorf(semreg.InvalidValue, "anchor class %q repeated", value)
+		}
+		seen[value] = struct{}{}
+		out = append(out, semreg.AnchorClass(value))
+	}
+	return out, nil
+}
+
+func decodeEvent(element *Element, raw json.RawMessage) error {
+	var wire eventWire
+	if err := strictDecode(raw, &wire, "event attributes"); err != nil {
+		return err
+	}
+	if !inSet(eventConditions, wire.Condition) {
+		return errorf(semreg.InvalidEnum, "event condition %q", wire.Condition)
+	}
+	if !inSet(eventOrigins, wire.Origin) {
+		return errorf(semreg.InvalidEnum, "event origin %q", wire.Origin)
+	}
+	service, err := decodeRef(wire.Service)
+	if err != nil {
+		return err
+	}
+	trigger, err := decodeRef(wire.Trigger)
+	if err != nil {
+		return err
+	}
+	condition := EventCondition(wire.Condition)
+	needsSymbols := condition == EventEntered || condition == EventLeft
+	if needsSymbols == (len(wire.Symbols) == 0) {
+		return newError(semreg.InvalidValue, "an event names symbols exactly when its condition is entered or left")
+	}
+	symbols, err := decodeSymbolList(wire.Symbols)
+	if err != nil {
+		return err
+	}
+	var payload []ElementRef
+	if wire.Payload == nil {
+		return newError(semreg.MissingMember, "event payload")
+	}
+	if len(wire.Payload) > 0 {
+		payload, err = decodeQualifierList(wire.Payload)
+		if err != nil {
+			return err
+		}
+	} else {
+		payload = []ElementRef{}
+	}
+	element.Event = &EventAttributes{Service: service, Trigger: trigger, Condition: condition, Symbols: symbols, Payload: payload, Origin: EventOrigin(wire.Origin)}
 	return nil
 }
 
@@ -1313,33 +1506,73 @@ func decodeFact(element *Element, raw json.RawMessage) error {
 		}
 		attributes.Qualifiers = qualifiers
 	}
+	if len(wire.Symbols) > 0 {
+		if attributes.ValueKind != semreg.ValueSymbol && attributes.ValueKind != semreg.ValueSymbols {
+			return newError(semreg.InvalidValue, "a fact names symbols only for a symbol value")
+		}
+		symbols, err := decodeSymbolList(wire.Symbols)
+		if err != nil {
+			return err
+		}
+		attributes.Symbols = symbols
+	}
 	element.Fact = attributes
 	return nil
 }
 
 func decodeDimensionValue(attributes *DimensionAttributes, wire dimensionWire) error {
 	if attributes.Role != RoleQualifier {
-		if wire.ValueKind != nil || len(wire.Symbols) > 0 {
+		if wire.ValueKind != nil || wire.Unit != nil || len(wire.Symbols) > 0 {
 			return newError(semreg.InvalidValue, "a resource dimension names no value kind")
 		}
 		return nil
 	}
-	if wire.ValueKind == nil || *wire.ValueKind != string(semreg.ValueSymbol) || len(wire.Symbols) == 0 {
-		return newError(semreg.InvalidValue, "a qualifier dimension names the symbol value kind")
+	if wire.ValueKind == nil {
+		return newError(semreg.InvalidValue, "a qualifier dimension names its value kind")
+	}
+	switch semreg.ValueKind(*wire.ValueKind) {
+	case semreg.ValueSymbol:
+		if wire.Unit != nil || len(wire.Symbols) == 0 {
+			return newError(semreg.InvalidValue, "a symbol qualifier names symbols and no unit")
+		}
+		symbols, err := decodeSymbolList(wire.Symbols)
+		if err != nil {
+			return err
+		}
+		attributes.ValueKind = semreg.ValueSymbol
+		attributes.Symbols = symbols
+	case semreg.ValueQuantity:
+		if wire.Unit == nil || *wire.Unit != string(semreg.DefinitionID("unit.one")) || len(wire.Symbols) > 0 {
+			return newError(semreg.InvalidValue, "a quantity qualifier names unit.one and no symbols")
+		}
+		attributes.ValueKind = semreg.ValueQuantity
+		attributes.Unit = semreg.DefinitionID(*wire.Unit)
+	case semreg.ValueText:
+		if wire.Unit != nil || len(wire.Symbols) > 0 {
+			return newError(semreg.InvalidValue, "a text qualifier names no unit and no symbols")
+		}
+		attributes.ValueKind = semreg.ValueText
+	default:
+		return errorf(semreg.InvalidEnum, "qualifier value kind %q", *wire.ValueKind)
+	}
+	return nil
+}
+
+func decodeSymbolList(symbols []string) ([]string, error) {
+	if len(symbols) == 0 {
+		return nil, nil
 	}
 	seen := map[string]struct{}{}
-	for _, symbol := range wire.Symbols {
+	for _, symbol := range symbols {
 		if !symbolTokenPattern.MatchString(symbol) {
-			return errorf(semreg.InvalidIdentifier, "symbol %q", symbol)
+			return nil, errorf(semreg.InvalidIdentifier, "symbol %q", symbol)
 		}
 		if _, dup := seen[symbol]; dup {
-			return errorf(semreg.InvalidValue, "symbol %q repeated", symbol)
+			return nil, errorf(semreg.InvalidValue, "symbol %q repeated", symbol)
 		}
 		seen[symbol] = struct{}{}
 	}
-	attributes.ValueKind = semreg.ValueSymbol
-	attributes.Symbols = append([]string(nil), wire.Symbols...)
-	return nil
+	return append([]string(nil), symbols...), nil
 }
 
 func decodeQualifierList(wires []refWire) ([]ElementRef, error) {
@@ -1363,17 +1596,21 @@ func decodeSubject(wire subjectWire) (FactSubject, error) {
 		if wire.QualifierDimension != nil {
 			return FactSubject{}, newError(semreg.UnknownMember, "a resolved subject has no qualifier_dimension")
 		}
-		if wire.Dimension == nil || wire.Kind == nil {
-			return FactSubject{}, newError(semreg.MissingMember, "a resolved subject names its dimension and kind")
+		if wire.Dimension == nil {
+			return FactSubject{}, newError(semreg.MissingMember, "a resolved subject names its dimension")
 		}
 		dimension, err := decodeRef(*wire.Dimension)
 		if err != nil {
 			return FactSubject{}, err
 		}
-		if err := checkDefinitionID(*wire.Kind); err != nil {
-			return FactSubject{}, err
+		subject := FactSubject{Status: SubjectResolved, Dimension: &dimension}
+		if wire.Kind != nil {
+			if err := checkDefinitionID(*wire.Kind); err != nil {
+				return FactSubject{}, err
+			}
+			subject.Kind = semreg.DefinitionID(*wire.Kind)
 		}
-		return FactSubject{Status: SubjectResolved, Dimension: &dimension, Kind: semreg.DefinitionID(*wire.Kind)}, nil
+		return subject, nil
 	case SubjectUnresolved:
 		if wire.Dimension != nil || wire.Kind != nil {
 			return FactSubject{}, newError(semreg.UnknownMember, "an unresolved subject has no dimension and no kind")
@@ -1743,10 +1980,13 @@ func cloneElement(in Element) Element {
 	}
 	if in.Dimension != nil {
 		value := *in.Dimension
+		value.AnchorClasses = append([]semreg.AnchorClass(nil), in.Dimension.AnchorClasses...)
+		value.Symbols = append([]string(nil), in.Dimension.Symbols...)
 		out.Dimension = &value
 	}
 	if in.Service != nil {
 		value := *in.Service
+		value.SubjectClasses = append([]semreg.AnchorClass(nil), in.Service.SubjectClasses...)
 		out.Service = &value
 	}
 	if in.Fact != nil {
@@ -1758,6 +1998,8 @@ func cloneElement(in Element) Element {
 			sign.Relation = cloneRef(in.Fact.SignReference.Relation)
 			value.SignReference = &sign
 		}
+		value.Qualifiers = append([]ElementRef(nil), in.Fact.Qualifiers...)
+		value.Symbols = append([]string(nil), in.Fact.Symbols...)
 		out.Fact = &value
 	}
 	if in.Capability != nil {
@@ -1767,6 +2009,7 @@ func cloneElement(in Element) Element {
 	}
 	if in.Operation != nil {
 		value := *in.Operation
+		value.Parameters = append([]ElementRef(nil), in.Operation.Parameters...)
 		out.Operation = &value
 	}
 	if in.EffectRule != nil {
@@ -1781,6 +2024,12 @@ func cloneElement(in Element) Element {
 	if in.Presentation != nil {
 		value := *in.Presentation
 		out.Presentation = &value
+	}
+	if in.Event != nil {
+		value := *in.Event
+		value.Symbols = append([]string(nil), in.Event.Symbols...)
+		value.Payload = append([]ElementRef(nil), in.Event.Payload...)
+		out.Event = &value
 	}
 	return out
 }

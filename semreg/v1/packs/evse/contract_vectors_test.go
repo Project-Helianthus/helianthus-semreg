@@ -14,10 +14,10 @@ import (
 
 // fixtureHash is the SHA-256 of fixtures/v1/evse-pack-vectors.json.
 var fixtureHash = [sha256.Size]byte{
-	0x1d, 0xf2, 0xd5, 0xbb, 0x48, 0x26, 0x85, 0x14,
-	0x82, 0x38, 0x26, 0xaa, 0x6f, 0xc6, 0xa9, 0x63,
-	0xc8, 0xfb, 0xb8, 0x10, 0x12, 0xf1, 0x08, 0xd8,
-	0xbd, 0xd7, 0x6a, 0xd5, 0xf9, 0xf2, 0x46, 0x50,
+	0xff, 0x68, 0x39, 0x85, 0x96, 0x31, 0xda, 0x1e,
+	0x5f, 0x7d, 0xb9, 0x1a, 0xe4, 0x39, 0xb9, 0x63,
+	0x16, 0xc2, 0xe4, 0xf6, 0xb8, 0x3b, 0xaf, 0x2e,
+	0x6c, 0xce, 0x22, 0x09, 0x27, 0x14, 0xb0, 0x3d,
 }
 
 type evseVector struct {
@@ -93,6 +93,7 @@ func TestEVSEStaticRelationsAndPortalReferences(t *testing.T) {
 		{"evse.relation.connector_phase", "evse.dimension.connector", "evse.dimension.phase", "one_to_many"},
 		{"evse.relation.connector_session", "evse.dimension.connector", "evse.dimension.session", "one_to_many_over_time"},
 		{"evse.relation.evse_meter", "evse.dimension.evse", "evse.dimension.meter", "one_to_many"},
+		{"evse.relation.connector_vehicle", "evse.dimension.connector", "evse.dimension.vehicle", "one_to_one"},
 	}
 	relations := evseArray(t, definitions["relations"])
 	if len(relations) != len(wantRelations) {
@@ -138,7 +139,7 @@ func validateEVSEBaseline(t *testing.T, document map[string]any) {
 	for _, count := range []struct {
 		value any
 		want  int
-	}{{definitions["fields"], 16}, {definitions["fact_dimensions"], 6}, {definitions["services"], 5}, {definitions["relations"], 5}, {definitions["capabilities"], 6}, {definitions["operations"], 1}, {definitions["effect_rules"], 1}, {definitions["portal_contributions"], 6}} {
+	}{{definitions["fields"], 298}, {definitions["fact_dimensions"], 7}, {definitions["services"], 6}, {definitions["relations"], 6}, {definitions["capabilities"], 18}, {definitions["operations"], 12}, {definitions["effect_rules"], 12}, {definitions["portal_contributions"], 7}} {
 		if len(evseArray(t, count.value)) != count.want {
 			t.Fatalf("catalog count %d", count.want)
 		}

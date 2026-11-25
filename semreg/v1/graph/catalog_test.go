@@ -87,17 +87,17 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 		counts[element.ElementKind]++
 	}
 	want := map[graph.ElementKind]int{
-		graph.KindResourceKind: 35, graph.KindRelation: 28, graph.KindDimension: 39, graph.KindService: 36,
-		graph.KindFact: 146, graph.KindCapability: 37, graph.KindOperation: 7, graph.KindEffectRule: 7,
-		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 42,
+		graph.KindResourceKind: 47, graph.KindRelation: 47, graph.KindDimension: 87, graph.KindService: 52,
+		graph.KindFact: 1146, graph.KindCapability: 163, graph.KindOperation: 125, graph.KindEffectRule: 125,
+		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 58, graph.KindEvent: 28,
 	}
 	for kind, n := range want {
 		if counts[kind] != n {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 402 {
-		t.Errorf("entries = %d, want 402", n)
+	if n := len(catalog.Elements()); n != 1903 {
+		t.Errorf("entries = %d, want 1903", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)
@@ -113,6 +113,7 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 	lenses := catalog.Lenses()
 	wantLenses := []semreg.DefinitionID{
 		"lens.installation_hierarchy", "lens.energy_flow", "lens.equipment_composition", "lens.provenance",
+		"lens.hydraulic", "lens.thermal", "lens.electrical", "lens.control_hierarchy", "lens.diagnostic", "lens.communication",
 	}
 	if len(lenses) != len(wantLenses) {
 		t.Errorf("lenses = %d, want %d", len(lenses), len(wantLenses))
@@ -150,6 +151,19 @@ func TestInstallationRootMark(t *testing.T) {
 	entry["attributes"].(document)["installation_root"] = true
 	if _, err := graph.Decode(encode(t, unknown)); semreg.ErrorIdentifier(err) != semreg.InvalidValue {
 		t.Fatalf("unknown installation root = %v", err)
+	}
+}
+
+func qualifierShape(dimension *graph.DimensionAttributes) bool {
+	switch dimension.ValueKind {
+	case semreg.ValueSymbol:
+		return dimension.Unit == "" && len(dimension.Symbols) > 0
+	case semreg.ValueQuantity:
+		return dimension.Unit == "unit.one" && len(dimension.Symbols) == 0
+	case semreg.ValueText:
+		return dimension.Unit == "" && len(dimension.Symbols) == 0
+	default:
+		return false
 	}
 }
 
@@ -209,20 +223,21 @@ func TestLookups(t *testing.T) {
 		kind, ok := catalog.DimensionKind(ref)
 		switch entry.Dimension.Role {
 		case graph.RoleResource:
-			if !isPack || !ok || kind == "" {
-				t.Fatalf("resource dimension %s kind %q %v", entry.Ref.ID, kind, ok)
+			classes := len(entry.Dimension.AnchorClasses)
+			if !isPack || (kind == "") == (classes == 0) || ok != (kind != "") {
+				t.Fatalf("resource dimension %s kind %q classes %d %v", entry.Ref.ID, kind, classes, ok)
 			}
 		case graph.RoleQualifier:
 			qualifiers++
-			if ok || entry.Dimension.ValueKind != semreg.ValueSymbol || len(entry.Dimension.Symbols) == 0 {
+			if ok || !qualifierShape(entry.Dimension) {
 				t.Fatalf("qualifier dimension %s = %+v", entry.Ref.ID, entry.Dimension)
 			}
 		default:
 			t.Fatalf("dimension %s role %s", entry.Ref.ID, entry.Dimension.Role)
 		}
 	}
-	if qualifiers != 2 {
-		t.Errorf("qualifier dimensions = %d, want 2", qualifiers)
+	if qualifiers != 34 {
+		t.Errorf("qualifier dimensions = %d, want 34", qualifiers)
 	}
 	if kind, ok := catalog.ServiceSubjectKind(evseRef("evse.service.connector")); !ok || kind != "resource.connector" {
 		t.Fatalf("ServiceSubjectKind(connector) = %q %v", kind, ok)
@@ -1065,7 +1080,7 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 	}
 	var relations []relationSpec
 	var portals []semreg.DefinitionRef
-	for _, name := range []string{"pv-inverter-pack-vectors.json", "evse-pack-vectors.json", "infrastructure-pack-vectors.json", "thermal-hvac-pack-vectors.json"} {
+	for _, name := range []string{"pv-inverter-pack-vectors.json", "evse-pack-vectors.json", "infrastructure-pack-vectors.json", "thermal-hvac-pack-vectors.json", "equipment-pack-vectors.json", "energy-management-pack-vectors.json"} {
 		var vectors struct {
 			Catalog struct {
 				Pack        semreg.PackRef `json:"pack"`
@@ -1157,8 +1172,8 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 		portals = append(portals, storageRef(item.ID))
 	}
 
-	if len(relations) != 26 || len(portals) != 39 {
-		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 26 and 39", len(relations), len(portals))
+	if len(relations) != 40 || len(portals) != 55 {
+		t.Fatalf("pack vectors declare %d relations and %d Portal contributions, want 40 and 55", len(relations), len(portals))
 	}
 	declared := map[semreg.DefinitionRef]bool{}
 	for _, spec := range relations {
@@ -1222,6 +1237,36 @@ func TestCatalogCoversThePackVectorRelationsAndPortalContributions(t *testing.T)
 			}
 		}
 	}
+}
+
+func TestEventPayloadOutsideThePackIsRefused(t *testing.T) {
+	doc := decodeDocument(t)
+	event := element(t, doc, "equipment.event.reachable_changed")
+	payload := event["attributes"].(document)["payload"].([]any)[0].(document)
+	payload["id"] = "evse.ac.voltage"
+	payload["owner"].(document)["pack"].(document)["id"] = "helianthus.pack.evse"
+	findings := findingsOf(t, doc)
+	requireFinding(t, findings, "CAT-2", "", semreg.InvalidValue, "equipment.event.reachable_changed")
+	requireDetail(t, findings, "event payload is outside the pack")
+}
+
+func TestEventPayloadOffTheDeclaredSubjectIsRefused(t *testing.T) {
+	doc := decodeDocument(t)
+	event := element(t, doc, "equipment.event.reachable_changed")
+	event["attributes"].(document)["payload"].([]any)[0].(document)["id"] = "equipment.label.name"
+	findings := findingsOf(t, doc)
+	requireFinding(t, findings, "CAT-2", "", semreg.InvalidValue, "equipment.event.reachable_changed")
+	requireDetail(t, findings, "event payload is neither on the trigger subject nor one same-pack relation away")
+}
+
+func requireDetail(t *testing.T, findings []graph.Finding, detail string) {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.Detail == detail {
+			return
+		}
+	}
+	t.Fatalf("no detail %q among:\n%s", detail, joinFindings(findings))
 }
 
 func readJSON(t *testing.T, path string, out any) {

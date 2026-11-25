@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/energymanagement"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/equipment"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/evse"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/infrastructure"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/pv"
@@ -34,13 +36,15 @@ func (f Finding) String() string {
 	return fmt.Sprintf("%s %s %s: %s", rule, f.ID, f.Entry, f.Detail)
 }
 
-// AcceptedPackMetadata returns fresh metadata sources of the five accepted
-// packs, the inputs the committed catalog is validated against.
+// AcceptedPackMetadata returns fresh metadata sources of the accepted packs,
+// the inputs the committed catalog is validated against.
 func AcceptedPackMetadata() []semreg.PackMetadataSource {
 	return []semreg.PackMetadataSource{
 		{Validator: thermal.New(), Metadata: thermal.Metadata()},
 		{Validator: pv.New(), Metadata: pv.Metadata()},
 		{Validator: storage.New(), Metadata: storage.Metadata()},
+		{Validator: energymanagement.New(), Metadata: energymanagement.Metadata()},
+		{Validator: equipment.New(), Metadata: equipment.Metadata()},
 		{Validator: evse.New(), Metadata: evse.Metadata()},
 		{Validator: infrastructure.New(), Metadata: infrastructure.Metadata()},
 	}
@@ -142,7 +146,7 @@ func newPackInputs(sources []semreg.PackMetadataSource) (*packInputs, error) {
 			refs []semreg.DefinitionRef
 		}{
 			{KindFact, index.Fields}, {KindService, index.Services}, {KindCapability, index.Capabilities},
-			{KindOperation, index.Operations}, {KindEffectRule, index.EffectRules},
+			{KindOperation, index.Operations}, {KindEffectRule, index.EffectRules}, {KindEvent, index.Events},
 		} {
 			for _, ref := range group.refs {
 				in.kinds[ref] = group.kind
@@ -279,6 +283,7 @@ var ownerKinds = map[ElementKind][]OwnerKind{
 	KindCapability:     {OwnerPack},
 	KindOperation:      {OwnerPack},
 	KindEffectRule:     {OwnerPack},
+	KindEvent:          {OwnerPack},
 	KindEvidenceState:  {OwnerCore},
 	KindLifecycleState: {OwnerCore},
 	KindPresentation:   {OwnerPack, OwnerCore},
@@ -347,7 +352,7 @@ func (v *validator) dimensionKind(ref ElementRef) (semreg.DefinitionID, bool) {
 func (v *validator) kindsByPack() map[semreg.PackRef]map[semreg.DefinitionID]struct{} {
 	out := map[semreg.PackRef]map[semreg.DefinitionID]struct{}{}
 	for _, element := range v.c.elements {
-		if element.Dimension == nil || element.Dimension.Role != RoleResource || element.Ref.Owner.Kind != OwnerPack {
+		if element.Dimension == nil || element.Dimension.Role != RoleResource || element.Dimension.ResourceKind == "" || element.Ref.Owner.Kind != OwnerPack {
 			continue
 		}
 		pack := element.Ref.Owner.Pack
@@ -382,6 +387,16 @@ func attributeRefs(element *Element) []namedRef {
 			namedRef{"capability", element.Operation.Capability, KindCapability},
 			namedRef{"argument", element.Operation.Argument, KindFact},
 			namedRef{"effect_rule", element.Operation.EffectRule, KindEffectRule})
+		for _, parameter := range element.Operation.Parameters {
+			out = append(out, namedRef{"parameter", parameter, KindFact})
+		}
+	case element.Event != nil:
+		out = append(out,
+			namedRef{"service", element.Event.Service, KindService},
+			namedRef{"trigger", element.Event.Trigger, KindFact})
+		for _, payload := range element.Event.Payload {
+			out = append(out, namedRef{"payload", payload, KindFact})
+		}
 	case element.EffectRule != nil:
 		out = append(out,
 			namedRef{"operation", element.EffectRule.Operation, KindOperation},
@@ -412,7 +427,7 @@ func attributeKinds(element *Element) []semreg.DefinitionID {
 		out = append(append(out, element.Relation.FromKinds...), element.Relation.ToKinds...)
 	case element.Dimension != nil && element.Dimension.ResourceKind != "":
 		out = append(out, element.Dimension.ResourceKind)
-	case element.Service != nil:
+	case element.Service != nil && element.Service.SubjectKind != "":
 		out = append(out, element.Service.SubjectKind)
 	case element.Fact != nil && element.Fact.Subject.Kind != "":
 		out = append(out, element.Fact.Subject.Kind)
@@ -425,13 +440,13 @@ func (v *validator) subjectKind(element *Element) (semreg.DefinitionID, bool) {
 	case element.Fact != nil:
 		return element.Fact.Subject.Kind, element.Fact.Subject.Kind != ""
 	case element.Service != nil:
-		return element.Service.SubjectKind, true
+		return element.Service.SubjectKind, element.Service.SubjectKind != ""
 	case element.Capability != nil:
 		service, ok := v.entry(element.Capability.Service)
 		if !ok || service.Service == nil {
 			return "", false
 		}
-		return service.Service.SubjectKind, true
+		return service.Service.SubjectKind, service.Service.SubjectKind != ""
 	}
 	return "", false
 }
@@ -562,8 +577,7 @@ func (v *validator) agreement() {
 		if subject == nil || *subject != PackElement(field.Dimension) {
 			v.disagree(entry.Ref, "subject dimension differs from the pack field dimension %s", field.Dimension.ID)
 		}
-		_, quantity := v.in.registry.CanonicalUnit(field.Ref)
-		if quantity != (entry.Fact.ValueKind == semreg.ValueQuantity) {
+		if field.ValueKind != entry.Fact.ValueKind {
 			v.disagree(entry.Ref, "value kind %s disagrees with the pack canonical unit", entry.Fact.ValueKind)
 		}
 	}
@@ -597,6 +611,7 @@ func (v *validator) agreement() {
 	}
 	v.qualifiers()
 	v.subjectKinds()
+	v.events()
 }
 
 func (v *validator) qualifiers() {
@@ -637,6 +652,9 @@ func (v *validator) operationAgreement(operation semreg.OperationMetadata) {
 		if !capOK || !argOK || !effectOK || !v.in.registry.OperationMatches(operation.Ref, capability, service, argument, effect) {
 			v.disagree(entry.Ref, "capability, argument and effect rule are not the pack operation shape")
 		}
+		if !sameParameterRefs(attributes.Parameters, operation.Parameters) {
+			v.disagree(entry.Ref, "parameters differ from the pack operation parameters")
+		}
 	}
 	if entry, ok := v.packEntry(operation.Capability, KindCapability); ok {
 		if entry.Capability.Operation == nil || *entry.Capability.Operation != PackElement(operation.Ref) {
@@ -653,6 +671,120 @@ func (v *validator) operationAgreement(operation semreg.OperationMetadata) {
 	}
 }
 
+func sameParameterRefs(catalog []ElementRef, metadata []semreg.DefinitionRef) bool {
+	if len(catalog) != len(metadata) {
+		return false
+	}
+	for i, ref := range catalog {
+		got, ok := ref.DefinitionRef()
+		if !ok || got != metadata[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func (v *validator) events() {
+	for i := range v.c.elements {
+		element := &v.c.elements[i]
+		if element.Event == nil {
+			continue
+		}
+		v.eventAgreement(element)
+	}
+}
+
+func (v *validator) eventAgreement(element *Element) {
+	event := element.Event
+	if event.Service.Owner != element.Ref.Owner || event.Trigger.Owner != element.Ref.Owner {
+		v.disagree(element.Ref, "event service or trigger is outside the pack")
+	}
+	for _, payload := range event.Payload {
+		if payload.Owner != element.Ref.Owner {
+			v.disagree(element.Ref, "event payload is outside the pack")
+		}
+	}
+	service, serviceOK := v.entry(event.Service)
+	trigger, triggerOK := v.entry(event.Trigger)
+	if !serviceOK || !triggerOK || service.Service == nil || trigger.Fact == nil {
+		return
+	}
+	if !v.eventSameSubject(service, trigger) {
+		v.disagree(element.Ref, "event service subject differs from the trigger subject")
+	}
+	for _, payload := range event.Payload {
+		entry, ok := v.entry(payload)
+		if !ok || entry.Fact == nil {
+			continue
+		}
+		if sameFactSubject(trigger.Fact, entry.Fact) {
+			continue
+		}
+		if v.oneRelation(element.Ref.Owner, trigger.Fact.Subject.Kind, entry.Fact.Subject.Kind) {
+			continue
+		}
+		v.disagree(element.Ref, "event payload is neither on the trigger subject nor one same-pack relation away")
+	}
+}
+
+func (v *validator) eventSameSubject(service, trigger *Element) bool {
+	if trigger.Fact.Subject.Dimension == nil {
+		return false
+	}
+	if service.Service.FactKeyDimension != *trigger.Fact.Subject.Dimension {
+		return false
+	}
+	if service.Service.SubjectKind != "" || trigger.Fact.Subject.Kind != "" {
+		return service.Service.SubjectKind == trigger.Fact.Subject.Kind
+	}
+	dimension, ok := v.entry(service.Service.FactKeyDimension)
+	if !ok || dimension.Dimension == nil {
+		return false
+	}
+	return sameAnchors(service.Service.SubjectClasses, dimension.Dimension.AnchorClasses)
+}
+
+func sameFactSubject(trigger, payload *FactAttributes) bool {
+	if trigger.Subject.Dimension == nil || payload.Subject.Dimension == nil {
+		return false
+	}
+	return *trigger.Subject.Dimension == *payload.Subject.Dimension && trigger.Subject.Kind == payload.Subject.Kind
+}
+
+func (v *validator) oneRelation(owner Owner, from, to semreg.DefinitionID) bool {
+	if from == "" || to == "" {
+		return false
+	}
+	for i := range v.c.elements {
+		element := &v.c.elements[i]
+		if element.Relation == nil || element.Ref.Owner != owner {
+			continue
+		}
+		if (containsKind(element.Relation.FromKinds, from) && containsKind(element.Relation.ToKinds, to)) ||
+			(containsKind(element.Relation.FromKinds, to) && containsKind(element.Relation.ToKinds, from)) {
+			return true
+		}
+	}
+	return false
+}
+
+func sameAnchors(left, right []semreg.AnchorClass) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	seen := map[semreg.AnchorClass]int{}
+	for _, class := range left {
+		seen[class]++
+	}
+	for _, class := range right {
+		seen[class]--
+		if seen[class] < 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func (v *validator) subjectKinds() {
 	for i := range v.c.elements {
 		element := &v.c.elements[i]
@@ -663,9 +795,17 @@ func (v *validator) subjectKinds() {
 		var pairs []pair
 		switch {
 		case element.Service != nil:
-			pairs = append(pairs, pair{element.Service.SubjectKind, element.Service.FactKeyDimension})
-		case element.Fact != nil && element.Fact.Subject.Status == SubjectResolved:
-			pairs = append(pairs, pair{element.Fact.Subject.Kind, *element.Fact.Subject.Dimension})
+			if element.Service.SubjectKind != "" {
+				pairs = append(pairs, pair{element.Service.SubjectKind, element.Service.FactKeyDimension})
+			} else if len(element.Service.SubjectClasses) == 0 {
+				v.disagree(element.Ref, "service names no subject")
+			}
+		case element.Fact != nil && element.Fact.Subject.Status == SubjectResolved && element.Fact.Subject.Dimension != nil:
+			if element.Fact.Subject.Kind != "" {
+				pairs = append(pairs, pair{element.Fact.Subject.Kind, *element.Fact.Subject.Dimension})
+			} else if dimension, ok := v.entry(*element.Fact.Subject.Dimension); !ok || dimension.Dimension == nil || len(dimension.Dimension.AnchorClasses) == 0 {
+				v.disagree(element.Ref, "resolved subject names no kind and its dimension names no anchor class")
+			}
 		case element.Relation != nil && element.Relation.EndpointDimensions != nil:
 			for _, kind := range element.Relation.FromKinds {
 				pairs = append(pairs, pair{kind, element.Relation.EndpointDimensions.From})
@@ -823,7 +963,7 @@ func (v *validator) pln5() {
 			if operation, ok := v.entry(element.EffectRule.Operation); ok {
 				bounds = append(bounds, bound{"its operation", operation.Planes, true})
 			}
-		case element.Dimension != nil && element.Dimension.Role == RoleResource:
+		case element.Dimension != nil && element.Dimension.Role == RoleResource && element.Dimension.ResourceKind != "":
 			bounds = append(bounds, bound{"its kind " + string(element.Dimension.ResourceKind), v.kindPlanes(element.Dimension.ResourceKind), true})
 		default:
 			if kind, ok := v.subjectKind(element); ok {

@@ -10,7 +10,7 @@ import (
 // the copy of the accepted element catalog. A graph-enforced registry
 // accepts no catalog with another digest. It moves together with every
 // in-place edit of the catalog copy.
-const pinnedCatalogDigest Digest = "sha256:911d33251039585fd8bb31b9ece20ed424b383d2132015eee1cbafa80557eecb"
+const pinnedCatalogDigest Digest = "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477"
 
 // GraphDisposition is the catalog disposition of an element.
 type GraphDisposition string
@@ -69,7 +69,8 @@ type GraphCatalog interface {
 
 // GraphFactSubject is the subject a catalog declares for one fact definition,
 // with the definition's disposition. A resolved subject names its resource
-// dimension and that dimension's resource kind. Qualifiers lists the
+// dimension and either that dimension's resource kind or, when the dimension
+// names anchor classes, those classes with Kind empty. Qualifiers lists the
 // qualifier dimensions declared for the field; an unresolved subject names no
 // resource dimension.
 type GraphFactSubject struct {
@@ -77,14 +78,17 @@ type GraphFactSubject struct {
 	Resolved    bool
 	Dimension   DefinitionID
 	Kind        DefinitionID
+	Classes     []AnchorClass
 	Qualifiers  []DefinitionID
 }
 
 // GraphDimension is the role of a pack dimension: a resource dimension of a
-// resource kind, or a qualifier dimension (Resource false, Kind empty).
+// resource kind, a resource dimension of anchor classes (Kind empty), or a
+// qualifier dimension (Resource false, Kind empty).
 type GraphDimension struct {
 	Resource bool
 	Kind     DefinitionID
+	Classes  []AnchorClass
 }
 
 // GraphResourceCatalog is a GraphCatalog with the lookups the resource
@@ -99,6 +103,7 @@ type GraphResourceCatalog interface {
 	ResourceKindClass(kind DefinitionID) (AnchorClass, bool)
 	FactSubject(pack PackRef, fact DefinitionID) (GraphFactSubject, bool)
 	PackDimension(pack PackRef, dimension DefinitionID) (GraphDimension, bool)
+	ServiceSubject(ref DefinitionRef) (kind DefinitionID, classes []AnchorClass, ok bool)
 }
 
 // graphState is the graph enforcement of a registry, fixed at construction.

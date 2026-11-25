@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"reflect"
+	"sort"
 	"testing"
 
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
@@ -90,6 +91,60 @@ func storageCandidate(k semreg.FactKey, x semreg.Value) semreg.FactCandidate {
 }
 func storageTime(n string) semreg.TimePoint {
 	return semreg.TimePoint{UnixNanoseconds: semreg.Int64(n), ClockID: "clock.utc", UncertaintyNS: "0"}
+}
+
+func TestStoragePowerDurationForms(t *testing.T) {
+	v := New().(operation.OperationPackValidator)
+	signed := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "-15", Exponent10: 2}, Unit: "unit.watt"}}
+	active := semreg.TypedField{ID: "storage.setpoint.active", Value: testValue(must("storage.setpoint.active"))}
+	fullDuration := semreg.TypedField{ID: "storage.setpoint.duration", Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "6", Exponent10: 1}, Unit: "unit.second"}}}
+	zeroDuration := semreg.TypedField{ID: "storage.setpoint.duration", Value: semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: "0"}, Unit: "unit.second"}}}
+	for _, id := range []semreg.DefinitionID{"storage.operation.set_ac_power", "storage.operation.set_dc_power", "storage.operation.set_pcc_power"} {
+		_, _, field, effect, ok := operationShape(id)
+		if !ok {
+			t.Fatal(id)
+		}
+		base := storageIntent(id)
+		base.Preconditions = []operation.Precondition{}
+		base.Arguments[0].Value = signed
+		base.ExpectedEffect.Expected = signed
+		forms := [][]semreg.TypedField{
+			{base.Arguments[0], active, fullDuration},
+			{base.Arguments[0], active},
+			{base.Arguments[0], active, zeroDuration},
+		}
+		for _, arguments := range forms {
+			intent := base
+			intent.Arguments = append([]semreg.TypedField{}, arguments...)
+			sort.Slice(intent.Arguments, func(i, j int) bool { return intent.Arguments[i].ID < intent.Arguments[j].ID })
+			if err := v.ValidateIntent(intent); err != nil {
+				t.Fatalf("%s: %v", id, err)
+			}
+			if intent.ExpectedEffect.Fact.FactID != field || intent.ExpectedEffect.Rule.ID != effect || !reflect.DeepEqual(intent.ExpectedEffect.Expected, signed) {
+				t.Fatalf("%s effect %+v", id, intent.ExpectedEffect)
+			}
+		}
+		missing := base
+		missing.Arguments = []semreg.TypedField{active, fullDuration}
+		sort.Slice(missing.Arguments, func(i, j int) bool { return missing.Arguments[i].ID < missing.Arguments[j].ID })
+		if v.ValidateIntent(missing) == nil {
+			t.Fatalf("%s missing primary accepted", id)
+		}
+	}
+	for _, operation := range Metadata().Operations {
+		parameters, ok := operationParameters[operation.Ref.ID]
+		if !ok {
+			continue
+		}
+		if len(operation.Parameters) != len(parameters) {
+			t.Fatalf("%s parameters %+v", operation.Ref.ID, operation.Parameters)
+		}
+		for i, id := range parameters {
+			if operation.Parameters[i].ID != id {
+				t.Fatalf("%s parameter %d = %s, want %s", operation.Ref.ID, i, operation.Parameters[i].ID, id)
+			}
+		}
+	}
 }
 
 var _ = reflect.DeepEqual

@@ -55,7 +55,7 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 	if err := json.Unmarshal(raw, &tables); err != nil {
 		t.Fatal(err)
 	}
-	for key, want := range map[string]int{"field_specs": 25, "services": 7, "capabilities": 5, "relations": 6, "operations": 2, "effects": 2, "portal_contributions": 5} {
+	for key, want := range map[string]int{"field_specs": 96, "services": 7, "capabilities": 20, "relations": 7, "operations": 17, "effects": 17, "portal_contributions": 5} {
 		if got := len(tables[key].([]any)); got != want {
 			t.Fatalf("%s=%d", key, got)
 		}
@@ -73,16 +73,16 @@ func TestStorageFixturesAreAcceptedByteExactContracts(t *testing.T) {
 // fixtures/v1/storage-bms-contract-tables.json.
 var (
 	storageVectorFixtureSHA256 = [sha256.Size]byte{
-		0xdb, 0xb5, 0xe3, 0x01, 0x56, 0xfe, 0x13, 0xb9,
-		0x8b, 0x3c, 0x10, 0x04, 0x02, 0x73, 0xf6, 0x06,
-		0xe9, 0x3d, 0xff, 0x0c, 0x99, 0x45, 0x1e, 0x10,
-		0xf0, 0xf0, 0x0c, 0x56, 0xa6, 0x42, 0x0b, 0x81,
+		0x42, 0x8a, 0xac, 0x8b, 0xf1, 0x03, 0x9f, 0x90,
+		0x4e, 0x21, 0x4a, 0xe7, 0x42, 0x99, 0x88, 0x6b,
+		0x0c, 0xeb, 0x5d, 0x3f, 0x41, 0x65, 0xbf, 0xc6,
+		0x31, 0x0f, 0x6c, 0x8e, 0xb8, 0x80, 0x76, 0x4c,
 	}
 	storageContractTablesSHA256 = [sha256.Size]byte{
-		0x27, 0x26, 0xbb, 0x51, 0x59, 0x0e, 0x63, 0x0f,
-		0xbc, 0x51, 0x29, 0x0c, 0xa2, 0xb2, 0x43, 0x89,
-		0x12, 0xb4, 0xa7, 0x6e, 0x7c, 0xa9, 0x68, 0x31,
-		0xde, 0x64, 0xbc, 0x6a, 0x92, 0xbf, 0x8f, 0x79,
+		0x13, 0x05, 0x1f, 0xb8, 0x0e, 0x3b, 0xae, 0x8b,
+		0xc3, 0xa1, 0xac, 0x93, 0x13, 0x9f, 0x32, 0x2f,
+		0x0e, 0xd9, 0x18, 0x04, 0x30, 0xc1, 0xb5, 0x04,
+		0x75, 0xef, 0x2a, 0xcf, 0xc9, 0x84, 0x39, 0xb5,
 	}
 )
 
@@ -94,6 +94,7 @@ var storageRelations = []struct{ name, from, to string }{
 	{"module_cell", "storage.service.module", "storage.service.cell"},
 	{"pack_string", "storage.service.pack", "storage.service.string"},
 	{"pack_interface", "storage.service.pack", "storage.service.interface"},
+	{"interface_supply", "storage.service.interface", "storage.service.pack"},
 }
 
 func TestStorageMachineFixtureVectors(t *testing.T) {
@@ -159,7 +160,7 @@ func validateStorageVectorBaseline(t *testing.T, document map[string]any) {
 	for _, count := range []struct {
 		value any
 		want  int
-	}{{definitions["fields"], 25}, {definitions["dimensions"], 7}, {definitions["relations"], 6}, {catalog["domain_catalog"], 5}, {index.Fields, 25}, {index.Services, 7}, {index.Capabilities, 5}, {index.Operations, 2}, {index.EffectRules, 2}} {
+	}{{definitions["fields"], 96}, {definitions["dimensions"], 7}, {definitions["relations"], 7}, {catalog["domain_catalog"], 5}, {index.Fields, 96}, {index.Services, 7}, {index.Capabilities, 20}, {index.Operations, 17}, {index.EffectRules, 17}} {
 		if storageVectorLen(t, count.value) != count.want {
 			t.Fatalf("catalog count = %d, want %d", storageVectorLen(t, count.value), count.want)
 		}
@@ -205,7 +206,7 @@ func storageVectorFailure(t *testing.T, id string, document map[string]any) stri
 		}
 	case "ST-NEG-004":
 		fields := storageVectorArray(t, storageVectorObject(t, catalog["definitions"])["fields"])
-		if storageVectorString(t, storageVectorArray(t, storageVectorObject(t, fields[24])["symbols"])[1]) != "storage.status.interlock.clear" {
+		if storageVectorString(t, storageVectorArray(t, storageVectorObject(t, fields[95])["symbols"])[1]) != "storage.status.interlock.clear" {
 			return "field catalog"
 		}
 	default:
@@ -218,14 +219,26 @@ func storageVectorFailure(t *testing.T, id string, document map[string]any) stri
 func storageVectorFact(spec fieldSpec) (semreg.FactKey, semreg.Value) {
 	name := "vector-interface"
 	key := semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
-	if spec.kind == semreg.ValueQuantity {
+	switch spec.kind {
+	case semreg.ValueQuantity:
 		value := semreg.Decimal{Coefficient: "0"}
 		if spec.minimum != nil {
 			value = spec.minimum.decimal()
 		}
 		return key, semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: value, Unit: spec.unit}}
+	case semreg.ValueBoolean:
+		flag := false
+		return key, semreg.Value{Kind: semreg.ValueBoolean, Boolean: &flag}
+	case semreg.ValueText:
+		text := "text"
+		return key, semreg.Value{Kind: semreg.ValueText, Text: &text}
+	case semreg.ValueSymbols:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return key, semreg.Value{Kind: semreg.ValueSymbols, Symbols: []semreg.Symbol{{Namespace: spec.id, Token: token, Known: true}}}
+	default:
+		token := strings.TrimPrefix(spec.symbols[0], string(spec.id)+".")
+		return key, semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: token, Known: true}}
 	}
-	return key, semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: spec.id, Token: strings.TrimPrefix(spec.symbols[0], string(spec.id)+"."), Known: true}}
 }
 
 func cloneStorageVectorDocument(t *testing.T, document map[string]any) map[string]any {
