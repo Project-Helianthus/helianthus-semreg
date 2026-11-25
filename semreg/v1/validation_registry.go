@@ -44,6 +44,21 @@ func (d DefinitionIndex) validationErrors(duplicateClass ErrorID) []error {
 			errs = append(errs, errID(NoncanonicalOrder, "definitions"))
 		}
 	}
+	if d.Events != nil {
+		dup, ordered := duplicateAndOrder(d.Events, compareDefinition)
+		for _, ref := range d.Events {
+			errs = append(errs, ref.Validate())
+			if ref.Pack != d.Pack {
+				errs = append(errs, errID(DefinitionOwnerConflict, "definition index pack"))
+			}
+		}
+		if dup {
+			errs = append(errs, errID(duplicateClass, "definitions"))
+		}
+		if !ordered {
+			errs = append(errs, errID(NoncanonicalOrder, "definitions"))
+		}
+	}
 	return errs
 }
 func (f TypedField) Validate() error { return bestError(f.ID.Validate(), f.Value.Validate()) }
@@ -119,6 +134,7 @@ const (
 	DefinitionCapability DefinitionKind = "capability"
 	DefinitionOperation  DefinitionKind = "operation"
 	DefinitionEffectRule DefinitionKind = "effect_rule"
+	DefinitionEvent      DefinitionKind = "event"
 )
 
 type definitionKey struct {
@@ -267,6 +283,7 @@ func cloneIndex(i DefinitionIndex) DefinitionIndex {
 	i.Capabilities = cloneRefs(i.Capabilities)
 	i.Operations = cloneRefs(i.Operations)
 	i.EffectRules = cloneRefs(i.EffectRules)
+	i.Events = cloneRefs(i.Events)
 	return i
 }
 func NewRegistry(validators ...PackValidator) (*Registry, error) {
@@ -296,7 +313,7 @@ func NewRegistry(validators ...PackValidator) (*Registry, error) {
 		groups := []struct {
 			kind DefinitionKind
 			refs []DefinitionRef
-		}{{DefinitionField, index.Fields}, {DefinitionService, index.Services}, {DefinitionCapability, index.Capabilities}, {DefinitionOperation, index.Operations}, {DefinitionEffectRule, index.EffectRules}}
+		}{{DefinitionField, index.Fields}, {DefinitionService, index.Services}, {DefinitionCapability, index.Capabilities}, {DefinitionOperation, index.Operations}, {DefinitionEffectRule, index.EffectRules}, {DefinitionEvent, index.Events}}
 		for _, group := range groups {
 			for _, ref := range group.refs {
 				if ref.Validate() != nil {

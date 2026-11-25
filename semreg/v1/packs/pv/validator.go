@@ -179,11 +179,12 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	if i.RequiredCapability.Pack != pack || i.RequiredCapability.DefinitionID != capability || i.RequiredCapability.Versions.Minimum != packVersion || i.RequiredCapability.Versions.MaximumExclusive != "2.0.0" {
 		return fail(semreg.InvalidValue, "pv required capability")
 	}
-	if len(i.Arguments) != 1 || i.Arguments[0].ID != field {
-		return fail(semreg.InvalidValue, "pv operation arguments")
-	}
-	if err := v.ValidateField(definition(field), i.Arguments[0]); err != nil {
+	if err := argumentsOK(v, op, field, i.Arguments); err != nil {
 		return err
+	}
+	argument, found := argumentField(field, i.Arguments)
+	if !found {
+		return fail(semreg.InvalidValue, "pv operation arguments")
 	}
 	e := i.ExpectedEffect
 	if e.Rule != definition(effect) || e.Fact.PackID != pack.ID || e.Fact.PackVersion != pack.Version || e.Fact.FactID != field || e.Operator != semreg.PredicateEqual {
@@ -196,10 +197,51 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	if err := valueOK(s, e.Expected); err != nil {
 		return err
 	}
-	if !equal(i.Arguments[0].Value, e.Expected) {
+	if !equal(argument.Value, e.Expected) {
 		return fail(semreg.InvalidValue, "pv expected effect value")
 	}
 	return nil
+}
+
+func argumentsOK(v validator, operationID, argument semreg.DefinitionID, arguments []semreg.TypedField) error {
+	seen := map[semreg.DefinitionID]int{}
+	found := false
+	for _, field := range arguments {
+		seen[field.ID]++
+		if seen[field.ID] > 1 {
+			return fail(semreg.InvalidValue, "pv repeated field")
+		}
+		if field.ID == argument {
+			found = true
+		} else if !containsID(operationParameters[operationID], field.ID) {
+			return fail(semreg.InvalidValue, "pv undeclared field")
+		}
+		if err := v.ValidateField(definition(field.ID), field); err != nil {
+			return err
+		}
+	}
+	if !found {
+		return fail(semreg.InvalidValue, "pv missing argument")
+	}
+	return nil
+}
+
+func argumentField(argument semreg.DefinitionID, arguments []semreg.TypedField) (semreg.TypedField, bool) {
+	for _, field := range arguments {
+		if field.ID == argument {
+			return field, true
+		}
+	}
+	return semreg.TypedField{}, false
+}
+
+func containsID(values []semreg.DefinitionID, id semreg.DefinitionID) bool {
+	for _, value := range values {
+		if value == id {
+			return true
+		}
+	}
+	return false
 }
 func pvOperationShape(id semreg.DefinitionID) (semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, bool) {
 	spec, ok := operations[id]
@@ -281,18 +323,57 @@ func valueOK(s fieldSpec, v semreg.Value) error {
 		}
 		return nil
 	}
+	if s.kind == semreg.ValueText {
+		if v.Text == nil {
+			return fail(semreg.InvalidValue, "pv text")
+		}
+		return nil
+	}
+	if s.kind == semreg.ValueTime {
+		if v.Time == nil {
+			return fail(semreg.InvalidValue, "pv time")
+		}
+		return nil
+	}
 	if s.kind == semreg.ValueSymbol {
-		if v.Symbol == nil || !v.Symbol.Known || v.Symbol.Namespace != s.id || !contains(s.symbols, string(v.Symbol.Namespace)+"."+v.Symbol.Token) {
+		if !symbolListed(s.id, s.symbols, v.Symbol) {
 			return fail(semreg.InvalidValue, "pv symbol")
+		}
+		return nil
+	}
+	if s.kind == semreg.ValueSymbols {
+		if len(v.Symbols) == 0 {
+			return fail(semreg.InvalidValue, "pv symbols")
+		}
+		for i := range v.Symbols {
+			if !symbolListed(s.id, s.symbols, &v.Symbols[i]) {
+				return fail(semreg.InvalidValue, "pv symbols")
+			}
 		}
 		return nil
 	}
 	return fail(semreg.InvalidValue, "pv value kind")
 }
 
+func symbolListed(namespace semreg.DefinitionID, symbols []string, symbol *semreg.Symbol) bool {
+	if symbol == nil || !symbol.Known || symbol.Namespace != namespace {
+		return false
+	}
+	return contains(symbols, string(symbol.Namespace)+"."+symbol.Token) || contains(symbols, symbol.Token)
+}
+
 func dimensionShapeOK(d semreg.Dimension) bool {
+	if kind, ok := qualifierKinds[d.ID]; ok {
+		if kind == semreg.ValueSymbol {
+			return d.Value.Kind == semreg.ValueSymbol && symbolListed(d.ID, qualifierSymbols[d.ID], d.Value.Symbol)
+		}
+		if kind == semreg.ValueQuantity {
+			return d.Value.Kind == semreg.ValueQuantity && d.Value.Quantity != nil && d.Value.Quantity.Unit == "unit.one"
+		}
+		return d.Value.Kind == semreg.ValueText && d.Value.Text != nil
+	}
 	if symbols, ok := qualifierSymbols[d.ID]; ok {
-		return d.Value.Kind == semreg.ValueSymbol && d.Value.Symbol != nil && d.Value.Symbol.Known && d.Value.Symbol.Namespace == d.ID && contains(symbols, d.Value.Symbol.Token)
+		return d.Value.Kind == semreg.ValueSymbol && symbolListed(d.ID, symbols, d.Value.Symbol)
 	}
 	return dimensions[d.ID] == d.Value.Kind && d.Value.Text != nil
 }

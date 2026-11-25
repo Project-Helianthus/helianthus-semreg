@@ -7,11 +7,12 @@ import (
 )
 
 // FieldMetadata describes one pack-owned fact field and its exact value shape.
-// CanonicalUnit is nil for a non-quantity field.
+// CanonicalUnit is nil when the field names no unit. ValueKind is the declared kind.
 type FieldMetadata struct {
 	Ref           DefinitionRef
 	CanonicalUnit *DefinitionRef
 	Dimension     DefinitionRef
+	ValueKind     ValueKind
 }
 
 // ServiceMetadata describes the sole fact-key dimension of a service.
@@ -27,12 +28,15 @@ type CapabilityMetadata struct {
 }
 
 // OperationMetadata describes one exact, pack-owned operation shape.
+// Parameters keeps the declared order and is omitted when empty. Argument
+// and Effect stay the primary pair.
 type OperationMetadata struct {
 	Ref        DefinitionRef
 	Capability DefinitionRef
 	Service    DefinitionRef
 	Argument   DefinitionRef
 	Effect     DefinitionRef
+	Parameters []DefinitionRef
 }
 
 // PackMetadata is a fresh, protocol-neutral description exported by one pack.
@@ -44,6 +48,7 @@ type PackMetadata struct {
 	Services     []ServiceMetadata
 	Capabilities []CapabilityMetadata
 	Operations   []OperationMetadata
+	Events       []DefinitionRef
 }
 
 // PackMetadataSource binds metadata to the validator that owns its private
@@ -166,6 +171,16 @@ func validatePackMetadataReferences(metadata PackMetadata) error {
 				return err
 			}
 		}
+		for _, parameter := range operation.Parameters {
+			if err := metadataRefOwns(metadata.Pack, parameter); err != nil {
+				return err
+			}
+		}
+	}
+	for _, event := range metadata.Events {
+		if err := metadataRefOwns(metadata.Pack, event); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -179,6 +194,7 @@ func (r *PackMetadataRegistry) registerPack(metadata PackMetadata, index Definit
 	}{
 		{DefinitionField, index.Fields}, {DefinitionService, index.Services},
 		{DefinitionCapability, index.Capabilities}, {DefinitionOperation, index.Operations}, {DefinitionEffectRule, index.EffectRules},
+		{DefinitionEvent, index.Events},
 	} {
 		for _, ref := range group.refs {
 			if ref.Pack != pack {
@@ -217,7 +233,10 @@ func (r *PackMetadataRegistry) registerPack(metadata PackMetadata, index Definit
 	if err := registerCapabilities(r, pack, metadata.Capabilities, indexRefs); err != nil {
 		return err
 	}
-	return registerOperations(r, pack, metadata.Operations, indexRefs)
+	if err := registerOperations(r, pack, metadata.Operations, indexRefs); err != nil {
+		return err
+	}
+	return registerEvents(r, pack, metadata.Events, indexRefs)
 }
 
 func registerFields(r *PackMetadataRegistry, pack PackRef, fields []FieldMetadata, index map[DefinitionRef]DefinitionKind) error {
@@ -308,6 +327,19 @@ func registerOperations(r *PackMetadataRegistry, pack PackRef, operations []Oper
 		if index[operation.Ref] != DefinitionOperation || index[operation.Argument] != DefinitionField || index[operation.Effect] != DefinitionEffectRule {
 			return errID(DefinitionOwnerMissing, "metadata operation definition")
 		}
+		seenParameter := map[DefinitionRef]struct{}{}
+		for _, parameter := range operation.Parameters {
+			if err := metadataRefOwns(pack, parameter); err != nil {
+				return err
+			}
+			if index[parameter] != DefinitionField {
+				return errID(DefinitionOwnerMissing, "metadata operation parameter")
+			}
+			if _, duplicate := seenParameter[parameter]; duplicate || parameter == operation.Argument {
+				return errID(DefinitionOwnerConflict, "metadata operation parameter")
+			}
+			seenParameter[parameter] = struct{}{}
+		}
 		if owner, ok := r.caps[operation.Capability]; !ok || owner != operation.Service {
 			return errID(DefinitionOwnerConflict, "metadata operation capability")
 		}
@@ -320,6 +352,27 @@ func registerOperations(r *PackMetadataRegistry, pack PackRef, operations []Oper
 	if len(seen) != countKind(index, DefinitionOperation) {
 		return errID(DefinitionOwnerMissing, "metadata operations")
 	}
+	return nil
+}
+
+func registerEvents(r *PackMetadataRegistry, pack PackRef, events []DefinitionRef, index map[DefinitionRef]DefinitionKind) error {
+	seen := map[DefinitionRef]struct{}{}
+	for _, event := range events {
+		if err := metadataRefOwns(pack, event); err != nil {
+			return err
+		}
+		if index[event] != DefinitionEvent {
+			return errID(DefinitionOwnerMissing, "metadata event")
+		}
+		if _, duplicate := seen[event]; duplicate {
+			return errID(DefinitionOwnerConflict, "duplicate metadata event")
+		}
+		seen[event] = struct{}{}
+	}
+	if len(seen) != countKind(index, DefinitionEvent) {
+		return errID(DefinitionOwnerMissing, "metadata events")
+	}
+	_ = r
 	return nil
 }
 
@@ -416,7 +469,16 @@ func clonePackMetadata(in PackMetadata) PackMetadata {
 	}
 	out.Services = append([]ServiceMetadata(nil), in.Services...)
 	out.Capabilities = append([]CapabilityMetadata(nil), in.Capabilities...)
-	out.Operations = append([]OperationMetadata(nil), in.Operations...)
+	out.Operations = make([]OperationMetadata, len(in.Operations))
+	for i, operation := range in.Operations {
+		out.Operations[i] = operation
+		if operation.Parameters != nil {
+			out.Operations[i].Parameters = append([]DefinitionRef(nil), operation.Parameters...)
+		}
+	}
+	if in.Events != nil {
+		out.Events = append([]DefinitionRef(nil), in.Events...)
+	}
 	return out
 }
 
@@ -432,6 +494,9 @@ func canonicalPackMetadata(in PackMetadata) PackMetadata {
 	})
 	sort.Slice(out.Operations, func(i, j int) bool {
 		return comparePackMetadataDefinition(out.Operations[i].Ref, out.Operations[j].Ref) < 0
+	})
+	sort.Slice(out.Events, func(i, j int) bool {
+		return comparePackMetadataDefinition(out.Events[i], out.Events[j]) < 0
 	})
 	return out
 }

@@ -211,6 +211,442 @@
           ]
         },
         {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.capacity.full_charge",
+          "kind": "quantity",
+          "unit": "unit.ampere_hour"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.capacity.remaining",
+          "kind": "quantity",
+          "unit": "unit.ampere_hour"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.actor",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.ec1",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.heartbeat_counter",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.heartbeat_timeout",
+          "kind": "quantity",
+          "unit": "unit.second"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.heartbeat_timestamp",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.use_case_name",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.cob.use_case_version",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.configuration.battery_type",
+          "kind": "symbol",
+          "symbols": [
+            "lead_acid",
+            "lithium_iron_phosphate",
+            "lithium_nickel_manganese_cobalt",
+            "other"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.control_mode",
+          "kind": "symbol",
+          "symbols": [
+            "auto",
+            "pcc",
+            "power"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.default_ac_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.default_dc_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.default_pcc_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.failsafe_ac_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.failsafe_dc_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.failsafe_duration_minimum",
+          "kind": "quantity",
+          "unit": "unit.second"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.configuration.failsafe_pcc_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.configuration.maximum_cycles_per_day",
+          "kind": "quantity",
+          "unit": "unit.one"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.interface.ac_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.limit.ac_charge_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.limit.ac_discharge_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.limit.dc_charge_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.limit.dc_discharge_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.actor",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.device_code",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.device_name",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.ec1",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.hardware_revision",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.manufacturer_label",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.moi_016b",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.moi_018",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.moi_022",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.serial_number",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.software_revision",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.timestamp",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.use_case_name",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.use_case_version",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.vendor_code",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.mob.vendor_name",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.ac_charge_power_maximum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.ac_charge_power_nominal_maximum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.ac_charge_power_nominal_minimum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.ac_discharge_power_maximum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.ac_discharge_power_nominal_maximum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.ac_discharge_power_nominal_minimum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.nameplate.dc_charge_power_maximum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.nameplate.dc_discharge_power_maximum",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.time_to_ac_charge_power_maximum",
+          "kind": "quantity",
+          "unit": "unit.second"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.nameplate.time_to_ac_discharge_power_maximum",
+          "kind": "quantity",
+          "unit": "unit.second"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.setpoint.ac_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.setpoint.active",
+          "kind": "boolean"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.setpoint.dc_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.setpoint.duration",
+          "kind": "quantity",
+          "unit": "unit.second"
+        },
+        {
+          "dimension": "storage.dimension.interface",
+          "id": "storage.setpoint.pcc_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.state.cycle_count",
+          "kind": "quantity",
+          "unit": "unit.one"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.charge_direction",
+          "kind": "symbol",
+          "symbols": [
+            "charging",
+            "discharging",
+            "idle",
+            "starting"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.charge_faults",
+          "kind": "symbols",
+          "symbols": [
+            "ambient_too_cold",
+            "ambient_too_hot",
+            "battery_absent",
+            "battery_over_voltage",
+            "battery_too_cold",
+            "battery_too_hot",
+            "battery_under_voltage",
+            "charger_over_voltage",
+            "charger_under_voltage",
+            "safety_timeout",
+            "unspecified"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.charge_level",
+          "kind": "symbol",
+          "symbols": [
+            "critical",
+            "ok",
+            "warning"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.faults",
+          "kind": "symbols",
+          "symbols": [
+            "over_temperature",
+            "under_temperature",
+            "unspecified"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.replacement_needed",
+          "kind": "boolean"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.status.state",
+          "kind": "symbol",
+          "symbols": [
+            "failure",
+            "normal",
+            "off",
+            "standby"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.system.ac_power",
+          "kind": "quantity",
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.system.energy_charged",
+          "kind": "quantity",
+          "unit": "unit.joule"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.system.energy_discharged",
+          "kind": "quantity",
+          "unit": "unit.joule"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.system.state_of_charge",
+          "kind": "quantity",
+          "unit": "unit.ratio"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.vabd.actor",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.vabd.ec1",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.vabd.use_case_name",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.vabd.use_case_version",
+          "kind": "text"
+        },
+        {
+          "dimension": "storage.dimension.system",
+          "id": "storage.vabd.vabd_005",
+          "kind": "text"
+        },
+        {
           "dimension": "storage.dimension.interface",
           "id": "storage.status.interlock",
           "kind": "symbol",
@@ -222,7 +658,22 @@
       ],
       "operations": [
         "set_charge_limit",
-        "set_discharge_limit"
+        "set_discharge_limit",
+        "set_ac_power",
+        "set_dc_power",
+        "set_pcc_power",
+        "set_ac_charge_power_limit",
+        "set_ac_discharge_power_limit",
+        "set_dc_charge_power_limit",
+        "set_dc_discharge_power_limit",
+        "set_control_mode",
+        "set_default_ac_power",
+        "set_default_dc_power",
+        "set_default_pcc_power",
+        "set_failsafe_ac_power",
+        "set_failsafe_dc_power",
+        "set_failsafe_pcc_power",
+        "set_failsafe_duration_minimum"
       ],
       "portal": {
         "operation": "current_admission_only",
@@ -234,7 +685,8 @@
         "pack_module",
         "module_cell",
         "pack_string",
-        "pack_interface"
+        "pack_interface",
+        "interface_supply"
       ]
     },
     "domain_catalog": [
@@ -425,12 +877,101 @@
         "mutations": [
           {
             "op": "set",
-            "path": "definitions.fields.24.symbols.1",
+            "path": "definitions.fields.95.symbols.1",
             "value": "storage.status.interlock.active"
           }
         ]
       },
       "polarity": "negative"
+    }
+  ],
+  "duration_vectors": [
+    {
+      "argument": "storage.setpoint.ac_power",
+      "command_deadline": false,
+      "duration": null,
+      "operation": "storage.operation.set_ac_power",
+      "parameters": [
+        "storage.setpoint.active",
+        "storage.setpoint.duration"
+      ],
+      "presence": "omitted",
+      "setpoint_effect": "omitted_validity",
+      "starts_at_receipt": false
+    },
+    {
+      "argument": "storage.setpoint.ac_power",
+      "command_deadline": false,
+      "duration": {
+        "coefficient": "0",
+        "exponent10": 0
+      },
+      "operation": "storage.operation.set_ac_power",
+      "parameters": [
+        "storage.setpoint.active",
+        "storage.setpoint.duration"
+      ],
+      "presence": "explicit_zero",
+      "setpoint_effect": "deactivate_setpoint",
+      "starts_at_receipt": true
+    },
+    {
+      "argument": "storage.setpoint.dc_power",
+      "command_deadline": false,
+      "duration": null,
+      "operation": "storage.operation.set_dc_power",
+      "parameters": [
+        "storage.setpoint.active",
+        "storage.setpoint.duration"
+      ],
+      "presence": "omitted",
+      "setpoint_effect": "omitted_validity",
+      "starts_at_receipt": false
+    },
+    {
+      "argument": "storage.setpoint.dc_power",
+      "command_deadline": false,
+      "duration": {
+        "coefficient": "0",
+        "exponent10": 0
+      },
+      "operation": "storage.operation.set_dc_power",
+      "parameters": [
+        "storage.setpoint.active",
+        "storage.setpoint.duration"
+      ],
+      "presence": "explicit_zero",
+      "setpoint_effect": "deactivate_setpoint",
+      "starts_at_receipt": true
+    },
+    {
+      "argument": "storage.setpoint.pcc_power",
+      "command_deadline": false,
+      "duration": null,
+      "operation": "storage.operation.set_pcc_power",
+      "parameters": [
+        "storage.setpoint.active",
+        "storage.setpoint.duration"
+      ],
+      "presence": "omitted",
+      "setpoint_effect": "omitted_validity",
+      "starts_at_receipt": false
+    },
+    {
+      "argument": "storage.setpoint.pcc_power",
+      "command_deadline": false,
+      "duration": {
+        "coefficient": "0",
+        "exponent10": 0
+      },
+      "operation": "storage.operation.set_pcc_power",
+      "parameters": [
+        "storage.setpoint.active",
+        "storage.setpoint.duration"
+      ],
+      "presence": "explicit_zero",
+      "setpoint_effect": "deactivate_setpoint",
+      "starts_at_receipt": true
     }
   ]
 }

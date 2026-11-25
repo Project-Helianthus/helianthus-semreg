@@ -11,6 +11,8 @@ import (
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/graph"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/operation"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/energymanagement"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/equipment"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/evse"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/infrastructure"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/pv"
@@ -19,7 +21,7 @@ import (
 )
 
 func acceptedValidators() []semreg.PackValidator {
-	return []semreg.PackValidator{thermal.New(), pv.New(), storage.New(), evse.New(), infrastructure.New()}
+	return []semreg.PackValidator{thermal.New(), pv.New(), storage.New(), energymanagement.New(), equipment.New(), evse.New(), infrastructure.New()}
 }
 
 // stubValidator registers a fixed definition index. Its hooks accept

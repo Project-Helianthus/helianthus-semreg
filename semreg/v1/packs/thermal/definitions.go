@@ -185,9 +185,26 @@ func sortedRefs[V any](table map[semreg.DefinitionID]V) []semreg.DefinitionRef {
 	return refs
 }
 func index() semreg.DefinitionIndex {
-	result := semreg.DefinitionIndex{Pack: pack, Fields: make([]semreg.DefinitionRef, 0, len(fields)), Services: sortedRefs(services), Capabilities: sortedRefs(capabilities), Operations: sortedRefs(operations), EffectRules: []semreg.DefinitionRef{definition("thermal.effect.set_mode"), definition("thermal.effect.set_temperature")}}
+	result := semreg.DefinitionIndex{Pack: pack, Services: sortedRefs(services), Capabilities: sortedRefs(capabilities), Operations: sortedRefs(operations)}
+	ids := make([]semreg.DefinitionID, 0, len(fields))
 	for _, spec := range fields {
-		result.Fields = append(result.Fields, definition(spec.id))
+		ids = append(ids, spec.id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	for _, id := range ids {
+		result.Fields = append(result.Fields, definition(id))
+	}
+	effects := map[semreg.DefinitionID]struct{}{}
+	for _, spec := range operations {
+		effects[spec.effect] = struct{}{}
+	}
+	result.EffectRules = sortedRefs(effects)
+	if len(unionEvents) > 0 {
+		events := append([]semreg.DefinitionID(nil), unionEvents...)
+		sort.Slice(events, func(i, j int) bool { return events[i] < events[j] })
+		for _, id := range events {
+			result.Events = append(result.Events, definition(id))
+		}
 	}
 	return result
 }
@@ -198,7 +215,7 @@ func Metadata() semreg.PackMetadata {
 	metadata := semreg.PackMetadata{Pack: pack}
 	units := map[semreg.DefinitionID]struct{}{}
 	for _, spec := range fields {
-		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension)}
+		field := semreg.FieldMetadata{Ref: definition(spec.id), Dimension: definition(spec.dimension), ValueKind: spec.kind}
 		if spec.unit != "" {
 			unit := definition(spec.unit)
 			field.CanonicalUnit, units[spec.unit] = &unit, struct{}{}
@@ -213,7 +230,16 @@ func Metadata() semreg.PackMetadata {
 	}
 	for id, spec := range operations {
 		service := capabilities[spec.capability].service
-		metadata.Operations = append(metadata.Operations, semreg.OperationMetadata{Ref: definition(id), Capability: definition(spec.capability), Service: definition(service), Argument: definition(spec.argument), Effect: definition(spec.effect)})
+		item := semreg.OperationMetadata{Ref: definition(id), Capability: definition(spec.capability), Service: definition(service), Argument: definition(spec.argument), Effect: definition(spec.effect)}
+		for _, parameter := range operationParameters[id] {
+			item.Parameters = append(item.Parameters, definition(parameter))
+		}
+		metadata.Operations = append(metadata.Operations, item)
+	}
+	if len(unionEvents) > 0 {
+		for _, id := range unionEvents {
+			metadata.Events = append(metadata.Events, definition(id))
+		}
 	}
 	for id := range units {
 		metadata.Units = append(metadata.Units, definition(id))
@@ -228,4 +254,5 @@ func sortMetadata(metadata *semreg.PackMetadata) {
 	sort.Slice(metadata.Services, func(i, j int) bool { return metadata.Services[i].Ref.ID < metadata.Services[j].Ref.ID })
 	sort.Slice(metadata.Capabilities, func(i, j int) bool { return metadata.Capabilities[i].Ref.ID < metadata.Capabilities[j].Ref.ID })
 	sort.Slice(metadata.Operations, func(i, j int) bool { return metadata.Operations[i].Ref.ID < metadata.Operations[j].Ref.ID })
+	sort.Slice(metadata.Events, func(i, j int) bool { return metadata.Events[i].ID < metadata.Events[j].ID })
 }

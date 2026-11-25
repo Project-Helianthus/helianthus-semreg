@@ -24,7 +24,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 	if err := x.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(x.Fields) != 32 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
+	if len(x.Fields) != 95 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
 		t.Fatal(x)
 	}
 	for _, s := range fields {
@@ -47,7 +47,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 64; i++ {
-				if len(v.Definitions().Fields) != 32 {
+				if len(v.Definitions().Fields) != 95 {
 					t.Error("index")
 				}
 			}
@@ -92,10 +92,10 @@ func TestPVMachineVectors(t *testing.T) {
 
 // pvFixtureSHA256 is the SHA-256 of fixtures/v1/pv-inverter-pack-vectors.json.
 var pvFixtureSHA256 = [sha256.Size]byte{
-	0xbb, 0xa5, 0xcb, 0x04, 0x77, 0xfe, 0xa5, 0xb0,
-	0xbe, 0xbe, 0x8f, 0xae, 0xec, 0x60, 0xe1, 0xcb,
-	0xbb, 0x33, 0x26, 0xec, 0xda, 0x2b, 0x44, 0x17,
-	0x2c, 0x35, 0x64, 0x4e, 0x36, 0xb5, 0x56, 0x3b,
+	0xa0, 0x00, 0xcd, 0xb9, 0x7a, 0xea, 0x32, 0x18,
+	0xf0, 0xc7, 0x3f, 0x09, 0x24, 0x4a, 0x84, 0x76,
+	0x9c, 0xfa, 0x39, 0xc3, 0xcf, 0xc2, 0x7d, 0x74,
+	0x2e, 0xd5, 0x50, 0x60, 0xb1, 0xb0, 0xb3, 0x0e,
 }
 
 // pvRelations lists the accepted PV relations in declared order; every one
@@ -379,7 +379,7 @@ func TestPVExactBoundsSymbolsServicesCapabilitiesAndDetachment(t *testing.T) {
 				x := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: n, Unit: s.unit}}
 				require(t, v.ValidateFact(k, &x), semreg.BoundsExceeded)
 			}
-		} else {
+		} else if s.kind == semreg.ValueSymbol {
 			for _, full := range s.symbols {
 				k := testKey(s)
 				x := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: s.id, Token: strings.TrimPrefix(full, string(s.id)+"."), Known: true}}
@@ -390,6 +390,24 @@ func TestPVExactBoundsSymbolsServicesCapabilitiesAndDetachment(t *testing.T) {
 			k := testKey(s)
 			bad := semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "pv.other", Token: "x", Known: true}}
 			require(t, v.ValidateFact(k, &bad), semreg.InvalidValue)
+		} else if s.kind == semreg.ValueSymbols {
+			for _, full := range s.symbols {
+				k := testKey(s)
+				token := strings.TrimPrefix(full, string(s.id)+".")
+				x := semreg.Value{Kind: semreg.ValueSymbols, Symbols: []semreg.Symbol{{Namespace: s.id, Token: token, Known: true}}}
+				if err := v.ValidateFact(k, &x); err != nil {
+					t.Fatal(full, err)
+				}
+			}
+			k := testKey(s)
+			bad := semreg.Value{Kind: semreg.ValueSymbols, Symbols: []semreg.Symbol{{Namespace: "pv.other", Token: "x", Known: true}}}
+			require(t, v.ValidateFact(k, &bad), semreg.InvalidValue)
+		} else {
+			k := testKey(s)
+			accepted := testValue(s)
+			if err := v.ValidateFact(k, &accepted); err != nil {
+				t.Fatal(s.id, err)
+			}
 		}
 	}
 	for id := range services {
@@ -456,19 +474,7 @@ func pvOutside(n semreg.Decimal, d int64) semreg.Decimal {
 }
 
 func pvGraphTestFact(s fieldSpec) (semreg.FactKey, semreg.Value) {
-	name := "id"
-	k := semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: s.id, Dimensions: []semreg.Dimension{{ID: s.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
-	z := semreg.Decimal{Coefficient: "0"}
-	if s.minimum != nil {
-		z = s.minimum.decimal()
-	}
-	q := semreg.Value{Kind: s.kind}
-	if s.kind == semreg.ValueQuantity {
-		q.Quantity = &semreg.Quantity{Number: z, Unit: s.unit}
-	} else {
-		q.Symbol = &semreg.Symbol{Namespace: s.id, Token: strings.TrimPrefix(s.symbols[0], string(s.id)+"."), Known: true}
-	}
-	return k, q
+	return testKey(s), testValue(s)
 }
 
 // Under graph enforcement the field's dimension is the dimension the catalog

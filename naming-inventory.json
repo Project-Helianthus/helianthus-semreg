@@ -19,6 +19,8 @@
     "fixtures/v1/compatibility/canonical-pv-v1/dispositions.json",
     "fixtures/v1/compatibility/canonical-pv-v1/legacy-gateway-golden.json",
     "fixtures/v1/compatibility/canonical-pv-v1/manifest.json",
+    "fixtures/v1/energy-management-pack-vectors.json",
+    "fixtures/v1/equipment-pack-vectors.json",
     "fixtures/v1/evaluation-selection-vectors.json",
     "fixtures/v1/evse-pack-vectors.json",
     "fixtures/v1/family-catalog-v1.json",
@@ -53,6 +55,10 @@
     "semreg/v1/evaluation_selection_vectors_test.go",
     "semreg/v1/evidence_key_axes_test.go",
     "semreg/v1/foundation_test.go",
+    "semreg/v1/graph/catalog.go",
+    "semreg/v1/graph/catalog_test.go",
+    "semreg/v1/graph/embedded/union_test.go",
+    "semreg/v1/graph_enforcement.go",
     "semreg/v1/hook_inputs.go",
     "semreg/v1/infrastructure_withholding_test.go",
     "semreg/v1/json_field_resolution_test.go",
@@ -79,29 +85,44 @@
     "semreg/v1/operation/wire_test.go",
     "semreg/v1/pack_metadata.go",
     "semreg/v1/pack_metadata_test.go",
+    "semreg/v1/packs/energymanagement/contract_vectors_test.go",
+    "semreg/v1/packs/energymanagement/definitions.go",
+    "semreg/v1/packs/energymanagement/operation_test.go",
+    "semreg/v1/packs/energymanagement/validator.go",
+    "semreg/v1/packs/energymanagement/validator_test.go",
+    "semreg/v1/packs/equipment/contract_vectors_test.go",
+    "semreg/v1/packs/equipment/definitions.go",
+    "semreg/v1/packs/equipment/operation_test.go",
+    "semreg/v1/packs/equipment/validator.go",
+    "semreg/v1/packs/equipment/validator_test.go",
     "semreg/v1/packs/evse/contract_vectors_test.go",
     "semreg/v1/packs/evse/definitions.go",
     "semreg/v1/packs/evse/operation_test.go",
+    "semreg/v1/packs/evse/union_gen.go",
     "semreg/v1/packs/evse/validator.go",
     "semreg/v1/packs/evse/validator_test.go",
     "semreg/v1/packs/infrastructure/contract_vectors_test.go",
     "semreg/v1/packs/infrastructure/definitions.go",
+    "semreg/v1/packs/infrastructure/union_gen.go",
     "semreg/v1/packs/infrastructure/validator.go",
     "semreg/v1/packs/infrastructure/validator_test.go",
     "semreg/v1/packs/metadata.go",
     "semreg/v1/packs/pv/definitions.go",
     "semreg/v1/packs/pv/operation_test.go",
+    "semreg/v1/packs/pv/union_gen.go",
     "semreg/v1/packs/pv/validator.go",
     "semreg/v1/packs/pv/validator_test.go",
     "semreg/v1/packs/storage/contract_vectors_test.go",
     "semreg/v1/packs/storage/definitions.go",
     "semreg/v1/packs/storage/operation_test.go",
+    "semreg/v1/packs/storage/union_gen.go",
     "semreg/v1/packs/storage/validator.go",
     "semreg/v1/packs/storage/validator_test.go",
     "semreg/v1/packs/thermal/contract_vectors_test.go",
     "semreg/v1/packs/thermal/definitions.go",
     "semreg/v1/packs/thermal/naming_contract_test.go",
     "semreg/v1/packs/thermal/operation_test.go",
+    "semreg/v1/packs/thermal/union_gen.go",
     "semreg/v1/packs/thermal/validator.go",
     "semreg/v1/packs/thermal/validator_test.go",
     "semreg/v1/projection/availability.go",
@@ -120,6 +141,7 @@
     "semreg/v1/publication_fork_validator_test.go",
     "semreg/v1/publication_invariants_test.go",
     "semreg/v1/publication_pack_value_ownership_test.go",
+    "semreg/v1/publication_resources_test.go",
     "semreg/v1/publication_retained_ownership_test.go",
     "semreg/v1/publication_staging_test.go",
     "semreg/v1/publication_test.go",
@@ -98219,6 +98241,474 @@
       ]
     },
     {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::KindEvent",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "KindEvent",
+      "target": "KindEvent",
+      "role_decomposition": [
+        "KindEvent"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::AnchorClasses",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "AnchorClasses",
+      "target": "AnchorClasses",
+      "role_decomposition": [
+        "AnchorClasses"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Unit",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Unit",
+      "target": "Unit",
+      "role_decomposition": [
+        "Unit"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::SubjectClasses",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "SubjectClasses",
+      "target": "SubjectClasses",
+      "role_decomposition": [
+        "SubjectClasses"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Parameters",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Parameters",
+      "target": "Parameters",
+      "role_decomposition": [
+        "Parameters"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_identifier::EventCondition",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_identifier",
+      "current_name": "EventCondition",
+      "target": "EventCondition",
+      "role_decomposition": [
+        "EventCondition"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::EventEntered",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "EventEntered",
+      "target": "EventEntered",
+      "role_decomposition": [
+        "EventEntered"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::EventLeft",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "EventLeft",
+      "target": "EventLeft",
+      "role_decomposition": [
+        "EventLeft"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::EventChanged",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "EventChanged",
+      "target": "EventChanged",
+      "role_decomposition": [
+        "EventChanged"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_identifier::EventOrigin",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_identifier",
+      "current_name": "EventOrigin",
+      "target": "EventOrigin",
+      "role_decomposition": [
+        "EventOrigin"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::EventEmitted",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "EventEmitted",
+      "target": "EventEmitted",
+      "role_decomposition": [
+        "EventEmitted"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::EventDerived",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "EventDerived",
+      "target": "EventDerived",
+      "role_decomposition": [
+        "EventDerived"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_identifier::EventAttributes",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_identifier",
+      "current_name": "EventAttributes",
+      "target": "EventAttributes",
+      "role_decomposition": [
+        "EventAttributes"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Trigger",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Trigger",
+      "target": "Trigger",
+      "role_decomposition": [
+        "Trigger"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Condition",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Condition",
+      "target": "Condition",
+      "role_decomposition": [
+        "Condition"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Payload",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Payload",
+      "target": "Payload",
+      "role_decomposition": [
+        "Payload"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Origin",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Origin",
+      "target": "Origin",
+      "role_decomposition": [
+        "Origin"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_field_candidate::Event",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_field_candidate",
+      "current_name": "Event",
+      "target": "Event",
+      "role_decomposition": [
+        "Event"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog.go::go_identifier::ServiceSubject",
+      "owning_file": "semreg/v1/graph/catalog.go",
+      "kind": "go_identifier",
+      "current_name": "ServiceSubject",
+      "target": "ServiceSubject",
+      "role_decomposition": [
+        "ServiceSubject"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog_test.go::go_identifier::TestEventPayloadOutsideThePackIsRefused",
+      "owning_file": "semreg/v1/graph/catalog_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestEventPayloadOutsideThePackIsRefused",
+      "target": "TestEventPayloadOutsideThePackIsRefused",
+      "role_decomposition": [
+        "TestEventPayloadOutsideThePackIsRefused"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/catalog_test.go::go_identifier::TestEventPayloadOffTheDeclaredSubjectIsRefused",
+      "owning_file": "semreg/v1/graph/catalog_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestEventPayloadOffTheDeclaredSubjectIsRefused",
+      "target": "TestEventPayloadOffTheDeclaredSubjectIsRefused",
+      "role_decomposition": [
+        "TestEventPayloadOffTheDeclaredSubjectIsRefused"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/catalog_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/embedded/union_test.go::go_identifier::TestEmbeddedUnionStructure",
+      "owning_file": "semreg/v1/graph/embedded/union_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestEmbeddedUnionStructure",
+      "target": "TestEmbeddedUnionStructure",
+      "role_decomposition": [
+        "TestEmbeddedUnionStructure"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/embedded/union_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/embedded/union_test.go::go_identifier::TestHydraulicLensReturnsOneFluidSupply",
+      "owning_file": "semreg/v1/graph/embedded/union_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestHydraulicLensReturnsOneFluidSupply",
+      "target": "TestHydraulicLensReturnsOneFluidSupply",
+      "role_decomposition": [
+        "TestHydraulicLensReturnsOneFluidSupply"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/embedded/union_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph/embedded/union_test.go::go_identifier::Validate",
+      "owning_file": "semreg/v1/graph/embedded/union_test.go",
+      "kind": "go_identifier",
+      "current_name": "Validate",
+      "target": "Validate",
+      "role_decomposition": [
+        "Validate"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph/embedded/union_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph_enforcement.go::go_field_candidate::Classes",
+      "owning_file": "semreg/v1/graph_enforcement.go",
+      "kind": "go_field_candidate",
+      "current_name": "Classes",
+      "target": "Classes",
+      "role_decomposition": [
+        "Classes"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph_enforcement.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/graph_enforcement.go::go_identifier::ServiceSubject",
+      "owning_file": "semreg/v1/graph_enforcement.go",
+      "kind": "go_identifier",
+      "current_name": "ServiceSubject",
+      "target": "ServiceSubject",
+      "role_decomposition": [
+        "ServiceSubject"
+      ],
+      "public_evidence": [
+        "semreg/v1/graph_enforcement.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
       "identity": "semreg/v1/infrastructure_withholding_test.go::go_identifier::TestK15InfrastructureCapabilityWithholding",
       "owning_file": "semreg/v1/infrastructure_withholding_test.go",
       "kind": "go_identifier",
@@ -192663,6 +193153,60 @@
       ]
     },
     {
+      "identity": "semreg/v1/pack_metadata.go::go_field_candidate::ValueKind",
+      "owning_file": "semreg/v1/pack_metadata.go",
+      "kind": "go_field_candidate",
+      "current_name": "ValueKind",
+      "target": "ValueKind",
+      "role_decomposition": [
+        "ValueKind"
+      ],
+      "public_evidence": [
+        "semreg/v1/pack_metadata.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/pack_metadata.go::go_field_candidate::Parameters",
+      "owning_file": "semreg/v1/pack_metadata.go",
+      "kind": "go_field_candidate",
+      "current_name": "Parameters",
+      "target": "Parameters",
+      "role_decomposition": [
+        "Parameters"
+      ],
+      "public_evidence": [
+        "semreg/v1/pack_metadata.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/pack_metadata.go::go_field_candidate::Events",
+      "owning_file": "semreg/v1/pack_metadata.go",
+      "kind": "go_field_candidate",
+      "current_name": "Events",
+      "target": "Events",
+      "role_decomposition": [
+        "Events"
+      ],
+      "public_evidence": [
+        "semreg/v1/pack_metadata.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
       "identity": "semreg/v1/pack_metadata_test.go::go_identifier::Metadata",
       "owning_file": "semreg/v1/pack_metadata_test.go",
       "kind": "go_identifier",
@@ -192827,6 +193371,672 @@
       ],
       "public_evidence": [
         "semreg/v1/pack_metadata_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/contract_vectors_test.go::go_identifier::TestCopiedVectorDefinitionsAreInThePack",
+      "owning_file": "semreg/v1/packs/energymanagement/contract_vectors_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestCopiedVectorDefinitionsAreInThePack",
+      "target": "TestCopiedVectorDefinitionsAreInThePack",
+      "role_decomposition": [
+        "TestCopiedVectorDefinitionsAreInThePack"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/contract_vectors_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/definitions.go::go_identifier::Metadata",
+      "owning_file": "semreg/v1/packs/energymanagement/definitions.go",
+      "kind": "go_identifier",
+      "current_name": "Metadata",
+      "target": "Metadata",
+      "role_decomposition": [
+        "Metadata"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/operation_test.go::go_identifier::TestUnionOperationArguments",
+      "owning_file": "semreg/v1/packs/energymanagement/operation_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestUnionOperationArguments",
+      "target": "TestUnionOperationArguments",
+      "role_decomposition": [
+        "TestUnionOperationArguments"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/operation_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::New",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "New",
+      "target": "New",
+      "role_decomposition": [
+        "New"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::NewPackValidator",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "NewPackValidator",
+      "target": "NewPackValidator",
+      "role_decomposition": [
+        "NewPackValidator"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::Pack",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "Pack",
+      "target": "Pack",
+      "role_decomposition": [
+        "Pack"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::Definitions",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "Definitions",
+      "target": "Definitions",
+      "role_decomposition": [
+        "Definitions"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::Metadata",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "Metadata",
+      "target": "Metadata",
+      "role_decomposition": [
+        "Metadata"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::ValidateFact",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateFact",
+      "target": "ValidateFact",
+      "role_decomposition": [
+        "ValidateFact"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::ValidateGraphFact",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateGraphFact",
+      "target": "ValidateGraphFact",
+      "role_decomposition": [
+        "ValidateGraphFact"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::ValidateService",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateService",
+      "target": "ValidateService",
+      "role_decomposition": [
+        "ValidateService"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::ValidateCapability",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateCapability",
+      "target": "ValidateCapability",
+      "role_decomposition": [
+        "ValidateCapability"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::ValidateField",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateField",
+      "target": "ValidateField",
+      "role_decomposition": [
+        "ValidateField"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::MatchConstraints",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "MatchConstraints",
+      "target": "MatchConstraints",
+      "role_decomposition": [
+        "MatchConstraints"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::EvaluatePredicate",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "EvaluatePredicate",
+      "target": "EvaluatePredicate",
+      "role_decomposition": [
+        "EvaluatePredicate"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::ValidateIntent",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateIntent",
+      "target": "ValidateIntent",
+      "role_decomposition": [
+        "ValidateIntent"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator.go::go_identifier::EvaluateReadback",
+      "owning_file": "semreg/v1/packs/energymanagement/validator.go",
+      "kind": "go_identifier",
+      "current_name": "EvaluateReadback",
+      "target": "EvaluateReadback",
+      "role_decomposition": [
+        "EvaluateReadback"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/energymanagement/validator_test.go::go_identifier::TestUnionFieldsAcceptTheirUnitAndDimension",
+      "owning_file": "semreg/v1/packs/energymanagement/validator_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestUnionFieldsAcceptTheirUnitAndDimension",
+      "target": "TestUnionFieldsAcceptTheirUnitAndDimension",
+      "role_decomposition": [
+        "TestUnionFieldsAcceptTheirUnitAndDimension"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/energymanagement/validator_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/contract_vectors_test.go::go_identifier::TestCopiedVectorDefinitionsAreInThePack",
+      "owning_file": "semreg/v1/packs/equipment/contract_vectors_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestCopiedVectorDefinitionsAreInThePack",
+      "target": "TestCopiedVectorDefinitionsAreInThePack",
+      "role_decomposition": [
+        "TestCopiedVectorDefinitionsAreInThePack"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/contract_vectors_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/definitions.go::go_identifier::Metadata",
+      "owning_file": "semreg/v1/packs/equipment/definitions.go",
+      "kind": "go_identifier",
+      "current_name": "Metadata",
+      "target": "Metadata",
+      "role_decomposition": [
+        "Metadata"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/definitions.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/operation_test.go::go_identifier::TestUnionOperationArguments",
+      "owning_file": "semreg/v1/packs/equipment/operation_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestUnionOperationArguments",
+      "target": "TestUnionOperationArguments",
+      "role_decomposition": [
+        "TestUnionOperationArguments"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/operation_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::New",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "New",
+      "target": "New",
+      "role_decomposition": [
+        "New"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::NewPackValidator",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "NewPackValidator",
+      "target": "NewPackValidator",
+      "role_decomposition": [
+        "NewPackValidator"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::Pack",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "Pack",
+      "target": "Pack",
+      "role_decomposition": [
+        "Pack"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::Definitions",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "Definitions",
+      "target": "Definitions",
+      "role_decomposition": [
+        "Definitions"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::Metadata",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "Metadata",
+      "target": "Metadata",
+      "role_decomposition": [
+        "Metadata"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::ValidateFact",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateFact",
+      "target": "ValidateFact",
+      "role_decomposition": [
+        "ValidateFact"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::ValidateGraphFact",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateGraphFact",
+      "target": "ValidateGraphFact",
+      "role_decomposition": [
+        "ValidateGraphFact"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::ValidateService",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateService",
+      "target": "ValidateService",
+      "role_decomposition": [
+        "ValidateService"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::ValidateCapability",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateCapability",
+      "target": "ValidateCapability",
+      "role_decomposition": [
+        "ValidateCapability"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::ValidateField",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateField",
+      "target": "ValidateField",
+      "role_decomposition": [
+        "ValidateField"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::MatchConstraints",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "MatchConstraints",
+      "target": "MatchConstraints",
+      "role_decomposition": [
+        "MatchConstraints"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::EvaluatePredicate",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "EvaluatePredicate",
+      "target": "EvaluatePredicate",
+      "role_decomposition": [
+        "EvaluatePredicate"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::ValidateIntent",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "ValidateIntent",
+      "target": "ValidateIntent",
+      "role_decomposition": [
+        "ValidateIntent"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator.go::go_identifier::EvaluateReadback",
+      "owning_file": "semreg/v1/packs/equipment/validator.go",
+      "kind": "go_identifier",
+      "current_name": "EvaluateReadback",
+      "target": "EvaluateReadback",
+      "role_decomposition": [
+        "EvaluateReadback"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator_test.go::go_identifier::TestUnionFieldsAcceptTheirUnitAndDimension",
+      "owning_file": "semreg/v1/packs/equipment/validator_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestUnionFieldsAcceptTheirUnitAndDimension",
+      "target": "TestUnionFieldsAcceptTheirUnitAndDimension",
+      "role_decomposition": [
+        "TestUnionFieldsAcceptTheirUnitAndDimension"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/equipment/validator_test.go::go_identifier::TestClassSubjectAcceptsDeclaredClasses",
+      "owning_file": "semreg/v1/packs/equipment/validator_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestClassSubjectAcceptsDeclaredClasses",
+      "target": "TestClassSubjectAcceptsDeclaredClasses",
+      "role_decomposition": [
+        "TestClassSubjectAcceptsDeclaredClasses"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/equipment/validator_test.go"
       ],
       "value_class": "unknown",
       "unit_metadata": "unknown",
@@ -235921,6 +237131,24 @@
       "emitted_name": "TestStorageTerminalOutcomesThroughKernel"
     },
     {
+      "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStoragePowerDurationForms",
+      "owning_file": "semreg/v1/packs/storage/operation_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestStoragePowerDurationForms",
+      "target": "TestStoragePowerDurationForms",
+      "role_decomposition": [
+        "TestStoragePowerDurationForms"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/storage/operation_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
       "identity": "semreg/v1/packs/storage/validator.go::go_identifier::New",
       "owning_file": "semreg/v1/packs/storage/validator.go",
       "kind": "go_identifier",
@@ -236582,6 +237810,24 @@
       "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
       "consumer_files": [],
       "emitted_name": "TestStorageCapabilitiesAndRace"
+    },
+    {
+      "identity": "semreg/v1/packs/storage/validator_test.go::go_identifier::TestChargeDirectionIsSeparateFromOperating",
+      "owning_file": "semreg/v1/packs/storage/validator_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestChargeDirectionIsSeparateFromOperating",
+      "target": "TestChargeDirectionIsSeparateFromOperating",
+      "role_decomposition": [
+        "TestChargeDirectionIsSeparateFromOperating"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/storage/validator_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
     },
     {
       "identity": "semreg/v1/packs/thermal/contract_vectors_test.go::go_identifier::TestThermalMachineFixtureVectors",
@@ -250573,6 +251819,42 @@
       "emitted_name": "EvaluateReadback"
     },
     {
+      "identity": "semreg/v1/packs/thermal/operation_test.go::go_identifier::TestSetPresetParameters",
+      "owning_file": "semreg/v1/packs/thermal/operation_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestSetPresetParameters",
+      "target": "TestSetPresetParameters",
+      "role_decomposition": [
+        "TestSetPresetParameters"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/operation_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/operation_test.go::go_identifier::TestZoneModeOnAndRoomOperations",
+      "owning_file": "semreg/v1/packs/thermal/operation_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestZoneModeOnAndRoomOperations",
+      "target": "TestZoneModeOnAndRoomOperations",
+      "role_decomposition": [
+        "TestZoneModeOnAndRoomOperations"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/operation_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
       "identity": "semreg/v1/packs/thermal/validator.go::go_identifier::New",
       "owning_file": "semreg/v1/packs/thermal/validator.go",
       "kind": "go_identifier",
@@ -251253,6 +252535,24 @@
       "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
       "consumer_files": [],
       "emitted_name": "TestServicesCapabilitiesAndConcurrentAccess"
+    },
+    {
+      "identity": "semreg/v1/packs/thermal/validator_test.go::go_identifier::TestZoneModeOnAndRoomMeasurement",
+      "owning_file": "semreg/v1/packs/thermal/validator_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestZoneModeOnAndRoomMeasurement",
+      "target": "TestZoneModeOnAndRoomMeasurement",
+      "role_decomposition": [
+        "TestZoneModeOnAndRoomMeasurement"
+      ],
+      "public_evidence": [
+        "semreg/v1/packs/thermal/validator_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
     },
     {
       "identity": "semreg/v1/projection/availability.go::go_identifier::PackAvailabilityView",
@@ -293177,6 +294477,42 @@
       "consumer_files": []
     },
     {
+      "identity": "semreg/v1/publication_resources_test.go::go_identifier::ServiceSubject",
+      "owning_file": "semreg/v1/publication_resources_test.go",
+      "kind": "go_identifier",
+      "current_name": "ServiceSubject",
+      "target": "ServiceSubject",
+      "role_decomposition": [
+        "ServiceSubject"
+      ],
+      "public_evidence": [
+        "semreg/v1/publication_resources_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/publication_resources_test.go::go_identifier::TestResourcePublicationClassSubject",
+      "owning_file": "semreg/v1/publication_resources_test.go",
+      "kind": "go_identifier",
+      "current_name": "TestResourcePublicationClassSubject",
+      "target": "TestResourcePublicationClassSubject",
+      "role_decomposition": [
+        "TestResourcePublicationClassSubject"
+      ],
+      "public_evidence": [
+        "semreg/v1/publication_resources_test.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
       "identity": "semreg/v1/publication_retained_ownership_test.go::go_identifier::TestPublicationRetainedSourceOwnershipPrecedence",
       "owning_file": "semreg/v1/publication_retained_ownership_test.go",
       "kind": "go_identifier",
@@ -331514,6 +332850,24 @@
         "ebusgateway/graphql/semantic_snapshot_provider_edges_test.go",
         "ebusgateway/internal/semanticview/view_test.go"
       ]
+    },
+    {
+      "identity": "semreg/v1/types.go::go_field_candidate::Events",
+      "owning_file": "semreg/v1/types.go",
+      "kind": "go_field_candidate",
+      "current_name": "Events",
+      "target": "Events",
+      "role_decomposition": [
+        "Events"
+      ],
+      "public_evidence": [
+        "semreg/v1/types.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
     },
     {
       "identity": "semreg/v1/types.go::json_tag::minimum",
@@ -372650,6 +374004,24 @@
       ]
     },
     {
+      "identity": "semreg/v1/types.go::json_tag::events",
+      "owning_file": "semreg/v1/types.go",
+      "kind": "json_tag",
+      "current_name": "events",
+      "target": "events",
+      "role_decomposition": [
+        "events"
+      ],
+      "public_evidence": [
+        "semreg/v1/types.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "structural",
+      "open_question": null,
+      "consumer_files": []
+    },
+    {
       "identity": "semreg/v1/validation.go::go_identifier::Error",
       "owning_file": "semreg/v1/validation.go",
       "kind": "go_identifier",
@@ -380043,6 +381415,24 @@
       "target": "DefinitionEffectRule",
       "role_decomposition": [
         "DefinitionEffectRule"
+      ],
+      "public_evidence": [
+        "semreg/v1/validation_registry.go"
+      ],
+      "value_class": "unknown",
+      "unit_metadata": "unknown",
+      "status": "provisional",
+      "open_question": "Confirm identity, role, vocabulary and consumer applicability before adoption.",
+      "consumer_files": []
+    },
+    {
+      "identity": "semreg/v1/validation_registry.go::go_field_candidate::DefinitionEvent",
+      "owning_file": "semreg/v1/validation_registry.go",
+      "kind": "go_field_candidate",
+      "current_name": "DefinitionEvent",
+      "target": "DefinitionEvent",
+      "role_decomposition": [
+        "DefinitionEvent"
       ],
       "public_evidence": [
         "semreg/v1/validation_registry.go"

@@ -14,7 +14,8 @@ import (
 
 // Contract sources: fixtures/v1/thermal-hvac-pack-vectors.json (thermal v1,
 // pack 1.0.0), and the public kernel/projection v1 APIs. All observations are
-// synthetic. Thermal status fields are symbols; the pack has no boolean fact.
+// synthetic. Thermal status fields are symbols. Boolean facts from the copied
+// catalog accept false; every other thermal field rejects a boolean.
 // Every thermal quantity is in its SI unit and each fact has the one resource
 // dimension of its subject: the exact zero is a demand level of 0 (a 0 to 1
 // ratio), since 0 kelvin is outside every thermal temperature bound.
@@ -89,7 +90,14 @@ func TestK14FalsePresenceAndThermalKindBoundary(t *testing.T) {
 	}
 	for _, field := range thermal.Metadata().Fields {
 		ref := field.Ref
-		k14Error(t, thermal.New().ValidateField(ref, semreg.TypedField{ID: ref.ID, Value: value}), semreg.InvalidValue)
+		err := thermal.New().ValidateField(ref, semreg.TypedField{ID: ref.ID, Value: value})
+		if field.ValueKind == semreg.ValueBoolean {
+			if err != nil {
+				t.Fatalf("boolean field %s rejected false: %v", ref.ID, err)
+			}
+			continue
+		}
+		k14Error(t, err, semreg.InvalidValue)
 	}
 }
 

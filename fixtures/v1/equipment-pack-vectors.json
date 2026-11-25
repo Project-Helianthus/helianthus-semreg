@@ -1,0 +1,1496 @@
+{
+  "contract": "helianthus.semantic.pack.equipment.acceptance/v1",
+  "pack_contract": "helianthus.pack.equipment/v1",
+  "catalog": {
+    "pack": {
+      "id": "helianthus.pack.equipment",
+      "version": "1.0.0"
+    },
+    "definitions": {
+      "fields": [
+        {
+          "id": "equipment.identification.vendor_name",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.vendor_name",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 10
+        },
+        {
+          "id": "equipment.identification.vendor_code",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.vendor_code",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 20
+        },
+        {
+          "id": "equipment.identification.brand_name",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.brand_name",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 30
+        },
+        {
+          "id": "equipment.identification.product_name",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.product_name",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 40
+        },
+        {
+          "id": "equipment.identification.product_code",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.product_code",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 50
+        },
+        {
+          "id": "equipment.identification.part_number",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.part_number",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 60
+        },
+        {
+          "id": "equipment.identification.serial_number",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.serial_number",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 70
+        },
+        {
+          "id": "equipment.identification.software_revision",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.software_revision",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 80
+        },
+        {
+          "id": "equipment.identification.software_version",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.software_version",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.one",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "4294967295",
+              "exponent10": 0
+            }
+          },
+          "order": 90
+        },
+        {
+          "id": "equipment.identification.hardware_revision",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.hardware_revision",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 100
+        },
+        {
+          "id": "equipment.identification.hardware_version",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.hardware_version",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.one",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "65535",
+              "exponent10": 0
+            }
+          },
+          "order": 110
+        },
+        {
+          "id": "equipment.identification.product_label",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.product_label",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 120
+        },
+        {
+          "id": "equipment.identification.product_description",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.product_description",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 130
+        },
+        {
+          "id": "equipment.identification.product_url",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.product_url",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 140
+        },
+        {
+          "id": "equipment.identification.manufacturing_date",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.manufacturing_date",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 150
+        },
+        {
+          "id": "equipment.identification.power_source_kind",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.identification.power_source_kind",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unknown",
+            "mains_single_phase",
+            "mains_three_phase",
+            "battery",
+            "dc"
+          ],
+          "order": 160
+        },
+        {
+          "id": "equipment.label.name",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.label.name",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.resource",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 170
+        },
+        {
+          "id": "equipment.label.description",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.label.description",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.resource",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 180
+        },
+        {
+          "id": "equipment.status.reachable",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.status.reachable",
+            "version": "1.0.0"
+          },
+          "kind": "boolean",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 190
+        },
+        {
+          "id": "equipment.diagnosis.operating_state",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.diagnosis.operating_state",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "normal_operation",
+            "standby",
+            "failure",
+            "service_needed",
+            "override_detected",
+            "in_alarm",
+            "not_reachable",
+            "finished",
+            "temporarily_not_ready",
+            "off"
+          ],
+          "order": 200
+        },
+        {
+          "id": "equipment.diagnosis.vendor_state_code",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.diagnosis.vendor_state_code",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 210
+        },
+        {
+          "id": "equipment.diagnosis.last_error_code",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.diagnosis.last_error_code",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 220
+        },
+        {
+          "id": "equipment.diagnosis.operating_time",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.diagnosis.operating_time",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.second",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 230
+        },
+        {
+          "id": "equipment.power.source_status",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.source_status",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unspecified",
+            "active",
+            "standby",
+            "unavailable"
+          ],
+          "order": 240
+        },
+        {
+          "id": "equipment.power.source_order",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.source_order",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.one",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "255",
+              "exponent10": 0
+            }
+          },
+          "order": 250
+        },
+        {
+          "id": "equipment.power.source_description",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.source_description",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 260
+        },
+        {
+          "id": "equipment.power.wired_input_voltage",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_input_voltage",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.volt",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 270
+        },
+        {
+          "id": "equipment.power.wired_input_frequency",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_input_frequency",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.hertz",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 280
+        },
+        {
+          "id": "equipment.power.wired_current_type",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_current_type",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "ac",
+            "dc"
+          ],
+          "order": 290
+        },
+        {
+          "id": "equipment.power.wired_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.ampere",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 300
+        },
+        {
+          "id": "equipment.power.wired_nominal_voltage",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_nominal_voltage",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.volt",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 310
+        },
+        {
+          "id": "equipment.power.wired_maximum_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_maximum_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.ampere",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 320
+        },
+        {
+          "id": "equipment.power.wired_present",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_present",
+            "version": "1.0.0"
+          },
+          "kind": "boolean",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 330
+        },
+        {
+          "id": "equipment.power.wired_faults",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.wired_faults",
+            "version": "1.0.0"
+          },
+          "kind": "symbols",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unspecified",
+            "over_voltage",
+            "under_voltage",
+            "no_fault"
+          ],
+          "order": 340
+        },
+        {
+          "id": "equipment.power.battery_voltage",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_voltage",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.volt",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 350
+        },
+        {
+          "id": "equipment.power.battery_charge_ratio",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_charge_ratio",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.ratio",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 360
+        },
+        {
+          "id": "equipment.power.battery_time_remaining",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_time_remaining",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.second",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 370
+        },
+        {
+          "id": "equipment.power.battery_charge_level",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_charge_level",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "ok",
+            "warning",
+            "critical"
+          ],
+          "order": 380
+        },
+        {
+          "id": "equipment.power.battery_replacement_needed",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_replacement_needed",
+            "version": "1.0.0"
+          },
+          "kind": "boolean",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 390
+        },
+        {
+          "id": "equipment.power.battery_replaceability",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_replaceability",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unspecified",
+            "not_replaceable",
+            "user_replaceable",
+            "factory_replaceable"
+          ],
+          "order": 400
+        },
+        {
+          "id": "equipment.power.battery_present",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_present",
+            "version": "1.0.0"
+          },
+          "kind": "boolean",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 410
+        },
+        {
+          "id": "equipment.power.battery_faults",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_faults",
+            "version": "1.0.0"
+          },
+          "kind": "symbols",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unspecified",
+            "over_temperature",
+            "under_temperature",
+            "no_fault"
+          ],
+          "order": 420
+        },
+        {
+          "id": "equipment.power.battery_replacement_description",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_replacement_description",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 430
+        },
+        {
+          "id": "equipment.power.battery_common_designation",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_common_designation",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 440
+        },
+        {
+          "id": "equipment.power.battery_ansi_designation",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_ansi_designation",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 450
+        },
+        {
+          "id": "equipment.power.battery_iec_designation",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_iec_designation",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 460
+        },
+        {
+          "id": "equipment.power.battery_chemistry",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_chemistry",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 470
+        },
+        {
+          "id": "equipment.power.battery_capacity",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_capacity",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.ampere_hour",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 480
+        },
+        {
+          "id": "equipment.power.battery_quantity",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_quantity",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "unit": "unit.one",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "255",
+              "exponent10": 0
+            }
+          },
+          "order": 490
+        },
+        {
+          "id": "equipment.power.battery_charge_state",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_charge_state",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unknown",
+            "charging",
+            "full",
+            "not_charging"
+          ],
+          "order": 500
+        },
+        {
+          "id": "equipment.power.battery_time_to_full",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_time_to_full",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.second",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 510
+        },
+        {
+          "id": "equipment.power.battery_functional_while_charging",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_functional_while_charging",
+            "version": "1.0.0"
+          },
+          "kind": "boolean",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 520
+        },
+        {
+          "id": "equipment.power.battery_charging_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_charging_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "non_negative",
+          "unit": "unit.ampere",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "order": 530
+        },
+        {
+          "id": "equipment.power.battery_charge_faults",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.power.battery_charge_faults",
+            "version": "1.0.0"
+          },
+          "kind": "symbols",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "symbols": [
+            "unspecified",
+            "ambient_too_hot",
+            "ambient_too_cold",
+            "battery_too_hot",
+            "battery_too_cold",
+            "battery_absent",
+            "battery_over_voltage",
+            "battery_under_voltage",
+            "charger_over_voltage",
+            "charger_under_voltage",
+            "safety_timeout",
+            "no_fault"
+          ],
+          "order": 540
+        },
+        {
+          "id": "equipment.message.text",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.message.text",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "qualifiers": [
+            "equipment.dimension.message"
+          ],
+          "order": 550
+        },
+        {
+          "id": "equipment.message.kind",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.message.kind",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "qualifiers": [
+            "equipment.dimension.message"
+          ],
+          "symbols": [
+            "logging",
+            "information",
+            "warning",
+            "alarm",
+            "emergency",
+            "obsolete"
+          ],
+          "order": 560
+        },
+        {
+          "id": "equipment.message.time",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.message.time",
+            "version": "1.0.0"
+          },
+          "kind": "time",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "qualifiers": [
+            "equipment.dimension.message"
+          ],
+          "order": 570
+        },
+        {
+          "id": "equipment.time.current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.time.current",
+            "version": "1.0.0"
+          },
+          "kind": "time",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 580
+        },
+        {
+          "id": "equipment.time.timezone",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.time.timezone",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "equipment.dimension.unit",
+          "optional": true,
+          "direction": "not_applicable",
+          "order": 590
+        }
+      ],
+      "fact_dimensions": [
+        {
+          "id": "equipment.dimension.unit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.dimension.unit",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 10
+        },
+        {
+          "id": "equipment.dimension.resource",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.dimension.resource",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 20
+        }
+      ],
+      "qualifier_dimensions": [
+        {
+          "id": "equipment.dimension.message",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.dimension.message",
+            "version": "1.0.0"
+          },
+          "value_kind": "quantity",
+          "unit": "unit.one",
+          "order": 10
+        }
+      ],
+      "services": [
+        {
+          "id": "equipment.service.unit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.service.unit",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "equipment.dimension.unit",
+          "order": 10
+        },
+        {
+          "id": "equipment.service.resource",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.service.resource",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "equipment.dimension.resource",
+          "order": 20
+        }
+      ],
+      "capabilities": [
+        {
+          "id": "equipment.capability.read.unit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.capability.read.unit",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.unit",
+          "activation": "qualified_current_binding",
+          "order": 10
+        },
+        {
+          "id": "equipment.capability.read.resource",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.capability.read.resource",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.resource",
+          "activation": "qualified_current_binding",
+          "order": 20
+        },
+        {
+          "id": "equipment.capability.set_label",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.capability.set_label",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.resource",
+          "activation": "qualified_current_binding",
+          "order": 30
+        }
+      ],
+      "operations": [
+        {
+          "id": "equipment.operation.set_label",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.operation.set_label",
+            "version": "1.0.0"
+          },
+          "capability": "equipment.capability.set_label",
+          "arguments": [
+            "equipment.label.name"
+          ],
+          "effect_rule": "equipment.effect.set_label",
+          "parameters": [
+            "equipment.label.description"
+          ],
+          "order": 10
+        }
+      ],
+      "effect_rules": [
+        {
+          "id": "equipment.effect.set_label",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.effect.set_label",
+            "version": "1.0.0"
+          },
+          "operation": "equipment.operation.set_label",
+          "fact": "equipment.label.name",
+          "operator": "equal",
+          "order": 10
+        }
+      ],
+      "portal_contributions": [
+        {
+          "id": "equipment.portal.read.unit",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.portal.read.unit",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "equipment.service.unit",
+          "fields": [
+            "equipment.diagnosis.last_error_code",
+            "equipment.diagnosis.operating_state",
+            "equipment.diagnosis.operating_time",
+            "equipment.diagnosis.vendor_state_code",
+            "equipment.identification.brand_name",
+            "equipment.identification.hardware_revision",
+            "equipment.identification.hardware_version",
+            "equipment.identification.manufacturing_date",
+            "equipment.identification.part_number",
+            "equipment.identification.power_source_kind",
+            "equipment.identification.product_code",
+            "equipment.identification.product_description",
+            "equipment.identification.product_label",
+            "equipment.identification.product_name",
+            "equipment.identification.product_url",
+            "equipment.identification.serial_number",
+            "equipment.identification.software_revision",
+            "equipment.identification.software_version",
+            "equipment.identification.vendor_code",
+            "equipment.identification.vendor_name",
+            "equipment.message.kind",
+            "equipment.message.text",
+            "equipment.message.time",
+            "equipment.power.battery_ansi_designation",
+            "equipment.power.battery_capacity",
+            "equipment.power.battery_charge_faults",
+            "equipment.power.battery_charge_level",
+            "equipment.power.battery_charge_ratio",
+            "equipment.power.battery_charge_state",
+            "equipment.power.battery_charging_current",
+            "equipment.power.battery_chemistry",
+            "equipment.power.battery_common_designation",
+            "equipment.power.battery_faults",
+            "equipment.power.battery_functional_while_charging",
+            "equipment.power.battery_iec_designation",
+            "equipment.power.battery_present",
+            "equipment.power.battery_quantity",
+            "equipment.power.battery_replaceability",
+            "equipment.power.battery_replacement_description",
+            "equipment.power.battery_replacement_needed",
+            "equipment.power.battery_time_remaining",
+            "equipment.power.battery_time_to_full",
+            "equipment.power.battery_voltage",
+            "equipment.power.source_description",
+            "equipment.power.source_order",
+            "equipment.power.source_status",
+            "equipment.power.wired_current",
+            "equipment.power.wired_current_type",
+            "equipment.power.wired_faults",
+            "equipment.power.wired_input_frequency",
+            "equipment.power.wired_input_voltage",
+            "equipment.power.wired_maximum_current",
+            "equipment.power.wired_nominal_voltage",
+            "equipment.power.wired_present",
+            "equipment.status.reachable",
+            "equipment.time.current",
+            "equipment.time.timezone"
+          ],
+          "order": 10
+        },
+        {
+          "id": "equipment.portal.read.resource",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.portal.read.resource",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "equipment.service.resource",
+          "fields": [
+            "equipment.label.description",
+            "equipment.label.name"
+          ],
+          "order": 20
+        }
+      ],
+      "events": [
+        {
+          "id": "equipment.event.reachable_changed",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.event.reachable_changed",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.unit",
+          "trigger": "equipment.status.reachable",
+          "condition": "changed",
+          "payload": [
+            "equipment.status.reachable"
+          ],
+          "origin": "emitted",
+          "order": 10
+        },
+        {
+          "id": "equipment.event.wired_fault_change",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.event.wired_fault_change",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.unit",
+          "trigger": "equipment.power.wired_faults",
+          "condition": "changed",
+          "payload": [
+            "equipment.power.wired_faults"
+          ],
+          "origin": "emitted",
+          "order": 20
+        },
+        {
+          "id": "equipment.event.battery_fault_change",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.event.battery_fault_change",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.unit",
+          "trigger": "equipment.power.battery_faults",
+          "condition": "changed",
+          "payload": [
+            "equipment.power.battery_faults"
+          ],
+          "origin": "emitted",
+          "order": 30
+        },
+        {
+          "id": "equipment.event.battery_charge_fault_change",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.event.battery_charge_fault_change",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.unit",
+          "trigger": "equipment.power.battery_charge_faults",
+          "condition": "changed",
+          "payload": [
+            "equipment.power.battery_charge_faults"
+          ],
+          "origin": "emitted",
+          "order": 40
+        },
+        {
+          "id": "equipment.event.message_queued",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.equipment",
+              "version": "1.0.0"
+            },
+            "id": "equipment.event.message_queued",
+            "version": "1.0.0"
+          },
+          "service": "equipment.service.unit",
+          "trigger": "equipment.message.text",
+          "condition": "changed",
+          "payload": [
+            "equipment.message.text"
+          ],
+          "origin": "emitted",
+          "order": 50
+        }
+      ]
+    }
+  }
+}

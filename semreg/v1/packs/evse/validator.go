@@ -28,7 +28,13 @@ func (validator) Pack() semreg.PackRef                { return pack }
 func (validator) Definitions() semreg.DefinitionIndex { return index() }
 func (validator) Metadata() semreg.PackMetadata       { return Metadata() }
 func (v validator) ValidateFact(k semreg.FactKey, value *semreg.Value) error {
-	return validateFact(k, value, dimensionsOK)
+	return validateFact(k, value, func(values []semreg.Dimension, _ semreg.DefinitionID) error {
+		spec, ok := findField(k.FactID)
+		if !ok {
+			return fail(semreg.DefinitionOwnerMissing, "evse fact")
+		}
+		return dimensionsOK(values, spec)
+	})
 }
 
 // ValidateGraphFact validates a fact under graph enforcement: the dimensions
@@ -179,27 +185,69 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	if i.RequiredCapability.Pack != pack || i.RequiredCapability.DefinitionID != spec.capability || i.RequiredCapability.Versions.Minimum != packVersion || i.RequiredCapability.Versions.MaximumExclusive != "2.0.0" {
 		return fail(semreg.InvalidValue, "evse required capability")
 	}
-	if len(i.Arguments) != 1 || i.Arguments[0].ID != spec.argument {
-		return fail(semreg.InvalidValue, "evse operation arguments")
-	}
-	if err := v.ValidateField(definition(i.Arguments[0].ID), i.Arguments[0]); err != nil {
+	if err := argumentsOK(v, i.Kind.ID, spec.argument, i.Arguments); err != nil {
 		return err
+	}
+	argument, found := argumentField(spec.argument, i.Arguments)
+	if !found {
+		return fail(semreg.InvalidValue, "evse operation arguments")
 	}
 	e := i.ExpectedEffect
 	if e.Rule != definition(spec.effect) || e.Fact.PackID != pack.ID || e.Fact.PackVersion != packVersion || e.Fact.FactID != spec.argument || e.Operator != semreg.PredicateEqual {
 		return fail(semreg.InvalidValue, "evse expected effect")
 	}
 	s, _ := findField(e.Fact.FactID)
-	if err := dimensionsOK(e.Fact.Dimensions, s.dimension); err != nil {
+	if err := dimensionsOK(e.Fact.Dimensions, s); err != nil {
 		return err
 	}
 	if err := valueOK(s, e.Expected); err != nil {
 		return err
 	}
-	if !equal(i.Arguments[0].Value, e.Expected) {
+	if !equal(argument.Value, e.Expected) {
 		return fail(semreg.InvalidValue, "evse expected effect value")
 	}
 	return nil
+}
+
+func argumentsOK(v validator, operationID, argument semreg.DefinitionID, arguments []semreg.TypedField) error {
+	seen := map[semreg.DefinitionID]int{}
+	found := false
+	for _, field := range arguments {
+		seen[field.ID]++
+		if seen[field.ID] > 1 {
+			return fail(semreg.InvalidValue, "evse repeated field")
+		}
+		if field.ID == argument {
+			found = true
+		} else if !containsID(operationParameters[operationID], field.ID) {
+			return fail(semreg.InvalidValue, "evse undeclared field")
+		}
+		if err := v.ValidateField(definition(field.ID), field); err != nil {
+			return err
+		}
+	}
+	if !found {
+		return fail(semreg.InvalidValue, "evse missing argument")
+	}
+	return nil
+}
+
+func argumentField(argument semreg.DefinitionID, arguments []semreg.TypedField) (semreg.TypedField, bool) {
+	for _, field := range arguments {
+		if field.ID == argument {
+			return field, true
+		}
+	}
+	return semreg.TypedField{}, false
+}
+
+func containsID(values []semreg.DefinitionID, id semreg.DefinitionID) bool {
+	for _, value := range values {
+		if value == id {
+			return true
+		}
+	}
+	return false
 }
 func (v validator) EvaluateReadback(i operation.Intent, c semreg.FactCandidate) (operation.ReadbackRelation, error) {
 	if err := v.ValidateIntent(i); err != nil {
@@ -224,15 +272,32 @@ func findField(id semreg.DefinitionID) (fieldSpec, bool) {
 	}
 	return fieldSpec{}, false
 }
-func dimensionsOK(ds []semreg.Dimension, want semreg.DefinitionID) error {
-	if len(ds) != 1 {
+func dimensionsOK(ds []semreg.Dimension, spec fieldSpec) error {
+	want := append([]semreg.DefinitionID{}, fieldQualifiers[spec.id]...)
+	want = append(want, spec.dimension)
+	sort.Slice(want, func(i, j int) bool { return want[i] < want[j] })
+	if len(ds) != len(want) {
 		return fail(semreg.InvalidValue, "evse dimensions")
 	}
-	d := ds[0]
-	if d.ID != want || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
-		return fail(semreg.InvalidValue, "evse dimension")
+	for i, d := range ds {
+		if d.ID != want[i] || !dimensionShapeOK(d) {
+			return fail(semreg.InvalidValue, "evse dimension")
+		}
 	}
 	return nil
+}
+
+func dimensionShapeOK(d semreg.Dimension) bool {
+	if kind, ok := qualifierKinds[d.ID]; ok {
+		if kind == semreg.ValueSymbol {
+			return d.Value.Kind == semreg.ValueSymbol && symbolListed(d.ID, qualifierSymbols[d.ID], d.Value.Symbol)
+		}
+		if kind == semreg.ValueQuantity {
+			return d.Value.Kind == semreg.ValueQuantity && d.Value.Quantity != nil && d.Value.Quantity.Unit == "unit.one"
+		}
+		return d.Value.Kind == semreg.ValueText && d.Value.Text != nil
+	}
+	return dimensions[d.ID] == d.Value.Kind && d.Value.Text != nil
 }
 func (v validator) constraintsOK(values []semreg.TypedField, want []semreg.DefinitionID) error {
 	if values == nil {
@@ -259,18 +324,57 @@ func valueOK(s fieldSpec, v semreg.Value) error {
 		if v.Quantity == nil || v.Quantity.Unit != s.unit {
 			return fail(semreg.InvalidValue, "evse quantity unit")
 		}
-		if compare(v.Quantity.Number, s.minimum.decimal()) < 0 || compare(v.Quantity.Number, s.maximum.decimal()) > 0 {
+		if s.minimum != nil && compare(v.Quantity.Number, s.minimum.decimal()) < 0 {
+			return fail(semreg.BoundsExceeded, "evse quantity bounds")
+		}
+		if s.maximum != nil && compare(v.Quantity.Number, s.maximum.decimal()) > 0 {
 			return fail(semreg.BoundsExceeded, "evse quantity bounds")
 		}
 		return nil
 	}
+	if s.kind == semreg.ValueBoolean {
+		if v.Boolean == nil {
+			return fail(semreg.InvalidValue, "evse boolean")
+		}
+		return nil
+	}
+	if s.kind == semreg.ValueText {
+		if v.Text == nil {
+			return fail(semreg.InvalidValue, "evse text")
+		}
+		return nil
+	}
+	if s.kind == semreg.ValueTime {
+		if v.Time == nil {
+			return fail(semreg.InvalidValue, "evse time")
+		}
+		return nil
+	}
 	if s.kind == semreg.ValueSymbol {
-		if v.Symbol == nil || !v.Symbol.Known || v.Symbol.Namespace != s.id || !contains(s.symbols, string(v.Symbol.Namespace)+"."+v.Symbol.Token) {
+		if !symbolListed(s.id, s.symbols, v.Symbol) {
 			return fail(semreg.InvalidValue, "evse symbol")
 		}
 		return nil
 	}
+	if s.kind == semreg.ValueSymbols {
+		if len(v.Symbols) == 0 {
+			return fail(semreg.InvalidValue, "evse symbols")
+		}
+		for i := range v.Symbols {
+			if !symbolListed(s.id, s.symbols, &v.Symbols[i]) {
+				return fail(semreg.InvalidValue, "evse symbols")
+			}
+		}
+		return nil
+	}
 	return fail(semreg.InvalidValue, "evse value kind")
+}
+
+func symbolListed(namespace semreg.DefinitionID, symbols []string, symbol *semreg.Symbol) bool {
+	if symbol == nil || !symbol.Known || symbol.Namespace != namespace {
+		return false
+	}
+	return contains(symbols, string(symbol.Namespace)+"."+symbol.Token) || contains(symbols, symbol.Token)
 }
 func compare(a, b semreg.Decimal) int { return rat(a).Cmp(rat(b)) }
 func rat(v semreg.Decimal) *big.Rat {
@@ -310,13 +414,18 @@ func graphDimensionsOK(values []semreg.Dimension, expected semreg.DefinitionID, 
 	if len(values) != len(declared) {
 		return fail(semreg.InvalidValue, "evse dimensions")
 	}
+	if subject.Resolved && subject.Kind == "" && len(subject.Classes) == 0 {
+		return fail(semreg.InvalidValue, "evse fact subject class")
+	}
 	own := false
 	for i, d := range values {
-		if d.ID != declared[i] || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
+		if d.ID != declared[i] || !dimensionShapeOK(d) {
 			return fail(semreg.InvalidValue, "evse dimension")
 		}
-		if subject.Resolved && d.ID == subject.Dimension && semreg.ResourceID(*d.Value.Text).Validate() != nil {
-			return fail(semreg.InvalidValue, "evse resource dimension")
+		if subject.Resolved && d.ID == subject.Dimension {
+			if d.Value.Text == nil || semreg.ResourceID(*d.Value.Text).Validate() != nil {
+				return fail(semreg.InvalidValue, "evse resource dimension")
+			}
 		}
 		own = own || d.ID == expected
 	}

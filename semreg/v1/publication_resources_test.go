@@ -13,14 +13,15 @@ import (
 // subject, a dimension is a resource or a qualifier dimension and a service
 // has one subject kind. Every pack entry is a member unless overridden.
 type resourceTestCatalog struct {
-	digest     Digest
-	index      DefinitionIndex
-	kinds      map[DefinitionID]resourceTestKind
-	facts      map[DefinitionID]GraphFactSubject
-	dimensions map[DefinitionID]GraphDimension
-	services   map[DefinitionID]DefinitionID
-	members    map[DefinitionRef]GraphDisposition
-	schemes    map[DefinitionID]bool
+	digest         Digest
+	index          DefinitionIndex
+	kinds          map[DefinitionID]resourceTestKind
+	facts          map[DefinitionID]GraphFactSubject
+	dimensions     map[DefinitionID]GraphDimension
+	services       map[DefinitionID]DefinitionID
+	serviceClasses map[DefinitionID][]AnchorClass
+	members        map[DefinitionRef]GraphDisposition
+	schemes        map[DefinitionID]bool
 }
 
 type resourceTestKind struct {
@@ -116,7 +117,21 @@ func (c *resourceTestCatalog) DimensionKind(ref DefinitionRef) (DefinitionID, bo
 
 func (c *resourceTestCatalog) ServiceSubjectKind(ref DefinitionRef) (DefinitionID, bool) {
 	kind, ok := c.services[ref.ID]
-	return kind, ok && ref.Pack == resourceTestPack
+	return kind, ok && ref.Pack == resourceTestPack && kind != ""
+}
+
+func (c *resourceTestCatalog) ServiceSubject(ref DefinitionRef) (DefinitionID, []AnchorClass, bool) {
+	if ref.Pack != resourceTestPack {
+		return "", nil, false
+	}
+	if classes := c.serviceClasses[ref.ID]; len(classes) > 0 {
+		return "", append([]AnchorClass(nil), classes...), true
+	}
+	kind, ok := c.services[ref.ID]
+	if !ok || kind == "" {
+		return "", nil, false
+	}
+	return kind, nil, true
 }
 
 func (c *resourceTestCatalog) RelationDefinition(DefinitionRef) (GraphRelationDefinition, bool) {
@@ -1158,4 +1173,56 @@ func TestResourcePublicationPackValidatorsLearnEnforcement(t *testing.T) {
 	if limited.lookups != 0 {
 		t.Fatalf("catalog without resource lookups was read %d times", limited.lookups)
 	}
+}
+
+func TestResourcePublicationClassSubject(t *testing.T) {
+	catalog := newResourceTestCatalog(t)
+	catalog.serviceClasses = map[DefinitionID][]AnchorClass{"service.unit": {AnchorComponent}}
+	index := resourceTestIndex()
+	index.Services = append(append([]DefinitionRef{}, index.Services...), resourceTestRef("service.unit"))
+	catalog.index = index
+	kernel, err := NewGraphPublicationKernel("asset:pv", catalog, &countingValidator{pack: resourceTestPack, index: index})
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := resourceConfigBatch("1", "0")
+	config.ResourceUpserts = []Resource{
+		operatorResource("resource:inverter:01", "resource.inverter", AnchorEquipment, "inverter-1", nil),
+		operatorResource("resource:pv-system:01", "resource.pv_system", AnchorFunction, "pv-system-1", nil),
+	}
+	applyResourceBatch(t, kernel, config)
+	driver := resourceDriverBatch("1", "1")
+	driver.ResourceUpserts = []Resource{
+		nativeSlotResource("resource:dc-input:01", "resource.dc_input", AnchorComponent, "resource:inverter:01", "1"),
+		nativeSlotResource("resource:dc-input:02", "resource.dc_input", AnchorComponent, "resource:inverter:01", "2"),
+	}
+	applyResourceBatch(t, kernel, driver)
+	component := resourceService("service:unit:component", "resource:dc-input:01")
+	component.Definition.ID = "service.unit"
+	accept := resourceDriverBatch("2", "2")
+	accept.ServiceUpserts = []ServiceInstance{component}
+	applyResourceBatch(t, kernel, accept)
+	equipment := component
+	equipment.InstanceID = "service:unit:equipment"
+	equipment.Revision = "1"
+	equipment.Resource = resourceID("resource:inverter:01")
+	refuse := resourceDriverBatch("3", "3")
+	refuse.ServiceUpserts = []ServiceInstance{equipment}
+	rejectResourceBatch(t, kernel, refuse, IdentityDrift)
+
+	kind := resourceService("service:kind:inverter", "resource:inverter:01")
+	kindBatch := resourceDriverBatch("3", "3")
+	kindBatch.ServiceUpserts = []ServiceInstance{kind}
+	applyResourceBatch(t, kernel, kindBatch)
+	other := kind
+	other.InstanceID = "service:kind:component"
+	other.Resource = resourceID("resource:dc-input:01")
+	otherBatch := resourceDriverBatch("4", "4")
+	otherBatch.ServiceUpserts = []ServiceInstance{other}
+	rejectResourceBatch(t, kernel, otherBatch, IdentityDrift)
+}
+
+func resourceID(id string) *ResourceID {
+	value := ResourceID(id)
+	return &value
 }

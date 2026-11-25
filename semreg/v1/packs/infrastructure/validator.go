@@ -206,9 +206,26 @@ func validateValue(spec fieldSpec, value semreg.Value) error {
 		if value.Boolean == nil {
 			return failure(semreg.InvalidValue, "infrastructure boolean")
 		}
+	case semreg.ValueText:
+		if value.Text == nil {
+			return failure(semreg.InvalidValue, "infrastructure text")
+		}
+	case semreg.ValueTime:
+		if value.Time == nil {
+			return failure(semreg.InvalidValue, "infrastructure time")
+		}
 	case semreg.ValueSymbol:
-		if value.Symbol == nil || !value.Symbol.Known || value.Symbol.Namespace != spec.id || !contains(spec.symbols, string(value.Symbol.Namespace)+"."+value.Symbol.Token) {
+		if !symbolListed(spec.id, spec.symbols, value.Symbol) {
 			return failure(semreg.InvalidValue, "infrastructure status symbol")
+		}
+	case semreg.ValueSymbols:
+		if len(value.Symbols) == 0 {
+			return failure(semreg.InvalidValue, "infrastructure symbols")
+		}
+		for i := range value.Symbols {
+			if !symbolListed(spec.id, spec.symbols, &value.Symbols[i]) {
+				return failure(semreg.InvalidValue, "infrastructure symbols")
+			}
 		}
 	default:
 		return failure(semreg.InvalidValue, "infrastructure value kind")
@@ -216,9 +233,25 @@ func validateValue(spec fieldSpec, value semreg.Value) error {
 	return nil
 }
 
+func symbolListed(namespace semreg.DefinitionID, symbols []string, symbol *semreg.Symbol) bool {
+	if symbol == nil || !symbol.Known || symbol.Namespace != namespace {
+		return false
+	}
+	return contains(symbols, string(symbol.Namespace)+"."+symbol.Token) || contains(symbols, symbol.Token)
+}
+
 func dimensionShapeOK(dimension semreg.Dimension) bool {
+	if kind, ok := qualifierKinds[dimension.ID]; ok {
+		if kind == semreg.ValueSymbol {
+			return dimension.Value.Kind == semreg.ValueSymbol && symbolListed(dimension.ID, qualifierSymbols[dimension.ID], dimension.Value.Symbol)
+		}
+		if kind == semreg.ValueQuantity {
+			return dimension.Value.Kind == semreg.ValueQuantity && dimension.Value.Quantity != nil && dimension.Value.Quantity.Unit == "unit.one"
+		}
+		return dimension.Value.Kind == semreg.ValueText && dimension.Value.Text != nil
+	}
 	if symbols, ok := qualifierSymbols[dimension.ID]; ok {
-		return dimension.Value.Kind == semreg.ValueSymbol && dimension.Value.Symbol != nil && dimension.Value.Symbol.Known && dimension.Value.Symbol.Namespace == dimension.ID && contains(symbols, dimension.Value.Symbol.Token)
+		return dimension.Value.Kind == semreg.ValueSymbol && symbolListed(dimension.ID, symbols, dimension.Value.Symbol)
 	}
 	return dimensions[dimension.ID] == dimension.Value.Kind && dimension.Value.Text != nil
 }

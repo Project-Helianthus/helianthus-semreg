@@ -727,6 +727,778 @@
           ],
           "optional": true,
           "order": 260
+        },
+        {
+          "id": "infrastructure.load.active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.load.active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.load",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 270
+        },
+        {
+          "id": "infrastructure.load.phase_active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.load.phase_active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 280
+        },
+        {
+          "id": "infrastructure.load.energy_consumed",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.load.energy_consumed",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.joule",
+          "dimension": "infrastructure.dimension.load",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 290
+        },
+        {
+          "id": "infrastructure.load.energy_produced",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.load.energy_produced",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.joule",
+          "dimension": "infrastructure.dimension.load",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 300
+        },
+        {
+          "id": "infrastructure.energy.reactive_import",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.reactive_import",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_reactive_second",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 310
+        },
+        {
+          "id": "infrastructure.energy.reactive_export",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.reactive_export",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_reactive_second",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 320
+        },
+        {
+          "id": "infrastructure.energy.apparent_import",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.apparent_import",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_second",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 330
+        },
+        {
+          "id": "infrastructure.energy.apparent_export",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.apparent_export",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere_second",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 340
+        },
+        {
+          "id": "infrastructure.energy.phase_import",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.phase_import",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.joule",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 350
+        },
+        {
+          "id": "infrastructure.energy.phase_export",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.energy.phase_export",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.joule",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 360
+        },
+        {
+          "id": "infrastructure.ac.phase_power_factor",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.phase_power_factor",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 370
+        },
+        {
+          "id": "infrastructure.ac.reactive_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.reactive_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 380
+        },
+        {
+          "id": "infrastructure.ac.apparent_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.apparent_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 390
+        },
+        {
+          "id": "infrastructure.ac.neutral_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.neutral_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.circuit",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 400
+        },
+        {
+          "id": "infrastructure.ac.harmonic_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.harmonic_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.harmonic_order"
+          ],
+          "optional": true,
+          "order": 410
+        },
+        {
+          "id": "infrastructure.ac.harmonic_phase",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.ac.harmonic_phase",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "dimension": "infrastructure.dimension.phase",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.harmonic_order"
+          ],
+          "optional": true,
+          "order": 420
+        },
+        {
+          "id": "infrastructure.limit.pv_curtailment_factor",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.limit.pv_curtailment_factor",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ratio",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "bounds": {
+            "minimum": {
+              "coefficient": "0",
+              "exponent10": 0
+            },
+            "maximum": {
+              "coefficient": "1",
+              "exponent10": 0
+            }
+          },
+          "optional": true,
+          "order": 430
+        },
+        {
+          "id": "infrastructure.meter.kind",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.meter.kind",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.meter",
+          "symbols": [
+            "utility",
+            "private",
+            "generic"
+          ],
+          "optional": true,
+          "order": 440
+        },
+        {
+          "id": "infrastructure.meter.point_of_delivery",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.meter.point_of_delivery",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.meter",
+          "optional": true,
+          "order": 450
+        },
+        {
+          "id": "infrastructure.meter.protocol_version",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.meter.protocol_version",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.meter",
+          "optional": true,
+          "order": 460
+        },
+        {
+          "id": "infrastructure.meter.power_threshold",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.meter.power_threshold",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 470
+        },
+        {
+          "id": "infrastructure.meter.apparent_power_threshold",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.meter.apparent_power_threshold",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.volt_ampere",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 480
+        },
+        {
+          "id": "infrastructure.meter.power_threshold_source",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.meter.power_threshold_source",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.meter",
+          "symbols": [
+            "contract",
+            "regulator",
+            "equipment"
+          ],
+          "optional": true,
+          "order": 490
+        },
+        {
+          "id": "infrastructure.status.supply_condition",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.status.supply_condition",
+            "version": "1.0.0"
+          },
+          "kind": "symbol",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "symbols": [
+            "normal",
+            "over_voltage",
+            "under_voltage",
+            "over_frequency",
+            "under_frequency",
+            "outage"
+          ],
+          "optional": true,
+          "order": 500
+        },
+        {
+          "id": "infrastructure.mgcp.use_case_name",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.use_case_name",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 510
+        },
+        {
+          "id": "infrastructure.mpc.use_case_name",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.use_case_name",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 520
+        },
+        {
+          "id": "infrastructure.mgcp.actor",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.actor",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 530
+        },
+        {
+          "id": "infrastructure.mpc.actor",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.actor",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 540
+        },
+        {
+          "id": "infrastructure.mgcp.use_case_version",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.use_case_version",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 550
+        },
+        {
+          "id": "infrastructure.mpc.use_case_version",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.use_case_version",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 560
+        },
+        {
+          "id": "infrastructure.mpc.ac_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.ac_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.load",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "optional": true,
+          "order": 570
+        },
+        {
+          "id": "infrastructure.mgcp.ac_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.ac_current",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 580
+        },
+        {
+          "id": "infrastructure.mpc.ac_voltage",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.ac_voltage",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 590
+        },
+        {
+          "id": "infrastructure.mpc.value_state",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.value_state",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 600
+        },
+        {
+          "id": "infrastructure.mgcp.value_source",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.value_source",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 610
+        },
+        {
+          "id": "infrastructure.mgcp.value_range_min",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.value_range_min",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 620
+        },
+        {
+          "id": "infrastructure.mpc.value_range_min",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.value_range_min",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 630
+        },
+        {
+          "id": "infrastructure.mpc.one",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.one",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 640
+        },
+        {
+          "id": "infrastructure.mgcp.per",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.per",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 650
+        },
+        {
+          "id": "infrastructure.mpc.per",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.per",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 660
+        },
+        {
+          "id": "infrastructure.mgcp.slots",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.slots",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 670
+        },
+        {
+          "id": "infrastructure.mpc.slots",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mpc.slots",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.load",
+          "optional": true,
+          "order": 680
+        },
+        {
+          "id": "infrastructure.mgcp.committed_power_plan",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.mgcp.committed_power_plan",
+            "version": "1.0.0"
+          },
+          "kind": "text",
+          "dimension": "infrastructure.dimension.grid_connection",
+          "optional": true,
+          "order": 690
         }
       ],
       "fact_dimensions": [
@@ -820,6 +1592,19 @@
           },
           "value_kind": "text",
           "order": 70
+        },
+        {
+          "id": "infrastructure.dimension.load",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.load",
+            "version": "1.0.0"
+          },
+          "value_kind": "text",
+          "order": 80
         }
       ],
       "qualifier_dimensions": [
@@ -854,6 +1639,20 @@
             "voltage"
           ],
           "order": 80
+        },
+        {
+          "id": "infrastructure.dimension.harmonic_order",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.dimension.harmonic_order",
+            "version": "1.0.0"
+          },
+          "value_kind": "quantity",
+          "unit": "unit.one",
+          "order": 90
         }
       ],
       "services": [
@@ -947,6 +1746,19 @@
           },
           "fact_key_dimension": "infrastructure.dimension.line_pair",
           "order": 70
+        },
+        {
+          "id": "infrastructure.service.load",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.service.load",
+            "version": "1.0.0"
+          },
+          "fact_key_dimension": "infrastructure.dimension.load",
+          "order": 80
         }
       ],
       "relations": [
@@ -1024,6 +1836,36 @@
           "to": "infrastructure.dimension.meter",
           "cardinality": "one_to_many",
           "order": 50
+        },
+        {
+          "id": "infrastructure.relation.site_load",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relation.site_load",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.site",
+          "to": "infrastructure.dimension.load",
+          "cardinality": "one_to_many",
+          "order": 60
+        },
+        {
+          "id": "infrastructure.relation.load_meter",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.relation.load_meter",
+            "version": "1.0.0"
+          },
+          "from": "infrastructure.dimension.meter",
+          "to": "infrastructure.dimension.load",
+          "cardinality": "one_to_many",
+          "order": 70
         }
       ],
       "capabilities": [
@@ -1148,6 +1990,16 @@
             "infrastructure.ac.frequency",
             "infrastructure.ac.power_factor",
             "infrastructure.limit.fallback_power",
+            "infrastructure.limit.pv_curtailment_factor",
+            "infrastructure.mgcp.ac_current",
+            "infrastructure.mgcp.actor",
+            "infrastructure.mgcp.committed_power_plan",
+            "infrastructure.mgcp.per",
+            "infrastructure.mgcp.slots",
+            "infrastructure.mgcp.use_case_name",
+            "infrastructure.mgcp.use_case_version",
+            "infrastructure.mgcp.value_range_min",
+            "infrastructure.mgcp.value_source",
             "infrastructure.power.apparent",
             "infrastructure.power.export_active",
             "infrastructure.power.export_reactive",
@@ -1155,7 +2007,8 @@
             "infrastructure.power.import_reactive",
             "infrastructure.power.pcc",
             "infrastructure.status.connection",
-            "infrastructure.status.readiness"
+            "infrastructure.status.readiness",
+            "infrastructure.status.supply_condition"
           ],
           "order": 20
         },
@@ -1187,6 +2040,7 @@
           "kind": "read",
           "service": "infrastructure.service.circuit",
           "fields": [
+            "infrastructure.ac.neutral_current",
             "infrastructure.status.breaker",
             "infrastructure.status.interlock"
           ],
@@ -1206,10 +2060,18 @@
           "service": "infrastructure.service.phase",
           "fields": [
             "infrastructure.ac.active_power",
+            "infrastructure.ac.apparent_current",
             "infrastructure.ac.apparent_power",
             "infrastructure.ac.current",
+            "infrastructure.ac.harmonic_current",
+            "infrastructure.ac.harmonic_phase",
+            "infrastructure.ac.phase_power_factor",
+            "infrastructure.ac.reactive_current",
             "infrastructure.ac.reactive_power",
-            "infrastructure.ac.voltage"
+            "infrastructure.ac.voltage",
+            "infrastructure.energy.phase_export",
+            "infrastructure.energy.phase_import",
+            "infrastructure.load.phase_active_power"
           ],
           "order": 50
         },
@@ -1228,9 +2090,19 @@
           "fields": [
             "infrastructure.accuracy.measured",
             "infrastructure.accuracy.ratio_maximum",
+            "infrastructure.energy.apparent_export",
+            "infrastructure.energy.apparent_import",
             "infrastructure.energy.export",
             "infrastructure.energy.import",
-            "infrastructure.energy.self_consumption"
+            "infrastructure.energy.reactive_export",
+            "infrastructure.energy.reactive_import",
+            "infrastructure.energy.self_consumption",
+            "infrastructure.meter.apparent_power_threshold",
+            "infrastructure.meter.kind",
+            "infrastructure.meter.point_of_delivery",
+            "infrastructure.meter.power_threshold",
+            "infrastructure.meter.power_threshold_source",
+            "infrastructure.meter.protocol_version"
           ],
           "order": 60
         },
@@ -1250,6 +2122,73 @@
             "infrastructure.ac.voltage_line_line"
           ],
           "order": 70
+        },
+        {
+          "id": "infrastructure.portal.read.load",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.portal.read.load",
+            "version": "1.0.0"
+          },
+          "kind": "read",
+          "service": "infrastructure.service.load",
+          "fields": [
+            "infrastructure.load.active_power",
+            "infrastructure.load.energy_consumed",
+            "infrastructure.load.energy_produced",
+            "infrastructure.mpc.ac_power",
+            "infrastructure.mpc.ac_voltage",
+            "infrastructure.mpc.actor",
+            "infrastructure.mpc.one",
+            "infrastructure.mpc.per",
+            "infrastructure.mpc.slots",
+            "infrastructure.mpc.use_case_name",
+            "infrastructure.mpc.use_case_version",
+            "infrastructure.mpc.value_range_min",
+            "infrastructure.mpc.value_state"
+          ],
+          "order": 80
+        }
+      ],
+      "events": [
+        {
+          "id": "infrastructure.event.supply_condition_changed",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.event.supply_condition_changed",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.grid_connection",
+          "trigger": "infrastructure.status.supply_condition",
+          "condition": "changed",
+          "payload": [],
+          "origin": "derived",
+          "order": 10
+        },
+        {
+          "id": "infrastructure.event.energy_measured",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.event.energy_measured",
+            "version": "1.0.0"
+          },
+          "service": "infrastructure.service.meter",
+          "trigger": "infrastructure.energy.import",
+          "condition": "changed",
+          "payload": [
+            "infrastructure.energy.export"
+          ],
+          "origin": "emitted",
+          "order": 20
         }
       ]
     },

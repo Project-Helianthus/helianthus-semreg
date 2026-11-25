@@ -7,6 +7,8 @@ import (
 
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/energymanagement"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/equipment"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/evse"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/infrastructure"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/packs/pv"
@@ -19,6 +21,8 @@ func builtinSources() []semreg.PackMetadataSource {
 		{Validator: thermal.New(), Metadata: thermal.Metadata()},
 		{Validator: pv.New(), Metadata: pv.Metadata()},
 		{Validator: storage.New(), Metadata: storage.Metadata()},
+		{Validator: energymanagement.New(), Metadata: energymanagement.Metadata()},
+		{Validator: equipment.New(), Metadata: equipment.Metadata()},
 		{Validator: evse.New(), Metadata: evse.Metadata()},
 		{Validator: infrastructure.New(), Metadata: infrastructure.Metadata()},
 	}
@@ -31,12 +35,23 @@ type driftingMetadataProvider struct {
 
 func (p driftingMetadataProvider) Metadata() semreg.PackMetadata { return p.metadata }
 
+func demandLevel(metadata *semreg.PackMetadata) *semreg.FieldMetadata {
+	for i := range metadata.Fields {
+		if metadata.Fields[i].Ref.ID == "thermal.demand.level" {
+			return &metadata.Fields[i]
+		}
+	}
+	return nil
+}
+
 func TestPackMetadataBuiltinQueries(t *testing.T) {
 	registry, err := packs.NewMetadataRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
 	wantPacks := []semreg.PackRef{
+		{ID: "helianthus.pack.energy_management", Version: "1.0.0"},
+		{ID: "helianthus.pack.equipment", Version: "1.0.0"},
 		{ID: "helianthus.pack.evse", Version: "1.0.0"},
 		{ID: "helianthus.pack.infrastructure", Version: "1.0.0"},
 		{ID: "helianthus.pack.pv", Version: "1.0.0"},
@@ -49,14 +64,16 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 	for _, source := range builtinSources() {
 		metadata := source.Metadata
 		index := source.Validator.Definitions()
-		want := map[semreg.DefinitionID]struct{ units, fields, services, capabilities, operations int }{
-			"helianthus.pack.thermal":        {7, 48, 11, 12, 2},
-			"helianthus.pack.pv":             {9, 32, 6, 8, 2},
-			"helianthus.pack.storage":        {7, 25, 7, 5, 2},
-			"helianthus.pack.evse":           {5, 16, 5, 6, 1},
-			"helianthus.pack.infrastructure": {8, 25, 7, 6, 0},
+		want := map[semreg.DefinitionID]struct{ units, fields, services, capabilities, operations, events int }{
+			"helianthus.pack.energy_management": {8, 261, 2, 21, 19, 2},
+			"helianthus.pack.equipment":         {7, 59, 2, 3, 1, 5},
+			"helianthus.pack.evse":              {10, 298, 6, 18, 12, 2},
+			"helianthus.pack.infrastructure":    {10, 68, 8, 6, 0, 2},
+			"helianthus.pack.pv":                {13, 95, 6, 8, 2, 0},
+			"helianthus.pack.storage":           {9, 96, 7, 20, 17, 2},
+			"helianthus.pack.thermal":           {12, 269, 21, 87, 74, 15},
 		}[metadata.Pack.ID]
-		if got := struct{ units, fields, services, capabilities, operations int }{len(metadata.Units), len(metadata.Fields), len(metadata.Services), len(metadata.Capabilities), len(metadata.Operations)}; got != want {
+		if got := struct{ units, fields, services, capabilities, operations, events int }{len(metadata.Units), len(metadata.Fields), len(metadata.Services), len(metadata.Capabilities), len(metadata.Operations), len(metadata.Events)}; got != want {
 			t.Fatalf("metadata shape for %s = %+v, want %+v", metadata.Pack.ID, got, want)
 		}
 		for _, unit := range metadata.Units {
@@ -64,7 +81,7 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 				t.Fatalf("missing unit %v", unit)
 			}
 		}
-		for _, refs := range [][]semreg.DefinitionRef{index.Fields, index.Services, index.Capabilities, index.Operations, index.EffectRules} {
+		for _, refs := range [][]semreg.DefinitionRef{index.Fields, index.Services, index.Capabilities, index.Operations, index.EffectRules, index.Events} {
 			for _, ref := range refs {
 				if !registry.HasDefinition(ref) {
 					t.Fatalf("missing indexed definition %v", ref)
@@ -157,14 +174,14 @@ func TestPackMetadataFailsClosedAndCopies(t *testing.T) {
 		t.Fatal("wrong operation effect accepted")
 	}
 
-	*sources[0].Metadata.Fields[1].CanonicalUnit = semreg.DefinitionRef{}
+	*demandLevel(&sources[0].Metadata).CanonicalUnit = semreg.DefinitionRef{}
 	thermalDemand := semreg.DefinitionRef{Pack: thermalPack, ID: "thermal.demand.level", Version: "1.0.0"}
 	if got, ok := registry.CanonicalUnit(thermalDemand); !ok || got.ID != "unit.ratio" {
 		t.Fatalf("input mutation changed accepted registry: %v, %t", got, ok)
 	}
 	returned := registry.Packs()
 	returned[0] = thermalPack
-	if got := registry.Packs()[0]; got != (semreg.PackRef{ID: "helianthus.pack.evse", Version: "1.0.0"}) {
+	if got := registry.Packs()[0]; got != (semreg.PackRef{ID: "helianthus.pack.energy_management", Version: "1.0.0"}) {
 		t.Fatalf("returned pack mutation leaked: %v", got)
 	}
 }
@@ -181,12 +198,12 @@ func TestPackMetadataConstructorRejectsHostileRelations(t *testing.T) {
 		{"unknown-unit", func(s []semreg.PackMetadataSource) {
 			u := s[0].Metadata.Units[0]
 			u.ID = "unit.unknown"
-			s[0].Metadata.Fields[1].CanonicalUnit = &u
+			demandLevel(&s[0].Metadata).CanonicalUnit = &u
 		}},
 		{"forged-unit-added-to-list", func(s []semreg.PackMetadataSource) {
 			forged := semreg.DefinitionRef{Pack: s[0].Metadata.Pack, ID: "unit.unaccepted", Version: s[0].Metadata.Pack.Version}
 			s[0].Metadata.Units = append(s[0].Metadata.Units, forged)
-			s[0].Metadata.Fields[1].CanonicalUnit = &forged
+			demandLevel(&s[0].Metadata).CanonicalUnit = &forged
 		}},
 		{"forged-matching-dimension", func(s []semreg.PackMetadataSource) {
 			forged := semreg.DefinitionRef{Pack: s[0].Metadata.Pack, ID: "thermal.dimension.unaccepted", Version: s[0].Metadata.Pack.Version}
@@ -223,7 +240,7 @@ func TestPackMetadataConstructorRejectsHostileRelations(t *testing.T) {
 		drifted := thermal.Metadata()
 		forged := semreg.DefinitionRef{Pack: drifted.Pack, ID: "unit.drifted", Version: drifted.Pack.Version}
 		drifted.Units = append(drifted.Units, forged)
-		drifted.Fields[1].CanonicalUnit = &forged
+		demandLevel(&drifted).CanonicalUnit = &forged
 		sources[0].Validator = driftingMetadataProvider{PackValidator: thermal.New(), metadata: drifted}
 		if _, err := semreg.NewPackMetadataRegistry(sources...); semreg.ErrorIdentifier(err) != semreg.DefinitionOwnerConflict {
 			t.Fatalf("provider drift error = %v, want definition ownership conflict", err)
@@ -253,10 +270,11 @@ func TestPackMetadataProviderReturnsFreshAuthoritativeSnapshot(t *testing.T) {
 		t.Fatal("thermal validator does not expose metadata provider")
 	}
 	first := provider.Metadata()
-	*first.Fields[1].CanonicalUnit = semreg.DefinitionRef{}
+	*demandLevel(&first).CanonicalUnit = semreg.DefinitionRef{}
 	second := provider.Metadata()
-	if second.Fields[1].CanonicalUnit == nil || second.Fields[1].CanonicalUnit.ID != "unit.ratio" {
-		t.Fatalf("provider snapshot mutation leaked: %+v", second.Fields[1])
+	unit := demandLevel(&second).CanonicalUnit
+	if unit == nil || unit.ID != "unit.ratio" {
+		t.Fatalf("provider snapshot mutation leaked: %+v", demandLevel(&second))
 	}
 }
 

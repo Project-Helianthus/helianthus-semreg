@@ -188,6 +188,27 @@ func (s *applyState) checkResourceGraph() {
 // resourceSubjectError is RES-5 for one reference: the resource exists and is
 // current (dangling_reference otherwise) and has the declared kind
 // (identity_drift otherwise).
+func (s *applyState) resourceClassError(catalog GraphResourceCatalog, classes []AnchorClass, id ResourceID, detail string) error {
+	resource, ok := s.resources[id]
+	if !ok || resource.State != ResourceCurrent {
+		return errID(DanglingReference, detail)
+	}
+	class, ok := catalog.ResourceKindClass(resource.Kind)
+	if !ok || !containsAnchor(classes, class) {
+		return errID(IdentityDrift, detail+" class")
+	}
+	return nil
+}
+
+func containsAnchor(classes []AnchorClass, class AnchorClass) bool {
+	for _, candidate := range classes {
+		if candidate == class {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *applyState) resourceSubjectError(kind DefinitionID, id ResourceID, detail string) error {
 	resource, ok := s.resources[id]
 	if !ok || resource.State != ResourceCurrent {
@@ -211,7 +232,7 @@ func (s *applyState) checkServiceResources(catalog GraphResourceCatalog) {
 			s.check(errID(MembershipMissing, "service is not a catalog member"))
 			continue
 		}
-		kind, ok := catalog.ServiceSubjectKind(service.Definition)
+		kind, classes, ok := catalog.ServiceSubject(service.Definition)
 		if !ok {
 			s.check(errID(MembershipMissing, "service without a subject kind"))
 			continue
@@ -220,7 +241,11 @@ func (s *applyState) checkServiceResources(catalog GraphResourceCatalog) {
 			s.check(errID(DanglingReference, "service without its resource"))
 			continue
 		}
-		s.check(s.resourceSubjectError(kind, *service.Resource, "service resource"))
+		if kind != "" {
+			s.check(s.resourceSubjectError(kind, *service.Resource, "service resource"))
+			continue
+		}
+		s.check(s.resourceClassError(catalog, classes, *service.Resource, "service resource"))
 	}
 	for _, capability := range s.capabilities {
 		if capability.Availability == AvailabilityWithdrawn {
@@ -263,7 +288,13 @@ func (s *applyState) checkFactSubjects(catalog GraphResourceCatalog) {
 				continue
 			}
 			id := ResourceID(*dimension.Value.Text)
-			s.check(s.resourceSubjectError(role.Kind, id, "fact resource dimension"))
+			if role.Kind != "" {
+				s.check(s.resourceSubjectError(role.Kind, id, "fact resource dimension"))
+			} else if len(role.Classes) > 0 {
+				s.check(s.resourceClassError(catalog, role.Classes, id, "fact resource dimension"))
+			} else {
+				s.check(errID(IdentityDrift, "fact resource dimension"))
+			}
 			if subject.Resolved && dimension.ID == subject.Dimension {
 				subjectID = &id
 			}
