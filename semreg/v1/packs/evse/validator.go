@@ -175,7 +175,7 @@ func (v validator) EvaluatePredicate(c semreg.FactCandidate, p semreg.PredicateO
 	return false, fail(semreg.InvalidEnum, "evse predicate")
 }
 func (v validator) ValidateIntent(i operation.Intent) error {
-	if err := i.Validate(); err != nil {
+	if err := i.ValidateWithoutLifetime(); err != nil {
 		return err
 	}
 	spec, ok := operations[i.Kind.ID]

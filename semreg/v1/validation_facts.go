@@ -298,11 +298,28 @@ func (q Quality) Validate() error {
 	return bestError(errs...)
 }
 func (c CausalContext) Validate() error {
+	return c.validate(true)
+}
+
+// ValidateWithoutExpiry checks origin, correlation, path and hop budget, and
+// FirstSeenAt when it is present. It does not require an absolute ExpiresAt
+// or the finite causal span. Wire Validate keeps both.
+func (c CausalContext) ValidateWithoutExpiry() error {
+	return c.validate(false)
+}
+
+func (c CausalContext) validate(expiry bool) error {
 	var errs []error
 	if c.Path == nil {
 		errs = append(errs, errID(MissingMember, "causal path"))
 	}
-	errs = append(errs, c.Origin.Validate(), c.CorrelationID.Validate(), c.FirstSeenAt.Validate(), c.ExpiresAt.Validate())
+	errs = append(errs, c.Origin.Validate(), c.CorrelationID.Validate())
+	if expiry || c.FirstSeenAt != (TimePoint{}) {
+		errs = append(errs, c.FirstSeenAt.Validate())
+	}
+	if expiry {
+		errs = append(errs, c.ExpiresAt.Validate())
+	}
 	if c.ParentCorrelationID != nil {
 		errs = append(errs, c.ParentCorrelationID.Validate())
 	}
@@ -310,7 +327,11 @@ func (c CausalContext) Validate() error {
 		errs = append(errs, target.Validate())
 	}
 	dup, _ := duplicateAndOrder(c.Path, func(a, b TargetID) int { return strings.Compare(string(a), string(b)) })
-	errs = append(errs, causalTimeErrors(&c.FirstSeenAt, &c.ExpiresAt)...)
+	if expiry {
+		errs = append(errs, causalTimeErrors(&c.FirstSeenAt, &c.ExpiresAt)...)
+	} else if c.FirstSeenAt != (TimePoint{}) && c.FirstSeenAt.ClockID != "clock.utc" {
+		errs = append(errs, errID(InvalidTime, "causal clock"))
+	}
 	if c.MaxHops < 1 || c.MaxHops > 16 || c.HopCount > c.MaxHops || int(c.HopCount) != len(c.Path) || dup {
 		errs = append(errs, errID(CausalBudgetExceeded, "causal path"))
 	}

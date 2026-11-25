@@ -169,7 +169,7 @@ func (v validator) EvaluatePredicate(candidate semreg.FactCandidate, predicate s
 	return false, failure(semreg.InvalidEnum, "thermal predicate")
 }
 func (v validator) ValidateIntent(intent operation.Intent) error {
-	if err := intent.Validate(); err != nil {
+	if err := intent.ValidateWithoutLifetime(); err != nil {
 		return err
 	}
 	if intent.Kind.Pack != pack || intent.Kind.Version != packVersion {
