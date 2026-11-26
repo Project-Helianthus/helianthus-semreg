@@ -253,6 +253,10 @@ type testTransaction struct {
 	pub *testPublisher
 }
 
+func (t *testTransaction) StageSample(driver.Sample) error { return nil }
+
+func (t *testTransaction) StageLink(driver.LinkClaim) error { return nil }
+
 func (t *testTransaction) Commit(context.Context) error {
 	t.pub.mu.Lock()
 	t.pub.commits++

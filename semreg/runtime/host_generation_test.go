@@ -27,6 +27,8 @@ type binderFactory struct {
 	prefixed, twoPaths bool
 	// batch, when set, receives the batch the instance handed to Stage.
 	batch *v1.PublicationBatch
+	// links, when set, stages claims and ends the transaction as it directs.
+	links *linkPlan
 }
 
 func (f binderFactory) Descriptor() driver.Descriptor { return driver.Descriptor{} }
@@ -34,7 +36,7 @@ func (f binderFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	return []driver.InstancePlan{{Driver: binderKind, Instance: driver.InstanceKey(c.Instance)}}, nil
 }
 func (f binderFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
-	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, prefixed: f.prefixed, twoPaths: f.twoPaths, record: f.batch}, nil
+	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, prefixed: f.prefixed, twoPaths: f.twoPaths, record: f.batch, links: f.links}, nil
 }
 
 type binderInstance struct {
@@ -43,6 +45,7 @@ type binderInstance struct {
 	native             bool
 	prefixed, twoPaths bool
 	record             *v1.PublicationBatch
+	links              *linkPlan
 	source             driver.Source
 }
 
@@ -150,6 +153,9 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 		longer.CandidateID = "candidate:observed:1-2"
 		batch.FactUpserts = append(batch.FactUpserts, longer)
 	}
+	if i.links != nil && i.links.ending == endReject {
+		batch.FactUpserts[0].Key.FactID = "thermal.fact.undeclared"
+	}
 	if i.record != nil {
 		*i.record = batch
 	}
@@ -173,6 +179,9 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 			_ = tx.Abort(ctx)
 			return err
 		}
+	}
+	if i.links != nil {
+		return i.links.finish(ctx, s, tx, producer, resourceID, observed.CandidateID)
 	}
 	return tx.Commit(ctx)
 }

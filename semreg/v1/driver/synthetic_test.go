@@ -180,6 +180,10 @@ func (t *syntheticTransaction) DeclareSettingRoute(r driver.SettingRoute) error 
 	return nil
 }
 
+func (t *syntheticTransaction) StageSample(s driver.Sample) error { return s.Validate() }
+
+func (t *syntheticTransaction) StageLink(c driver.LinkClaim) error { return c.Validate() }
+
 func (t *syntheticTransaction) Commit(context.Context) error {
 	t.committed = true
 	return nil
@@ -286,6 +290,14 @@ func (s *syntheticSession) SemanticInput() driver.SemanticInput       { return s
 func (s *syntheticSession) ScopedOperations() driver.ScopedOperations { return s.operations }
 func (s *syntheticSession) Calendar() driver.Calendar                 { return s.calendar }
 func (s *syntheticSession) Publisher() driver.Publisher               { return s.publisher }
+
+func (s *syntheticSession) Prepare(mutate func(*v1.PublicationBatch)) (v1.PublicationBatch, error) {
+	var b v1.PublicationBatch
+	if mutate != nil {
+		mutate(&b)
+	}
+	return b, nil
+}
 
 func (s *syntheticSession) RegisterExecutor(r driver.SettingRoute, e driver.Executor) (func(), error) {
 	if err := r.Validate(); err != nil {

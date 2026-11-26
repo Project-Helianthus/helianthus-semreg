@@ -27,6 +27,13 @@ type PublicationTransaction interface {
 	// DeclareSettingRoute stages the route to the owner of one setting in this
 	// transaction, so the source, its candidate and its route commit together.
 	DeclareSettingRoute(SettingRoute) error
+	// StageSample stages one sample of a declared source with the batch, so the
+	// source, its candidate and its sample commit together.
+	StageSample(Sample) error
+	// StageLink stages one publisher link claim. It commits with the staged
+	// batch under this transaction's ownership stamp; an abort or a rejected
+	// commit discards it, and a claim to an absent target is kept.
+	StageLink(LinkClaim) error
 	// Commit publishes everything staged in this transaction under its ownership
 	// stamp as one commit.
 	Commit(context.Context) error
@@ -53,6 +60,10 @@ type Session interface {
 	Calendar() Calendar
 	// Publisher is the session's own transactional publisher.
 	Publisher() Publisher
+	// Prepare fills the ownership stamp, the next publication sequence, the
+	// expected semantic revision and the batch digest, after mutate has filled
+	// in the batch contents. The result is handed to Stage.
+	Prepare(mutate func(*v1.PublicationBatch)) (v1.PublicationBatch, error)
 	// RegisterExecutor registers the driver's own callback for its setting
 	// route. Registration may precede the matching route publication in the
 	// same generation, but alone it cannot authorize a send. Stopping or

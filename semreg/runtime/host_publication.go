@@ -113,6 +113,7 @@ func (p *hostPublication) OpenSession(_ context.Context, corr life.LifecycleCorr
 		native: native, spec: spec, scoped: attempt.scoped, calendar: p.rt.calendar,
 		input:     &hostInput{scoped: p.rt.tree.SemanticInput(driver.Filter{}), session: session},
 		publisher: &hostPublisher{session: session, rt: p.rt},
+		prepare:   session.Prepare,
 	}, nil
 }
 
@@ -348,6 +349,7 @@ type hostSession struct {
 	calendar  driver.Calendar
 	publisher driver.Publisher
 	spec      SessionSpec
+	prepare   func(func(*v1.PublicationBatch)) (v1.PublicationBatch, error)
 }
 
 var _ driver.Session = (*hostSession)(nil)
@@ -359,6 +361,10 @@ func (s *hostSession) ScopedOperations() driver.ScopedOperations {
 }
 func (s *hostSession) Calendar() driver.Calendar   { return s.calendar }
 func (s *hostSession) Publisher() driver.Publisher { return s.publisher }
+
+func (s *hostSession) Prepare(mutate func(*v1.PublicationBatch)) (v1.PublicationBatch, error) {
+	return s.prepare(mutate)
+}
 
 func (s *hostSession) RegisterExecutor(route driver.SettingRoute, exec driver.Executor) (func(), error) {
 	return s.scoped.RegisterExecutor(stampRoute(s.spec, route), exec)
@@ -425,10 +431,6 @@ func (t *hostTransaction) DeclareSource(source driver.Source) error {
 // when exactly one declared path claims its element; when several paths claim
 
 func (t *hostTransaction) stageSamples() error {
-	stager, ok := t.PublicationTransaction.(interface{ StageSample(driver.Sample) error })
-	if !ok {
-		return nil
-	}
 	t.session.mu.Lock()
 	sources := append([]driver.Source(nil), t.session.sources...)
 	t.session.mu.Unlock()
@@ -453,7 +455,7 @@ func (t *hostTransaction) stageSamples() error {
 		if len(claimed) != 1 {
 			continue
 		}
-		if err := stager.StageSample(driver.Sample{From: claimed[0], Candidate: fact}); err != nil {
+		if err := t.PublicationTransaction.StageSample(driver.Sample{From: claimed[0], Candidate: fact}); err != nil {
 			return err
 		}
 	}

@@ -45,7 +45,7 @@ func TestSessionAccessorsAlongsideThePublisher(t *testing.T) {
 	for i := 0; i < typ.NumMethod(); i++ {
 		names = append(names, typ.Method(i).Name)
 	}
-	want := []string{"Calendar", "Native", "Publisher", "RegisterExecutor", "ScopedOperations", "SemanticInput"}
+	want := []string{"Calendar", "Native", "Prepare", "Publisher", "RegisterExecutor", "ScopedOperations", "SemanticInput"}
 	if !reflect.DeepEqual(names, want) {
 		t.Errorf("session methods = %v", names)
 	}
