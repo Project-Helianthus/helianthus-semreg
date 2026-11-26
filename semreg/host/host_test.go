@@ -1328,6 +1328,12 @@ func TestHostUsesConfiguredClockAndCalendar(t *testing.T) {
 
 	// An accepted STOP persists the configured clock's timing, not ambient time.
 	ref := life.Ref{Driver: kindPlain, Instance: "plain.b"}
+	gate := make(chan struct{})
+	entered := make(chan string, 1)
+	factory.mu.Lock()
+	factory.holdStop = map[string]chan struct{}{"plain.b": gate}
+	factory.stopEntered = entered
+	factory.mu.Unlock()
 	status, err := site.Snapshot(ref)
 	if err != nil {
 		t.Fatal(err)
@@ -1335,11 +1341,12 @@ func TestHostUsesConfiguredClockAndCalendar(t *testing.T) {
 	if _, err := site.SetDesired(ctx, ref, life.MethodStop, status.DesiredRevision); err != nil {
 		t.Fatal(err)
 	}
-	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
-		if st, _ := site.Snapshot(ref); st.ObservedState == life.ObservedStopped {
-			break
-		}
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stop never reached the instance")
 	}
+	// The stop is held in flight: its timing is in the record until released.
 	var persisted strings.Builder
 	_ = filepath.Walk(filepath.Join(cfg.StateDir, "lifecycle"), func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() {
@@ -1350,6 +1357,12 @@ func TestHostUsesConfiguredClockAndCalendar(t *testing.T) {
 	})
 	if !strings.Contains(persisted.String(), "2030-06-15T23:30:30Z") || strings.Contains(persisted.String(), fmt.Sprint(time.Now().Year())+"-") {
 		t.Fatalf("persisted timing does not come from the configured clock: %.2500s", persisted.String())
+	}
+	close(gate)
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		if st, _ := site.Snapshot(ref); st.ObservedState == life.ObservedStopped {
+			break
+		}
 	}
 	// The recovery anchor is the configured clock's.
 	var store struct {

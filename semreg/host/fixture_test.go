@@ -164,18 +164,22 @@ func (s *ownerState) read() (string, driver.Dispatch, int) {
 // synthFactory is the one synthetic factory of the host tests. It plans the
 // three kinds and constructs instances by kind.
 type synthFactory struct {
-	mu              sync.Mutex
-	clock           *fixedClock
-	owner           *ownerState
-	planned         map[string]driver.Config
-	constructed     []string
-	started         map[string]*consumerInstance
-	calendars       map[string]driver.Calendar
-	families        []catalog.Family
-	argv            [][]string
-	owners          []*ownerInstance
-	startErrs       []error
-	hangStop        bool
+	mu          sync.Mutex
+	clock       *fixedClock
+	owner       *ownerState
+	planned     map[string]driver.Config
+	constructed []string
+	started     map[string]*consumerInstance
+	calendars   map[string]driver.Calendar
+	families    []catalog.Family
+	argv        [][]string
+	owners      []*ownerInstance
+	startErrs   []error
+	hangStop    bool
+	// holdStop maps an instance name to a gate its Stop waits on; stopEntered
+	// receives the name once that Stop is in flight.
+	holdStop        map[string]chan struct{}
+	stopEntered     chan string
 	groupZone       bool
 	keepExecutor    bool
 	nativeHandle    *os.File
@@ -293,6 +297,14 @@ func (i *plainInstance) Start(_ context.Context, s driver.Session) error {
 }
 func (i *plainInstance) FenceWithdrawal() {}
 func (i *plainInstance) Stop(context.Context) driver.CloseReport {
+	name := string(i.plan.Instance)
+	i.f.mu.Lock()
+	gate, entered := i.f.holdStop[name], i.f.stopEntered
+	i.f.mu.Unlock()
+	if gate != nil {
+		entered <- name
+		<-gate
+	}
 	return driver.CloseReport{Confirmed: true}
 }
 
