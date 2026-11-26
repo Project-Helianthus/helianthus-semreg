@@ -2,7 +2,6 @@
   "contract": "helianthus.semantic.kernel.acceptance/v1",
   "source": {
     "repository": "Project-Helianthus/helianthus-docs-semantic",
-    "commit": "da5ab4415d3bec73f9572aec1c495a6cdcbcba47",
     "issue": 9,
     "path": "api/v1/acceptance-vectors.json",
     "sha256": "51a177ce08e478cd9b003c213813abcf6e969ce1dc4cff4b276f7a2d480344f8",
@@ -1656,6 +1655,203 @@
         "state_unchanged": true
       },
       "criterion": "A valid receiver ingress that has no remaining hop capacity uses the causal-domain error before append and leaves the context unchanged."
+    }
+  ],
+  "release_vectors": [
+    {
+      "id": "SS16-POS-01",
+      "polarity": "positive",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "arguments": [
+          {
+            "id": "field.test.level",
+            "value": {
+              "kind": "boolean",
+              "boolean": false
+            }
+          }
+        ]
+      },
+      "expect": {
+        "result": "accept"
+      },
+      "criterion": "A release carries the declared boolean false under the existing argument ID and only the existing rule."
+    },
+    {
+      "id": "SS16-NEG-01",
+      "polarity": "negative",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "arguments": [
+          {
+            "id": "field.test.level",
+            "value": {
+              "kind": "quantity",
+              "quantity": {
+                "number": {
+                  "coefficient": "0",
+                  "exponent10": 0
+                },
+                "unit": "unit.watt"
+              }
+            }
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_value",
+        "state_unchanged": true
+      },
+      "criterion": "Numeric zero is not the declared boolean literal."
+    },
+    {
+      "id": "SS16-NEG-02",
+      "polarity": "negative",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "arguments": [
+          {
+            "id": "field.test.level",
+            "value": {
+              "kind": "quantity",
+              "quantity": {
+                "number": {
+                  "coefficient": "0",
+                  "exponent10": 0
+                },
+                "unit": "unit.watt"
+              }
+            }
+          },
+          {
+            "id": "field.test.level",
+            "value": {
+              "kind": "boolean",
+              "boolean": false
+            }
+          }
+        ]
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_value",
+        "state_unchanged": true
+      },
+      "criterion": "The same field cannot carry both the set value and the release literal."
+    },
+    {
+      "id": "SS16-NEG-03",
+      "polarity": "negative",
+      "record_type": "Intent",
+      "operation": "admit",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "arguments": [
+          {
+            "id": "field.test.level",
+            "value": {
+              "kind": "boolean",
+              "boolean": false
+            }
+          }
+        ],
+        "predicate": true
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_value",
+        "state_unchanged": true
+      },
+      "criterion": "The release literal cannot carry a complete effect predicate."
+    },
+    {
+      "id": "SS16-POS-02",
+      "polarity": "positive",
+      "record_type": "ExecutionRecord",
+      "operation": "record",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "outcome": "acknowledged_unverified",
+        "acknowledgement": "accepted"
+      },
+      "expect": {
+        "result": "accept"
+      },
+      "criterion": "Accepted acknowledgement leaves the release unverified."
+    },
+    {
+      "id": "SS16-POS-03",
+      "polarity": "positive",
+      "record_type": "ExecutionRecord",
+      "operation": "record",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "outcome": "no_effect",
+        "acknowledgement": "rejected"
+      },
+      "expect": {
+        "result": "accept"
+      },
+      "criterion": "A rejected acknowledgement records no effect without asserting readback."
+    },
+    {
+      "id": "SS16-NEG-04",
+      "polarity": "negative",
+      "record_type": "ExecutionRecord",
+      "operation": "record",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "outcome": "no_effect",
+        "acknowledgement": "accepted"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_outcome",
+        "state_unchanged": true
+      },
+      "criterion": "Accepted acknowledgement cannot report no effect."
+    },
+    {
+      "id": "SS16-NEG-05",
+      "polarity": "negative",
+      "record_type": "ExecutionRecord",
+      "operation": "record",
+      "coverage": [
+        "operation"
+      ],
+      "input": {
+        "outcome": "acknowledged_unverified",
+        "acknowledgement": "accepted",
+        "relation": "inconclusive"
+      },
+      "expect": {
+        "result": "reject",
+        "error_id": "invalid_outcome",
+        "state_unchanged": true
+      },
+      "criterion": "A release record cannot carry even inconclusive readback."
     }
   ]
 }

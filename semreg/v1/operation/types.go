@@ -33,16 +33,15 @@ type Precondition struct {
 	Expected          semreg.Value       `json:"expected"`
 }
 
-// ExpectedEffect is the typed fact predicate the operation is meant to make
-// true. The operation pack derives it from the operation and arguments; the
-// caller's copy must match byte for byte, and Rule.Pack must equal the intent's
-// Kind.Pack. The fact may belong to another pack without transferring its
-// meaning.
+// ExpectedEffect identifies the operation's pack-owned rule. For a set intent
+// it also carries the typed predicate derived by that rule; the caller's copy
+// must match byte for byte. A pack-declared release has no predicate.
+// Rule.Pack must equal the intent's Kind.Pack; the Fact may belong to another pack.
 type ExpectedEffect struct {
 	Rule     semreg.DefinitionRef `json:"rule"`
-	Fact     semreg.FactKey       `json:"fact"`
-	Operator semreg.PredicateOp   `json:"operator"`
-	Expected semreg.Value         `json:"expected"`
+	Fact     semreg.FactKey       `json:"fact,omitempty"`
+	Operator semreg.PredicateOp   `json:"operator,omitempty"`
+	Expected semreg.Value         `json:"expected,omitempty"`
 }
 
 // Intent is one requested semantic operation, a ContractOperationV1 wire

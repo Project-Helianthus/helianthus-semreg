@@ -203,11 +203,11 @@ pack before validation (a kilowatt-hour times 3 600 000 is a joule, a degree
 Celsius plus 273.15 is a kelvin), checks that the conversion returns the donor
 value, and requires the PV pack to refuse both donor units.
 
-[`v1/operation-vectors.json`](v1/operation-vectors.json) mechanically copies all
-29 vectors whose coverage includes `operation` from the accepted
-`Project-Helianthus/helianthus-docs-semantic@da5ab4415d3bec73f9572aec1c495a6cdcbcba47`
-source. Its manifest pins the complete source-vector SHA-256 and its own tests
-pin the selected fixture bytes and exact vector IDs. A strict loader rejects
+[`v1/operation-vectors.json`](v1/operation-vectors.json) retains the original 29
+vectors selected by `coverage=operation`. The `release_vectors` group adds
+synthetic cases for the rule-only wire form, exact alternatives, and
+acknowledgement-only evidence. The tests pin the fixture bytes and exact vector
+IDs. A strict loader rejects
 duplicate JSON members and runs one named subtest for every selected vector,
 asserting the exact stable result/error, rejection immutability, and a visible
 typed-expansion digest. Exact typed EVSE admission/readback and precondition
@@ -221,6 +221,8 @@ bounded idempotency/retry retention, chronology, externally supplied dispatch
 evidence, pack-owned effects and every terminal outcome. INT-06, not semreg,
 owns the native lifecycle lock, current-generation recheck, callback, handle,
 and release.
+
+Operation vector fixture SHA-256: `748f0426978fec5fc63ee3657826e9712bd97d5e2fecf66659bfad5b9876a9a5`
 
 The operation package exposes `NewKernelWithOptions` for the fail-closed
 retention bound and `RecordRejection` for stable structurally valid rejected
