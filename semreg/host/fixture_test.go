@@ -7,14 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/call"
-	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/tree"
 	v1 "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/catalog"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/driver"
@@ -35,9 +35,11 @@ const (
 
 // fixedClock is a mutable installation clock for the synthetic host.
 type fixedClock struct {
-	mu   sync.Mutex
-	now  time.Time
-	mono uint64
+	mu           sync.Mutex
+	now          time.Time
+	mono         uint64
+	beforeAnchor func()
+	afterReplay  func()
 }
 
 func newFixedClock(at time.Time) *fixedClock { return &fixedClock{now: at} }
@@ -60,7 +62,12 @@ func (c *fixedClock) Sample() (uint64, error) {
 	return c.mono, nil
 }
 
-func (c *fixedClock) Anchor(sample uint64) ([]byte, error) { return []byte(fmt.Sprint(sample)), nil }
+func (c *fixedClock) Anchor(sample uint64) ([]byte, error) {
+	if c.beforeAnchor != nil {
+		c.beforeAnchor()
+	}
+	return []byte(fmt.Sprint(sample)), nil
+}
 
 func (c *fixedClock) Elapsed(anchor []byte, sample uint64) (uint64, error) {
 	var base uint64
@@ -69,6 +76,9 @@ func (c *fixedClock) Elapsed(anchor []byte, sample uint64) (uint64, error) {
 	}
 	if sample < base {
 		return 0, errors.New("backward sample")
+	}
+	if c.afterReplay != nil {
+		c.afterReplay()
 	}
 	return sample - base, nil
 }
@@ -154,18 +164,23 @@ func (s *ownerState) read() (string, driver.Dispatch, int) {
 // synthFactory is the one synthetic factory of the host tests. It plans the
 // three kinds and constructs instances by kind.
 type synthFactory struct {
-	mu          sync.Mutex
-	clock       *fixedClock
-	owner       *ownerState
-	planned     map[string]driver.Config
-	constructed []string
-	started     map[string]*consumerInstance
-	calendars   map[string]driver.Calendar
-	families    []catalog.Family
-	argv        [][]string
-	owners      []*ownerInstance
-	startErrs   []error
-	hangStop    bool
+	mu              sync.Mutex
+	clock           *fixedClock
+	owner           *ownerState
+	planned         map[string]driver.Config
+	constructed     []string
+	started         map[string]*consumerInstance
+	calendars       map[string]driver.Calendar
+	families        []catalog.Family
+	argv            [][]string
+	owners          []*ownerInstance
+	startErrs       []error
+	hangStop        bool
+	groupZone       bool
+	keepExecutor    bool
+	nativeHandle    *os.File
+	nativeCloses    atomic.Int32
+	beforeConstruct func(driver.InstancePlan) error
 	// receipt, when set, is the monotonic receipt point the owner publishes.
 	receipt *v1.MonotonicPoint
 }
@@ -211,14 +226,23 @@ func (f *synthFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 		}
 	}
 	for _, spec := range specs {
-		plan.Transports = append(plan.Transports, driver.TransportClaim{
+		claim := driver.TransportClaim{
 			Provider: spec.Provider, ConfigKey: spec.Config, AccessDomain: spec.Domain, Share: driver.ShareSerialized,
-		})
+		}
+		if f.groupZone {
+			claim.LinkNodeSlot = "fixture.link." + strings.TrimPrefix(spec.Config, "lane.")
+		}
+		plan.Transports = append(plan.Transports, claim)
 	}
 	return []driver.InstancePlan{plan}, nil
 }
 
 func (f *synthFactory) Construct(_ context.Context, plan driver.InstancePlan) (driver.Instance, error) {
+	if f.beforeConstruct != nil {
+		if err := f.beforeConstruct(plan); err != nil {
+			return nil, err
+		}
+	}
 	f.mu.Lock()
 	f.constructed = append(f.constructed, string(plan.Driver)+"/"+string(plan.Instance))
 	f.mu.Unlock()
@@ -333,6 +357,56 @@ func (i *ownerInstance) fact(id string, revision string, coefficient string) v1.
 	}
 }
 
+func (i *ownerInstance) memberMeasurement(revision, coefficient string) v1.FactCandidate {
+	fact := i.fact("candidate:zone:measurement", revision, coefficient)
+	fact.Key.FactID = "thermal.measurement.air_temperature"
+	return fact
+}
+
+// energyQuery captures the driver's civil query operand before a reply exists.
+func (i *ownerInstance) energyQuery(query func(driver.CalendarDate)) driver.CalendarAcquisition {
+	acquisition := i.session.Calendar().BeginAcquisition()
+	query(acquisition.Reference().Date())
+	return acquisition
+}
+
+func (i *ownerInstance) acceptEnergyReply(ctx context.Context, acquisition driver.CalendarAcquisition, receipt v1.MonotonicPoint, amount string) error {
+	if err := acquisition.Check(i.session.Calendar()); err != nil {
+		return err
+	}
+	id := "resource:pv:calendar-fixture"
+	measurement := i.fact("candidate:calendar:energy", "1", "29315")
+	measurement.Key = v1.FactKey{PackID: "helianthus.pack.pv", PackVersion: "1.0.0", FactID: "pv.energy.yield_day", Dimensions: []v1.Dimension{{ID: "pv.dimension.system", Value: v1.Value{Kind: v1.ValueText, Text: &id}}}}
+	measurement.Value = &v1.Value{Kind: v1.ValueQuantity, Quantity: &v1.Quantity{Number: v1.Decimal{Coefficient: amount}, Unit: "unit.joule"}}
+	observation := timePoint(acquisition.Reference().Instant())
+	measurement.Times.PhenomenonAt = &observation
+	measurement.Times.ReceiptMonotonic = receipt
+	binding := v1.NativeBindingID("binding:calendar:energy")
+	measurement.BindingID, measurement.Origin.BindingID = &binding, &binding
+	resource := v1.ResourceID(id)
+	cat, err := graph.Embedded()
+	if err != nil {
+		return err
+	}
+	class, _ := cat.ResourceKindClass("resource.pv_system")
+	tx, err := i.session.Publisher().Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort(ctx)
+	if err := tx.Stage(v1.PublicationBatch{FactUpserts: []v1.FactCandidate{measurement},
+		BindingUpserts:      []v1.NativeBinding{{BindingID: binding, NativeResource: evidenceOf("calendar native"), State: v1.BindingCurrent, Revision: "1"}},
+		IdentityLinkUpserts: []v1.IdentityLink{{BindingID: binding, Resource: &resource, State: v1.LinkQualified, Basis: []v1.EvidenceRef{evidenceOf("calendar link")}, Revision: "1"}},
+		ResourceUpserts: []v1.Resource{{
+			ResourceID: v1.ResourceID(id), Kind: "resource.pv_system", State: v1.ResourceCurrent, Revision: "1",
+			Anchor: v1.ResourceAnchor{Class: class, Basis: v1.AnchorOperatorSlot, Slot: &id, Evidence: []v1.EvidenceRef{evidenceOf("calendar anchor")}},
+			Origin: v1.OriginRef{Kind: v1.OriginOperator, OriginID: "origin:operator:calendar", Evidence: []v1.EvidenceRef{evidenceOf("calendar origin")}},
+		}}}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func (i *ownerInstance) Start(ctx context.Context, s driver.Session) (err error) {
 	defer func() {
 		if err != nil {
@@ -400,6 +474,27 @@ func (i *ownerInstance) Start(ctx context.Context, s driver.Session) (err error)
 		FactUpserts:         []v1.FactCandidate{fact}, ServiceUpserts: []v1.ServiceInstance{service}, CapabilityUpserts: []v1.CapabilityInstance{capability},
 		ObservedAt: timePoint(i.f.clock.Now()),
 	}
+	if i.f.groupZone {
+		systemSlot := "system.synthetic"
+		systemID := v1.ResourceID("resource:thermal:synthetic")
+		catalog, err := graph.Embedded()
+		if err != nil {
+			return err
+		}
+		class, _ := catalog.ResourceKindClass("resource.thermal_system")
+		batch.ResourceUpserts = append([]v1.Resource{{
+			ResourceID: systemID, Kind: "resource.thermal_system", State: v1.ResourceCurrent, Revision: "1",
+			Anchor: v1.ResourceAnchor{Class: class, Basis: v1.AnchorOperatorSlot, Slot: &systemSlot, Evidence: []v1.EvidenceRef{evidenceOf("system anchor")}},
+			Origin: v1.OriginRef{OriginID: "origin:operator:system", Kind: v1.OriginOperator, Evidence: []v1.EvidenceRef{evidenceOf("system origin")}},
+		}}, batch.ResourceUpserts...)
+		measurement := i.memberMeasurement("1", initial)
+		batch.FactUpserts = append(batch.FactUpserts, measurement)
+		batch.RelationUpserts = []v1.RelationInstance{{
+			Definition: v1.DefinitionRef{Pack: i.facts.op.Ref.Pack, ID: "thermal.relation.system_member", Version: "1.0.0"},
+			From:       systemID, To: zoneResource, State: v1.LinkQualified, Revision: "1", BasisClass: v1.RelationConfiguration,
+			Basis: []v1.EvidenceRef{evidenceOf("zone member")}, Origin: v1.OriginRef{OriginID: "origin:operator:system-member", Kind: v1.OriginOperator, Evidence: []v1.EvidenceRef{evidenceOf("member origin")}},
+		}}
+	}
 	if err := tx.Stage(batch); err != nil {
 		_ = tx.Abort(ctx)
 		return err
@@ -425,7 +520,13 @@ func (i *ownerInstance) Stop(context.Context) driver.CloseReport {
 	if i.f.hangStop {
 		select {}
 	}
-	if i.unregister != nil {
+	i.f.nativeCloses.Add(1)
+	if i.f.nativeHandle != nil {
+		if err := i.f.nativeHandle.Close(); err != nil {
+			return driver.CloseReport{}
+		}
+	}
+	if i.unregister != nil && !i.f.keepExecutor {
 		i.unregister()
 	}
 	return driver.CloseReport{Confirmed: true}
@@ -454,6 +555,9 @@ func (i *ownerInstance) Execute(ctx context.Context, dispatch driver.Dispatch) (
 		FactUpserts: []v1.FactCandidate{i.fact(string(i.current), "1", coefficient)}, FactWithdrawals: []v1.CandidateID{old},
 		ObservedAt: timePoint(i.f.clock.Now()),
 	}
+	if i.f.groupZone {
+		batch.FactUpserts = append(batch.FactUpserts, i.memberMeasurement(strconv.Itoa(i.sequence+1), coefficient))
+	}
 	if err := tx.Stage(batch); err != nil {
 		_ = tx.Abort(ctx)
 		return driver.Completion{}, err
@@ -478,6 +582,3 @@ func (i *ownerInstance) Execute(ctx context.Context, dispatch driver.Dispatch) (
 		OutcomeEvidence: []v1.EvidenceRef{evidenceOf("outcome")},
 	}, nil
 }
-
-var _ = call.Scope{}
-var _ = tree.CutID("")

@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"slices"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/identity"
@@ -21,13 +22,14 @@ type WalkFilter struct {
 func AllVisible(pageSize int) WalkFilter { return WalkFilter{PageSize: pageSize} }
 
 // WalkEntry is one visited entry: its typed descriptor and, for an attribute,
-// its detached value or the read error. A planned directed link is visited as
-// an entry that carries Link and no descriptor.
+// its detached value or the read error. Planned and retained links are visited
+// with Link or RetainedLink respectively, and no descriptor.
 type WalkEntry struct {
-	Descriptor tree.Descriptor
-	Value      *tree.Value
-	Err        error
-	Link       *runtime.PlannedLink
+	Descriptor   tree.Descriptor
+	Value        *tree.Value
+	Err          error
+	Link         *runtime.PlannedLink
+	RetainedLink *identity.Link
 }
 
 // WalkReport reports the completeness of the walked cut and its omitted
@@ -130,6 +132,15 @@ func (c *Cut) Walk(ctx context.Context, filter WalkFilter, emit func(WalkEntry) 
 	for i := range c.cut.Relays {
 		link := c.cut.Relays[i]
 		if err := emit(WalkEntry{Link: &link}); err != nil {
+			return report, err
+		}
+	}
+	for _, link := range c.Links() {
+		link.Claims = slices.Clone(link.Claims)
+		for i := range link.Claims {
+			link.Claims[i].Basis = slices.Clone(link.Claims[i].Basis)
+		}
+		if err := emit(WalkEntry{RetainedLink: &link}); err != nil {
 			return report, err
 		}
 	}

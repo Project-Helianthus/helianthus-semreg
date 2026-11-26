@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -318,6 +319,70 @@ func TestHostCommitAdmitsTheAcceptedCandidateToItsDeclaredSource(t *testing.T) {
 	}
 	if valueCoefficient(state.Value) != "29315" {
 		t.Fatalf("the source-table value is %+v", state.Value)
+	}
+}
+
+func TestHostCommitResolvesTheCommittedIdentityCutWithoutACapture(t *testing.T) {
+	ctx := context.Background()
+	ref := life.Ref{Driver: binderKind, Instance: "binder.one"}
+	inst := life.Installation{Key: "installation.test", Bridge: "bridge.test", StateDir: t.TempDir(), Clock: newTestClock(),
+		Instances: []life.InstanceConfig{{Driver: ref.Driver, Instance: ref.Instance, Enabled: true, Config: driver.Config{Instance: string(ref.Instance), Enabled: true}}}}
+	var open func(context.Context, life.Installation, ...driver.Factory) (*Runtime, error) = Open
+	rt, err := open(ctx, inst, binderFactory{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rt.Close(ctx)
+	// Add two ledger members and their exact statement without a host capture.
+	a := memberNode(t, rt.svc, "unit.a", "a")
+	b := memberNode(t, rt.svc, "unit.b", "b")
+	join := driver.CertifiedJoin{A: a, B: b, Survivor: b, Statement: driver.StatementRef{Revision: "7", Evidence: testEvidence("durable join")}}
+	if err := rt.svc.ledger.Certify(join); err != nil {
+		t.Fatal(err)
+	}
+	if err := rt.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := rt.WaitInitial(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// Read the commit's resolution *before* any capture can resolve identities.
+	rt.svc.mu.Lock()
+	resolved, cursor := rt.cuts.resolved, rt.cuts.resolvedAt
+	snaps, position, _ := rt.svc.consistent()
+	rt.svc.mu.Unlock()
+	actual, err := graph.AssembleCut(snaps, rt.svc.catalog, graph.CutComplete)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cursor != rt.svc.cursorAt(position) || resolved.Cut != actual.ID() {
+		t.Fatalf("commit resolved %s at %+v, want %s at %d", resolved.Cut, cursor, actual.ID(), position)
+	}
+	found := false
+	for _, resource := range resolved.Resources {
+		if resource.Representative != b {
+			continue
+		}
+		found = len(resource.Members) == 2 && ((resource.Members[0].Ref == a && resource.Members[1].Ref == b) || (resource.Members[0].Ref == b && resource.Members[1].Ref == a))
+	}
+	if !found {
+		t.Fatalf("exact pair not resolved to its survivor: %+v", resolved.Resources)
+	}
+	data, err := os.ReadFile(rt.statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var checkpoint struct {
+		Certifications []struct {
+			Join    driver.CertifiedJoin
+			Revoked bool
+		}
+	}
+	if err := json.Unmarshal(data, &checkpoint); err != nil {
+		t.Fatal(err)
+	}
+	if len(checkpoint.Certifications) != 1 || checkpoint.Certifications[0].Join != join || checkpoint.Certifications[0].Revoked {
+		t.Fatalf("statement not in the same checkpoint: %+v", checkpoint)
 	}
 }
 

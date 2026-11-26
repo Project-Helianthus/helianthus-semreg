@@ -1,10 +1,12 @@
 package runtime
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -487,7 +489,7 @@ func (t *hostTransaction) Commit(ctx context.Context) error {
 	if err := t.PublicationTransaction.Commit(ctx); err != nil {
 		return err
 	}
-	_ = t.rt.saveCheckpoint()
+	_ = t.rt.resolveAndSaveCheckpoint()
 	return nil
 }
 
@@ -609,6 +611,14 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 	if err != nil {
 		return v1.PublicationBatch{}, err
 	}
+	localPaths := make(map[v1.SourcePathRef]bool)
+	localCandidates := make(map[v1.CandidateID]bool)
+	for _, fact := range b.FactUpserts {
+		localCandidates[fact.CandidateID] = true
+		if fact.BindingID != nil && fact.Origin.SourceID != nil && fact.SourceEpochID != nil && fact.DriverGeneration != nil {
+			localPaths[v1.SourcePathRef{BindingID: *fact.BindingID, SourceID: *fact.Origin.SourceID, SourceEpochID: *fact.SourceEpochID, DriverGeneration: *fact.DriverGeneration}] = true
+		}
+	}
 	for i := range b.FactUpserts {
 		f := &b.FactUpserts[i]
 		if f.Times.ReceiptMonotonic == (v1.MonotonicPoint{}) {
@@ -620,7 +630,7 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 		f.CandidateID = v1.CandidateID(scopedID(spec, string(f.CandidateID)))
 		if f.Derivation != nil {
 			derivation := *f.Derivation
-			stampDerivation(spec, &derivation)
+			stampDerivation(spec, &derivation, localCandidates, localPaths)
 			f.Derivation = &derivation
 		}
 		if f.BindingID != nil {
@@ -683,28 +693,37 @@ func stampOrigin(spec SessionSpec, o *v1.OriginRef) {
 	}
 }
 
-// stampDerivation carries a derived candidate's exact dependencies through the
-// host's identifier stamping: each input keeps its candidate revision and
-// resolves to the stamped candidate and to the stamped source paths.
-func stampDerivation(spec SessionSpec, d *v1.Derivation) {
-	inputs := make([]v1.DerivationInput, len(d.Inputs))
-	for i, input := range d.Inputs {
-		paths := make([]v1.SourcePathRef, len(input.SourcePaths))
+// stampDerivation maps driver-local references declared by this batch. A
+// reference from a retained cut is already in the runtime's coordinates and
+// must be handed to publication validation without changing its provenance.
+func stampDerivation(spec SessionSpec, d *v1.Derivation, localCandidates map[v1.CandidateID]bool, localPaths map[v1.SourcePathRef]bool) {
+	d.Inputs = cloneOf(d.Inputs)
+	for i := range d.Inputs {
+		input := &d.Inputs[i]
+		input.SourcePaths = cloneOf(input.SourcePaths)
+		if !localCandidates[input.CandidateID] {
+			continue
+		}
+		stamped := false
 		for j, path := range input.SourcePaths {
-			paths[j] = v1.SourcePathRef{
+			if !localPaths[path] {
+				continue
+			}
+			input.SourcePaths[j] = v1.SourcePathRef{
 				BindingID: v1.NativeBindingID(scopedID(spec, string(path.BindingID))),
 				SourceID:  spec.Source, SourceEpochID: spec.Epoch, DriverGeneration: spec.Generation,
 			}
+			stamped = true
 		}
-		sort.SliceStable(paths, func(a, b int) bool { return paths[a].BindingID < paths[b].BindingID })
-		inputs[i] = v1.DerivationInput{
-			CandidateID:       v1.CandidateID(scopedID(spec, string(input.CandidateID))),
-			CandidateRevision: input.CandidateRevision,
-			SourcePaths:       paths,
+		if stamped {
+			input.CandidateID = v1.CandidateID(scopedID(spec, string(input.CandidateID)))
+			slices.SortStableFunc(input.SourcePaths, func(a, b v1.SourcePathRef) int {
+				return cmp.Or(cmp.Compare(a.SourceID, b.SourceID), cmp.Compare(a.SourceEpochID, b.SourceEpochID),
+					cmp.Compare(len(a.DriverGeneration), len(b.DriverGeneration)), cmp.Compare(a.DriverGeneration, b.DriverGeneration), cmp.Compare(a.BindingID, b.BindingID))
+			})
 		}
 	}
-	sort.SliceStable(inputs, func(a, b int) bool { return inputs[a].CandidateID < inputs[b].CandidateID })
-	d.Inputs = inputs
+	sort.SliceStable(d.Inputs, func(a, b int) bool { return d.Inputs[a].CandidateID < d.Inputs[b].CandidateID })
 }
 
 // priorEpochs lists the current epochs of this session's source that an earlier
