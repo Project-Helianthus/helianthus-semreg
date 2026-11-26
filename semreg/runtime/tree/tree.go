@@ -301,6 +301,10 @@ func (t *Tree) openCut(id CutID) (*TreeCut, error) {
 	return cut, nil
 }
 
+// CutByID returns the open capture with the identifier. An unknown or released
+// identifier is a dangling reference.
+func (t *Tree) CutByID(id CutID) (*TreeCut, error) { return t.openCut(id) }
+
 // Release closes the capture.
 func (t *Tree) Release(id CutID) error {
 	t.mu.Lock()
@@ -519,6 +523,21 @@ type TreeCut struct {
 
 // ID returns the capture's identifier.
 func (c *TreeCut) ID() CutID { return c.id }
+
+// Roster returns the namespaces declared at capture in namespace-key order,
+// each with its instances in instance-key order.
+func (c *TreeCut) Roster() []RosterEntry {
+	out := make([]RosterEntry, len(c.reg.roster))
+	for i, e := range c.reg.roster {
+		out[i] = RosterEntry{Owner: e.Owner, Key: e.Key, Instances: append([]driver.InstanceKey{}, e.Instances...)}
+	}
+	return out
+}
+
+// InstallationRoot returns the installation node of the capture.
+func (c *TreeCut) InstallationRoot() NodeRef {
+	return NodeRef{Bridge: c.tree.cfg.Registry.Bridge, ID: c.installation().NodeID()}
+}
 
 // Cursor returns the position the capture was taken at.
 func (c *TreeCut) Cursor() Cursor { return c.cursor }
