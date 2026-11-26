@@ -91,7 +91,7 @@ func successorBatch(shape restartShape, id semreg.BatchID, sequence semreg.Uint6
 }
 
 // applyRestart publishes the successor's first batch: its lifecycle boundary,
-// binding, identity link, service, capability and the interlock fact it
+// binding, identity link, service, capability and the precondition fact it
 // observes. The retired binding's link, service and capability stay in the
 // snapshot as withdrawn tombstones.
 func applyRestart(t *testing.T, fixture operationFixture, shape restartShape) semreg.Snapshot {
@@ -105,7 +105,7 @@ func applyRestart(t *testing.T, fixture operationFixture, shape restartShape) se
 	}
 	batch.BindingUpserts = []semreg.NativeBinding{{BindingID: successorBinding, AssetID: "asset:test", SourceID: "source:test", SourceEpochID: shape.epoch, DriverGeneration: shape.generation, NativeResource: evidence(10), State: semreg.BindingCurrent, Revision: "1"}}
 	batch.IdentityLinkUpserts = []semreg.IdentityLink{{AssetID: "asset:test", BindingID: successorBinding, State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{evidence(11)}, Revision: "1"}}
-	batch.FactUpserts = []semreg.FactCandidate{successorFact("candidate:interlock", preKey, true, shape, "120", "2")}
+	batch.FactUpserts = []semreg.FactCandidate{successorFact("candidate:flag", preKey, true, shape, "120", "2")}
 	batch.ServiceUpserts = []semreg.ServiceInstance{{InstanceID: successorService, AssetID: "asset:test", Definition: testService, BindingID: successorBinding, SourceEpochID: shape.epoch, DriverGeneration: shape.generation, Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "1"}}
 	batch.CapabilityUpserts = []semreg.CapabilityInstance{{InstanceID: successorCapability, AssetID: "asset:test", ServiceInstance: successorService, Definition: testCap, BindingID: successorBinding, SourceEpochID: shape.epoch, DriverGeneration: shape.generation, Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Constraints: []semreg.TypedField{}, ActivationEvidence: []semreg.EvidenceRef{evidence(12)}, Revision: "1"}}
 	return applyBatch(t, fixture.publication, batch, "120")

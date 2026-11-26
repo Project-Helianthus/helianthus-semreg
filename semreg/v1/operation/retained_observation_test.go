@@ -75,7 +75,7 @@ func retainedPreconditionRefusal(t *testing.T, restore bool) {
 		}
 		snapshot, _, _ = restored.Current()
 	}
-	if len(snapshot.Retained) != 1 || snapshot.Retained[0].Candidate.CandidateID != "candidate:interlock" {
+	if len(snapshot.Retained) != 1 || snapshot.Retained[0].Candidate.CandidateID != "candidate:flag" {
 		t.Fatalf("missing retained precondition witness: %+v", snapshot.Retained)
 	}
 	fixture.snapshot = snapshot

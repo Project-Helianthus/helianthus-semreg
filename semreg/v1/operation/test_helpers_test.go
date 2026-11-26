@@ -17,7 +17,7 @@ var (
 	testCap     = semreg.DefinitionRef{Pack: testPackRef, ID: "capability.test.level", Version: "1.0.0"}
 	testOp      = semreg.DefinitionRef{Pack: testPackRef, ID: "operation.test.set_level", Version: "1.0.0"}
 	testEffect  = semreg.DefinitionRef{Pack: testPackRef, ID: "effect.test.level", Version: "1.0.0"}
-	preKey      = semreg.FactKey{PackID: testPackRef.ID, PackVersion: testPackRef.Version, FactID: "fact.test.interlock", Dimensions: []semreg.Dimension{}}
+	preKey      = semreg.FactKey{PackID: testPackRef.ID, PackVersion: testPackRef.Version, FactID: "fact.test.flag", Dimensions: []semreg.Dimension{}}
 	readbackKey = semreg.FactKey{PackID: testPackRef.ID, PackVersion: testPackRef.Version, FactID: "fact.test.level", Dimensions: []semreg.Dimension{}}
 )
 
@@ -135,7 +135,7 @@ func validIntent() operation.Intent {
 		},
 		ExpectedSemanticRevision: "1", ExpectedCapabilityRevision: "1", ExpectedCapabilityInstanceRevision: "1",
 		ExpectedSourceEpochID: "epoch:test:1", ExpectedDriverGeneration: "1",
-		Preconditions:  []operation.Precondition{{Fact: preKey, CandidateID: "candidate:interlock", CandidateRevision: "1", Operator: semreg.PredicateEqual, Expected: boolValue(true)}},
+		Preconditions:  []operation.Precondition{{Fact: preKey, CandidateID: "candidate:flag", CandidateRevision: "1", Operator: semreg.PredicateEqual, Expected: boolValue(true)}},
 		IdempotencyKey: "idempotency:test:1", Deadline: timePoint("300"),
 	}
 }
@@ -171,7 +171,7 @@ func newOperationFixtureWith(t *testing.T, mutate func(*semreg.PublicationBatch)
 		SourceRetirements:   []semreg.SourceEpochID{},
 		BindingUpserts:      []semreg.NativeBinding{{BindingID: "binding:test", AssetID: "asset:test", SourceID: "source:test", SourceEpochID: "epoch:test:1", DriverGeneration: "1", NativeResource: evidence(2), State: semreg.BindingCurrent, Revision: "1"}},
 		IdentityLinkUpserts: []semreg.IdentityLink{{AssetID: "asset:test", BindingID: "binding:test", State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{evidence(3)}, Revision: "1"}},
-		FactUpserts:         []semreg.FactCandidate{factCandidate("candidate:interlock", preKey, true, "100", "100", "1")}, FactWithdrawals: []semreg.CandidateID{},
+		FactUpserts:         []semreg.FactCandidate{factCandidate("candidate:flag", preKey, true, "100", "100", "1")}, FactWithdrawals: []semreg.CandidateID{},
 		ServiceUpserts:        []semreg.ServiceInstance{{InstanceID: "service:test", AssetID: "asset:test", Definition: testService, BindingID: "binding:test", SourceEpochID: "epoch:test:1", DriverGeneration: "1", Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "1"}},
 		ServiceWithdrawals:    []semreg.ServiceInstanceID{},
 		CapabilityUpserts:     []semreg.CapabilityInstance{{InstanceID: "capability:test", AssetID: "asset:test", ServiceInstance: "service:test", Definition: testCap, BindingID: "binding:test", SourceEpochID: "epoch:test:1", DriverGeneration: "1", Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Constraints: []semreg.TypedField{}, ActivationEvidence: []semreg.EvidenceRef{evidence(4)}, Revision: "1"}},

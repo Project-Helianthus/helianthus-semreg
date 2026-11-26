@@ -386,7 +386,7 @@ func TestCorrectionExplicitForbiddenRouteBoundaries(t *testing.T) {
 	selection := semreg.Selection{
 		Contract: semreg.ContractSelectionV1, SnapshotID: fixture.snapshot.SnapshotID, Revisions: fixture.snapshot.Revisions,
 		EvaluationDigest: semreg.Digest("sha256:" + repeatHex(10)), Context: fixture.current, Key: preKey,
-		PolicyID: "policy.test", PolicyVersion: "1.0.0", SelectedCandidate: "candidate:interlock", CandidateRevision: "1", PresentationOnly: true,
+		PolicyID: "policy.test", PolicyVersion: "1.0.0", SelectedCandidate: "candidate:flag", CandidateRevision: "1", PresentationOnly: true,
 	}
 	_, err := fixture.kernel.AdmitSelectionRoute(selection)
 	errorID(t, err, semreg.RouteSelectionForbidden)
