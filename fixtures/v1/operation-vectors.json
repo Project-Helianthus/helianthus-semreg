@@ -4,7 +4,7 @@
     "repository": "Project-Helianthus/helianthus-docs-semantic",
     "issue": 9,
     "path": "api/v1/acceptance-vectors.json",
-    "sha256": "51a177ce08e478cd9b003c213813abcf6e969ce1dc4cff4b276f7a2d480344f8",
+    "sha256": "f2c3cd601746f31ab36e69abb8fd8671c4c8ad30ff7667481476974c665e41c8",
     "selection": "coverage=operation",
     "count": 29
   },
@@ -83,10 +83,10 @@
             "fact": {
               "pack_id": "helianthus.pack.evse",
               "pack_version": "1.0.0",
-              "fact_id": "helianthus.evse.interlock_clear",
+              "fact_id": "helianthus.synthetic.precondition_flag",
               "dimensions": []
             },
-            "candidate_id": "candidate:evse:interlock",
+            "candidate_id": "candidate:synthetic:flag",
             "candidate_revision": "4",
             "operator": "equal",
             "expected": {
@@ -101,7 +101,7 @@
           "capability:limit:01"
         ],
         "authority_resolves": true,
-        "candidate:evse:interlock": {
+        "candidate:synthetic:flag": {
           "qualification": "qualified",
           "promotion": "promoted",
           "validity": "good",
@@ -875,10 +875,10 @@
           "fact": {
             "pack_id": "helianthus.pack.evse",
             "pack_version": "1.0.0",
-            "fact_id": "helianthus.evse.interlock_clear",
+            "fact_id": "helianthus.synthetic.precondition_flag",
             "dimensions": []
           },
-          "candidate_id": "candidate:interlock:unqualified",
+          "candidate_id": "candidate:synthetic:flag:unqualified",
           "candidate_revision": "4",
           "operator": "equal",
           "expected": {
@@ -888,7 +888,7 @@
         },
         "envelope_candidates": [
           {
-            "candidate_id": "candidate:interlock:unqualified",
+            "candidate_id": "candidate:synthetic:flag:unqualified",
             "revision": "4",
             "value": {
               "kind": "boolean",
@@ -901,7 +901,7 @@
             "effective_availability": "available"
           },
           {
-            "candidate_id": "candidate:interlock:qualified",
+            "candidate_id": "candidate:synthetic:flag:qualified",
             "revision": "4",
             "value": {
               "kind": "boolean",
@@ -938,10 +938,10 @@
           "fact": {
             "pack_id": "helianthus.pack.evse",
             "pack_version": "1.0.0",
-            "fact_id": "helianthus.evse.interlock_clear",
+            "fact_id": "helianthus.synthetic.precondition_flag",
             "dimensions": []
           },
-          "candidate_id": "candidate:interlock:qualified",
+          "candidate_id": "candidate:synthetic:flag:qualified",
           "candidate_revision": "4",
           "operator": "equal",
           "expected": {
@@ -951,7 +951,7 @@
         },
         "envelope_candidates": [
           {
-            "candidate_id": "candidate:interlock:qualified",
+            "candidate_id": "candidate:synthetic:flag:qualified",
             "revision": "4",
             "value": {
               "kind": "boolean",
@@ -964,7 +964,7 @@
             "effective_availability": "available"
           },
           {
-            "candidate_id": "candidate:interlock:candidate",
+            "candidate_id": "candidate:synthetic:flag:candidate",
             "revision": "4",
             "value": {
               "kind": "boolean",
@@ -1543,7 +1543,7 @@
         "fact": {
           "pack_id": "helianthus.pack.evse",
           "pack_version": "1.0.0",
-          "fact_id": "helianthus.evse.interlock_clear",
+          "fact_id": "helianthus.synthetic.precondition_flag",
           "dimensions": []
         },
         "candidate_id": "candidate:missing",
@@ -1577,10 +1577,10 @@
         "fact": {
           "pack_id": "helianthus.pack.evse",
           "pack_version": "1.0.0",
-          "fact_id": "helianthus.evse.interlock_clear",
+          "fact_id": "helianthus.synthetic.precondition_flag",
           "dimensions": []
         },
-        "candidate_id": "candidate:evse:interlock",
+        "candidate_id": "candidate:synthetic:flag",
         "candidate_revision": "4",
         "operator": "equal",
         "expected": {

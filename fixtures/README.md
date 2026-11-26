@@ -222,7 +222,7 @@ evidence, pack-owned effects and every terminal outcome. INT-06, not semreg,
 owns the native lifecycle lock, current-generation recheck, callback, handle,
 and release.
 
-Operation vector fixture SHA-256: `748f0426978fec5fc63ee3657826e9712bd97d5e2fecf66659bfad5b9876a9a5`
+Operation vector fixture SHA-256: `b421fe530029a0f6a31d00e225d6461b21fab2063f775b6295580f655eff4f0c`
 
 The operation package exposes `NewKernelWithOptions` for the fail-closed
 retention bound and `RecordRejection` for stable structurally valid rejected

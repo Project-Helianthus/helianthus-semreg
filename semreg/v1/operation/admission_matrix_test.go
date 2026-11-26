@@ -125,7 +125,7 @@ func TestAdmissionTimeReevaluationAndCandidateAxes(t *testing.T) {
 	}
 	t.Run("open conflict", func(t *testing.T) {
 		fixture := newOperationFixtureWith(t, func(batch *semreg.PublicationBatch) {
-			batch.FactUpserts = append(batch.FactUpserts, factCandidate("candidate:interlock:z", preKey, false, "100", "100", "1"))
+			batch.FactUpserts = append(batch.FactUpserts, factCandidate("candidate:flag:z", preKey, false, "100", "100", "1"))
 		})
 		_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(authorize))
 		errorID(t, err, semreg.PreconditionFailed)
