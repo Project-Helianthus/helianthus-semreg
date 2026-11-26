@@ -338,6 +338,9 @@ type secretScope struct {
 func (s *secretScope) redact(text string) string {
 	for _, entries := range s.refs {
 		for _, entry := range entries {
+			if entry.ref == "" {
+				continue
+			}
 			text = strings.ReplaceAll(text, entry.ref, "[secret reference]")
 		}
 	}
@@ -354,8 +357,8 @@ func (s *secretScope) redactErr(err error) error {
 	return err
 }
 
-// secretScopedFactory plans an instance without its secret reference first and
-// hands the reference only when that plan names the instance's own kind.
+// secretScopedFactory hands a configured instance, with its reference, only to
+// the factory whose descriptor declares the instance's kind.
 type secretScopedFactory struct {
 	driver.Factory
 	scope *secretScope
@@ -363,80 +366,19 @@ type secretScopedFactory struct {
 }
 
 func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan, error) {
-	if config.SecretRef == "" {
-		return f.Factory.Plan(config)
-	}
-	// The record being planned is the one carrying exactly these operands and
-	// this reference; its kind, not another record's of the same instance key,
-	// decides whether this factory owns the reference.
-	kinds := map[driver.DriverKind]bool{}
+	declared := declaredKinds(f.Factory)
+	known := false
+	owns := false
 	for _, entry := range f.scope.refs[config.Instance] {
 		if entry.ref == config.SecretRef && bytes.Equal(entry.transport, config.Transport) && bytes.Equal(entry.options, config.Options) {
-			kinds[entry.kind] = true
+			known = true
+			owns = owns || declared[entry.kind]
 		}
 	}
-	if len(kinds) == 0 {
-		return f.Factory.Plan(config)
+	if known && !owns {
+		return nil, nil
 	}
-	owns := func(plans []driver.InstancePlan) bool {
-		for _, plan := range plans {
-			if kinds[plan.Driver] {
-				return true
-			}
-		}
-		return false
-	}
-	// Which factory owns the record is learned from the record's own operands
-	// without any reference: a factory that plans the record's kind from them
-	// owns it and is asked again with the real reference, whose answer is
-	// authoritative. A factory that plans another kind never receives the
-	// reference. A factory that cannot plan the record without a reference is
-	// its candidate owner only when no other selected factory plans the kind.
-	probe := config
-	probe.SecretRef = ""
-	plans, err := f.Factory.Plan(probe)
-	if err == nil && !owns(plans) {
-		if len(plans) > 0 {
-			return plans, nil
-		}
-		// A factory that plans nothing without a reference may plan the kind
-		// only for a record that carries one. A placeholder, which is no
-		// configured reference, shows whether this factory is that owner without
-		// sending it the real one.
-		probe.SecretRef = ownershipProbeRef
-		withPlaceholder, perr := f.Factory.Plan(probe)
-		if perr != nil || !owns(withPlaceholder) {
-			return plans, nil
-		}
-		probe.SecretRef = ""
-	}
-	if err != nil {
-		// A factory that fails without the reference is the owner only when
-		// every other selected factory plans the record without error and
-		// claims none of its kinds, with or without a reference; another
-		// failure, or a factory that may own the record once it carries a
-		// reference, leaves the owner unknown and the reference is then sent
-		// to nobody.
-		for i, other := range f.scope.factories {
-			if i == f.index {
-				continue
-			}
-			others, oerr := other.Plan(probe)
-			if oerr != nil || owns(others) {
-				return plans, f.scope.redactErr(err)
-			}
-			if len(others) > 0 {
-				continue
-			}
-			probe.SecretRef = ownershipProbeRef
-			withPlaceholder, perr := other.Plan(probe)
-			probe.SecretRef = ""
-			if perr != nil || owns(withPlaceholder) {
-				return plans, f.scope.redactErr(err)
-			}
-		}
-	}
-	plans, err = f.Factory.Plan(config)
+	plans, err := f.Factory.Plan(config)
 	return plans, f.scope.redactErr(err)
 }
 
@@ -464,9 +406,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 	var unmatched []string
 	scoped := &secretScope{refs: map[string][]secretEntry{}, factories: selected}
 	for _, ic := range cfg.Instances {
-		if ic.SecretRef != "" {
-			scoped.refs[string(ic.Instance)] = append(scoped.refs[string(ic.Instance)], secretEntry{kind: ic.Kind, ref: ic.SecretRef, transport: ic.Transport, options: ic.Options})
-		}
+		scoped.refs[string(ic.Instance)] = append(scoped.refs[string(ic.Instance)], secretEntry{kind: ic.Kind, ref: ic.SecretRef, transport: ic.Transport, options: ic.Options})
 	}
 	for _, ic := range cfg.Instances {
 		config := driver.Config{
@@ -474,7 +414,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 			Transport: append(json.RawMessage(nil), ic.Transport...), Options: append(json.RawMessage(nil), ic.Options...),
 			SecretRef: ic.SecretRef,
 		}
-		if ic.Enabled && !matches(selected, ic.Kind, config) {
+		if ic.Enabled && !matches(selected, ic.Kind) {
 			unmatched = append(unmatched, string(ic.Kind)+"/"+string(ic.Instance))
 			continue
 		}
@@ -497,37 +437,19 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 	return &Site{rt: rt, selected: selected, unmatched: unmatched, secrets: scoped}, nil
 }
 
-// ownershipProbeRef stands in for a configured reference when the host learns
-// whether a factory plans a kind only for a record that carries a reference. It
-// is not a configured reference and names no credential.
-const ownershipProbeRef = "host.ownership-probe"
-
-// matches reports whether a selected factory plans the kind for the
-// configuration. A factory that fails to plan counts as a match, so the planning
-// error is reported by the runtime. A record that carries a reference also
-// matches a factory that plans the kind only when a reference is present; the
-// reference itself is not given to any factory here.
-func matches(selected []driver.Factory, kind driver.DriverKind, config driver.Config) bool {
-	hasRef := config.SecretRef != ""
-	claims := func(plans []driver.InstancePlan) bool {
-		for _, plan := range plans {
-			if plan.Driver == kind {
-				return true
-			}
-		}
-		return false
+func declaredKinds(factory driver.Factory) map[driver.DriverKind]bool {
+	kinds := map[driver.DriverKind]bool{}
+	for _, kind := range factory.Descriptor().Kinds {
+		kinds[kind] = true
 	}
+	return kinds
+}
+
+// matches reports whether a selected factory declares the kind in its descriptor.
+func matches(selected []driver.Factory, kind driver.DriverKind) bool {
 	for _, factory := range selected {
-		config.SecretRef = ""
-		plans, err := factory.Plan(config)
-		if err != nil || claims(plans) {
+		if declaredKinds(factory)[kind] {
 			return true
-		}
-		if hasRef && len(plans) == 0 {
-			config.SecretRef = ownershipProbeRef
-			if plans, err := factory.Plan(config); err == nil && claims(plans) {
-				return true
-			}
 		}
 	}
 	return false

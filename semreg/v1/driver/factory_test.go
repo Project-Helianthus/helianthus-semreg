@@ -235,6 +235,11 @@ func TestDescriptorCarriesTheCatalogFamilyRecord(t *testing.T) {
 	wantInvalid(t, "claimed composition without a module", driver.Descriptor{Families: []catalog.Family{noModule}}.Validate())
 }
 
+func TestDescriptorDeclaresDriverKinds(t *testing.T) {
+	wantValid(t, "descriptor with kinds", driver.Descriptor{Kinds: []driver.DriverKind{"driver.test"}}.Validate())
+	wantInvalid(t, "descriptor with an empty kind", driver.Descriptor{Kinds: []driver.DriverKind{"driver.test", ""}}.Validate())
+}
+
 func TestInstanceLifecycleSignatures(t *testing.T) {
 	f := syntheticFactory{plan: planFor}
 	inst, err := f.Construct(context.Background(), driver.InstancePlan{Driver: "driver.test", Instance: "instance.one"})

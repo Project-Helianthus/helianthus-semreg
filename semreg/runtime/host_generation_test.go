@@ -25,6 +25,9 @@ type binderFactory struct {
 	// prefixed adds a second candidate whose id extends the first one's;
 	// twoPaths declares a second path for the same element.
 	prefixed, twoPaths bool
+	// supplier, when set, is the path key the driver states supplied its
+	// candidate through StageSample.
+	supplier string
 	// batch, when set, receives the batch the instance handed to Stage.
 	batch *v1.PublicationBatch
 	// links, when set, stages claims and ends the transaction as it directs.
@@ -36,7 +39,7 @@ func (f binderFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	return []driver.InstancePlan{{Driver: binderKind, Instance: driver.InstanceKey(c.Instance)}}, nil
 }
 func (f binderFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
-	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, prefixed: f.prefixed, twoPaths: f.twoPaths, record: f.batch, links: f.links}, nil
+	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, prefixed: f.prefixed, twoPaths: f.twoPaths, supplier: f.supplier, record: f.batch, links: f.links}, nil
 }
 
 type binderInstance struct {
@@ -44,6 +47,7 @@ type binderInstance struct {
 	relation           bool
 	native             bool
 	prefixed, twoPaths bool
+	supplier           string
 	record             *v1.PublicationBatch
 	links              *linkPlan
 	source             driver.Source
@@ -183,6 +187,14 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 			return err
 		}
 	}
+	if i.supplier != "" {
+		from := i.source
+		from.PathKey = i.supplier
+		if err := tx.StageSample(driver.Sample{From: from, Candidate: observed}); err != nil {
+			_ = tx.Abort(ctx)
+			return err
+		}
+	}
 	if i.links != nil {
 		return i.links.finish(ctx, s, tx, producer, resourceID, i.source, observed)
 	}
@@ -305,7 +317,7 @@ func TestHostStampingKeepsNativeRelationOriginsResolvable(t *testing.T) {
 
 func TestHostCommitAdmitsTheAcceptedCandidateToItsDeclaredSource(t *testing.T) {
 	ctx := context.Background()
-	rt, _ := openBinder(t, binderFactory{})
+	rt, _ := openBinder(t, binderFactory{supplier: "configuration"})
 	rt.svc.mu.Lock()
 	var declared driver.Source
 	n := 0
@@ -535,6 +547,30 @@ func pathStates(t *testing.T, rt *Runtime) map[string]bool {
 		held[state.Source.PathKey] = state.Latest != nil
 	}
 	return held
+}
+
+func TestHostDoesNotAdmitACandidateToTheSoleDeclaredPathWithoutItsAssociation(t *testing.T) {
+	rt, _ := openBinder(t, binderFactory{})
+	held := pathStates(t, rt)
+	if len(held) != 1 || held["configuration"] {
+		t.Fatalf("the sole declared path holds a sample no path was stated to supply: %v", held)
+	}
+}
+
+func TestHostDoesNotMakeAnotherPathsCandidateTheSoleDeclaredPathsSample(t *testing.T) {
+	rt, _ := openBinder(t, binderFactory{supplier: "alternate"})
+	held := pathStates(t, rt)
+	if held["configuration"] {
+		t.Fatalf("the sole declared path holds a candidate another path supplied: %v", held)
+	}
+}
+
+func TestHostAdmitsTheCandidateToThePathThatSuppliedItBesideASecondDeclaration(t *testing.T) {
+	rt, _ := openBinder(t, binderFactory{twoPaths: true, supplier: "configuration"})
+	held := pathStates(t, rt)
+	if len(held) != 2 || !held["configuration"] || held["alternate"] {
+		t.Fatalf("the supplying path must hold the sample and the other must not: %v", held)
+	}
 }
 
 func TestHostDoesNotAssignACandidateToPathsThatDidNotSupplyIt(t *testing.T) {

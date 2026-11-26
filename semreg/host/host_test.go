@@ -820,15 +820,23 @@ func TestMainRunsExplicitInstallationAndSelection(t *testing.T) {
 	cfg.StateDir = filepath.Join(dir, "state")
 	installation := filepath.Join(dir, "installation.json")
 	writeJSON(t, installation, cfg)
-	selection := MethodSelection{Input: tree.Input{Request: &driver.OperationRequest{
-		Operation: facts.op.Ref, Arguments: []v1.TypedField{{ID: facts.op.Argument.ID, Value: kelvin(targetCoefficient)}},
-	}}}
+	// The selection file carries what the file can know before startup: the
+	// operation, the argument, the preconditions and the timeout. The asset,
+	// binding, capability, revisions and epoch belong to the running lifecycle.
+	fileRequest := &driver.OperationRequest{
+		Operation:     facts.op.Ref,
+		Arguments:     []v1.TypedField{{ID: facts.op.Argument.ID, Value: kelvin(targetCoefficient)}},
+		Preconditions: []operation.Precondition{},
+		Timeout:       20 * time.Second,
+	}
+	selection := MethodSelection{Input: tree.Input{Request: fileRequest}}
 	// The method ref names the installation; it is known from the configured key.
 	selection.Method = tree.MethodRef(tree.Key{Node: tree.NodePath{Installation: cfg.InstallationKey}, Facet: tree.KeywordMethods, Domain: tree.KeywordSem, Segment: mustSegment(t, facts)}.String())
 	selectionFile := filepath.Join(dir, "selection.json")
 	writeJSON(t, selectionFile, selection)
 
 	var got Task
+	var wantRequest driver.OperationRequest
 	app := func(ctx context.Context, site *Site, task Task) error {
 		got = task
 		cut, err := site.Cut(ctx)
@@ -840,10 +848,16 @@ func TestMainRunsExplicitInstallationAndSelection(t *testing.T) {
 			assertWalkOnly(t, ctx, cut, cfg.InstallationKey, true)
 			return nil
 		}
-		request := requestFor(t, ctx, site, facts, targetCoefficient)
-		request.Arguments = task.Selection.Input.Request.Arguments
-		request.Timeout = 20 * time.Second
-		prepared, err := cut.Prepare(ctx, MethodSelection{Method: task.Selection.Method, Input: tree.Input{Request: request}})
+		// Only the lifecycle's own identities and revisions are added to the
+		// request the file decoded; every other field reaches Prepare as read.
+		live := requestFor(t, ctx, site, facts, targetCoefficient)
+		request := *task.Selection.Input.Request
+		request.AssetID, request.BindingID, request.CapabilityInstanceID = live.AssetID, live.BindingID, live.CapabilityInstanceID
+		request.ExpectedSemanticRevision, request.ExpectedCapabilityRevision = live.ExpectedSemanticRevision, live.ExpectedCapabilityRevision
+		request.ExpectedCapabilityInstanceRevision, request.ExpectedDriverGeneration = live.ExpectedCapabilityInstanceRevision, live.ExpectedDriverGeneration
+		request.ExpectedSourceEpochID = live.ExpectedSourceEpochID
+		wantRequest = request
+		prepared, err := cut.Prepare(ctx, MethodSelection{Method: task.Selection.Method, Input: tree.Input{Request: &request}})
 		if err != nil {
 			return err
 		}
@@ -866,8 +880,16 @@ func TestMainRunsExplicitInstallationAndSelection(t *testing.T) {
 	if !reflect.DeepEqual(got.Selection, &selection) {
 		t.Fatalf("the application got %+v, not the selected method and typed input", got.Selection)
 	}
-	if value, _, executed := factory.owner.read(); value != targetCoefficient || executed != 1 {
+	value, dispatched, executed := factory.owner.read()
+	if value != targetCoefficient || executed != 1 {
 		t.Fatalf("owner %s after %d executions", value, executed)
+	}
+	if !reflect.DeepEqual(dispatched.Request, wantRequest) {
+		t.Fatalf("the operation did not carry the file's request:\n got %+v\nwant %+v", dispatched.Request, wantRequest)
+	}
+	if dispatched.Request.Operation != fileRequest.Operation || dispatched.Request.Timeout != fileRequest.Timeout ||
+		!reflect.DeepEqual(dispatched.Request.Arguments, fileRequest.Arguments) || !reflect.DeepEqual(dispatched.Request.Preconditions, fileRequest.Preconditions) {
+		t.Fatalf("a field the file states was not the one invoked: %+v", dispatched.Request)
 	}
 
 	// One positional file, and the read-only marker, walk and invoke nothing.

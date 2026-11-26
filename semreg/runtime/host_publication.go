@@ -442,22 +442,10 @@ func (t *hostTransaction) DeclareSource(source driver.Source) error {
 	return nil
 }
 
-// stageSamples stages, with the same commit, a sample of every fact this
-// transaction upserted for the element of a source this session declared (in
-// this transaction or earlier). The commit admits the candidate and revision the
-// member accepted, and none a rejected commit leaves out. A candidate carries no
-// statement of which declared path supplied it, so the host associates it only
-// when exactly one declared path claims its element; when several paths claim
-
-func sampledByDriver(samples []driver.Sample, fact v1.FactCandidate) bool {
-	for _, sample := range samples {
-		if sameFactKey(sample.Candidate.Key, fact.Key) && sourceKeyOf(sample.From) != "" {
-			return true
-		}
-	}
-	return false
-}
-
+// stageSamples hands the driver's own samples to the transaction at commit,
+// each carrying the stamped candidate of the fact it names. A candidate carries
+// no statement of which declared path supplied it, so the host admits a candidate
+// to a path only through the sample the driver staged for that path.
 func (t *hostTransaction) stageSamples() error {
 	t.mu.Lock()
 	done := t.samplesStaged
@@ -466,11 +454,7 @@ func (t *hostTransaction) stageSamples() error {
 	if done {
 		return nil
 	}
-	t.session.mu.Lock()
-	sources := append([]driver.Source(nil), t.session.sources...)
-	t.session.mu.Unlock()
 	t.mu.Lock()
-	sources = append(sources, t.declared...)
 	facts := append([]v1.FactCandidate(nil), t.facts...)
 	driverSampled := append([]driver.Sample(nil), t.driverSampled...)
 	t.mu.Unlock()
@@ -482,30 +466,6 @@ func (t *hostTransaction) stageSamples() error {
 			}
 		}
 		if err := t.PublicationTransaction.StageSample(sample); err != nil {
-			return err
-		}
-	}
-	for _, fact := range facts {
-		if sampledByDriver(driverSampled, fact) {
-			continue
-		}
-		var claimed []driver.Source
-		seen := map[string]bool{}
-		for _, source := range sources {
-			if !sameFactKey(fact.Key, source.For.Key) {
-				continue
-			}
-			key := sourceKeyOf(source)
-			if seen[key] {
-				continue
-			}
-			seen[key] = true
-			claimed = append(claimed, source)
-		}
-		if len(claimed) != 1 {
-			continue
-		}
-		if err := t.PublicationTransaction.StageSample(driver.Sample{From: claimed[0], Candidate: fact}); err != nil {
 			return err
 		}
 	}

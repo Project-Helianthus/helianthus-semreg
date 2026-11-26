@@ -96,6 +96,13 @@ func (c *Cut) Walk(ctx context.Context, filter WalkFilter, emit func(WalkEntry) 
 		path := queue[0]
 		queue = queue[1:]
 		node := driver.NodeRef{Bridge: plan.Bridge, ID: path.NodeID()}
+		if filter.Filter.Kind != "" && filter.Filter.Kind != tree.EntryNode {
+			children, err := c.children(ctx, node, filter)
+			if err != nil {
+				return report, err
+			}
+			queue = append(queue, children...)
+		}
 		token := ""
 		for {
 			page, err := c.cut.List(ctx, node, tree.Page{Size: filter.PageSize, Token: token, Filter: filter.Filter})
@@ -110,7 +117,9 @@ func (c *Cut) Walk(ctx context.Context, filter WalkFilter, emit func(WalkEntry) 
 					if err != nil {
 						return report, err
 					}
-					queue = append(queue, child)
+					if filter.Filter.Kind == "" || filter.Filter.Kind == tree.EntryNode {
+						queue = append(queue, child)
+					}
 				case tree.EntryAttribute:
 					value, err := c.cut.Read(ctx, d.Ref, tree.ReadOptions{})
 					if err != nil {
@@ -129,6 +138,9 @@ func (c *Cut) Walk(ctx context.Context, filter WalkFilter, emit func(WalkEntry) 
 			token = page.Next
 		}
 	}
+	if filter.Filter != (tree.Filter{}) {
+		return report, nil
+	}
 	for i := range c.cut.Relays {
 		link := c.cut.Relays[i]
 		if err := emit(WalkEntry{Link: &link}); err != nil {
@@ -145,4 +157,29 @@ func (c *Cut) Walk(ctx context.Context, filter WalkFilter, emit func(WalkEntry) 
 		}
 	}
 	return report, nil
+}
+
+// children returns the node entries beneath a node that the walk must still
+// visit when the caller's filter does not admit nodes. Only the caller's
+// instance narrowing applies to them.
+func (c *Cut) children(ctx context.Context, node driver.NodeRef, filter WalkFilter) ([]tree.NodePath, error) {
+	var out []tree.NodePath
+	token := ""
+	for {
+		page, err := c.cut.List(ctx, node, tree.Page{Size: filter.PageSize, Token: token, Filter: tree.Filter{Kind: tree.EntryNode, Instance: filter.Filter.Instance}})
+		if err != nil {
+			return nil, err
+		}
+		for _, d := range page.Entries {
+			child, err := tree.ParseNodePath(string(d.Ref))
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, child)
+		}
+		if page.Next == "" {
+			return out, nil
+		}
+		token = page.Next
+	}
 }
