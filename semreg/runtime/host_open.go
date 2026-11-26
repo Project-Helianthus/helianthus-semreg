@@ -35,6 +35,10 @@ type HostCut struct {
 	Ref graph.CutRef
 	// Identity is the identity resolution at this capture's cut.
 	Identity identity.Resolution
+	// Links are the retained links at this capture under their effective
+	// endpoints: an accepted rebind moves an endpoint to its survivor and a
+	// revoked one moves nothing. Each claim keeps its declared key and basis.
+	Links []identity.Link
 }
 
 // Runtime is one assembled host runtime. It holds no concrete driver and no
@@ -121,6 +125,21 @@ func OpenHost(ctx context.Context, inst life.Installation, options HostOptions, 
 	if err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(filepath.Join(inst.StateDir, "lifecycle"), 0o700); err != nil {
+		return nil, err
+	}
+	control, err := life.OpenFileStore(filepath.Join(inst.StateDir, "lifecycle"))
+	if err != nil {
+		return nil, err
+	}
+	opened := false
+	exclusive := control.Exclusive()
+	defer func() {
+		if !opened {
+			control.Close()
+			control.Release()
+		}
+	}()
 	identityDir := filepath.Join(inst.StateDir, "identity")
 	if err := os.MkdirAll(filepath.Join(identityDir, "anchors"), 0o700); err != nil {
 		return nil, err
@@ -150,21 +169,6 @@ func OpenHost(ctx context.Context, inst life.Installation, options HostOptions, 
 	}
 	svc.ledger = ledger
 
-	if err := os.MkdirAll(filepath.Join(inst.StateDir, "lifecycle"), 0o700); err != nil {
-		return nil, err
-	}
-	control, err := life.OpenFileStore(filepath.Join(inst.StateDir, "lifecycle"))
-	if err != nil {
-		return nil, err
-	}
-	opened := false
-	exclusive := control.Exclusive()
-	defer func() {
-		if !opened {
-			control.Close()
-			control.Release()
-		}
-	}()
 	rt := &Runtime{plan: plan, byID: map[life.InstanceID]life.PlannedInstance{}, svc: svc, control: control, calendar: calendar, statePath: statePath, exclusive: exclusive, captureMu: make(chan struct{}, 1)}
 	for _, planned := range plan.Instances {
 		rt.byID[planned.Ref.ID()] = planned
@@ -286,7 +290,7 @@ func (rt *Runtime) Cut(ctx context.Context) (*HostCut, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &HostCut{TreeCut: cut, Ref: sink.Ref, Identity: sink.Identity}, nil
+	return &HostCut{TreeCut: cut, Ref: sink.Ref, Identity: sink.Identity, Links: sink.Links}, nil
 }
 
 // Tree is SS09's tree.

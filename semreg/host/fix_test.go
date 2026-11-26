@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -54,8 +55,8 @@ func TestSecretReferenceReachesOnlyTheMatchingFactory(t *testing.T) {
 		t.Fatal("the unrelated factory was never asked to plan")
 	}
 	for _, c := range other.seen {
-		if c.SecretRef != "" {
-			t.Fatalf("the unrelated factory received a secret reference for %s", c.Instance)
+		if c.SecretRef == secretAlpha || c.SecretRef == secretBeta {
+			t.Fatalf("the unrelated factory received a configured secret reference for %s", c.Instance)
 		}
 	}
 	assertConfigMapping(t, owner, cfg)
@@ -69,6 +70,39 @@ func TestSecretReferenceReachesOnlyTheMatchingFactory(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), secretAlpha) || strings.Contains(err.Error(), secretBeta) {
 		t.Fatalf("a diagnostic exposes a reference: %v", err)
+	}
+}
+
+// requiringFactory validates that an instance configured with a reference
+// carries a nonempty one when it plans.
+type requiringFactory struct {
+	*synthFactory
+	needs map[string]bool
+}
+
+func (f *requiringFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
+	if f.needs[c.Instance] && c.SecretRef == "" {
+		return nil, fmt.Errorf("instance %s needs its secret reference", c.Instance)
+	}
+	return f.synthFactory.Plan(c)
+}
+
+func TestFactoryRequiringItsSecretReferencePlansFromTheConfiguredOperands(t *testing.T) {
+	ctx := context.Background()
+	clock := newFixedClock(time.Now())
+	cfg := baseConfig(t, clock)
+	other := &bystander{}
+	owner := &requiringFactory{synthFactory: newSynthFactory(clock), needs: map[string]bool{"plain.a": true, "plain.b": true}}
+	site, err := Open(ctx, cfg, other, owner)
+	if err != nil {
+		t.Fatalf("a correctly configured instance was rejected: %v", err)
+	}
+	defer func() { _ = site.Close(ctx) }()
+	assertConfigMapping(t, owner.synthFactory, cfg)
+	for _, c := range other.seen {
+		if c.SecretRef == secretAlpha || c.SecretRef == secretBeta {
+			t.Fatalf("the unrelated factory received a configured reference for %s", c.Instance)
+		}
 	}
 }
 
@@ -344,4 +378,45 @@ func TestAcceptedIdentityStatementSurvivesProcessLoss(t *testing.T) {
 		t.Fatalf("the accepted statement was not durable before shutdown: %+v", view)
 	}
 	_ = opened
+}
+
+func TestConcurrentFirstOpensCommitOneLocalIdentity(t *testing.T) {
+	dir := t.TempDir()
+	const opens = 16
+	results := make([]Config, opens)
+	errs := make([]error, opens)
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range results {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			<-start
+			results[i] = Config{StateDir: dir}
+			errs[i] = withLocalIdentity(&results[i])
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("open %d: %v", i, err)
+		}
+		if results[i].InstallationKey != results[0].InstallationKey || results[i].BridgeID != results[0].BridgeID {
+			t.Fatalf("open %d published a different identity: %+v vs %+v", i, results[i], results[0])
+		}
+	}
+	again := Config{StateDir: dir}
+	if err := withLocalIdentity(&again); err != nil || again.InstallationKey != results[0].InstallationKey {
+		t.Fatalf("the committed identity was not reused: %+v %v", again, err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.HasSuffix(entry.Name(), ".tmp") {
+			t.Fatalf("a temporary identity file stays behind: %s", entry.Name())
+		}
+	}
 }

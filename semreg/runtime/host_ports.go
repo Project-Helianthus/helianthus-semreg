@@ -27,6 +27,7 @@ type hostCuts struct {
 type captureSink struct {
 	Ref      graph.CutRef
 	Identity identity.Resolution
+	Links    []identity.Link
 }
 
 type refSinkKey struct{}
@@ -54,7 +55,7 @@ func (h *hostCuts) Capture(ctx context.Context, filter driver.Filter) (tree.CutV
 		return tree.CutView{}, err
 	}
 	if sink, ok := ctx.Value(refSinkKey{}).(*captureSink); ok {
-		sink.Ref, sink.Identity = view.Ref, resolution
+		sink.Ref, sink.Identity, sink.Links = view.Ref, resolution, h.svc.ledger.Links()
 	}
 	return h.viewOf(view), nil
 }

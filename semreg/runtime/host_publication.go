@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -142,6 +143,17 @@ func (p *hostPublication) Withdraw(ctx context.Context, corr life.LifecycleCorre
 // leaves current reads and a reopened installation restores no value of it. It
 // commits nothing when nothing is current.
 func (rt *Runtime) withdrawCommitted(ctx context.Context, spec SessionSpec) error {
+	if err := rt.commitWithdrawal(ctx, spec, false); err != nil {
+		return err
+	}
+	return rt.commitWithdrawal(ctx, spec, true)
+}
+
+// commitWithdrawal commits one withdrawal batch. The first withdraws the facts,
+// services and capabilities that are current; the second retires the source
+// epoch while the generation still has a current binding, so its effective
+// bindings leave with it. A batch that has nothing to withdraw commits nothing.
+func (rt *Runtime) commitWithdrawal(ctx context.Context, spec SessionSpec, retireBindings bool) error {
 	svc := rt.svc
 	svc.mu.Lock()
 	kernel := svc.kernels[spec.Asset]
@@ -154,25 +166,37 @@ func (rt *Runtime) withdrawCommitted(ctx context.Context, spec SessionSpec) erro
 		return nil
 	}
 	var services []v1.ServiceInstanceID
-	for _, service := range current.Services {
-		if service.Availability != v1.AvailabilityWithdrawn {
-			services = append(services, service.InstanceID)
-		}
-	}
 	var capabilities []v1.CapabilityInstanceID
-	for _, capability := range current.Capabilities {
-		if capability.Availability != v1.AvailabilityWithdrawn {
-			capabilities = append(capabilities, capability.InstanceID)
-		}
-	}
 	var facts []v1.CandidateID
-	for _, envelope := range current.Facts {
-		for _, candidate := range envelope.Candidates {
-			facts = append(facts, candidate.CandidateID)
+	retire := false
+	if retireBindings {
+		for _, binding := range current.Bindings {
+			if binding.SourceID == spec.Source && binding.SourceEpochID == spec.Epoch && binding.DriverGeneration == spec.Generation && binding.State == v1.BindingCurrent {
+				retire = true
+			}
 		}
-	}
-	if len(facts) == 0 && len(services) == 0 && len(capabilities) == 0 {
-		return nil
+		if !retire {
+			return nil
+		}
+	} else {
+		for _, service := range current.Services {
+			if service.Availability != v1.AvailabilityWithdrawn {
+				services = append(services, service.InstanceID)
+			}
+		}
+		for _, capability := range current.Capabilities {
+			if capability.Availability != v1.AvailabilityWithdrawn {
+				capabilities = append(capabilities, capability.InstanceID)
+			}
+		}
+		for _, envelope := range current.Facts {
+			for _, candidate := range envelope.Candidates {
+				facts = append(facts, candidate.CandidateID)
+			}
+		}
+		if len(facts) == 0 && len(services) == 0 && len(capabilities) == 0 {
+			return nil
+		}
 	}
 	svc.mu.Lock()
 	delete(svc.fencedGen, fenceKey(spec.Source, spec.Epoch, spec.Generation))
@@ -186,6 +210,9 @@ func (rt *Runtime) withdrawCommitted(ctx context.Context, spec SessionSpec) erro
 		b.ServiceWithdrawals = append(b.ServiceWithdrawals, services...)
 		b.CapabilityWithdrawals = append(b.CapabilityWithdrawals, capabilities...)
 		b.SourceRetirements = append(b.SourceRetirements, session.priorEpochs()...)
+		if retire {
+			b.SourceRetirements = append(b.SourceRetirements, spec.Epoch)
+		}
 	})
 	if err != nil {
 		return err
@@ -206,12 +233,7 @@ func (rt *Runtime) withdrawCommitted(ctx context.Context, spec SessionSpec) erro
 func (s *Service) withdrawGeneration(asset v1.AssetID, source v1.SourceID, epoch v1.SourceEpochID, generation v1.Uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.fencedGen[fenceKey(source, epoch, generation)] = true
-	for i := range s.routes {
-		if s.routes[i].Source == source && s.routes[i].Epoch == epoch && s.routes[i].Generation == generation {
-			s.routes[i].Live = false
-		}
-	}
+	s.stopGeneration(source, epoch, generation)
 	for key, owner := range s.assetOf {
 		if owner != asset {
 			continue
@@ -407,6 +429,9 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 			f.Times.EvaluateMonotonic = mono
 		}
 		f.CandidateID = v1.CandidateID(scopedID(spec, string(f.CandidateID)))
+		if f.Derivation != nil {
+			stampDerivation(spec, f.Derivation)
+		}
 		if f.BindingID != nil {
 			id := binding(*f.BindingID)
 			f.BindingID = &id
@@ -436,6 +461,30 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 	}
 	b.BatchDigest = digest
 	return b, nil
+}
+
+// stampDerivation carries a derived candidate's exact dependencies through the
+// host's identifier stamping: each input keeps its candidate revision and
+// resolves to the stamped candidate and to the stamped source paths.
+func stampDerivation(spec SessionSpec, d *v1.Derivation) {
+	inputs := make([]v1.DerivationInput, len(d.Inputs))
+	for i, input := range d.Inputs {
+		paths := make([]v1.SourcePathRef, len(input.SourcePaths))
+		for j, path := range input.SourcePaths {
+			paths[j] = v1.SourcePathRef{
+				BindingID: v1.NativeBindingID(scopedID(spec, string(path.BindingID))),
+				SourceID:  spec.Source, SourceEpochID: spec.Epoch, DriverGeneration: spec.Generation,
+			}
+		}
+		sort.SliceStable(paths, func(a, b int) bool { return paths[a].BindingID < paths[b].BindingID })
+		inputs[i] = v1.DerivationInput{
+			CandidateID:       v1.CandidateID(scopedID(spec, string(input.CandidateID))),
+			CandidateRevision: input.CandidateRevision,
+			SourcePaths:       paths,
+		}
+	}
+	sort.SliceStable(inputs, func(a, b int) bool { return inputs[a].CandidateID < inputs[b].CandidateID })
+	d.Inputs = inputs
 }
 
 // priorEpochs lists the current epochs of this session's source that an earlier

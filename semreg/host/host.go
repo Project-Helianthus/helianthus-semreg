@@ -273,12 +273,31 @@ func withLocalIdentity(cfg *Config) error {
 		if err := os.MkdirAll(cfg.StateDir, 0o700); err != nil {
 			return err
 		}
-		tmp := path + ".tmp"
-		if err := os.WriteFile(tmp, append(encoded, '\n'), 0o600); err != nil {
+		tmp, err := os.CreateTemp(cfg.StateDir, localIdentityFile+".*.tmp")
+		if err != nil {
 			return err
 		}
-		if err := os.Rename(tmp, path); err != nil {
-			return err
+		defer os.Remove(tmp.Name())
+		_, werr := tmp.Write(append(encoded, '\n'))
+		if cerr := tmp.Close(); werr == nil {
+			werr = cerr
+		}
+		if werr != nil {
+			return werr
+		}
+		// Linking never replaces a record another open committed first.
+		switch lerr := os.Link(tmp.Name(), path); {
+		case lerr == nil:
+		case errors.Is(lerr, os.ErrExist):
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if err := json.Unmarshal(data, &record); err != nil || record.InstallationKey == "" || record.BridgeID == "" {
+				return fmt.Errorf("local identity record %s is damaged", localIdentityFile)
+			}
+		default:
+			return lerr
 		}
 	default:
 		return err
@@ -331,6 +350,11 @@ func (s *secretScope) redactErr(err error) error {
 	return err
 }
 
+// probeSecretRef stands in for a configured reference while a factory is asked
+// which kind it plans, so a factory that requires a nonempty reference can
+// answer without any factory but the owner seeing the configured one.
+const probeSecretRef = "reference-probe"
+
 // secretScopedFactory plans an instance without its secret reference first and
 // hands the reference only when that plan names the instance's own kind.
 type secretScopedFactory struct {
@@ -344,7 +368,7 @@ func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan,
 		return f.Factory.Plan(config)
 	}
 	bare := config
-	bare.SecretRef = ""
+	bare.SecretRef = probeSecretRef
 	plans, err := f.Factory.Plan(bare)
 	if err != nil {
 		return nil, f.scope.redactErr(err)
@@ -418,7 +442,9 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 // error is reported by the runtime.
 func matches(selected []driver.Factory, kind driver.DriverKind, config driver.Config) bool {
 	for _, factory := range selected {
-		config.SecretRef = ""
+		if config.SecretRef != "" {
+			config.SecretRef = probeSecretRef
+		}
 		plans, err := factory.Plan(config)
 		if err != nil {
 			return true

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/identity"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/tree"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/driver"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/graph"
@@ -59,6 +60,10 @@ func (c *Cut) Tree() *tree.TreeCut { return c.cut.TreeCut }
 // Ref is the scoped cut reference: identifier, completeness, members and
 // omissions.
 func (c *Cut) Ref() graph.CutRef { return c.cut.Ref }
+
+// Links are the retained links of this capture under their effective endpoints,
+// each claim keeping its declared key and basis.
+func (c *Cut) Links() []identity.Link { return c.cut.Links }
 
 // Close closes the capture.
 func (c *Cut) Close() error { return c.cut.Close() }

@@ -1233,7 +1233,7 @@ func TestHostChildProcess(t *testing.T) {
 	factory := newSynthFactory(clock)
 	cfg := baseConfig(t, clock)
 	cfg.StateDir = dir
-	cfg.Instances = cfg.Instances[:1]
+	cfg.Instances = []InstanceConfig{cfg.Instances[0], cfg.Instances[4]}
 	site := openStarted(t, cfg, factory)
 	ref := life.Ref{Driver: kindOwner, Instance: "owner.one"}
 	status, err := site.Snapshot(ref)
@@ -1262,8 +1262,10 @@ func TestHostResumesManagedPublicationAfterProcessLoss(t *testing.T) {
 		t.Run(string(method), func(t *testing.T) {
 			clock := newFixedClock(baseTime.Add(time.Second))
 			cfg := baseConfig(t, clock)
-			cfg.Instances = cfg.Instances[:1]
+			// An independent healthy peer runs beside the owner in both hosts.
+			cfg.Instances = []InstanceConfig{cfg.Instances[0], cfg.Instances[4]}
 			ref := life.Ref{Driver: kindOwner, Instance: "owner.one"}
+			peer := life.Ref{Driver: kindPlain, Instance: "plain.c"}
 
 			cmd := exec.Command(os.Args[0], "-test.run=^TestHostChildProcess$")
 			cmd.Env = append(os.Environ(), childEnv+"="+cfg.StateDir, childEnv+"_METHOD="+string(method))
@@ -1330,7 +1332,28 @@ func TestHostResumesManagedPublicationAfterProcessLoss(t *testing.T) {
 					break
 				}
 			}
+			for deadline := time.Now().Add(15 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+				if st, _ := site.Snapshot(peer); st.ObservedState == life.ObservedRunning {
+					break
+				}
+			}
 			constructed := factory.constructedNames()
+			var owned, peers []string
+			for _, name := range constructed {
+				if strings.HasPrefix(name, string(kindOwner)+"/") {
+					owned = append(owned, name)
+				} else {
+					peers = append(peers, name)
+				}
+			}
+			if len(peers) != 1 || peers[0] != string(kindPlain)+"/"+string(peer.Instance) {
+				ps, perr := site.Snapshot(peer)
+				t.Fatalf("the independent peer was not started alone: %v %+v %v", peers, ps, perr)
+			}
+			if peerStatus, _ := site.Snapshot(peer); peerStatus.ObservedState != life.ObservedRunning {
+				t.Fatalf("the independent peer is not available: %+v", peerStatus)
+			}
+			constructed = owned
 			switch method {
 			case life.MethodStop:
 				if status.ObservedState != life.ObservedStopped || len(constructed) != 0 {
@@ -1376,6 +1399,24 @@ func TestHostResumesManagedPublicationAfterProcessLoss(t *testing.T) {
 				}
 				if value, _ := zoneFactCoefficient(t, cut); value != "" {
 					t.Fatalf("STOP: the withdrawn generation's value %q is still current after reopening", value)
+				}
+				// The committed publication was restored and then withdrawn: its
+				// member is still in the cut with no current binding. A
+				// restoration that was skipped leaves no member at all.
+				restored := 0
+				for _, snap := range cut.Snapshots {
+					if len(snap.Bindings) == 0 {
+						continue
+					}
+					restored++
+					for _, binding := range snap.Bindings {
+						if binding.State == v1.BindingCurrent {
+							t.Fatalf("STOP: binding %s is still current after the withdrawal", binding.BindingID)
+						}
+					}
+				}
+				if restored == 0 {
+					t.Fatal("STOP: the committed publication was never restored, so nothing was withdrawn")
 				}
 			}
 		})
