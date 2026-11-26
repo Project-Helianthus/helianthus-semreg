@@ -2,11 +2,13 @@ package runtime
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/call"
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/identity"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/life"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/tree"
 	semreg "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
@@ -16,9 +18,21 @@ import (
 
 // hostCuts is the tree's cut port over the SS07 service.
 type hostCuts struct {
-	svc  *Service
-	mu   sync.Mutex
-	last graph.CutRef
+	svc *Service
+}
+
+// captureSink receives what one capture produced: the scoped cut reference and
+// the identity resolution at that same cut, so a caller reads the values of its
+// own capture.
+type captureSink struct {
+	Ref      graph.CutRef
+	Identity identity.Resolution
+}
+
+type refSinkKey struct{}
+
+func withRefSink(ctx context.Context, sink *captureSink) context.Context {
+	return context.WithValue(ctx, refSinkKey{}, sink)
 }
 
 var _ tree.CutSource = (*hostCuts)(nil)
@@ -35,9 +49,13 @@ func (h *hostCuts) Capture(ctx context.Context, filter driver.Filter) (tree.CutV
 	if err != nil {
 		return tree.CutView{}, err
 	}
-	h.mu.Lock()
-	h.last = view.Ref
-	h.mu.Unlock()
+	resolution, err := h.svc.ledger.Resolve(view.Cut)
+	if err != nil {
+		return tree.CutView{}, err
+	}
+	if sink, ok := ctx.Value(refSinkKey{}).(*captureSink); ok {
+		sink.Ref, sink.Identity = view.Ref, resolution
+	}
 	return h.viewOf(view), nil
 }
 
@@ -117,18 +135,39 @@ type hostOperations struct {
 
 var _ tree.OperationPort = (*hostOperations)(nil)
 
-func (o *hostOperations) Prepare(_ context.Context, _ graph.CutRef, operation semreg.DefinitionRef, input tree.Input) (tree.PortPrepared, error) {
+func (o *hostOperations) Prepare(_ context.Context, cut graph.CutRef, operation semreg.DefinitionRef, input tree.Input) (tree.PortPrepared, error) {
 	if input.Request == nil {
 		return tree.PortPrepared{}, errors.New("runtime: a semantic method takes an operation request")
 	}
 	if input.Request.Operation != operation {
 		return tree.PortPrepared{}, errors.New("runtime: the request names another operation than the selected method")
 	}
+	inCut := false
+	for _, member := range cut.Members {
+		if member.AssetID == input.Request.AssetID {
+			inCut = true
+			break
+		}
+	}
+	if !inCut {
+		return tree.PortPrepared{}, errors.New("runtime: the request names an asset that is not in the selected cut")
+	}
+	// The prepared request keeps its own copy of the typed input, so a later
+	// edit of the caller's slices leaves what was prepared unchanged.
+	encoded, err := json.Marshal(input.Request)
+	if err != nil {
+		return tree.PortPrepared{}, err
+	}
+	var request driver.OperationRequest
+	if err := json.Unmarshal(encoded, &request); err != nil {
+		return tree.PortPrepared{}, err
+	}
+	request.Timeout = input.Request.Timeout
 	o.mu.Lock()
 	o.sequence++
 	id := tree.PreparedID(fmt.Sprintf("op-prepared-%d", o.sequence))
 	o.mu.Unlock()
-	return tree.PortPrepared{ID: id, Request: *input.Request}, nil
+	return tree.PortPrepared{ID: id, Request: request}, nil
 }
 
 func (o *hostOperations) Call(ctx context.Context, prepared tree.PortPrepared, options tree.CallOptions) (tree.PortReceipt, error) {

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/call"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/identity"
@@ -32,6 +33,8 @@ type HostOptions struct {
 type HostCut struct {
 	*tree.TreeCut
 	Ref graph.CutRef
+	// Identity is the identity resolution at this capture's cut.
+	Identity identity.Resolution
 }
 
 // Runtime is one assembled host runtime. It holds no concrete driver and no
@@ -51,6 +54,10 @@ type Runtime struct {
 	pub       *hostPublication
 	operation *hostOperations
 	statePath string
+	// exclusive is true when this runtime holds the installation lock; only
+	// then may it write the identity checkpoint.
+	exclusive bool
+	checkMu   sync.Mutex
 	captureMu chan struct{}
 }
 
@@ -151,13 +158,14 @@ func OpenHost(ctx context.Context, inst life.Installation, options HostOptions, 
 		return nil, err
 	}
 	opened := false
+	exclusive := control.Exclusive()
 	defer func() {
 		if !opened {
 			control.Close()
 			control.Release()
 		}
 	}()
-	rt := &Runtime{plan: plan, byID: map[life.InstanceID]life.PlannedInstance{}, svc: svc, control: control, calendar: calendar, statePath: statePath, captureMu: make(chan struct{}, 1)}
+	rt := &Runtime{plan: plan, byID: map[life.InstanceID]life.PlannedInstance{}, svc: svc, control: control, calendar: calendar, statePath: statePath, exclusive: exclusive, captureMu: make(chan struct{}, 1)}
 	for _, planned := range plan.Instances {
 		rt.byID[planned.Ref.ID()] = planned
 	}
@@ -200,6 +208,11 @@ func OpenHost(ctx context.Context, inst life.Installation, options HostOptions, 
 	rt.lifecycle.mu.Lock()
 	rt.lifecycle.sup = rt.sup
 	rt.lifecycle.mu.Unlock()
+	if exclusive && len(options.Statements) > 0 {
+		if err := rt.saveCheckpoint(); err != nil {
+			return nil, err
+		}
+	}
 	opened = true
 	return rt, nil
 }
@@ -219,7 +232,14 @@ func (rt *Runtime) install(ctx context.Context) error {
 	return rt.svc.Install(ctx, rt.plan)
 }
 
+// saveCheckpoint writes the identity checkpoint while this runtime holds the
+// installation lock. A contending or superseded host writes nothing.
 func (rt *Runtime) saveCheckpoint() error {
+	rt.checkMu.Lock()
+	defer rt.checkMu.Unlock()
+	if !rt.exclusive || !rt.control.Exclusive() {
+		return nil
+	}
 	data, err := rt.svc.Ledger().Export()
 	if err != nil {
 		return err
@@ -247,9 +267,10 @@ func (rt *Runtime) WaitInitial(ctx context.Context) error {
 // Close stops the instances, closes the lifecycle store and keeps the identity
 // checkpoint.
 func (rt *Runtime) Close(ctx context.Context) error {
+	before := rt.saveCheckpoint()
 	err := rt.sup.Close(ctx)
 	rt.tree.Registry.Close()
-	return errors.Join(err, rt.saveCheckpoint())
+	return errors.Join(err, before, rt.saveCheckpoint())
 }
 
 // Cut captures the installation tree and its semantic cut together.
@@ -260,14 +281,12 @@ func (rt *Runtime) Cut(ctx context.Context) (*HostCut, error) {
 		return nil, ctx.Err()
 	}
 	defer func() { <-rt.captureMu }()
-	cut, err := rt.tree.Capture(ctx, tree.CutOptions{})
+	var sink captureSink
+	cut, err := rt.tree.Capture(withRefSink(ctx, &sink), tree.CutOptions{})
 	if err != nil {
 		return nil, err
 	}
-	rt.cuts.mu.Lock()
-	ref := rt.cuts.last
-	rt.cuts.mu.Unlock()
-	return &HostCut{TreeCut: cut, Ref: ref}, nil
+	return &HostCut{TreeCut: cut, Ref: sink.Ref, Identity: sink.Identity}, nil
 }
 
 // Tree is SS09's tree.

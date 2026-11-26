@@ -1374,8 +1374,9 @@ func TestHostResumesManagedPublicationAfterProcessLoss(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				value, _ := zoneFactCoefficient(t, cut)
-				_ = value
+				if value, _ := zoneFactCoefficient(t, cut); value != "" {
+					t.Fatalf("STOP: the withdrawn generation's value %q is still current after reopening", value)
+				}
 			}
 		})
 	}

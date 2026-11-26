@@ -166,6 +166,8 @@ type synthFactory struct {
 	owners      []*ownerInstance
 	startErrs   []error
 	hangStop    bool
+	// receipt, when set, is the monotonic receipt point the owner publishes.
+	receipt *v1.MonotonicPoint
 }
 
 func newSynthFactory(clock *fixedClock) *synthFactory {
@@ -316,10 +318,14 @@ func (i *ownerInstance) fact(id string, revision string, coefficient string) v1.
 	source := v1.SourceID("placeholder")
 	now := i.f.clock.Now()
 	value := kelvin(coefficient)
+	times := v1.Times{ReceivedAt: timePoint(now), EvaluatedAt: timePoint(now)}
+	if i.f.receipt != nil {
+		times.ReceiptMonotonic, times.EvaluateMonotonic = *i.f.receipt, *i.f.receipt
+	}
 	return v1.FactCandidate{
 		CandidateID: v1.CandidateID(id), Key: i.facts.argument, Value: &value,
 		Quality:         v1.Quality{Assertion: v1.AssertionObserved, Qualification: v1.QualificationQualified, Promotion: v1.PromotionPromoted, Validity: v1.ValidityGood, Availability: v1.AvailabilityAvailable, Freshness: v1.FreshnessFresh, Reasons: []v1.DefinitionID{}},
-		Times:           v1.Times{ReceivedAt: timePoint(now), EvaluatedAt: timePoint(now)},
+		Times:           times,
 		FreshnessPolicy: v1.FreshnessPolicy{PolicyID: "policy:fresh", Version: "1.0.0", FreshForNS: "30000000000", RetainForNS: "120000000000", MaxWallUncertaintyNS: "0"},
 		BindingID:       &binding, SourceEpochID: &epoch, DriverGeneration: &generation,
 		Origin:   v1.OriginRef{OriginID: "origin:native", Kind: v1.OriginNativeObservation, SourceID: &source, SourceEpochID: &epoch, BindingID: &binding, Evidence: []v1.EvidenceRef{evidenceOf("origin:" + id)}},

@@ -108,14 +108,14 @@ func (p *hostPublication) OpenSession(_ context.Context, corr life.LifecycleCorr
 	return &hostSession{
 		native: native, spec: spec, scoped: attempt.scoped, calendar: p.rt.calendar,
 		input:     &hostInput{scoped: p.rt.tree.SemanticInput(driver.Filter{}), session: session},
-		publisher: &hostPublisher{session: session},
+		publisher: &hostPublisher{session: session, rt: p.rt},
 	}, nil
 }
 
 // Withdraw stops what the correlation's generation registered: its native
 // registrations, its executor registrations and the sources it declared. It is
 // idempotent and also settles a correlation of an earlier process.
-func (p *hostPublication) Withdraw(_ context.Context, corr life.LifecycleCorrelation) error {
+func (p *hostPublication) Withdraw(ctx context.Context, corr life.LifecycleCorrelation) error {
 	planned, ok := p.rt.byID[corr.InstanceID]
 	if !ok {
 		return fmt.Errorf("runtime: no planned instance for %s", corr.InstanceID)
@@ -130,8 +130,75 @@ func (p *hostPublication) Withdraw(_ context.Context, corr life.LifecycleCorrela
 		p.rt.lifecycle.fence(tree.Fence{Instance: attempt.ref, Generation: attempt.number})
 	}
 	spec := p.rt.specFor(planned.Ref, corr)
+	if err := p.rt.withdrawCommitted(ctx, spec); err != nil {
+		return err
+	}
 	p.rt.svc.withdrawGeneration(spec.Asset, spec.Source, spec.Epoch, spec.Generation)
 	return nil
+}
+
+// withdrawCommitted commits, through the managed publication path, the
+// withdrawal of everything the asset currently publishes, so the generation
+// leaves current reads and a reopened installation restores no value of it. It
+// commits nothing when nothing is current.
+func (rt *Runtime) withdrawCommitted(ctx context.Context, spec SessionSpec) error {
+	svc := rt.svc
+	svc.mu.Lock()
+	kernel := svc.kernels[spec.Asset]
+	svc.mu.Unlock()
+	if kernel == nil {
+		return nil
+	}
+	current, _, ok := kernel.Current()
+	if !ok {
+		return nil
+	}
+	var services []v1.ServiceInstanceID
+	for _, service := range current.Services {
+		if service.Availability != v1.AvailabilityWithdrawn {
+			services = append(services, service.InstanceID)
+		}
+	}
+	var capabilities []v1.CapabilityInstanceID
+	for _, capability := range current.Capabilities {
+		if capability.Availability != v1.AvailabilityWithdrawn {
+			capabilities = append(capabilities, capability.InstanceID)
+		}
+	}
+	var facts []v1.CandidateID
+	for _, envelope := range current.Facts {
+		for _, candidate := range envelope.Candidates {
+			facts = append(facts, candidate.CandidateID)
+		}
+	}
+	if len(facts) == 0 && len(services) == 0 && len(capabilities) == 0 {
+		return nil
+	}
+	svc.mu.Lock()
+	delete(svc.fencedGen, fenceKey(spec.Source, spec.Epoch, spec.Generation))
+	svc.mu.Unlock()
+	session, err := svc.OpenSession(spec)
+	if err != nil {
+		return err
+	}
+	batch, err := session.Prepare(func(b *v1.PublicationBatch) {
+		b.FactWithdrawals = append(b.FactWithdrawals, facts...)
+		b.ServiceWithdrawals = append(b.ServiceWithdrawals, services...)
+		b.CapabilityWithdrawals = append(b.CapabilityWithdrawals, capabilities...)
+		b.SourceRetirements = append(b.SourceRetirements, session.priorEpochs()...)
+	})
+	if err != nil {
+		return err
+	}
+	tx, err := session.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	if err := tx.Stage(batch); err != nil {
+		_ = tx.Abort(ctx)
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // withdrawGeneration marks the generation fenced, its routes not live and every
@@ -199,19 +266,23 @@ func stampRoute(spec SessionSpec, route driver.SettingRoute) driver.SettingRoute
 }
 
 // hostPublisher stamps everything a driver stages with the session's ownership.
-type hostPublisher struct{ session *Session }
+type hostPublisher struct {
+	session *Session
+	rt      *Runtime
+}
 
 func (p *hostPublisher) Begin(ctx context.Context) (driver.PublicationTransaction, error) {
 	tx, err := p.session.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &hostTransaction{PublicationTransaction: tx, session: p.session}, nil
+	return &hostTransaction{PublicationTransaction: tx, session: p.session, rt: p.rt}, nil
 }
 
 type hostTransaction struct {
 	driver.PublicationTransaction
 	session *Session
+	rt      *Runtime
 }
 
 func (t *hostTransaction) Stage(batch v1.PublicationBatch) error {
@@ -220,6 +291,16 @@ func (t *hostTransaction) Stage(batch v1.PublicationBatch) error {
 		return err
 	}
 	return t.PublicationTransaction.Stage(stamped)
+}
+
+// Commit publishes the transaction and then persists the identity checkpoint,
+// so the statements and dispositions the commit made resolvable survive a
+// process loss without a clean shutdown.
+func (t *hostTransaction) Commit(ctx context.Context) error {
+	if err := t.PublicationTransaction.Commit(ctx); err != nil {
+		return err
+	}
+	return t.rt.saveCheckpoint()
 }
 
 func (t *hostTransaction) DeclareSettingRoute(route driver.SettingRoute) error {
@@ -319,7 +400,12 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 	}
 	for i := range b.FactUpserts {
 		f := &b.FactUpserts[i]
-		f.Times.ReceiptMonotonic, f.Times.EvaluateMonotonic = mono, mono
+		if f.Times.ReceiptMonotonic == (v1.MonotonicPoint{}) {
+			f.Times.ReceiptMonotonic = mono
+		}
+		if f.Times.EvaluateMonotonic == (v1.MonotonicPoint{}) {
+			f.Times.EvaluateMonotonic = mono
+		}
 		f.CandidateID = v1.CandidateID(scopedID(spec, string(f.CandidateID)))
 		if f.BindingID != nil {
 			id := binding(*f.BindingID)

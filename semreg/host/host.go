@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime"
@@ -153,25 +154,48 @@ func run(env environment, argv []string, app Application, selected ...driver.Fac
 		fmt.Fprintln(env.stderr, "host: no selected factory for", name)
 	}
 	if err := site.Start(ctx); err != nil {
-		fmt.Fprintln(env.stderr, "host:", err)
-		_ = site.Close(context.Background())
-		return 1
+		fmt.Fprintln(env.stderr, "host:", site.secrets.redactErr(err))
+		if !ownerScoped(err) {
+			_ = site.Close(context.Background())
+			return 1
+		}
+		// An owner-scoped recovery failure is reported while the unrelated
+		// instances were started, so the host stays operational.
 	}
 	exit := 0
 	if err := site.WaitInitial(ctx); err != nil {
-		fmt.Fprintln(env.stderr, "host:", err)
+		fmt.Fprintln(env.stderr, "host:", site.secrets.redactErr(err))
 		exit = 1
 	} else if err := app(ctx, site, task); err != nil {
-		fmt.Fprintln(env.stderr, "host:", err)
+		fmt.Fprintln(env.stderr, "host:", site.secrets.redactErr(err))
 		exit = 1
 	}
 	if err := site.Close(context.Background()); err != nil {
-		fmt.Fprintln(env.stderr, "host:", err)
+		fmt.Fprintln(env.stderr, "host:", site.secrets.redactErr(err))
 		if exit == 0 {
 			exit = 1
 		}
 	}
 	return exit
+}
+
+// ownerScoped reports that every error in err is scoped to one instance's
+// owner, which the supervisor reports while it starts the unrelated peers.
+func ownerScoped(err error) bool {
+	if err == nil {
+		return false
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		parts := joined.Unwrap()
+		for _, part := range parts {
+			if !ownerScoped(part) {
+				return false
+			}
+		}
+		return len(parts) > 0
+	}
+	var scoped *life.SemanticError
+	return errors.As(err, &scoped)
 }
 
 func loadConfig(env environment, args []string) (Config, error) {
@@ -274,6 +298,68 @@ type Site struct {
 	rt        *runtime.Runtime
 	selected  []driver.Factory
 	unmatched []string
+	secrets   *secretScope
+}
+
+type secretEntry struct {
+	kind driver.DriverKind
+	ref  string
+}
+
+// secretScope holds the configured per-instance secret references so they reach
+// only the factory that plans their instance and never appear in diagnostics.
+type secretScope struct {
+	refs map[string][]secretEntry
+}
+
+func (s *secretScope) redact(text string) string {
+	for _, entries := range s.refs {
+		for _, entry := range entries {
+			text = strings.ReplaceAll(text, entry.ref, "[secret reference]")
+		}
+	}
+	return text
+}
+
+func (s *secretScope) redactErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	if text := s.redact(err.Error()); text != err.Error() {
+		return errors.New(text)
+	}
+	return err
+}
+
+// secretScopedFactory plans an instance without its secret reference first and
+// hands the reference only when that plan names the instance's own kind.
+type secretScopedFactory struct {
+	driver.Factory
+	scope *secretScope
+}
+
+func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan, error) {
+	entries := f.scope.refs[config.Instance]
+	if len(entries) == 0 {
+		return f.Factory.Plan(config)
+	}
+	bare := config
+	bare.SecretRef = ""
+	plans, err := f.Factory.Plan(bare)
+	if err != nil {
+		return nil, f.scope.redactErr(err)
+	}
+	for _, plan := range plans {
+		for _, entry := range entries {
+			if entry.kind == plan.Driver {
+				own := config
+				own.SecretRef = entry.ref
+				plans, err = f.Factory.Plan(own)
+				return plans, f.scope.redactErr(err)
+			}
+		}
+	}
+	return plans, nil
 }
 
 // Open maps the configuration onto the installation and opens the runtime. It
@@ -298,6 +384,12 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 		Key: cfg.InstallationKey, Bridge: cfg.BridgeID, StateDir: cfg.StateDir, Clock: cfg.Clock, Calendar: cfg.Calendar,
 	}
 	var unmatched []string
+	scoped := &secretScope{refs: map[string][]secretEntry{}}
+	for _, ic := range cfg.Instances {
+		if ic.SecretRef != "" {
+			scoped.refs[string(ic.Instance)] = append(scoped.refs[string(ic.Instance)], secretEntry{kind: ic.Kind, ref: ic.SecretRef})
+		}
+	}
 	for _, ic := range cfg.Instances {
 		config := driver.Config{
 			Instance: string(ic.Instance), Enabled: ic.Enabled,
@@ -310,11 +402,15 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 		}
 		inst.Instances = append(inst.Instances, life.InstanceConfig{Driver: ic.Kind, Instance: ic.Instance, Enabled: ic.Enabled, Config: config})
 	}
-	rt, err := runtime.OpenHost(ctx, inst, runtime.HostOptions{Statements: cfg.OperatorIdentityStatements}, selected...)
-	if err != nil {
-		return nil, err
+	wrapped := make([]driver.Factory, len(selected))
+	for i, factory := range selected {
+		wrapped[i] = &secretScopedFactory{Factory: factory, scope: scoped}
 	}
-	return &Site{rt: rt, selected: selected, unmatched: unmatched}, nil
+	rt, err := runtime.OpenHost(ctx, inst, runtime.HostOptions{Statements: cfg.OperatorIdentityStatements}, wrapped...)
+	if err != nil {
+		return nil, scoped.redactErr(err)
+	}
+	return &Site{rt: rt, selected: selected, unmatched: unmatched, secrets: scoped}, nil
 }
 
 // matches reports whether a selected factory plans the kind for the
@@ -322,6 +418,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 // error is reported by the runtime.
 func matches(selected []driver.Factory, kind driver.DriverKind, config driver.Config) bool {
 	for _, factory := range selected {
+		config.SecretRef = ""
 		plans, err := factory.Plan(config)
 		if err != nil {
 			return true
