@@ -14,8 +14,9 @@ concurrency:
 
 jobs:
   validate:
-    # fork pull requests never run on the persistent runners
-    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) && 'ubuntu-latest' || 'synology' }}
+    # a public repository with no private dependency: the job runs on the standard hosted runners, which leaves the
+    # persistent runners to the repositories that need them
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
