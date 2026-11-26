@@ -21,6 +21,9 @@ const binderKind driver.DriverKind = "driver.binder"
 // derived is set.
 type binderFactory struct {
 	derived, relation, native bool
+	// prefixed adds a second candidate whose id extends the first one's;
+	// twoPaths declares a second path for the same element.
+	prefixed, twoPaths bool
 	// batch, when set, receives the batch the instance handed to Stage.
 	batch *v1.PublicationBatch
 }
@@ -30,15 +33,16 @@ func (f binderFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	return []driver.InstancePlan{{Driver: binderKind, Instance: driver.InstanceKey(c.Instance)}}, nil
 }
 func (f binderFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
-	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, record: f.batch}, nil
+	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, prefixed: f.prefixed, twoPaths: f.twoPaths, record: f.batch}, nil
 }
 
 type binderInstance struct {
-	derived  bool
-	relation bool
-	native   bool
-	record   *v1.PublicationBatch
-	source   driver.Source
+	derived            bool
+	relation           bool
+	native             bool
+	prefixed, twoPaths bool
+	record             *v1.PublicationBatch
+	source             driver.Source
 }
 
 func (i *binderInstance) FenceWithdrawal() {}
@@ -140,6 +144,11 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 	} else {
 		batch.FactUpserts = []v1.FactCandidate{observed}
 	}
+	if i.prefixed {
+		longer := observed
+		longer.CandidateID = "candidate:observed:1-2"
+		batch.FactUpserts = append(batch.FactUpserts, longer)
+	}
 	if i.record != nil {
 		*i.record = batch
 	}
@@ -155,6 +164,14 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 	if err := tx.DeclareSource(i.source); err != nil {
 		_ = tx.Abort(ctx)
 		return err
+	}
+	if i.twoPaths {
+		other := i.source
+		other.PathKey = "alternate"
+		if err := tx.DeclareSource(other); err != nil {
+			_ = tx.Abort(ctx)
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }
@@ -391,6 +408,53 @@ func TestHostStagingLeavesTheDriversBatchAsDeclared(t *testing.T) {
 	for _, r := range batch.RelationUpserts {
 		if *r.Origin.BindingID != "binding:b" || *r.Origin.SourceID != "placeholder" {
 			t.Fatalf("the driver's relation origin was rewritten: %+v", r.Origin)
+		}
+	}
+}
+
+func TestHostStampingKeepsCanonicalOrderWhenOneIdentifierIsAPrefixOfAnother(t *testing.T) {
+	rt, ref := openBinder(t, binderFactory{prefixed: true})
+	status, err := rt.Snapshot(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ObservedState != life.ObservedRunning {
+		t.Fatalf("a canonically ordered batch was rejected after stamping: %s %+v", status.ObservedState, status.Reason)
+	}
+}
+
+// pathStates returns, per declared path key, the sample the source holds.
+func pathStates(t *testing.T, rt *Runtime) map[string]bool {
+	t.Helper()
+	rt.svc.mu.Lock()
+	var declared driver.Source
+	for _, source := range rt.svc.declared {
+		declared = source
+	}
+	rt.svc.mu.Unlock()
+	view, err := rt.svc.CaptureView(context.Background(), driver.Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	held := map[string]bool{}
+	for _, state := range rt.svc.Element(declared.For, view).States {
+		held[state.Source.PathKey] = state.Latest != nil
+	}
+	return held
+}
+
+func TestHostDoesNotAssignACandidateToPathsThatDidNotSupplyIt(t *testing.T) {
+	rt, ref := openBinder(t, binderFactory{twoPaths: true})
+	if status, err := rt.Snapshot(ref); err != nil || status.ObservedState != life.ObservedRunning {
+		t.Fatalf("%v %s %+v", err, status.ObservedState, status.Reason)
+	}
+	held := pathStates(t, rt)
+	if len(held) != 2 {
+		t.Fatalf("declared paths %v, want two", held)
+	}
+	for path, has := range held {
+		if has {
+			t.Fatalf("path %q holds a sample although the driver never said it supplied one", path)
 		}
 	}
 }

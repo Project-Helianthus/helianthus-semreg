@@ -339,7 +339,10 @@ func (t *hostTransaction) DeclareSource(source driver.Source) error {
 // stageSamples stages, with the same commit, a sample of every fact this
 // transaction upserted for the element of a source this session declared (in
 // this transaction or earlier). The commit admits the candidate and revision the
-// member accepted, and none a rejected commit leaves out.
+// member accepted, and none a rejected commit leaves out. A candidate carries no
+// statement of which declared path supplied it, so the host associates it only
+// when exactly one declared path claims its element; when several paths claim
+
 func (t *hostTransaction) stageSamples() error {
 	stager, ok := t.PublicationTransaction.(interface{ StageSample(driver.Sample) error })
 	if !ok {
@@ -352,14 +355,25 @@ func (t *hostTransaction) stageSamples() error {
 	sources = append(sources, t.declared...)
 	facts := append([]v1.FactCandidate(nil), t.facts...)
 	t.mu.Unlock()
-	for _, source := range sources {
-		for _, fact := range facts {
+	for _, fact := range facts {
+		var claimed []driver.Source
+		seen := map[string]bool{}
+		for _, source := range sources {
 			if !sameFactKey(fact.Key, source.For.Key) {
 				continue
 			}
-			if err := stager.StageSample(driver.Sample{From: source, Candidate: fact}); err != nil {
-				return err
+			key := sourceKeyOf(source)
+			if seen[key] {
+				continue
 			}
+			seen[key] = true
+			claimed = append(claimed, source)
+		}
+		if len(claimed) != 1 {
+			continue
+		}
+		if err := stager.StageSample(driver.Sample{From: claimed[0], Candidate: fact}); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -552,6 +566,17 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 			f.Origin.SourceEpochID = &e
 		}
 	}
+	// The suffix changes how identifiers compare (an identifier that is a prefix
+	// of another no longer sorts first), so the collections the contract orders by
+	// identifier are put back in canonical order before sealing.
+	sort.SliceStable(b.BindingUpserts, func(i, j int) bool { return b.BindingUpserts[i].BindingID < b.BindingUpserts[j].BindingID })
+	sort.SliceStable(b.IdentityLinkUpserts, func(i, j int) bool { return b.IdentityLinkUpserts[i].BindingID < b.IdentityLinkUpserts[j].BindingID })
+	sort.SliceStable(b.FactUpserts, func(i, j int) bool { return b.FactUpserts[i].CandidateID < b.FactUpserts[j].CandidateID })
+	sort.SliceStable(b.FactWithdrawals, func(i, j int) bool { return b.FactWithdrawals[i] < b.FactWithdrawals[j] })
+	sort.SliceStable(b.ServiceUpserts, func(i, j int) bool { return b.ServiceUpserts[i].InstanceID < b.ServiceUpserts[j].InstanceID })
+	sort.SliceStable(b.ServiceWithdrawals, func(i, j int) bool { return b.ServiceWithdrawals[i] < b.ServiceWithdrawals[j] })
+	sort.SliceStable(b.CapabilityUpserts, func(i, j int) bool { return b.CapabilityUpserts[i].InstanceID < b.CapabilityUpserts[j].InstanceID })
+	sort.SliceStable(b.CapabilityWithdrawals, func(i, j int) bool { return b.CapabilityWithdrawals[i] < b.CapabilityWithdrawals[j] })
 	digest, err := b.ComputedDigest()
 	if err != nil {
 		return v1.PublicationBatch{}, err
