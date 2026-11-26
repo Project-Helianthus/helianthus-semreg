@@ -562,19 +562,26 @@ func TestSupersedeRefusesPreviousAnchorNeverResolved(t *testing.T) {
 	}
 }
 
-// gateStore blocks the first Lookup until released and reports whether the
-// first lookup's caller had returned when Commit ran.
+// gateStore blocks the first Lookup until released. It marks the span from
+// that lookup to the commit that ends the same resolution, and records
+// whether another caller read or committed inside it.
 type gateStore struct {
 	*MemoryStore
-	looked    chan struct{}
-	gated     sync.Once
-	firstDone *int32
-	atCommit  int32
+	looked   chan struct{}
+	gated    sync.Once
+	inFlight int32
+	atCommit int32
 }
 
 func (s *gateStore) Lookup(key AnchorKey) (Entry, bool, error) {
+	// A lookup by another caller inside the span is an overlap even when the
+	// caller is then refused and never commits.
+	if atomic.LoadInt32(&s.inFlight) == 1 {
+		atomic.StoreInt32(&s.atCommit, 1)
+	}
 	entry, ok, err := s.MemoryStore.Lookup(key)
 	s.gated.Do(func() {
+		atomic.StoreInt32(&s.inFlight, 1)
 		close(s.looked)
 		time.Sleep(200 * time.Millisecond)
 	})
@@ -582,13 +589,16 @@ func (s *gateStore) Lookup(key AnchorKey) (Entry, bool, error) {
 }
 
 func (s *gateStore) Commit(record Supersession) error {
-	atomic.StoreInt32(&s.atCommit, atomic.LoadInt32(s.firstDone))
+	if record.Previous == record.Next {
+		atomic.StoreInt32(&s.inFlight, 0)
+	} else if atomic.LoadInt32(&s.inFlight) == 1 {
+		atomic.StoreInt32(&s.atCommit, 1)
+	}
 	return s.MemoryStore.Commit(record)
 }
 
 func TestResolveIsAtomicWithSupersessionOnASharedStore(t *testing.T) {
-	var firstDone int32
-	store := &gateStore{MemoryStore: NewMemoryStore(), looked: make(chan struct{}), firstDone: &firstDone}
+	store := &gateStore{MemoryStore: NewMemoryStore(), looked: make(chan struct{})}
 	label := zoneAnchor(semreg.AnchorOperatorSlot, "zone-a", "label")
 	position := zoneAnchor(semreg.AnchorNativeSlot, "zone-a", "position")
 	first, second := newTestAllocator(t, store), newTestAllocator(t, store)
@@ -597,7 +607,6 @@ func TestResolveIsAtomicWithSupersessionOnASharedStore(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		_, _, _ = first.Resolve(kindZone, label)
-		atomic.StoreInt32(&firstDone, 1)
 	}()
 	<-store.looked
 	go func() {
@@ -605,7 +614,7 @@ func TestResolveIsAtomicWithSupersessionOnASharedStore(t *testing.T) {
 		_, _, _ = second.Supersede(Claim{kindZone, label}, Claim{kindZone, position}, continuity(ContinuityBinding, "both"))
 	}()
 	wg.Wait()
-	if atomic.LoadInt32(&store.atCommit) != 1 {
+	if atomic.LoadInt32(&store.atCommit) != 0 {
 		t.Fatal("a supersession committed while another allocator was resolving the same key")
 	}
 }

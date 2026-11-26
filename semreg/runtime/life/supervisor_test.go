@@ -327,7 +327,12 @@ func TestSetDesiredPreconditionIsTheDesiredRevision(t *testing.T) {
 	refusalOf(t, err, RefusalRevisionConflict, 6)
 	_, err = r.sup.SetDesired(context.Background(), ref("bus.two"), MethodStop, st.DesiredRevision+7)
 	refusalOf(t, err, RefusalRevisionConflict, 6)
-	view, err := r.sup.SetDesired(context.Background(), ref("bus.two"), MethodStop, st.DesiredRevision)
+	var view DesiredView
+	waitFor(t, "stop decision after the previous decision settled", func() bool {
+		var refusal *Refusal
+		view, err = r.sup.SetDesired(context.Background(), ref("bus.two"), MethodStop, st.DesiredRevision)
+		return !(errors.As(err, &refusal) && refusal.Code == RefusalTransitionBusy)
+	})
 	if err != nil || view.DesiredState != DesiredStopped || view.DesiredRevision <= st.DesiredRevision {
 		t.Fatalf("stop = %+v %v", view, err)
 	}
