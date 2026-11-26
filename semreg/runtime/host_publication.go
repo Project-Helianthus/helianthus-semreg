@@ -409,6 +409,25 @@ type hostTransaction struct {
 	mu       sync.Mutex
 	facts    []v1.FactCandidate
 	declared []driver.Source
+	// driverSampled holds the samples the driver staged itself, so the commit
+	// does not stage a second sample for the same fact of the same source. The
+	// host rewrites candidate ids when it stamps a batch, so a fact is matched by
+	// its key and source.
+	driverSampled []driver.Sample
+	samplesStaged bool
+}
+
+// StageSample records the driver's own sample. The host stamps a batch and
+// rewrites the candidate ids of its facts, so the sample is handed to the
+// transaction at commit, carrying the stamped candidate of the fact it names.
+func (t *hostTransaction) StageSample(sample driver.Sample) error {
+	if err := sample.From.Validate(); err != nil {
+		return err
+	}
+	t.mu.Lock()
+	t.driverSampled = append(t.driverSampled, sample)
+	t.mu.Unlock()
+	return nil
 }
 
 // DeclareSource stages the declaration and remembers it, so the commit admits
@@ -430,15 +449,46 @@ func (t *hostTransaction) DeclareSource(source driver.Source) error {
 // statement of which declared path supplied it, so the host associates it only
 // when exactly one declared path claims its element; when several paths claim
 
+func sampledByDriver(samples []driver.Sample, fact v1.FactCandidate) bool {
+	for _, sample := range samples {
+		if sameFactKey(sample.Candidate.Key, fact.Key) && sourceKeyOf(sample.From) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *hostTransaction) stageSamples() error {
+	t.mu.Lock()
+	done := t.samplesStaged
+	t.samplesStaged = true
+	t.mu.Unlock()
+	if done {
+		return nil
+	}
 	t.session.mu.Lock()
 	sources := append([]driver.Source(nil), t.session.sources...)
 	t.session.mu.Unlock()
 	t.mu.Lock()
 	sources = append(sources, t.declared...)
 	facts := append([]v1.FactCandidate(nil), t.facts...)
+	driverSampled := append([]driver.Sample(nil), t.driverSampled...)
 	t.mu.Unlock()
+	for _, sample := range driverSampled {
+		for _, fact := range facts {
+			if sameFactKey(sample.Candidate.Key, fact.Key) {
+				sample.Candidate = fact
+				break
+			}
+		}
+		if err := t.PublicationTransaction.StageSample(sample); err != nil {
+			return err
+		}
+	}
 	for _, fact := range facts {
+		if sampledByDriver(driverSampled, fact) {
+			continue
+		}
 		var claimed []driver.Source
 		seen := map[string]bool{}
 		for _, source := range sources {

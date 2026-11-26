@@ -117,6 +117,10 @@ type syntheticNative struct {
 	invoke  map[driver.MemberID]driver.NativeMethod
 }
 
+func (n *syntheticNative) Root() driver.NodeRef {
+	return driver.NodeRef{Bridge: "bridge.local", ID: "resource:root"}
+}
+
 func (n *syntheticNative) Node(s driver.NodeSpec) (driver.NodeRef, error) {
 	if err := s.Validate(); err != nil {
 		return driver.NodeRef{}, err

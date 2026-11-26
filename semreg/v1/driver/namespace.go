@@ -160,6 +160,8 @@ type NativeMethod func(context.Context, []byte) ([]byte, error)
 // diagnostic namespace. Instance and transport setup are registered before
 // device discovery. SemReg's runtime implements it.
 type NativeRegistry interface {
+	// Root is the NodeRef of the calling instance's own node.
+	Root() NodeRef
 	Node(NodeSpec) (NodeRef, error)
 	ReadMember(NodeRef, MemberSpec, NativeReader) error
 	Method(NodeRef, MethodSpec, NativeMethod) error

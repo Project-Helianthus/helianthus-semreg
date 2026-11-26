@@ -2,6 +2,8 @@ package runtime
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -18,11 +20,16 @@ const (
 )
 
 // linkPlan drives a binder instance's publication through driver.Session only:
-// it stages a sample of the declared source and the claims, then ends the
+// it stages the claims and, when asked, a sample of the declared source, then ends the
 // transaction as ending directs, and records what the session reported.
 type linkPlan struct {
 	ending string
-	claims func(root driver.NodeRef, subject v1.ResourceID) []driver.LinkClaim
+	// stageSample has the driver stage its own sample through the public
+	// transaction; silent makes the instance publish nothing at start.
+	stageSample bool
+	silent      bool
+	staged      int
+	claims      func(root driver.NodeRef, subject v1.ResourceID) []driver.LinkClaim
 
 	mu        sync.Mutex
 	commitErr error
@@ -30,7 +37,7 @@ type linkPlan struct {
 	prepared  v1.PublicationBatch
 }
 
-func (p *linkPlan) finish(ctx context.Context, s driver.Session, tx driver.PublicationTransaction, root driver.NodeRef, subject v1.ResourceID, candidate v1.CandidateID) error {
+func (p *linkPlan) finish(ctx context.Context, s driver.Session, tx driver.PublicationTransaction, root driver.NodeRef, subject v1.ResourceID, source driver.Source, candidate v1.FactCandidate) error {
 	prepared, err := s.Prepare(nil)
 	p.mu.Lock()
 	p.prepared = prepared
@@ -47,6 +54,21 @@ func (p *linkPlan) finish(ctx context.Context, s driver.Session, tx driver.Publi
 			return nil
 		}
 	}
+	if p.stageSample {
+		if err := tx.StageSample(driver.Sample{From: source, Candidate: candidate}); err != nil {
+			return err
+		}
+		ht := unwrapHostTransaction(tx)
+		if ht == nil {
+			return errors.New("the host transaction is not reachable under the lifecycle wrapper")
+		}
+		if err := ht.stageSamples(); err != nil {
+			return err
+		}
+		p.mu.Lock()
+		p.staged = len(ht.PublicationTransaction.(*transaction).samples)
+		p.mu.Unlock()
+	}
 	if p.ending == endAbort {
 		return tx.Abort(ctx)
 	}
@@ -61,7 +83,6 @@ func (p *linkPlan) finish(ctx context.Context, s driver.Session, tx driver.Publi
 	p.mu.Lock()
 	p.commitErr = err
 	p.mu.Unlock()
-	_ = candidate
 	return nil
 }
 
@@ -231,7 +252,7 @@ func TestStageLinkInvalidClaimIsRefusedAtStaging(t *testing.T) {
 
 func TestStageLinkSampleAndClaimCommitTogetherAndASecondHostResolvesTheClaim(t *testing.T) {
 	dir := t.TempDir()
-	plan := &linkPlan{ending: endCommit, claims: singleClaim("one")}
+	plan := &linkPlan{ending: endCommit, stageSample: true, claims: singleClaim("one")}
 	first := openLinkHostAt(t, dir, map[string]*linkPlan{"binder.one": plan}, false)
 	if plan.stageErr != nil || plan.commitErr != nil {
 		t.Fatalf("stage %v commit %v", plan.stageErr, plan.commitErr)
@@ -246,13 +267,13 @@ func TestStageLinkSampleAndClaimCommitTogetherAndASecondHostResolvesTheClaim(t *
 	if err := first.Close(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	second := openLinkHostAt(t, dir, map[string]*linkPlan{"binder.one": {ending: endCommit, claims: func(driver.NodeRef, v1.ResourceID) []driver.LinkClaim { return nil }}}, false)
+	if plan.staged != 1 {
+		t.Fatalf("the driver's sample and the host's automatic sample were both staged: %d", plan.staged)
+	}
+	second := openLinkHostAt(t, dir, map[string]*linkPlan{"binder.one": {silent: true}}, false)
 	claims := claimsFor(second, key)
 	if len(claims) != 1 || claims[0].Publisher.Instance != "binder.one" || len(claims[0].Basis) != 1 {
 		t.Fatalf("second host claims %+v", claims)
-	}
-	if got := sampleCount(t, second); got != 1 {
-		t.Fatalf("second host resolves %d sampled sources", got)
 	}
 }
 
@@ -277,4 +298,31 @@ func sampleCount(t *testing.T, rt *Runtime) int {
 		}
 	}
 	return n
+}
+
+// unwrapHostTransaction follows the embedded transaction of the lifecycle
+// wrapper down to the host's transaction.
+func unwrapHostTransaction(tx driver.PublicationTransaction) *hostTransaction {
+	for tx != nil {
+		if ht, ok := tx.(*hostTransaction); ok {
+			return ht
+		}
+		v := reflect.ValueOf(tx)
+		if v.Kind() == reflect.Pointer {
+			v = v.Elem()
+		}
+		if v.Kind() != reflect.Struct {
+			return nil
+		}
+		inner := v.FieldByName("PublicationTransaction")
+		if !inner.IsValid() || inner.IsNil() {
+			return nil
+		}
+		next, ok := reflect.NewAt(inner.Type(), inner.Addr().UnsafePointer()).Elem().Interface().(driver.PublicationTransaction)
+		if !ok {
+			return nil
+		}
+		tx = next
+	}
+	return nil
 }

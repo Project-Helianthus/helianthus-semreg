@@ -59,6 +59,9 @@ func (i *binderInstance) Start(ctx context.Context, s driver.Session) error {
 }
 
 func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
+	if i.links != nil && i.links.silent {
+		return nil
+	}
 	var op v1.OperationMetadata
 	meta := thermal.New().(v1.PackMetadataProvider).Metadata()
 	for _, candidate := range meta.Operations {
@@ -181,7 +184,7 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 		}
 	}
 	if i.links != nil {
-		return i.links.finish(ctx, s, tx, producer, resourceID, observed.CandidateID)
+		return i.links.finish(ctx, s, tx, producer, resourceID, i.source, observed)
 	}
 	return tx.Commit(ctx)
 }
