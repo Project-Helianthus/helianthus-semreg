@@ -46,18 +46,34 @@ func (h *hostCuts) viewOf(v View) tree.CutView {
 }
 
 func (h *hostCuts) Capture(ctx context.Context, filter driver.Filter) (tree.CutView, error) {
-	view, err := h.svc.CaptureView(ctx, filter)
-	if err != nil {
-		return tree.CutView{}, err
+	for {
+		view, err := h.svc.CaptureView(ctx, filter)
+		if err != nil {
+			return tree.CutView{}, err
+		}
+		resolution, err := h.svc.ledger.Resolve(view.Cut)
+		if err != nil {
+			return tree.CutView{}, err
+		}
+		links := h.svc.ledger.Links()
+		// A commit holds the service lock from its identity claims to the
+		// advance of the position. The identity read describes the captured
+		// state only when the position is still the capture's; otherwise a
+		// commit landed in between and the capture is taken again.
+		h.svc.mu.Lock()
+		same := h.svc.cursorAt(h.svc.position) == view.Cursor
+		h.svc.mu.Unlock()
+		if !same {
+			if err := ctx.Err(); err != nil {
+				return tree.CutView{}, err
+			}
+			continue
+		}
+		if sink, ok := ctx.Value(refSinkKey{}).(*captureSink); ok {
+			sink.Ref, sink.Identity, sink.Links = view.Ref, resolution, links
+		}
+		return h.viewOf(view), nil
 	}
-	resolution, err := h.svc.ledger.Resolve(view.Cut)
-	if err != nil {
-		return tree.CutView{}, err
-	}
-	if sink, ok := ctx.Value(refSinkKey{}).(*captureSink); ok {
-		sink.Ref, sink.Identity, sink.Links = view.Ref, resolution, h.svc.ledger.Links()
-	}
-	return h.viewOf(view), nil
 }
 
 func (h *hostCuts) Lookup(ctx context.Context, ref graph.CutRef) (tree.CutView, error) {

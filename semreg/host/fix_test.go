@@ -472,8 +472,28 @@ func TestPlanningKeepsEachKindInstancePairsOperandsAndReference(t *testing.T) {
 		}
 	}
 	for _, c := range b.seen {
-		if c.SecretRef != "" && c.SecretRef != probeSecretRef {
+		if c.SecretRef != "" {
 			t.Fatalf("the other kind's factory received a configured reference: %+v", c)
+		}
+	}
+}
+
+func TestFailingUnrelatedFactoryNeverReceivesAnOwnedReference(t *testing.T) {
+	ctx := context.Background()
+	clock := newFixedClock(time.Now())
+	cfg := baseConfig(t, clock)
+	failing := &bystander{fail: true}
+	owner := newSynthFactory(clock)
+	if site, err := Open(ctx, cfg, failing, owner); err == nil {
+		_ = site.Close(ctx)
+		t.Fatal("a failing factory must fail planning")
+	}
+	if len(failing.seen) == 0 {
+		t.Fatal("the failing factory was never asked to plan")
+	}
+	for _, c := range failing.seen {
+		if c.SecretRef != "" {
+			t.Fatalf("the failing factory received a reference for %s although another factory owns the kind", c.Instance)
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/call"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/identity"
 	v1 "github.com/Project-Helianthus/helianthus-semreg/semreg/v1"
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/v1/driver"
@@ -50,4 +51,17 @@ func TestHostCaptureShowsRebindAndRevocationInLinkEndpoints(t *testing.T) {
 		t.Fatal(err)
 	}
 	check("after revocation", old)
+}
+
+func TestHostSessionOperationsCarryTheCallingSurface(t *testing.T) {
+	plain := withSessionSurface(context.Background())
+	caller, ok := call.CallerFrom(plain)
+	if !ok || caller.Surface != hostSurface() {
+		t.Fatalf("a plain context lost the session's surface: %+v", caller)
+	}
+	named := v1.EvidenceRef{Owner: "other", Kind: "semantic.caller.other", Digest: "sha256:aa"}
+	kept, _ := call.CallerFrom(withSessionSurface(call.WithCaller(context.Background(), call.Caller{Surface: named})))
+	if kept.Surface != named {
+		t.Fatalf("a surface the caller already named was replaced: %+v", kept.Surface)
+	}
 }

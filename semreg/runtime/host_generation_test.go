@@ -19,19 +19,25 @@ const binderKind driver.DriverKind = "driver.binder"
 // binderFactory plans one instance of binderKind; its instances publish a native
 // binding and declare a source, and derive a fact from an observation when
 // derived is set.
-type binderFactory struct{ derived, relation bool }
+type binderFactory struct {
+	derived, relation, native bool
+	// batch, when set, receives the batch the instance handed to Stage.
+	batch *v1.PublicationBatch
+}
 
 func (f binderFactory) Descriptor() driver.Descriptor { return driver.Descriptor{} }
 func (f binderFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	return []driver.InstancePlan{{Driver: binderKind, Instance: driver.InstanceKey(c.Instance)}}, nil
 }
 func (f binderFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
-	return &binderInstance{derived: f.derived, relation: f.relation}, nil
+	return &binderInstance{derived: f.derived, relation: f.relation, native: f.native, record: f.batch}, nil
 }
 
 type binderInstance struct {
 	derived  bool
 	relation bool
+	native   bool
+	record   *v1.PublicationBatch
 	source   driver.Source
 }
 
@@ -78,6 +84,10 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 		Origin: v1.OriginRef{OriginID: "origin:operator:binder", Kind: v1.OriginOperator, Evidence: []v1.EvidenceRef{testEvidence("origin-resource")}}, Revision: "1"}
 	binding := v1.NativeBindingID("binding:b")
 	epoch, generation, source := v1.SourceEpochID("placeholder"), v1.Uint64("1"), v1.SourceID("placeholder")
+	if i.native {
+		resource.Anchor.Basis = v1.AnchorNativeSlot
+		resource.Origin = v1.OriginRef{OriginID: "origin:native:binder", Kind: v1.OriginNativeObservation, SourceID: &source, SourceEpochID: &epoch, BindingID: &binding, Evidence: []v1.EvidenceRef{testEvidence("origin-resource")}}
+	}
 	now := wallPoint(time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC))
 	value := kelvinQuantity("29315", -2)
 	quality := v1.Quality{Assertion: v1.AssertionObserved, Qualification: v1.QualificationQualified, Promotion: v1.PromotionPromoted, Validity: v1.ValidityGood, Availability: v1.AvailabilityAvailable, Freshness: v1.FreshnessFresh, Reasons: []v1.DefinitionID{}}
@@ -129,6 +139,9 @@ func (i *binderInstance) publish(ctx context.Context, s driver.Session) error {
 		batch.FactUpserts = []v1.FactCandidate{derived, observed}
 	} else {
 		batch.FactUpserts = []v1.FactCandidate{observed}
+	}
+	if i.record != nil {
+		*i.record = batch
 	}
 	tx, err := s.Publisher().Begin(ctx)
 	if err != nil {
@@ -321,5 +334,63 @@ func TestHostCheckpointFailureAfterCommitIsNotAFailedPublication(t *testing.T) {
 	}
 	if saveErr := rt.saveCheckpoint(); saveErr == nil {
 		t.Fatal("the checkpoint write was expected to fail")
+	}
+}
+
+func TestHostStampingResolvesNativeResourceOriginsToTheBatchBinding(t *testing.T) {
+	rt, ref := openBinder(t, binderFactory{native: true})
+	status, err := rt.Snapshot(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ObservedState != life.ObservedRunning {
+		t.Fatalf("a native-slot resource with its binding in one batch was rejected: %s %+v", status.ObservedState, status.Reason)
+	}
+	spec := rt.specFor(ref, life.LifecycleCorrelation{InstanceID: ref.ID(), Epoch: status.Epoch, Generation: status.Generation})
+	rt.svc.mu.Lock()
+	kernel := rt.svc.kernels[spec.Asset]
+	rt.svc.mu.Unlock()
+	current, _, _ := kernel.Current()
+	if len(current.Resources) != 1 {
+		t.Fatalf("resources %d, want the one declared", len(current.Resources))
+	}
+	origin := current.Resources[0].Origin
+	if origin.BindingID == nil || *origin.BindingID != v1.NativeBindingID(scopedID(spec, "binding:b")) || origin.SourceID == nil || *origin.SourceID != spec.Source || origin.SourceEpochID == nil || *origin.SourceEpochID != spec.Epoch {
+		t.Fatalf("the resource origin does not resolve to the batch binding, source and epoch: %+v", origin)
+	}
+	if origin.OriginID != "origin:native:binder" {
+		t.Fatalf("the declared origin evidence changed: %+v", origin)
+	}
+}
+
+func TestHostStagingLeavesTheDriversBatchAsDeclared(t *testing.T) {
+	var batch v1.PublicationBatch
+	openBinder(t, binderFactory{derived: true, relation: true, native: true, batch: &batch})
+	if got := batch.BindingUpserts[0].BindingID; got != "binding:b" {
+		t.Fatalf("the driver's binding was rewritten to %q", got)
+	}
+	if got := batch.IdentityLinkUpserts[0].BindingID; got != "binding:b" {
+		t.Fatalf("the driver's identity link was rewritten to %q", got)
+	}
+	for _, f := range batch.FactUpserts {
+		if f.CandidateID != "candidate:derived:1" && f.CandidateID != "candidate:observed:1" {
+			t.Fatalf("the driver's candidate was rewritten to %q", f.CandidateID)
+		}
+		if f.Derivation != nil {
+			path := f.Derivation.Inputs[0].SourcePaths[0]
+			if f.Derivation.Inputs[0].CandidateID != "candidate:observed:1" || path.BindingID != "binding:b" || path.SourceID != "placeholder" {
+				t.Fatalf("the driver's derivation was rewritten: %+v", f.Derivation)
+			}
+		}
+	}
+	for _, r := range batch.ResourceUpserts {
+		if r.Origin.BindingID != nil && *r.Origin.BindingID != "binding:b" || r.Origin.SourceID != nil && *r.Origin.SourceID != "placeholder" {
+			t.Fatalf("the driver's resource origin was rewritten: %+v", r.Origin)
+		}
+	}
+	for _, r := range batch.RelationUpserts {
+		if *r.Origin.BindingID != "binding:b" || *r.Origin.SourceID != "placeholder" {
+			t.Fatalf("the driver's relation origin was rewritten: %+v", r.Origin)
+		}
 	}
 }

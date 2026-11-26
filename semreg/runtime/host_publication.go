@@ -259,11 +259,13 @@ type hostSession struct {
 
 var _ driver.Session = (*hostSession)(nil)
 
-func (s *hostSession) Native() driver.NativeRegistry             { return s.native }
-func (s *hostSession) SemanticInput() driver.SemanticInput       { return s.input }
-func (s *hostSession) ScopedOperations() driver.ScopedOperations { return s.scoped }
-func (s *hostSession) Calendar() driver.Calendar                 { return s.calendar }
-func (s *hostSession) Publisher() driver.Publisher               { return s.publisher }
+func (s *hostSession) Native() driver.NativeRegistry       { return s.native }
+func (s *hostSession) SemanticInput() driver.SemanticInput { return s.input }
+func (s *hostSession) ScopedOperations() driver.ScopedOperations {
+	return hostScopedOps{inner: s.scoped}
+}
+func (s *hostSession) Calendar() driver.Calendar   { return s.calendar }
+func (s *hostSession) Publisher() driver.Publisher { return s.publisher }
 
 func (s *hostSession) RegisterExecutor(route driver.SettingRoute, exec driver.Executor) (func(), error) {
 	return s.scoped.RegisterExecutor(stampRoute(s.spec, route), exec)
@@ -405,13 +407,27 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 	if b.ObservedAt == (v1.TimePoint{}) {
 		b.ObservedAt = base.ObservedAt
 	}
+	// The batch is the driver's: every slice the stamping rewrites is copied
+	// first, so a retry of the same batch stamps from what the driver declared.
+	b.FactWithdrawals = cloneOf(b.FactWithdrawals)
+	b.ServiceWithdrawals = cloneOf(b.ServiceWithdrawals)
+	b.CapabilityWithdrawals = cloneOf(b.CapabilityWithdrawals)
+	b.SourceUpserts = cloneOf(b.SourceUpserts)
+	b.BindingUpserts = cloneOf(b.BindingUpserts)
+	b.IdentityLinkUpserts = cloneOf(b.IdentityLinkUpserts)
+	b.ServiceUpserts = cloneOf(b.ServiceUpserts)
+	b.CapabilityUpserts = cloneOf(b.CapabilityUpserts)
+	b.ResourceUpserts = cloneOf(b.ResourceUpserts)
+	b.RelationUpserts = cloneOf(b.RelationUpserts)
+	b.AbsenceUpserts = cloneOf(b.AbsenceUpserts)
+	b.FactUpserts = cloneOf(b.FactUpserts)
 	if b.SourceUpserts == nil {
 		b.SourceUpserts = []v1.SourceDescriptor{}
 	}
 	if b.SourceRetirements == nil {
 		b.SourceRetirements = []v1.SourceEpochID{}
 	}
-	b.SourceRetirements = append(b.SourceRetirements, t.session.priorEpochs()...)
+	b.SourceRetirements = append(cloneOf(b.SourceRetirements), t.session.priorEpochs()...)
 	if b.BindingUpserts == nil {
 		b.BindingUpserts = []v1.NativeBinding{}
 	}
@@ -480,6 +496,9 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 	for i := range b.AbsenceUpserts {
 		stampOrigin(spec, &b.AbsenceUpserts[i].Origin)
 	}
+	for i := range b.ResourceUpserts {
+		stampOrigin(spec, &b.ResourceUpserts[i].Origin)
+	}
 	mono, err := t.session.svc.liveMono()
 	if err != nil {
 		return v1.PublicationBatch{}, err
@@ -494,7 +513,9 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 		}
 		f.CandidateID = v1.CandidateID(scopedID(spec, string(f.CandidateID)))
 		if f.Derivation != nil {
-			stampDerivation(spec, f.Derivation)
+			derivation := *f.Derivation
+			stampDerivation(spec, &derivation)
+			f.Derivation = &derivation
 		}
 		if f.BindingID != nil {
 			id := binding(*f.BindingID)
@@ -589,4 +610,32 @@ func (s *Session) priorEpochs() []v1.SourceEpochID {
 		}
 	}
 	return out
+}
+
+// cloneOf copies a slice, keeping a nil slice nil.
+func cloneOf[T any](s []T) []T {
+	if s == nil {
+		return nil
+	}
+	return append(make([]T, 0, len(s)), s...)
+}
+
+// hostScopedOps carries the session's calling surface into both invoke paths.
+// A surface the caller's context already names stays; nothing else is added.
+type hostScopedOps struct{ inner *call.Scoped }
+
+func withSessionSurface(ctx context.Context) context.Context {
+	caller, _ := call.CallerFrom(ctx)
+	if caller.Surface.Digest == "" {
+		caller.Surface = hostSurface()
+	}
+	return call.WithCaller(ctx, caller)
+}
+
+func (o hostScopedOps) Invoke(ctx context.Context, request driver.OperationRequest) (driver.OperationResult, error) {
+	return o.inner.Invoke(withSessionSurface(ctx), request)
+}
+
+func (o hostScopedOps) InvokeCallBound(ctx context.Context, request driver.OperationRequest) (driver.OperationResult, error) {
+	return o.inner.InvokeCallBound(withSessionSurface(ctx), request)
 }

@@ -331,7 +331,8 @@ type secretEntry struct {
 // secretScope holds the configured per-instance secret references so they reach
 // only the factory that plans their instance and never appear in diagnostics.
 type secretScope struct {
-	refs map[string][]secretEntry
+	refs      map[string][]secretEntry
+	factories []driver.Factory
 }
 
 func (s *secretScope) redact(text string) string {
@@ -353,16 +354,12 @@ func (s *secretScope) redactErr(err error) error {
 	return err
 }
 
-// probeSecretRef stands in for a configured reference while a factory is asked
-// which kind it plans, so a factory that requires a nonempty reference can
-// answer without any factory but the owner seeing the configured one.
-const probeSecretRef = "reference-probe"
-
 // secretScopedFactory plans an instance without its secret reference first and
 // hands the reference only when that plan names the instance's own kind.
 type secretScopedFactory struct {
 	driver.Factory
 	scope *secretScope
+	index int
 }
 
 func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan, error) {
@@ -389,24 +386,29 @@ func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan,
 		}
 		return false
 	}
-	// Which factory owns the record is learned without the real reference: first
-	// with a stand-in, and when the factory rejects the stand-in, with none. A
-	// factory that plans the record's kind from either owns it and is asked with
-	// the real reference, whose answer is authoritative; one that needs a
-	// reference it was not given is the owner too.
-	for _, stand := range []string{probeSecretRef, ""} {
-		probe := config
-		probe.SecretRef = stand
-		plans, err := f.Factory.Plan(probe)
-		if err != nil {
-			continue
-		}
-		if !owns(plans) {
-			return plans, nil
-		}
-		break
+	// Which factory owns the record is learned from the record's own operands
+	// without any reference: a factory that plans the record's kind from them
+	// owns it and is asked again with the real reference, whose answer is
+	// authoritative. A factory that plans another kind never receives the
+	// reference. A factory that cannot plan the record without a reference is
+	// its candidate owner only when no other selected factory plans the kind.
+	probe := config
+	probe.SecretRef = ""
+	plans, err := f.Factory.Plan(probe)
+	if err == nil && !owns(plans) {
+		return plans, nil
 	}
-	plans, err := f.Factory.Plan(config)
+	if err != nil {
+		for i, other := range f.scope.factories {
+			if i == f.index {
+				continue
+			}
+			if others, oerr := other.Plan(probe); oerr == nil && owns(others) {
+				return plans, f.scope.redactErr(err)
+			}
+		}
+	}
+	plans, err = f.Factory.Plan(config)
 	return plans, f.scope.redactErr(err)
 }
 
@@ -432,7 +434,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 		Key: cfg.InstallationKey, Bridge: cfg.BridgeID, StateDir: cfg.StateDir, Clock: cfg.Clock, Calendar: cfg.Calendar,
 	}
 	var unmatched []string
-	scoped := &secretScope{refs: map[string][]secretEntry{}}
+	scoped := &secretScope{refs: map[string][]secretEntry{}, factories: selected}
 	for _, ic := range cfg.Instances {
 		if ic.SecretRef != "" {
 			scoped.refs[string(ic.Instance)] = append(scoped.refs[string(ic.Instance)], secretEntry{kind: ic.Kind, ref: ic.SecretRef, transport: ic.Transport, options: ic.Options})
@@ -452,7 +454,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 	}
 	wrapped := make([]driver.Factory, len(selected))
 	for i, factory := range selected {
-		wrapped[i] = &secretScopedFactory{Factory: factory, scope: scoped}
+		wrapped[i] = &secretScopedFactory{Factory: factory, scope: scoped, index: i}
 	}
 	rt, err := runtime.OpenHost(ctx, inst, runtime.HostOptions{Statements: cfg.OperatorIdentityStatements}, wrapped...)
 	if err != nil {
@@ -466,9 +468,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 // error is reported by the runtime.
 func matches(selected []driver.Factory, kind driver.DriverKind, config driver.Config) bool {
 	for _, factory := range selected {
-		if config.SecretRef != "" {
-			config.SecretRef = probeSecretRef
-		}
+		config.SecretRef = ""
 		plans, err := factory.Plan(config)
 		if err != nil {
 			return true
