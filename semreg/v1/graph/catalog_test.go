@@ -88,7 +88,7 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 	}
 	want := map[graph.ElementKind]int{
 		graph.KindResourceKind: 47, graph.KindRelation: 47, graph.KindDimension: 87, graph.KindService: 52,
-		graph.KindFact: 1146, graph.KindCapability: 163, graph.KindOperation: 125, graph.KindEffectRule: 125,
+		graph.KindFact: 1154, graph.KindCapability: 163, graph.KindOperation: 125, graph.KindEffectRule: 125,
 		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 58, graph.KindEvent: 28,
 	}
 	for kind, n := range want {
@@ -96,8 +96,8 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 1903 {
-		t.Errorf("entries = %d, want 1903", n)
+	if n := len(catalog.Elements()); n != 1911 {
+		t.Errorf("entries = %d, want 1911", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)

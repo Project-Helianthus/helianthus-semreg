@@ -7,7 +7,7 @@ for protocol-neutral semantic contracts.
 byte-for-byte copy of `api/v1/packs/pv-inverter-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units; its SHA-256 is
-`a000cdb97aea3218f0c73f09244a84769cfa39c3cfc27d742ed55060b1b0b30e`.
+`9d9e8ad698080d202a2addb8478f5163dd320c31b00f23c409f06c91d077c807`.
 The generated energy is in `unit.joule` with a maximum of 3.6 × 10^18 and the
 inverter temperature in `unit.kelvin` from 223.15 to 473.15. Per-phase
 apparent power and reactive power, and per-string `pv.dc.energy` in
@@ -370,12 +370,12 @@ limit ratio, the infrastructure self-consumption, point-of-coupling power
 and fallback limit, and the pilot accuracy, measurement-type and storage
 current entries, and for the PV active power and EVSE allocated current
 release declarations. Its SHA-256 is
-`b0a84f8a21893c522485fe6bbf0d9e4c41db5c87ce34e9f37952ee25217eade8`; the
+`1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types, 1903 entries and ten lenses, and marks
+seven core relation types, 1911 entries and ten lenses, and marks
 `resource.site` as the installation root. It lists the identification schemes
 `scheme.ieee.eui48` and `scheme.ieee.eui64`, both with issuer `none`. It has
 no entry of disposition `unknown`; a test that needs an unknown entry sets one
@@ -389,7 +389,7 @@ authority.
 [`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is the
 `helianthus.semantic.graph.acceptance/v1` document exercised by this module.
 Its SHA-256 is
-`38ae6929218975e38b45559643e74fd80bb48e2ce016db639db8be03e1fd0256`;
+`d3ae08905676719f3755a3b99c87a9e277233e598b91d96bbd7084dbdbb50cb0`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
 bytes. The document records the catalog digest of the pinned catalog copy.
 The element catalog copy and `graph.PinnedDigest` are that pin. The document holds

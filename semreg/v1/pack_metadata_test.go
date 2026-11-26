@@ -69,7 +69,7 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 			"helianthus.pack.equipment":         {7, 59, 2, 3, 1, 5},
 			"helianthus.pack.evse":              {10, 298, 6, 18, 12, 2},
 			"helianthus.pack.infrastructure":    {10, 68, 8, 6, 0, 2},
-			"helianthus.pack.pv":                {13, 95, 6, 8, 2, 0},
+			"helianthus.pack.pv":                {13, 103, 6, 8, 2, 0},
 			"helianthus.pack.storage":           {9, 96, 7, 20, 17, 2},
 			"helianthus.pack.thermal":           {12, 269, 21, 87, 74, 15},
 		}[metadata.Pack.ID]

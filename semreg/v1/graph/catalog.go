@@ -30,7 +30,7 @@ const CatalogOrder = "owner kind, pack id, pack version, element id, element ver
 // copy of the accepted catalog. Load accepts no other bytes, and a
 // graph-enforced registry of the root package accepts no catalog with another
 // digest.
-const PinnedDigest semreg.Digest = "sha256:b0a84f8a21893c522485fe6bbf0d9e4c41db5c87ce34e9f37952ee25217eade8"
+const PinnedDigest semreg.Digest = "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df"
 
 // Status is the document status.
 type Status string

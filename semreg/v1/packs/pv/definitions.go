@@ -44,6 +44,14 @@ var fields = []fieldSpec{
 	{"pv.limit.active_power_ratio", semreg.ValueQuantity, "unit.ratio", "pv.dimension.inverter", bound("0", 0), bound("1", 0), nil},
 	{"pv.accuracy.measured", semreg.ValueBoolean, "", "pv.dimension.inverter", nil, nil, nil},
 	{"pv.accuracy.ratio_maximum", semreg.ValueQuantity, "unit.ratio", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.measured_minimum_active_current", semreg.ValueQuantity, "unit.ampere", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.measured_minimum_active_power", semreg.ValueQuantity, "unit.watt", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.measured_maximum_active_current", semreg.ValueQuantity, "unit.ampere", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.measured_maximum_active_power", semreg.ValueQuantity, "unit.watt", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.range_minimum_active_current", semreg.ValueQuantity, "unit.ampere", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.range_minimum_active_power", semreg.ValueQuantity, "unit.watt", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.range_maximum_active_current", semreg.ValueQuantity, "unit.ampere", "pv.dimension.inverter", nil, nil, nil},
+	{"pv.accuracy.range_maximum_active_power", semreg.ValueQuantity, "unit.watt", "pv.dimension.inverter", nil, nil, nil},
 }
 var dimensions = map[semreg.DefinitionID]semreg.ValueKind{"pv.dimension.system": semreg.ValueText, "pv.dimension.inverter": semreg.ValueText, "pv.dimension.array": semreg.ValueText, "pv.dimension.string": semreg.ValueText, "pv.dimension.input": semreg.ValueText, "pv.dimension.phase": semreg.ValueText}
 
@@ -54,8 +62,16 @@ var measurementSymbols = []string{
 }
 
 var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
-	"pv.accuracy.measured":      {"pv.dimension.measurement_type"},
-	"pv.accuracy.ratio_maximum": {"pv.dimension.measurement_type"},
+	"pv.accuracy.measured":                        {"pv.dimension.measurement_type"},
+	"pv.accuracy.ratio_maximum":                   {"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_minimum_active_current": {"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_minimum_active_power":   {"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_maximum_active_current": {"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_maximum_active_power":   {"pv.dimension.measurement_type"},
+	"pv.accuracy.range_minimum_active_current":    {"pv.dimension.measurement_type"},
+	"pv.accuracy.range_minimum_active_power":      {"pv.dimension.measurement_type"},
+	"pv.accuracy.range_maximum_active_current":    {"pv.dimension.measurement_type"},
+	"pv.accuracy.range_maximum_active_power":      {"pv.dimension.measurement_type"},
 }
 
 var qualifierSymbols = map[semreg.DefinitionID][]string{
