@@ -213967,10 +213967,9 @@
       "vrc-explorer/src/helianthus_vrc_explorer/schema/parameter_descriptions.py",
       "vrc-explorer/tests/test_replay_trace.py"
     ],
-    "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageInterlockRejectionMatrix": [],
     "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageKernelAdmissionFailClosedBeforeAuthority": [],
-    "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageKernelRejectsIntentPredicateBeforeAuthority": [],
-    "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageOperationsCanonicalInterlockAndReadback": [],
+    "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageLimitOperationsAdmitWithoutStatusPrecondition": [],
+    "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageLimitOperationsCallerPreconditionStillGoverned": [],
     "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStoragePowerDurationForms": [],
     "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageTerminalOutcomesThroughKernel": [],
     "semreg/v1/packs/storage/validator.go::go_identifier::Definitions": [

@@ -37,8 +37,8 @@ and `api/v1/packs/storage-bms-contract-tables.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units, for `helianthus.pack.storage@1.1.0`; their SHA-256 values are
 respectively
-`428aac8bf1039f904e214ae74299886b0ceb5d3f4165bfc6310f6c8eb880764c` and
-`13051fb80e3bae8bc3a1ac93139f322f0ed9180430c1b50475ef2acfc98439b5`.
+`f34765e50b0f850e932ad6c19eca398a1b57952b3087032c6e3533e3c517e0b3` and
+`5a02679995aa43fcdbac776a0e21e9bb9f66db76943ea5e626536529beb4908f`.
 State of charge and state of health are in `unit.ratio` from 0 to 1. The two
 energy counters and the three energy capacities (`storage.energy.remaining`,
 `storage.energy.usable_capacity` and `storage.energy.nominal_capacity`) are in

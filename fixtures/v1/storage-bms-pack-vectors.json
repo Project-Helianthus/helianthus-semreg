@@ -750,18 +750,6 @@
         "revision": "29b4768a513cf566011ab8cd60df1bc495204953"
       }
     ],
-    "interlock_fail_closed_states": [
-      "missing",
-      "active",
-      "stale",
-      "unknown",
-      "unqualified",
-      "unpromoted",
-      "degraded",
-      "unavailable",
-      "withdrawn",
-      "conflicting"
-    ],
     "kernel_contract": "helianthus.semantic.kernel/v1",
     "lifecycle_axes": [
       "source_epoch",
@@ -805,7 +793,7 @@
     },
     "supersession": {
       "operation_use": "superseded_non_implementable",
-      "reason": "required_interlock_not_machine_identifiable",
+      "reason": "required_precondition_without_source",
       "superseded_pack_ref": {
         "id": "helianthus.pack.storage",
         "version": "1.0.0"

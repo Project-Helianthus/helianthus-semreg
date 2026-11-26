@@ -10,7 +10,7 @@ import (
 	operation "github.com/Project-Helianthus/helianthus-semreg/semreg/v1/operation"
 )
 
-func TestStorageOperationsCanonicalInterlockAndReadback(t *testing.T) {
+func TestStorageLimitOperationsAdmitWithoutStatusPrecondition(t *testing.T) {
 	v := New().(operation.OperationPackValidator)
 	for _, id := range []semreg.DefinitionID{"storage.operation.set_charge_limit", "storage.operation.set_discharge_limit"} {
 		i := storageIntent(id)
@@ -23,6 +23,11 @@ func TestStorageOperationsCanonicalInterlockAndReadback(t *testing.T) {
 		}
 		if err := k.ValidateIntent(i); err != nil {
 			t.Fatal(id, err)
+		}
+		extra := i
+		extra.Preconditions = []operation.Precondition{storageCallerPrecondition()}
+		if err := v.ValidateIntent(extra); err != nil {
+			t.Fatal(id, "caller precondition", err)
 		}
 		c := storageCandidate(i.ExpectedEffect.Fact, i.ExpectedEffect.Expected)
 		r, err := v.EvaluateReadback(i, c)
@@ -41,38 +46,6 @@ func TestStorageOperationsCanonicalInterlockAndReadback(t *testing.T) {
 		}
 	}
 }
-func TestStorageInterlockRejectionMatrix(t *testing.T) {
-	v := New().(operation.OperationPackValidator)
-	for _, tc := range []struct {
-		name   string
-		mutate func(*operation.Intent)
-	}{
-		{"missing", func(i *operation.Intent) { i.Preconditions = []operation.Precondition{} }},
-		{"duplicate", func(i *operation.Intent) { i.Preconditions = append(i.Preconditions, i.Preconditions[0]) }},
-		{"unrelated", func(i *operation.Intent) {
-			i.Preconditions[0].Fact.FactID = "storage.status.alarm"
-			i.Preconditions[0].Expected = semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "storage.status.alarm", Token: "clear", Known: true}}
-		}},
-		{"wrong pack", func(i *operation.Intent) { i.Preconditions[0].Fact.PackID = "helianthus.pack.evse" }},
-		{"wrong version", func(i *operation.Intent) { i.Preconditions[0].Fact.PackVersion = "1.0.0" }},
-		{"wrong dimension", func(i *operation.Intent) { i.Preconditions[0].Fact.Dimensions[0].ID = "storage.dimension.pack" }},
-		{"different interface value", func(i *operation.Intent) {
-			other := "other-interface"
-			i.Preconditions[0].Fact.Dimensions[0].Value.Text = &other
-		}},
-		{"wrong operator", func(i *operation.Intent) { i.Preconditions[0].Operator = semreg.PredicateNotEqual }},
-		{"active", func(i *operation.Intent) { i.Preconditions[0].Expected.Symbol.Token = "active" }},
-		{"unknown", func(i *operation.Intent) { i.Preconditions[0].Expected.Symbol.Known = false }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			i := storageIntent("storage.operation.set_charge_limit")
-			tc.mutate(&i)
-			if v.ValidateIntent(i) == nil {
-				t.Fatal("invalid interlock accepted")
-			}
-		})
-	}
-}
 func storageIntent(id semreg.DefinitionID) operation.Intent {
 	_, cap, field, effect, ok := operationShape(id)
 	if !ok {
@@ -80,9 +53,14 @@ func storageIntent(id semreg.DefinitionID) operation.Intent {
 	}
 	s := must(field)
 	x := testValue(s)
+	return operation.Intent{Contract: operation.ContractOperationV1, IntentID: "intent:1", Kind: definition(id), ExpectedEffect: operation.ExpectedEffect{Rule: definition(effect), Fact: testKey(s), Operator: semreg.PredicateEqual, Expected: x}, AssetID: "asset:1", Arguments: []semreg.TypedField{{ID: field, Value: x}}, RequiredCapability: operation.CapabilityRequirement{Pack: pack, DefinitionID: cap, Versions: semreg.VersionRange{Minimum: packVersion, MaximumExclusive: "2.0.0"}}, Authority: testEvidence(), Causal: semreg.CausalContext{Origin: semreg.OriginRef{OriginID: "origin:1", Kind: semreg.OriginOperator, Evidence: []semreg.EvidenceRef{testEvidence()}}, CorrelationID: "correlation:1", MaxHops: 1, FirstSeenAt: storageTime("1"), ExpiresAt: storageTime("2"), Path: []semreg.TargetID{}}, ExpectedSemanticRevision: "1", ExpectedCapabilityRevision: "1", ExpectedCapabilityInstanceRevision: "1", ExpectedSourceEpochID: "epoch:1", ExpectedDriverGeneration: "1", Preconditions: []operation.Precondition{}, IdempotencyKey: "key:1", Deadline: storageTime("3")}
+}
+func storageCallerPrecondition() operation.Precondition {
 	name := "id"
-	interlock := operation.Precondition{Fact: semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: "storage.status.interlock", Dimensions: []semreg.Dimension{{ID: "storage.dimension.interface", Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}, CandidateID: "candidate:interlock", CandidateRevision: "1", Operator: semreg.PredicateEqual, Expected: clearValue()}
-	return operation.Intent{Contract: operation.ContractOperationV1, IntentID: "intent:1", Kind: definition(id), ExpectedEffect: operation.ExpectedEffect{Rule: definition(effect), Fact: testKey(s), Operator: semreg.PredicateEqual, Expected: x}, AssetID: "asset:1", Arguments: []semreg.TypedField{{ID: field, Value: x}}, RequiredCapability: operation.CapabilityRequirement{Pack: pack, DefinitionID: cap, Versions: semreg.VersionRange{Minimum: packVersion, MaximumExclusive: "2.0.0"}}, Authority: testEvidence(), Causal: semreg.CausalContext{Origin: semreg.OriginRef{OriginID: "origin:1", Kind: semreg.OriginOperator, Evidence: []semreg.EvidenceRef{testEvidence()}}, CorrelationID: "correlation:1", MaxHops: 1, FirstSeenAt: storageTime("1"), ExpiresAt: storageTime("2"), Path: []semreg.TargetID{}}, ExpectedSemanticRevision: "1", ExpectedCapabilityRevision: "1", ExpectedCapabilityInstanceRevision: "1", ExpectedSourceEpochID: "epoch:1", ExpectedDriverGeneration: "1", Preconditions: []operation.Precondition{interlock}, IdempotencyKey: "key:1", Deadline: storageTime("3")}
+	return operation.Precondition{Fact: semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: "storage.status.alarm", Dimensions: []semreg.Dimension{{ID: "storage.dimension.pack", Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}, CandidateID: "candidate:caller", CandidateRevision: "1", Operator: semreg.PredicateEqual, Expected: storageCallerValue()}
+}
+func storageCallerValue() semreg.Value {
+	return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "storage.status.alarm", Token: "clear", Known: true}}
 }
 func storageCandidate(k semreg.FactKey, x semreg.Value) semreg.FactCandidate {
 	b, e, g := semreg.NativeBindingID("binding:1"), semreg.SourceEpochID("epoch:1"), semreg.Uint64("1")
@@ -105,7 +83,6 @@ func TestStoragePowerDurationForms(t *testing.T) {
 			t.Fatal(id)
 		}
 		base := storageIntent(id)
-		base.Preconditions = []operation.Precondition{}
 		base.Arguments[0].Value = signed
 		base.ExpectedEffect.Expected = signed
 		forms := [][]semreg.TypedField{
@@ -159,7 +136,7 @@ type storageAdmissionFixture struct {
 
 func TestStorageKernelAdmissionFailClosedBeforeAuthority(t *testing.T) {
 	for _, operationID := range []semreg.DefinitionID{"storage.operation.set_charge_limit", "storage.operation.set_discharge_limit"} {
-		t.Run(string(operationID)+"/clear", func(t *testing.T) {
+		t.Run(string(operationID)+"/caller precondition met", func(t *testing.T) {
 			fixture := newStorageAdmissionFixture(t, operationID, nil)
 			calls := 0
 			_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error { calls++; return nil }))
@@ -199,33 +176,32 @@ func TestStorageKernelAdmissionFailClosedBeforeAuthority(t *testing.T) {
 	}
 }
 
-func TestStorageKernelRejectsIntentPredicateBeforeAuthority(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		mutate func(*operation.Intent)
-	}{
-		{"missing", func(i *operation.Intent) { i.Preconditions = []operation.Precondition{} }},
-		{"duplicate", func(i *operation.Intent) { i.Preconditions = append(i.Preconditions, i.Preconditions[0]) }},
-		{"unrelated", func(i *operation.Intent) {
-			i.Preconditions[0].Fact.FactID = "storage.status.alarm"
-			i.Preconditions[0].Expected = semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "storage.status.alarm", Token: "clear", Known: true}}
-		}},
-		{"wrong interface", func(i *operation.Intent) {
-			other := "other-interface"
-			i.Preconditions[0].Fact.Dimensions[0].Value.Text = &other
-		}},
-		{"active", func(i *operation.Intent) { i.Preconditions[0].Expected.Symbol.Token = "active" }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			fixture := newStorageAdmissionFixture(t, "storage.operation.set_charge_limit", nil)
-			tc.mutate(&fixture.intent)
+func TestStorageLimitOperationsCallerPreconditionStillGoverned(t *testing.T) {
+	for _, operationID := range []semreg.DefinitionID{"storage.operation.set_charge_limit", "storage.operation.set_discharge_limit"} {
+		for _, tc := range []struct {
+			name   string
+			mutate func(*operation.Intent)
+		}{
+			{"unpublished candidate", func(i *operation.Intent) { i.Preconditions[0].CandidateID = "candidate:missing" }},
+			{"stale revision", func(i *operation.Intent) { i.Preconditions[0].CandidateRevision = "2" }},
+			{"unmet expected value", func(i *operation.Intent) { i.Preconditions[0].Expected.Symbol.Token = "present" }},
+		} {
+			t.Run(string(operationID)+"/"+tc.name, func(t *testing.T) {
+				fixture := newStorageAdmissionFixture(t, operationID, nil)
+				tc.mutate(&fixture.intent)
+				_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error { return nil }))
+				if got := semreg.ErrorIdentifier(err); got != semreg.PreconditionFailed {
+					t.Fatalf("error %q (%v)", got, err)
+				}
+			})
+		}
+		t.Run(string(operationID)+"/no precondition", func(t *testing.T) {
+			fixture := newStorageAdmissionFixture(t, operationID, nil)
+			fixture.intent.Preconditions = []operation.Precondition{}
 			calls := 0
 			_, err := fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error { calls++; return nil }))
-			if err == nil {
-				t.Fatal("invalid predicate admitted")
-			}
-			if calls != 0 {
-				t.Fatalf("authority called %d", calls)
+			if err != nil || calls != 1 {
+				t.Fatalf("admission %v calls=%d", err, calls)
 			}
 		})
 	}
@@ -246,12 +222,13 @@ func newStorageAdmissionFixture(t *testing.T, operationID semreg.DefinitionID, m
 	requested.Causal.FirstSeenAt, requested.Causal.ExpiresAt, requested.Deadline = storageTime("100"), storageTime("400"), storageTime("300")
 	service := semreg.ServiceInstance{InstanceID: "service:1", AssetID: "asset:1", Definition: definition("storage.service.interface"), BindingID: "binding:1", SourceEpochID: "epoch:1", DriverGeneration: "1", Qualification: semreg.QualificationQualified, Availability: semreg.AvailabilityAvailable, Revision: "1"}
 	capability := testCapability(requested.RequiredCapability.DefinitionID)
-	interlock := storageFact(requested.Preconditions[0].Fact, clearValue(), "candidate:interlock", "1")
+	requested.Preconditions = []operation.Precondition{storageCallerPrecondition()}
+	caller := storageFact(requested.Preconditions[0].Fact, storageCallerValue(), "candidate:caller", "1")
 	if mutate != nil {
-		mutate(&interlock)
+		mutate(&caller)
 	}
 	effect := storageFact(requested.ExpectedEffect.Fact, requested.ExpectedEffect.Expected, "candidate:effect", "1")
-	batch := semreg.PublicationBatch{Contract: semreg.ContractKernelV1, BatchID: "batch:storage:1", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", Sequence: "1", ExpectedSemanticRevision: "0", ObservedAt: storageTime("100"), SourceUpserts: []semreg.SourceDescriptor{{SourceID: "source:1", SourceEpochID: "epoch:1", ProtocolID: "protocol.test", ProfileID: "profile.test", ProfileVersion: "1", RegistryEvidence: testEvidence(), StartedAt: storageTime("90"), State: semreg.SourceCurrent, Revision: "1"}}, SourceRetirements: []semreg.SourceEpochID{}, BindingUpserts: []semreg.NativeBinding{{BindingID: "binding:1", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", NativeResource: testEvidence(), State: semreg.BindingCurrent, Revision: "1"}}, IdentityLinkUpserts: []semreg.IdentityLink{{AssetID: "asset:1", BindingID: "binding:1", State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{testEvidence()}, Revision: "1"}}, FactUpserts: []semreg.FactCandidate{effect, interlock}, FactWithdrawals: []semreg.CandidateID{}, ServiceUpserts: []semreg.ServiceInstance{service}, ServiceWithdrawals: []semreg.ServiceInstanceID{}, CapabilityUpserts: []semreg.CapabilityInstance{capability}, CapabilityWithdrawals: []semreg.CapabilityInstanceID{}, GenerationFences: []semreg.GenerationFence{}}
+	batch := semreg.PublicationBatch{Contract: semreg.ContractKernelV1, BatchID: "batch:storage:1", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", Sequence: "1", ExpectedSemanticRevision: "0", ObservedAt: storageTime("100"), SourceUpserts: []semreg.SourceDescriptor{{SourceID: "source:1", SourceEpochID: "epoch:1", ProtocolID: "protocol.test", ProfileID: "profile.test", ProfileVersion: "1", RegistryEvidence: testEvidence(), StartedAt: storageTime("90"), State: semreg.SourceCurrent, Revision: "1"}}, SourceRetirements: []semreg.SourceEpochID{}, BindingUpserts: []semreg.NativeBinding{{BindingID: "binding:1", AssetID: "asset:1", SourceID: "source:1", SourceEpochID: "epoch:1", DriverGeneration: "1", NativeResource: testEvidence(), State: semreg.BindingCurrent, Revision: "1"}}, IdentityLinkUpserts: []semreg.IdentityLink{{AssetID: "asset:1", BindingID: "binding:1", State: semreg.LinkQualified, Basis: []semreg.EvidenceRef{testEvidence()}, Revision: "1"}}, FactUpserts: []semreg.FactCandidate{caller, effect}, FactWithdrawals: []semreg.CandidateID{}, ServiceUpserts: []semreg.ServiceInstance{service}, ServiceWithdrawals: []semreg.ServiceInstanceID{}, CapabilityUpserts: []semreg.CapabilityInstance{capability}, CapabilityWithdrawals: []semreg.CapabilityInstanceID{}, GenerationFences: []semreg.GenerationFence{}}
 	digest, err := batch.ComputedDigest()
 	if err != nil {
 		t.Fatal(err)

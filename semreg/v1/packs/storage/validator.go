@@ -238,20 +238,6 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	if !equal(argument.Value, e.Expected) {
 		return fail(semreg.InvalidValue, "storage expected effect value")
 	}
-	if operationID == "storage.operation.set_charge_limit" || operationID == "storage.operation.set_discharge_limit" {
-		canonical := 0
-		for _, p := range i.Preconditions {
-			if p.Fact.FactID == "storage.status.interlock" {
-				canonical++
-				if !canonicalInterlock(p, e.Fact) {
-					return fail(semreg.InvalidValue, "storage interlock predicate")
-				}
-			}
-		}
-		if canonical != 1 {
-			return fail(semreg.InvalidValue, "storage canonical interlock predicate")
-		}
-	}
 	return nil
 }
 
@@ -298,12 +284,6 @@ func containsID(values []semreg.DefinitionID, id semreg.DefinitionID) bool {
 func operationShape(id semreg.DefinitionID) (semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, semreg.DefinitionID, bool) {
 	spec, ok := operations[id]
 	return id, spec.capability, spec.argument, spec.effect, ok
-}
-func canonicalInterlock(p operation.Precondition, effect semreg.FactKey) bool {
-	return p.Fact.PackID == pack.ID && p.Fact.PackVersion == packVersion && p.Fact.FactID == "storage.status.interlock" && len(p.Fact.Dimensions) == 1 && p.Fact.Dimensions[0].ID == "storage.dimension.interface" && p.Fact.Dimensions[0].Value.Kind == semreg.ValueText && p.Fact.Dimensions[0].Value.Text != nil && reflect.DeepEqual(p.Fact.Dimensions, effect.Dimensions) && p.Operator == semreg.PredicateEqual && equal(p.Expected, clearValue())
-}
-func clearValue() semreg.Value {
-	return semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: "storage.status.interlock", Token: "clear", Known: true}}
 }
 func (v validator) EvaluateReadback(i operation.Intent, c semreg.FactCandidate) (operation.ReadbackRelation, error) {
 	if err := v.ValidateIntent(i); err != nil {
