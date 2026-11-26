@@ -237036,13 +237036,13 @@
       "emitted_name": "storage.effect.set_discharge_limit"
     },
     {
-      "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageOperationsCanonicalInterlockAndReadback",
+      "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageLimitOperationsAdmitWithoutStatusPrecondition",
       "owning_file": "semreg/v1/packs/storage/operation_test.go",
       "kind": "go_identifier",
-      "current_name": "TestStorageOperationsCanonicalInterlockAndReadback",
-      "target": "TestStorageOperationsCanonicalInterlockAndReadback",
+      "current_name": "TestStorageLimitOperationsAdmitWithoutStatusPrecondition",
+      "target": "TestStorageLimitOperationsAdmitWithoutStatusPrecondition",
       "role_decomposition": [
-        "TestStorageOperationsCanonicalInterlockAndReadback"
+        "TestStorageLimitOperationsAdmitWithoutStatusPrecondition"
       ],
       "public_evidence": [
         "semreg/v1/packs/storage/operation_test.go"
@@ -237052,26 +237052,7 @@
       "status": "provisional",
       "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
       "consumer_files": [],
-      "emitted_name": "TestStorageOperationsCanonicalInterlockAndReadback"
-    },
-    {
-      "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageInterlockRejectionMatrix",
-      "owning_file": "semreg/v1/packs/storage/operation_test.go",
-      "kind": "go_identifier",
-      "current_name": "TestStorageInterlockRejectionMatrix",
-      "target": "TestStorageInterlockRejectionMatrix",
-      "role_decomposition": [
-        "TestStorageInterlockRejectionMatrix"
-      ],
-      "public_evidence": [
-        "semreg/v1/packs/storage/operation_test.go"
-      ],
-      "value_class": "unknown",
-      "unit_metadata": "unknown",
-      "status": "provisional",
-      "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
-      "consumer_files": [],
-      "emitted_name": "TestStorageInterlockRejectionMatrix"
+      "emitted_name": "TestStorageLimitOperationsAdmitWithoutStatusPrecondition"
     },
     {
       "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageKernelAdmissionFailClosedBeforeAuthority",
@@ -237093,13 +237074,13 @@
       "emitted_name": "TestStorageKernelAdmissionFailClosedBeforeAuthority"
     },
     {
-      "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageKernelRejectsIntentPredicateBeforeAuthority",
+      "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageLimitOperationsCallerPreconditionStillGoverned",
       "owning_file": "semreg/v1/packs/storage/operation_test.go",
       "kind": "go_identifier",
-      "current_name": "TestStorageKernelRejectsIntentPredicateBeforeAuthority",
-      "target": "TestStorageKernelRejectsIntentPredicateBeforeAuthority",
+      "current_name": "TestStorageLimitOperationsCallerPreconditionStillGoverned",
+      "target": "TestStorageLimitOperationsCallerPreconditionStillGoverned",
       "role_decomposition": [
-        "TestStorageKernelRejectsIntentPredicateBeforeAuthority"
+        "TestStorageLimitOperationsCallerPreconditionStillGoverned"
       ],
       "public_evidence": [
         "semreg/v1/packs/storage/operation_test.go"
@@ -237109,7 +237090,7 @@
       "status": "provisional",
       "open_question": "Unchanged in this bounded wave. Confirm vocabulary and role before any further rename; no blanket compliance is claimed.",
       "consumer_files": [],
-      "emitted_name": "TestStorageKernelRejectsIntentPredicateBeforeAuthority"
+      "emitted_name": "TestStorageLimitOperationsCallerPreconditionStillGoverned"
     },
     {
       "identity": "semreg/v1/packs/storage/operation_test.go::go_identifier::TestStorageTerminalOutcomesThroughKernel",

@@ -2651,44 +2651,9 @@
       ]
     }
   ],
-  "interlock_fail_closed_states": [
-    "missing",
-    "active",
-    "stale",
-    "unknown",
-    "unqualified",
-    "unpromoted",
-    "degraded",
-    "unavailable",
-    "withdrawn",
-    "conflicting"
-  ],
   "operations": [
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_charge_limit",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_charge_limit",
@@ -2699,8 +2664,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -2716,29 +2680,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_discharge_limit",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_discharge_limit",
@@ -2749,8 +2690,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -2766,29 +2706,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_ac_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_ac_power",
@@ -2803,8 +2720,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -2820,29 +2736,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_dc_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_dc_power",
@@ -2857,8 +2750,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -2874,29 +2766,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_pcc_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_pcc_power",
@@ -2911,8 +2780,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -2928,29 +2796,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_ac_charge_power_limit",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_ac_charge_power_limit",
@@ -2961,8 +2806,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -2978,29 +2822,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_ac_discharge_power_limit",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_ac_discharge_power_limit",
@@ -3011,8 +2832,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3028,29 +2848,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_dc_charge_power_limit",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_dc_charge_power_limit",
@@ -3061,8 +2858,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3078,29 +2874,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_dc_discharge_power_limit",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_dc_discharge_power_limit",
@@ -3111,8 +2884,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3128,29 +2900,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_control_mode",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_control_mode",
@@ -3161,8 +2910,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3178,29 +2926,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_default_ac_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_default_ac_power",
@@ -3211,8 +2936,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3228,29 +2952,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_default_dc_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_default_dc_power",
@@ -3261,8 +2962,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3278,29 +2978,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_default_pcc_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_default_pcc_power",
@@ -3311,8 +2988,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3328,29 +3004,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_failsafe_ac_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_failsafe_ac_power",
@@ -3361,8 +3014,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3378,29 +3030,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_failsafe_dc_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_failsafe_dc_power",
@@ -3411,8 +3040,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3428,29 +3056,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_failsafe_pcc_power",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_failsafe_pcc_power",
@@ -3461,8 +3066,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3478,29 +3082,6 @@
     },
     {
       "acknowledgement": "native_acknowledgement",
-      "canonical_interlock_predicate": {
-        "cardinality": "exactly_one",
-        "definition": {
-          "id": "storage.status.interlock",
-          "pack": {
-            "id": "helianthus.pack.storage",
-            "version": "1.1.0"
-          },
-          "version": "1.1.0"
-        },
-        "expected_value": {
-          "kind": "symbol",
-          "symbol": {
-            "known": true,
-            "namespace": "storage.status.interlock",
-            "token": "clear"
-          }
-        },
-        "fact_key_dimensions": [
-          "storage.dimension.interface"
-        ],
-        "operator": "equal"
-      },
       "capability": "storage.capability.set_failsafe_duration_minimum",
       "dispatch": "admitted_exact_native_route",
       "effect": "storage.effect.set_failsafe_duration_minimum",
@@ -3511,8 +3092,7 @@
         "current_generation",
         "qualified_active_capability",
         "exact_route",
-        "authority_admitted",
-        "canonical_interlock_predicate"
+        "authority_admitted"
       ],
       "readback": "current_generation_exact_effect",
       "retry": "forbidden_after_possible_side_effect_or_indeterminate",
@@ -3684,7 +3264,7 @@
   ],
   "supersession": {
     "operation_use": "superseded_non_implementable",
-    "reason": "required_interlock_not_machine_identifiable",
+    "reason": "required_precondition_without_source",
     "superseded_pack_ref": {
       "id": "helianthus.pack.storage",
       "version": "1.0.0"

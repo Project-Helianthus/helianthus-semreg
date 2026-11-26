@@ -110,10 +110,9 @@ and they surface as findings or failures once the first is resolved.
 `semreg/v1/packs/storage` implements the read-only
 `helianthus.pack.storage@1.1.0` validator from accepted semantic docs revision
 `c20fdef`. It indexes 20 fields, seven services, five capabilities, and two
-charge/discharge limit operation/effect pairs. Each operation requires one
-qualified-current, same-interface, exact known-clear storage interlock
-precondition before the existing operation kernel evaluates authority or any
-dispatch boundary. The pack has no native mapping, route, authority, Portal
+charge/discharge limit operation/effect pairs. The limit operations require
+no storage status precondition; any precondition the caller supplies is
+governed by the generic operation kernel rule. The pack has no native mapping, route, authority, Portal
 composition, persistence, gateway, consumer, or live-I/O behavior; eeBUS
 remains `unknown_pending_normative_source`.
 
