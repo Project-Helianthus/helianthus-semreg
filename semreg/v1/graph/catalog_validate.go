@@ -3,6 +3,7 @@ package graph
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -654,6 +655,11 @@ func (v *validator) operationAgreement(operation semreg.OperationMetadata) {
 		}
 		if !sameParameterRefs(attributes.Parameters, operation.Parameters) {
 			v.disagree(entry.Ref, "parameters differ from the pack operation parameters")
+		}
+		if !reflect.DeepEqual(attributes.Release, operation.Release) {
+			v.disagree(entry.Ref, "release differs from the pack operation release")
+		} else if attributes.Release == nil && declaresRelease(entry.Ref) {
+			v.disagree(entry.Ref, "operation must declare its release case")
 		}
 	}
 	if entry, ok := v.packEntry(operation.Capability, KindCapability); ok {

@@ -116,6 +116,10 @@ func (v validator) MatchConstraints(c semreg.CapabilityInstance, fs []semreg.Typ
 	if fs == nil {
 		return fail(semreg.MissingMember, "constraints")
 	}
+	// The kernel passes a non-nil empty list for a validated rule-only release.
+	if len(fs) == 0 && c.Definition.ID == operations[limitReleaseOperation].capability {
+		return nil
+	}
 	s := capabilities[c.Definition.ID]
 	if len(fs) != len(s.constraints) {
 		return fail(semreg.InvalidValue, "pv capability constraints")
@@ -178,6 +182,15 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 	}
 	if i.RequiredCapability.Pack != pack || i.RequiredCapability.DefinitionID != capability || i.RequiredCapability.Versions.Minimum != packVersion || i.RequiredCapability.Versions.MaximumExclusive != "2.0.0" {
 		return fail(semreg.InvalidValue, "pv required capability")
+	}
+	if i.ExpectedEffect.Unconfirmed() {
+		release := releaseMetadata(i.Kind.ID)
+		// Structural validation has already required exactly one argument.
+		if release == nil || i.ExpectedEffect.Rule != definition(effect) ||
+			i.Arguments[0].ID != field || !reflect.DeepEqual(i.Arguments[0].Value, release.Argument) {
+			return fail(semreg.InvalidValue, "pv release rule or argument")
+		}
+		return nil
 	}
 	if err := argumentsOK(v, op, field, i.Arguments); err != nil {
 		return err

@@ -435,3 +435,93 @@ func require(t *testing.T, e error, w semreg.ErrorID) {
 		t.Fatalf("%v want %s", e, w)
 	}
 }
+
+func releaseIntent(set operation.Intent) operation.Intent {
+	set.ExpectedEffect = operation.ExpectedEffect{Rule: set.ExpectedEffect.Rule}
+	cleared := false
+	set.Arguments = []semreg.TypedField{{ID: set.Arguments[0].ID, Value: semreg.Value{Kind: semreg.ValueBoolean, Boolean: &cleared}}}
+	return set
+}
+
+func TestLimitReleaseIntent(t *testing.T) {
+	v := New().(operation.OperationPackValidator)
+	for _, tc := range []struct {
+		name   string
+		mutate func(set, release operation.Intent) operation.Intent
+	}{
+		{"false", nil},
+		{"true", func(_, release operation.Intent) operation.Intent {
+			*release.Arguments[0].Value.Boolean = true
+			return release
+		}},
+		{"numeric release", func(set, release operation.Intent) operation.Intent {
+			release.Arguments = set.Arguments
+			return release
+		}},
+		{"mixed request", func(set, release operation.Intent) operation.Intent {
+			release.Arguments = append(release.Arguments, set.Arguments[0])
+			return release
+		}},
+		{"release with predicate", func(set, release operation.Intent) operation.Intent {
+			release.ExpectedEffect = set.ExpectedEffect
+			return release
+		}},
+		{"set without predicate", func(set, release operation.Intent) operation.Intent {
+			set.ExpectedEffect = release.ExpectedEffect
+			return set
+		}},
+		{"wrong argument field", func(_, release operation.Intent) operation.Intent {
+			release.Arguments[0].ID = "pv.limit.other"
+			return release
+		}},
+		{"wrong rule", func(_, release operation.Intent) operation.Intent {
+			release.ExpectedEffect.Rule.ID = "pv.effect.other"
+			return release
+		}},
+		{"wrong rule pack id", func(_, release operation.Intent) operation.Intent {
+			release.ExpectedEffect.Rule.Pack.ID = "helianthus.pack.thermal"
+			return release
+		}},
+		{"wrong rule pack version", func(_, release operation.Intent) operation.Intent {
+			release.ExpectedEffect.Rule.Pack.Version = "1.0.1"
+			return release
+		}},
+		{"wrong rule version", func(_, release operation.Intent) operation.Intent {
+			release.ExpectedEffect.Rule.Version = "1.0.1"
+			return release
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			set := intent()
+			if err := v.ValidateIntent(set); err != nil {
+				t.Fatalf("set intent: %v", err)
+			}
+			release := releaseIntent(set)
+			if tc.mutate != nil {
+				require(t, v.ValidateIntent(tc.mutate(set, releaseIntent(set))), semreg.InvalidValue)
+			}
+			if err := v.ValidateIntent(release); err != nil {
+				t.Fatalf("release intent: %v", err)
+			}
+		})
+	}
+}
+
+func TestLimitReleaseAdmissionAndReadback(t *testing.T) {
+	f := newPVFixture(t, nil)
+	set := f.intent
+	i := releaseIntent(set)
+	calls := 0
+	_, err := f.kernel.Admit(f.snapshot, f.current, i, operation.AuthorityResolverFunc(func(operation.Intent, operation.Route, semreg.EvaluationContext) error {
+		calls++
+		return nil
+	}))
+	if err != nil || calls != 1 {
+		t.Fatalf("release admission: %v; authority calls: %d", err, calls)
+	}
+	v := New().(operation.OperationPackValidator)
+	relation, err := v.EvaluateReadback(i, candidate(set.ExpectedEffect.Fact, set.ExpectedEffect.Expected))
+	if err != nil || relation != operation.ReadbackInconclusive {
+		t.Fatalf("release readback: %s, %v; want inconclusive", relation, err)
+	}
+}
