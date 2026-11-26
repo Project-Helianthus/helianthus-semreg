@@ -52,6 +52,9 @@ func TestNamespaceMemberKeyAndMember(t *testing.T) {
 func TestNativeRegistrySignaturesAndSpecs(t *testing.T) {
 	native := &syntheticNative{}
 	var registry driver.NativeRegistry = native
+	if root := registry.Root(); root.Validate() != nil {
+		t.Errorf("root = %+v is not a valid node reference", root)
+	}
 	parent, err := registry.Node(driver.NodeSpec{Kind: "resource.equipment", Local: "link", Contract: "schema.link"})
 	if err != nil {
 		t.Fatal(err)
