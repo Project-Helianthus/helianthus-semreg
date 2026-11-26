@@ -189,11 +189,9 @@ func (rt *Runtime) commitWithdrawal(ctx context.Context, spec SessionSpec, retir
 				capabilities = append(capabilities, capability.InstanceID)
 			}
 		}
-		for _, envelope := range current.Facts {
-			for _, candidate := range envelope.Candidates {
-				facts = append(facts, candidate.CandidateID)
-			}
-		}
+		facts = candidateIDsAscending(current.Facts)
+		sort.Slice(services, func(i, j int) bool { return services[i] < services[j] })
+		sort.Slice(capabilities, func(i, j int) bool { return capabilities[i] < capabilities[j] })
 		if len(facts) == 0 && len(services) == 0 && len(capabilities) == 0 {
 			return nil
 		}
@@ -226,6 +224,20 @@ func (rt *Runtime) commitWithdrawal(ctx context.Context, spec SessionSpec, retir
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// candidateIDsAscending lists every candidate of the envelopes in the ascending
+// identifier order a withdrawal batch requires; the envelopes themselves are
+// ordered by fact key, which is a different order.
+func candidateIDsAscending(envelopes []v1.FactEnvelope) []v1.CandidateID {
+	var ids []v1.CandidateID
+	for _, envelope := range envelopes {
+		for _, candidate := range envelope.Candidates {
+			ids = append(ids, candidate.CandidateID)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	return ids
 }
 
 // withdrawGeneration marks the generation fenced, its routes not live and every

@@ -203,9 +203,10 @@ func (o *hostOperations) Call(ctx context.Context, prepared tree.PortPrepared, o
 	if o.results == nil {
 		o.results = map[tree.ReceiptID]driver.OperationResult{}
 	}
-	o.results[id] = result
+	o.results[id] = cloneResult(result)
 	o.mu.Unlock()
-	return tree.PortReceipt{ID: id, Result: &result}, nil
+	returned := cloneResult(result)
+	return tree.PortReceipt{ID: id, Result: &returned}, nil
 }
 
 func (o *hostOperations) Outcome(_ context.Context, id tree.ReceiptID) (driver.OperationResult, error) {
@@ -215,7 +216,18 @@ func (o *hostOperations) Outcome(_ context.Context, id tree.ReceiptID) (driver.O
 	if !ok {
 		return driver.OperationResult{}, errors.New("runtime: no operation receipt")
 	}
-	return result, nil
+	return cloneResult(result), nil
+}
+
+// cloneResult copies the nested compound execution, so no holder of a returned
+// receipt or outcome can edit the recorded result.
+func cloneResult(r driver.OperationResult) driver.OperationResult {
+	if r.CompoundExecution != nil {
+		execution := *r.CompoundExecution
+		execution.Steps = append([]driver.CompoundStep(nil), execution.Steps...)
+		r.CompoundExecution = &execution
+	}
+	return r
 }
 
 // hostInput is the SemanticInput of one consuming session: SS07 capture and

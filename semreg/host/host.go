@@ -399,11 +399,15 @@ func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan,
 		return plans, nil
 	}
 	if err != nil {
+		// A factory that fails without the reference is the owner only when
+		// every other selected factory plans the record without error and
+		// claims none of its kinds; another failure leaves the owner unknown
+		// and the reference is then sent to nobody.
 		for i, other := range f.scope.factories {
 			if i == f.index {
 				continue
 			}
-			if others, oerr := other.Plan(probe); oerr == nil && owns(others) {
+			if others, oerr := other.Plan(probe); oerr != nil || owns(others) {
 				return plans, f.scope.redactErr(err)
 			}
 		}

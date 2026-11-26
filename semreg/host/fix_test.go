@@ -497,3 +497,22 @@ func TestFailingUnrelatedFactoryNeverReceivesAnOwnedReference(t *testing.T) {
 		}
 	}
 }
+
+func TestFailingUnrelatedFactoryBesideAReferenceRequiringOwnerGetsNoReference(t *testing.T) {
+	ctx := context.Background()
+	clock := newFixedClock(time.Now())
+	cfg := baseConfig(t, clock)
+	failing := &bystander{fail: true}
+	owner := &requiringFactory{synthFactory: newSynthFactory(clock), needs: map[string]bool{"plain.a": true, "plain.b": true}}
+	if site, err := Open(ctx, cfg, failing, owner); err == nil {
+		_ = site.Close(ctx)
+	}
+	if len(failing.seen) == 0 {
+		t.Fatal("the failing factory was never asked to plan")
+	}
+	for _, c := range failing.seen {
+		if c.SecretRef != "" {
+			t.Fatalf("a factory that did not identify itself as the owner received the reference for %s", c.Instance)
+		}
+	}
+}
