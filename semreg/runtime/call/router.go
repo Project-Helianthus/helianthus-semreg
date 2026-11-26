@@ -45,7 +45,14 @@ type Router struct {
 	results  map[string]driver.OperationResult
 	inflight map[string]*flight
 	noted    map[semreg.IntentID]string
+
+	resultOrder []string
+	notedOrder  []semreg.IntentID
 }
+
+// retainedBookkeeping bounds results and noted together to RetainedOperations,
+// the same memory bound the kernel keeps for admissions. Each map holds half.
+const retainedBookkeeping = RetainedOperations / 2
 
 // NewRouter builds a router on the 8192-retention kernel.
 func NewRouter(config Config) (*Router, error) {
@@ -120,7 +127,7 @@ func (r *Router) invoke(ctx context.Context, request driver.OperationRequest, ca
 		r.mu.Unlock()
 		defer func() {
 			r.mu.Lock()
-			r.results[key] = result
+			r.storeResult(key, result)
 			if owned != nil && r.inflight[key] == owned {
 				delete(r.inflight, key)
 			}
@@ -148,15 +155,13 @@ func (r *Router) invoke(ctx context.Context, request driver.OperationRequest, ca
 	if altered(request, intent) {
 		return failed(ReasonOwnerAltered).result(), nil
 	}
+	qualification := ""
 	if caller, ok := CallerFrom(ctx); ok {
-		r.mu.Lock()
-		r.noted[intent.IntentID] = caller.Qualification
-		r.mu.Unlock()
-	} else {
-		r.mu.Lock()
-		r.noted[intent.IntentID] = ""
-		r.mu.Unlock()
+		qualification = caller.Qualification
 	}
+	r.mu.Lock()
+	r.storeNote(intent.IntentID, qualification)
+	r.mu.Unlock()
 	current := semreg.EvaluationContext{EvaluatedAt: timePoint(r.now()), EvaluateMonotonic: semreg.MonotonicPoint{ClockEpochID: "clock-epoch:call", Nanoseconds: "1"}}
 	admission, kernel, admitErr := r.admit(snap, current, intent, callBound)
 	routes := matchingRoutes(cut, request, selection, resource)
@@ -236,6 +241,30 @@ func (r *Router) invoke(ctx context.Context, request driver.OperationRequest, ca
 		}
 	}
 	return result, nil
+}
+
+// storeResult keeps the newest retainedBookkeeping results. The caller holds r.mu.
+func (r *Router) storeResult(key string, result driver.OperationResult) {
+	if _, kept := r.results[key]; !kept {
+		r.resultOrder = append(r.resultOrder, key)
+		if len(r.resultOrder) > retainedBookkeeping {
+			delete(r.results, r.resultOrder[0])
+			r.resultOrder = r.resultOrder[1:]
+		}
+	}
+	r.results[key] = result
+}
+
+// storeNote keeps the newest retainedBookkeeping qualifications. The caller holds r.mu.
+func (r *Router) storeNote(id semreg.IntentID, qualification string) {
+	if _, kept := r.noted[id]; !kept {
+		r.notedOrder = append(r.notedOrder, id)
+		if len(r.notedOrder) > retainedBookkeeping {
+			delete(r.noted, r.notedOrder[0])
+			r.notedOrder = r.notedOrder[1:]
+		}
+	}
+	r.noted[id] = qualification
 }
 
 func (r *Router) admit(snap semreg.Snapshot, current semreg.EvaluationContext, intent operation.Intent, callBound bool) (*operation.Admission, *operation.Kernel, error) {
