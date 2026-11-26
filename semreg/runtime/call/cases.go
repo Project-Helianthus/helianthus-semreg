@@ -1,6 +1,7 @@
 package call
 
 import (
+	"reflect"
 	"strings"
 	"sync"
 
@@ -15,12 +16,11 @@ import (
 
 // Selection is the one pack case matched to a request's arguments.
 type Selection struct {
-	Operation   semreg.OperationMetadata
-	Release     bool
-	EffectRule  semreg.DefinitionRef
-	EffectField semreg.DefinitionID
-	Dimension   semreg.DefinitionID
-	Value       semreg.Value
+	Operation  semreg.OperationMetadata
+	Release    bool
+	EffectRule semreg.DefinitionRef
+	Dimension  semreg.DefinitionID
+	Value      semreg.Value
 }
 
 var (
@@ -77,28 +77,28 @@ func selectCase(req driver.OperationRequest) (Selection, *routeRefusal) {
 		return Selection{}, failed(ReasonInvalidArgument)
 	}
 	dimension := fieldDimension(op.Ref.Pack, op.Argument.ID)
-	release, known := releaseOf(op.Ref.ID)
 	args := indexArgs(req.Arguments)
-	if _, mixed := args[release.field]; known && mixed && len(args) != 1 {
-		return Selection{}, failed(ReasonMixedRelease)
-	}
-	if field, isRelease := args[release.field]; known && isRelease && len(args) == 1 {
-		if field.Value.Kind != semreg.ValueBoolean || field.Value.Boolean == nil {
-			return Selection{}, failed(ReasonInvalidArgument)
+	if op.Release != nil {
+		if field, present := args[op.Argument.ID]; present && field.Value.Kind == semreg.ValueBoolean {
+			if len(args) != 1 {
+				return Selection{}, failed(ReasonMixedRelease)
+			}
+			if !reflect.DeepEqual(field.Value, op.Release.Argument) {
+				if field.Value.Boolean == nil {
+					return Selection{}, failed(ReasonInvalidArgument)
+				}
+				return Selection{}, failed(ReasonReleaseTrue)
+			}
+			return Selection{
+				Operation:  op,
+				Release:    true,
+				EffectRule: op.Effect,
+				Dimension:  dimension,
+				Value:      field.Value,
+			}, nil
 		}
-		if *field.Value.Boolean {
-			return Selection{}, failed(ReasonReleaseTrue)
-		}
-		return Selection{
-			Operation:   op,
-			Release:     true,
-			EffectRule:  semreg.DefinitionRef{Pack: op.Ref.Pack, ID: release.effect, Version: op.Ref.Version},
-			EffectField: release.field,
-			Dimension:   dimension,
-			Value:       field.Value,
-		}, nil
 	}
-	if !known && releaseShaped(op, args) {
+	if op.Release == nil && releaseShaped(op, args) {
 		return Selection{}, failed(ReasonNoReleaseCase)
 	}
 	primary, ok := args[op.Argument.ID]
@@ -117,28 +117,11 @@ func selectCase(req driver.OperationRequest) (Selection, *routeRefusal) {
 		return Selection{}, failed(ReasonNegativeSet)
 	}
 	return Selection{
-		Operation:   op,
-		EffectRule:  op.Effect,
-		EffectField: op.Argument.ID,
-		Dimension:   dimension,
-		Value:       primary.Value,
+		Operation:  op,
+		EffectRule: op.Effect,
+		Dimension:  dimension,
+		Value:      primary.Value,
 	}, nil
-}
-
-type releaseIDs struct {
-	field  semreg.DefinitionID
-	effect semreg.DefinitionID
-}
-
-func releaseOf(id semreg.DefinitionID) (releaseIDs, bool) {
-	switch id {
-	case "pv.operation.set_active_power_limit":
-		return releaseIDs{"pv.limit.active_power_enabled", "pv.effect.release_active_power_limit"}, true
-	case "evse.operation.set_allocated_current":
-		return releaseIDs{"evse.limit.allocated_current_enabled", "evse.effect.release_allocated_current"}, true
-	default:
-		return releaseIDs{}, false
-	}
 }
 
 func indexArgs(args []semreg.TypedField) map[semreg.DefinitionID]semreg.TypedField {

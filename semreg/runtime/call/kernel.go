@@ -17,17 +17,9 @@ const RetainedOperations = 8192
 func builtinValidators() []semreg.PackValidator {
 	return []semreg.PackValidator{
 		thermal.New(),
-		newReleasePack(pv.New(), releaseCase{
-			operation: "pv.operation.set_active_power_limit",
-			field:     "pv.limit.active_power_enabled",
-			effect:    "pv.effect.release_active_power_limit",
-		}),
+		pv.New(),
 		storage.New(),
-		newReleasePack(evse.New(), releaseCase{
-			operation: "evse.operation.set_allocated_current",
-			field:     "evse.limit.allocated_current_enabled",
-			effect:    "evse.effect.release_allocated_current",
-		}),
+		evse.New(),
 		infrastructure.New(),
 	}
 }
