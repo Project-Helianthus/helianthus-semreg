@@ -98,7 +98,7 @@ is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units. Its SHA-256 is
-`11040b53cb4baf7bc81f6c7e9f1a05952c774382da9c3e6c9838af45fecb1dfc`.
+`c588afc8ea8d91519ead9edc0003ebb6743b84b20cb0822ad2317023eb613004`.
 The import and export energy are in `unit.joule` with a maximum of
 3.6 × 10^18. Line-to-line voltage is `infrastructure.ac.voltage_line_line`
 on `infrastructure.dimension.line_pair`, with that dimension, its service

@@ -53,7 +53,7 @@ var unionFields = []fieldSpec{
 	{"infrastructure.ac.harmonic_current", semreg.ValueQuantity, "", "infrastructure.dimension.phase", nil, nil, nil},
 	{"infrastructure.ac.harmonic_phase", semreg.ValueQuantity, "", "infrastructure.dimension.phase", nil, nil, nil},
 	{"infrastructure.ac.neutral_current", semreg.ValueQuantity, "unit.ampere", "infrastructure.dimension.circuit", nil, nil, nil},
-	{"infrastructure.ac.phase_power_factor", semreg.ValueQuantity, "", "infrastructure.dimension.phase", nil, nil, nil},
+	{"infrastructure.ac.phase_power_factor", semreg.ValueQuantity, "unit.ratio", "infrastructure.dimension.phase", nil, nil, nil},
 	{"infrastructure.ac.power_factor", semreg.ValueQuantity, "unit.ratio", "infrastructure.dimension.grid_connection", bound("-1", 0), bound("1", 0), nil},
 	{"infrastructure.ac.reactive_current", semreg.ValueQuantity, "unit.ampere", "infrastructure.dimension.phase", nil, nil, nil},
 	{"infrastructure.ac.reactive_power", semreg.ValueQuantity, "unit.volt_ampere_reactive", "infrastructure.dimension.phase", bound("-1", 7), bound("1", 7), nil},

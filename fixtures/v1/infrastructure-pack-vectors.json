@@ -939,6 +939,7 @@
             "version": "1.0.0"
           },
           "kind": "quantity",
+          "unit": "unit.ratio",
           "dimension": "infrastructure.dimension.phase",
           "bounds": {
             "minimum": null,
