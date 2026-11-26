@@ -590,3 +590,18 @@ func TestFactoryPlanningOnlyWithAReferenceStillOwnsItsConfiguredInstance(t *test
 		}
 	}
 }
+
+func TestOpenWithoutACalendarIgnoresTheMachineZoneVariable(t *testing.T) {
+	for _, tz := range []string{":/etc/localtime", ""} {
+		t.Run("TZ="+tz, func(t *testing.T) {
+			t.Setenv("TZ", tz)
+			clock := newFixedClock(time.Now())
+			cfg := baseConfig(t, clock)
+			cfg.Calendar = nil
+			site := openStarted(t, cfg, newSynthFactory(clock))
+			if site == nil {
+				t.Fatal("no site")
+			}
+		})
+	}
+}

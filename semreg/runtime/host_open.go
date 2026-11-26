@@ -134,7 +134,7 @@ func OpenHost(ctx context.Context, inst life.Installation, options HostOptions, 
 	if err != nil {
 		return nil, err
 	}
-	calendar, err := newHostCalendar(inst.Calendar, localLocationName, inst.Clock.Now)
+	calendar, err := newHostCalendar(inst.Calendar, inst.Clock.Now)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package runtime
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -22,53 +21,29 @@ type hostCalendar struct {
 
 var _ driver.Calendar = (*hostCalendar)(nil)
 
-// newHostCalendar resolves the location once. A nil explicit location asks
-// resolveLocal for the process's resolvable IANA name; an empty explicit value
-// is an error, never a request for the default.
-func newHostCalendar(explicit *string, resolveLocal func() (string, error), clock func() time.Time) (*hostCalendar, error) {
+// newHostCalendar resolves the location once. A nil explicit location takes the
+// zone the process already resolved (time.Local); no environment value or path
+// is ever handed to time.LoadLocation. An explicit value must be an IANA
+// location name; an empty explicit value is an error, never a request for the
+// default, and an invalid one is reported with the configured value.
+func newHostCalendar(explicit *string, clock func() time.Time) (*hostCalendar, error) {
 	if clock == nil {
 		return nil, errors.New("calendar requires a clock")
 	}
-	var name string
-	if explicit != nil {
-		name = *explicit
-	} else {
-		if resolveLocal == nil {
-			return nil, errors.New("calendar requires a resolvable local IANA location")
-		}
-		var err error
-		if name, err = resolveLocal(); err != nil {
-			return nil, fmt.Errorf("resolve calendar default: %w", err)
-		}
+	if explicit == nil {
+		return &hostCalendar{location: time.Local, clock: clock, generation: new(byte)}, nil
 	}
+	name := *explicit
 	if name == "" || strings.TrimSpace(name) != name ||
 		(name != "UTC" && !strings.Contains(name, "/")) ||
 		strings.HasPrefix(name, "Etc/GMT") {
-		return nil, errors.New("calendar requires an IANA location, not an offset or abbreviation")
+		return nil, fmt.Errorf("calendar requires an IANA location, not an offset or abbreviation: %q", name)
 	}
 	location, err := time.LoadLocation(name)
 	if err != nil {
-		return nil, fmt.Errorf("load calendar location: %w", err)
+		return nil, fmt.Errorf("load calendar location %q: %w", name, err)
 	}
 	return &hostCalendar{location: location, clock: clock, generation: new(byte)}, nil
-}
-
-// localLocationName resolves the process's local IANA location: the TZ
-// variable, else the target of the system local-time link, else UTC when the
-// process runs in UTC.
-func localLocationName() (string, error) {
-	if tz := os.Getenv("TZ"); tz != "" {
-		return strings.TrimPrefix(tz, ":"), nil
-	}
-	if target, err := os.Readlink("/etc/localtime"); err == nil {
-		if i := strings.LastIndex(target, "zoneinfo/"); i >= 0 {
-			return target[i+len("zoneinfo/"):], nil
-		}
-	}
-	if time.Local.String() == "UTC" {
-		return "UTC", nil
-	}
-	return "", errors.New("the process local IANA location is not resolvable")
 }
 
 type calendarReference struct {
