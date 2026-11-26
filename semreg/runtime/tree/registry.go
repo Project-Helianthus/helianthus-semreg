@@ -430,6 +430,7 @@ func (b *InstanceRegistry) Method(ref driver.NodeRef, spec driver.MethodSpec, ca
 
 // registered is a detached copy of every registration, taken at one moment.
 type registered struct {
+	roster  []RosterEntry
 	nodes   map[string]nodeRecord
 	members map[string]memberRecord
 	methods map[string]methodRecord
@@ -442,6 +443,7 @@ func (r *Registry) detach() (registered, uint64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	out := registered{nodes: map[string]nodeRecord{}, members: map[string]memberRecord{}, methods: map[string]methodRecord{}, views: map[string]viewRecord{}}
+	out.roster = r.rosterLocked()
 	for k, v := range r.nodes {
 		out.nodes[k] = *v
 	}
@@ -455,6 +457,34 @@ func (r *Registry) detach() (registered, uint64) {
 		out.views[k] = *v
 	}
 	return out, uint64(len(r.log))
+}
+
+// RosterEntry is one declared namespace with every instance planned under it.
+type RosterEntry struct {
+	Owner     driver.DriverKind
+	Key       driver.NamespaceID
+	Instances []driver.InstanceKey
+}
+
+func (r *Registry) rosterLocked() []RosterEntry {
+	keys := make([]string, 0, len(r.reserved))
+	for key := range r.reserved {
+		keys = append(keys, string(key))
+	}
+	sort.Strings(keys)
+	out := make([]RosterEntry, 0, len(keys))
+	for _, key := range keys {
+		ns := r.reserved[driver.NamespaceID(key)]
+		entry := RosterEntry{Owner: ns.Owner, Key: ns.Key, Instances: []driver.InstanceKey{}}
+		for ref, record := range r.instances {
+			if _, ok := record.namespaces[ns.Key]; ok && ref.Driver == ns.Owner {
+				entry.Instances = append(entry.Instances, ref.Instance)
+			}
+		}
+		sort.Slice(entry.Instances, func(i, j int) bool { return entry.Instances[i] < entry.Instances[j] })
+		out = append(out, entry)
+	}
+	return out
 }
 
 func (r *Registry) member(key string) (memberRecord, bool) {

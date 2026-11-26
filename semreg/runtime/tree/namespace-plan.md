@@ -45,6 +45,23 @@ The tree has nine verbs. Their names are `tree_<verb>` in GraphQL and
 | outcome | `Tree.Outcome` |
 | changes | `Tree.Resume` |
 
+Three further reads belong to the tree capture and add no verb:
+
+| Read | Go form |
+|---|---|
+| namespace roster | `TreeCut.Roster` |
+| installation root | `TreeCut.InstallationRoot` |
+| open cut by identifier | `Tree.CutByID` |
+
+`Roster` returns the namespaces declared at capture in namespace-key order, each
+with its owner, key and instances in instance-key order. It is copied at capture
+like nodes, members and methods, and reports a namespace with no instances and
+an instance with no members. `InstallationRoot` returns the `NodeRef` of the
+installation node, the starting node for `List`. `CutByID` returns the open
+`TreeCut` for a `CutID`, so a page token can be continued in a later call; an
+unknown or released identifier is `dangling_reference`, and a token minted by
+another cut is `revision_conflict`. Release by identifier is `Tree.Release`.
+
 ## 3. Driver namespaces
 
 A driver reserves a `NamespaceID` at planning time. One `NamespaceID` has one
