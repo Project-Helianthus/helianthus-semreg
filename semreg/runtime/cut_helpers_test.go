@@ -112,7 +112,7 @@ func (f synthFactory) Construct(context.Context, driver.InstancePlan) (driver.In
 
 func openService(t *testing.T, clock *testClock) *Service {
 	t.Helper()
-	svc, err := Open(Options{
+	svc, err := NewCutService(Options{
 		Incarnation:       "incarnation.test",
 		Clock:             clock,
 		EvaluateMonotonic: v1.MonotonicPoint{ClockEpochID: "clock.epoch.test", Nanoseconds: "1000"},

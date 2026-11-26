@@ -100,6 +100,12 @@ func (h hostRecovery) RestoreEmpty(ctx context.Context) error {
 	return h.install(ctx)
 }
 
+// Open assembles the host runtime for the installation and selected factories.
+// It constructs no instance: Start does.
+func Open(ctx context.Context, inst life.Installation, factories ...driver.Factory) (*Runtime, error) {
+	return OpenHost(ctx, inst, HostOptions{}, factories...)
+}
+
 // OpenHost plans the instances, opens the durable lifecycle, identity and
 // publication state under Installation.StateDir and assembles the runtime. It
 // constructs no instance: Start does.
@@ -127,7 +133,7 @@ func OpenHost(ctx context.Context, inst life.Installation, options HostOptions, 
 	if err != nil {
 		return nil, fmt.Errorf("runtime: clock: %w", err)
 	}
-	svc, err := Open(Options{
+	svc, err := NewCutService(Options{
 		Incarnation: incarnation, Clock: inst.Clock,
 		EvaluateMonotonic: v1.MonotonicPoint{ClockEpochID: v1.ClockEpochID("clock.epoch." + incarnation), Nanoseconds: v1.Uint64(strconv.FormatUint(sample, 10))},
 	})
@@ -246,7 +252,11 @@ func (rt *Runtime) install(ctx context.Context) error {
 		rt.svc.recovery = held
 		rt.svc.mu.Unlock()
 	}()
-	return rt.svc.Install(ctx, rt.plan)
+	if err := rt.svc.Install(ctx, rt.plan); err != nil {
+		return err
+	}
+	_ = rt.resolveAndSaveCheckpoint()
+	return nil
 }
 
 // saveCheckpoint writes the identity checkpoint while this runtime holds the
@@ -259,6 +269,38 @@ func (rt *Runtime) saveCheckpoint() error {
 	}
 	rt.checkErr = rt.writeCheckpointLocked()
 	return rt.checkErr
+}
+
+// resolveAndSaveCheckpoint binds the identity resolution and checkpoint to one
+// committed installation view, without opening or retaining a reader's cut.
+func (rt *Runtime) resolveAndSaveCheckpoint() error {
+	rt.checkMu.Lock()
+	defer rt.checkMu.Unlock()
+	if !rt.exclusive || !rt.control.Exclusive() {
+		return nil
+	}
+	svc := rt.svc
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+	snaps, position, known := svc.consistent()
+	completeness := graph.CutComplete
+	if len(omissionsFor(known, snaps, driver.Filter{})) != 0 {
+		completeness = graph.CutPartial
+	}
+	cut, err := graph.AssembleCut(snaps, svc.catalog, completeness)
+	if err == nil {
+		var resolved identity.Resolution
+		resolved, err = svc.ledger.Resolve(cut)
+		if err == nil {
+			rt.cuts.resolved = resolved
+			rt.cuts.resolvedAt = svc.cursorAt(position)
+		}
+	}
+	if err == nil {
+		err = rt.writeCheckpointLocked()
+	}
+	rt.checkErr = err
+	return err
 }
 
 func (rt *Runtime) writeCheckpointLocked() error {

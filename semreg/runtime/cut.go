@@ -176,8 +176,8 @@ func (c *receiptClock) clear() {
 	c.mu.Unlock()
 }
 
-// Open builds a runtime over the owner's clock and evaluation point.
-func Open(opts Options) (*Service, error) {
+// NewCutService builds a runtime over the owner's clock and evaluation point.
+func NewCutService(opts Options) (*Service, error) {
 	if opts.Clock == nil {
 		return nil, errors.New("runtime: a clock is required")
 	}

@@ -484,7 +484,13 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 	for i, factory := range selected {
 		wrapped[i] = &secretScopedFactory{Factory: factory, scope: scoped, index: i}
 	}
-	rt, err := runtime.OpenHost(ctx, inst, runtime.HostOptions{Statements: cfg.OperatorIdentityStatements}, wrapped...)
+	var rt *runtime.Runtime
+	var err error
+	if len(cfg.OperatorIdentityStatements) == 0 {
+		rt, err = runtime.Open(ctx, inst, wrapped...)
+	} else {
+		rt, err = runtime.OpenHost(ctx, inst, runtime.HostOptions{Statements: cfg.OperatorIdentityStatements}, wrapped...)
+	}
 	if err != nil {
 		return nil, scoped.redactErr(err)
 	}

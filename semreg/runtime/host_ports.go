@@ -19,6 +19,9 @@ import (
 // hostCuts is the tree's cut port over the SS07 service.
 type hostCuts struct {
 	svc *Service
+	// The latest committed identity resolution, guarded by svc.mu.
+	resolved   identity.Resolution
+	resolvedAt driver.Cursor
 }
 
 // captureSink receives what one capture produced: the scoped cut reference and
@@ -52,29 +55,48 @@ func (h *hostCuts) Capture(ctx context.Context, filter driver.Filter) (tree.CutV
 		if err != nil {
 			return tree.CutView{}, err
 		}
-		resolution, err := h.svc.ledger.Resolve(view.Cut)
-		if err != nil {
-			return tree.CutView{}, err
-		}
-		links := h.svc.ledger.Links()
-		// A commit holds the service lock from its identity claims to the
-		// advance of the position. The identity read describes the captured
-		// state only when the position is still the capture's; otherwise a
-		// commit landed in between and the capture is taken again.
+		// Use the committed resolution if it pins this same position and cut.
+		// For a different scope, resolve that scope while the position is still
+		// held; if a commit intervened, take the capture again.
 		h.svc.mu.Lock()
-		same := h.svc.cursorAt(h.svc.position) == view.Cursor
-		h.svc.mu.Unlock()
-		if !same {
+		if h.svc.cursorAt(h.svc.position) != view.Cursor {
+			h.svc.mu.Unlock()
 			if err := ctx.Err(); err != nil {
 				return tree.CutView{}, err
 			}
 			continue
 		}
 		if sink, ok := ctx.Value(refSinkKey{}).(*captureSink); ok {
-			sink.Ref, sink.Cursor, sink.Identity, sink.Links = view.Ref, view.Cursor, resolution, links
+			resolution := h.resolved
+			if h.resolvedAt == view.Cursor && resolution.Cut == view.Cut.ID() {
+				resolution = cloneResolution(resolution)
+			} else {
+				resolution, err = h.svc.ledger.Resolve(view.Cut)
+				if err != nil {
+					h.svc.mu.Unlock()
+					return tree.CutView{}, err
+				}
+			}
+			sink.Ref, sink.Cursor, sink.Identity, sink.Links = view.Ref, view.Cursor, resolution, h.svc.ledger.Links()
 		}
+		h.svc.mu.Unlock()
 		return h.viewOf(view), nil
 	}
+}
+
+func cloneResolution(r identity.Resolution) identity.Resolution {
+	r.Resources = cloneOf(r.Resources)
+	for i := range r.Resources {
+		r.Resources[i].Members = cloneOf(r.Resources[i].Members)
+		for j := range r.Resources[i].Members {
+			r.Resources[i].Members[j].Keys = cloneOf(r.Resources[i].Members[j].Keys)
+		}
+	}
+	r.Findings = cloneOf(r.Findings)
+	for i := range r.Findings {
+		r.Findings[i].Members = cloneOf(r.Findings[i].Members)
+	}
+	return r
 }
 
 func (h *hostCuts) Lookup(ctx context.Context, ref graph.CutRef) (tree.CutView, error) {
