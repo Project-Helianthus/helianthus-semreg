@@ -30,7 +30,7 @@ const CatalogOrder = "owner kind, pack id, pack version, element id, element ver
 // copy of the accepted catalog. Load accepts no other bytes, and a
 // graph-enforced registry of the root package accepts no catalog with another
 // digest.
-const PinnedDigest semreg.Digest = "sha256:3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477"
+const PinnedDigest semreg.Digest = "sha256:b0a84f8a21893c522485fe6bbf0d9e4c41db5c87ce34e9f37952ee25217eade8"
 
 // Status is the document status.
 type Status string
@@ -397,6 +397,7 @@ type OperationAttributes struct {
 	Argument   ElementRef
 	EffectRule ElementRef
 	Parameters []ElementRef
+	Release    *semreg.ReleaseMetadata
 }
 
 // EventCondition is entered, left or changed.
@@ -841,10 +842,28 @@ type capabilityWire struct {
 }
 
 type operationWire struct {
-	Capability refWire   `json:"capability"`
-	Argument   refWire   `json:"argument"`
-	EffectRule refWire   `json:"effect_rule"`
-	Parameters []refWire `json:"parameters,omitempty"`
+	Capability refWire      `json:"capability"`
+	Argument   refWire      `json:"argument"`
+	EffectRule refWire      `json:"effect_rule"`
+	Parameters []refWire    `json:"parameters,omitempty"`
+	Release    *releaseWire `json:"release,omitempty"`
+}
+
+type releaseWire struct {
+	Argument struct {
+		ValueKind semreg.ValueKind `json:"value_kind"`
+		Value     bool             `json:"value"`
+	} `json:"argument"`
+}
+
+func declaresRelease(ref ElementRef) bool {
+	switch ref {
+	case PackElement(semreg.DefinitionRef{Pack: semreg.PackRef{ID: "helianthus.pack.pv", Version: "1.0.0"}, ID: "pv.operation.set_active_power_limit", Version: "1.0.0"}),
+		PackElement(semreg.DefinitionRef{Pack: semreg.PackRef{ID: "helianthus.pack.evse", Version: "1.0.0"}, ID: "evse.operation.set_allocated_current", Version: "1.0.0"}):
+		return true
+	default:
+		return false
+	}
 }
 
 type eventWire struct {
@@ -1244,6 +1263,16 @@ func decodeAttributes(element *Element, raw json.RawMessage) error {
 				return err
 			}
 			element.Operation.Parameters = parameters
+		}
+		if wire.Release != nil {
+			if !declaresRelease(element.Ref) {
+				return newError(semreg.InvalidValue, "operation does not declare a release case")
+			}
+			argument := wire.Release.Argument
+			if argument.ValueKind != semreg.ValueBoolean || argument.Value {
+				return newError(semreg.InvalidValue, "release argument must be boolean false")
+			}
+			element.Operation.Release = &semreg.ReleaseMetadata{Argument: semreg.Value{Kind: argument.ValueKind, Boolean: &argument.Value}}
 		}
 	case KindEffectRule:
 		var wire effectRuleWire
@@ -2010,6 +2039,12 @@ func cloneElement(in Element) Element {
 	if in.Operation != nil {
 		value := *in.Operation
 		value.Parameters = append([]ElementRef(nil), in.Operation.Parameters...)
+		if release := in.Operation.Release; release != nil {
+			argument := release.Argument
+			literal := *argument.Boolean
+			argument.Boolean = &literal
+			value.Release = &semreg.ReleaseMetadata{Argument: argument}
+		}
 		out.Operation = &value
 	}
 	if in.EffectRule != nil {

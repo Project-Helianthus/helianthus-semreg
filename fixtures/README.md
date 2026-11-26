@@ -368,8 +368,9 @@ the four lens seeds, the two PV inverter totals, the thermal overrun
 statuses, zone setpoints, pump and valve entries, the PV yield periods and
 limit ratio, the infrastructure self-consumption, point-of-coupling power
 and fallback limit, and the pilot accuracy, measurement-type and storage
-current entries. Its SHA-256 is
-`3e40e36bf595f0379b0742f82f7a5213f68fb2ac60fa2d9e5faa48a32a438477`; the
+current entries, and for the PV active power and EVSE allocated current
+release declarations. Its SHA-256 is
+`b0a84f8a21893c522485fe6bbf0d9e4c41db5c87ce34e9f37952ee25217eade8`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
@@ -388,7 +389,7 @@ authority.
 [`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is the
 `helianthus.semantic.graph.acceptance/v1` document exercised by this module.
 Its SHA-256 is
-`f33422cccb2bb8d424cfc18637f3308d96659db5037e8a0fde31da6b45db2e73`;
+`38ae6929218975e38b45559643e74fd80bb48e2ce016db639db8be03e1fd0256`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
 bytes. The document records the catalog digest of the pinned catalog copy.
 The element catalog copy and `graph.PinnedDigest` are that pin. The document holds

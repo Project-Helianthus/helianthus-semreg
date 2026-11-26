@@ -34849,6 +34849,12 @@
           },
           "id": "evse.effect.set_allocated_current",
           "version": "1.0.0"
+        },
+        "release": {
+          "argument": {
+            "value_kind": "boolean",
+            "value": false
+          }
         }
       }
     },
@@ -49773,6 +49779,12 @@
           },
           "id": "pv.effect.set_active_power_limit",
           "version": "1.0.0"
+        },
+        "release": {
+          "argument": {
+            "value_kind": "boolean",
+            "value": false
+          }
         }
       }
     },

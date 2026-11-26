@@ -72,9 +72,11 @@ var capabilities = map[semreg.DefinitionID]capabilitySpec{"pv.capability.read.sy
 
 type operationSpec struct{ capability, argument, effect semreg.DefinitionID }
 
+const limitReleaseOperation semreg.DefinitionID = "pv.operation.set_active_power_limit"
+
 var operations = map[semreg.DefinitionID]operationSpec{
-	"pv.operation.set_active_power_limit": {"pv.capability.set_active_power_limit", "pv.limit.active_power", "pv.effect.set_active_power_limit"},
-	"pv.operation.set_export_limit":       {"pv.capability.set_export_limit", "pv.limit.export_power", "pv.effect.set_export_limit"},
+	limitReleaseOperation:           {"pv.capability.set_active_power_limit", "pv.limit.active_power", "pv.effect.set_active_power_limit"},
+	"pv.operation.set_export_limit": {"pv.capability.set_export_limit", "pv.limit.export_power", "pv.effect.set_export_limit"},
 }
 
 func definition(id semreg.DefinitionID) semreg.DefinitionRef {
@@ -111,6 +113,14 @@ func index() semreg.DefinitionIndex {
 	return r
 }
 
+func releaseMetadata(id semreg.DefinitionID) *semreg.ReleaseMetadata {
+	if id != limitReleaseOperation {
+		return nil
+	}
+	cleared := false
+	return &semreg.ReleaseMetadata{Argument: semreg.Value{Kind: semreg.ValueBoolean, Boolean: &cleared}}
+}
+
 // Metadata returns fresh metadata derived from this validator's private tables.
 func Metadata() semreg.PackMetadata {
 	metadata := semreg.PackMetadata{Pack: pack}
@@ -130,7 +140,7 @@ func Metadata() semreg.PackMetadata {
 		metadata.Capabilities = append(metadata.Capabilities, semreg.CapabilityMetadata{Ref: definition(id), Service: definition(spec.service)})
 	}
 	for id, spec := range operations {
-		item := semreg.OperationMetadata{Ref: definition(id), Capability: definition(spec.capability), Service: definition(capabilities[spec.capability].service), Argument: definition(spec.argument), Effect: definition(spec.effect)}
+		item := semreg.OperationMetadata{Ref: definition(id), Capability: definition(spec.capability), Service: definition(capabilities[spec.capability].service), Argument: definition(spec.argument), Effect: definition(spec.effect), Release: releaseMetadata(id)}
 		for _, parameter := range operationParameters[id] {
 			item.Parameters = append(item.Parameters, definition(parameter))
 		}

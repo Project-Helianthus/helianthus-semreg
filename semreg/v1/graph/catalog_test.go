@@ -612,6 +612,137 @@ func TestCAT1QualifierDimensionIsNamedByTheFactsItQualifies(t *testing.T) {
 	}
 }
 
+func releaseLiteral() document {
+	return document{"argument": document{"value_kind": "boolean", "value": false}}
+}
+
+func TestDecodeLimitReleaseMember(t *testing.T) {
+	for _, ref := range []semreg.DefinitionRef{
+		evseRef("evse.operation.set_allocated_current"),
+		{Pack: pvPack, ID: "pv.operation.set_active_power_limit", Version: "1.0.0"},
+	} {
+		t.Run(string(ref.ID), func(t *testing.T) {
+			catalog := committedCatalog(t)
+			entry, ok := catalog.PackEntry(ref)
+			if !ok || entry.Operation == nil || entry.Operation.Release == nil {
+				t.Fatal("operation missing its release declaration")
+			}
+			argument := entry.Operation.Release.Argument
+			if argument.Kind != semreg.ValueBoolean || argument.Boolean == nil || *argument.Boolean || argument.Validate() != nil {
+				t.Fatalf("release argument = %+v, want boolean false", argument)
+			}
+			*argument.Boolean = true
+			again, _ := catalog.PackEntry(ref)
+			if *again.Operation.Release.Argument.Boolean {
+				t.Fatal("lookup exposes mutable catalog release data")
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name   string
+		mutate func(entry document)
+		want   semreg.ErrorID
+	}{
+		{"other definition id", func(e document) { e["ref"].(document)["id"] = "evse.operation.other" }, semreg.InvalidValue},
+		{"other definition version", func(e document) { e["ref"].(document)["version"] = "1.0.1" }, semreg.InvalidValue},
+		{"other pack id", func(e document) { e["ref"].(document)["owner"] = packOwner(pvPack) }, semreg.InvalidValue},
+		{"other pack version", func(e document) {
+			owner := e["ref"].(document)["owner"].(document)
+			owner["pack"].(document)["version"] = "1.0.1"
+		}, semreg.InvalidValue},
+		{"other owner kind", func(e document) {
+			e["ref"].(document)["owner"] = document{"kind": "core", "contract": string(graph.KernelContract)}
+		}, semreg.InvalidValue},
+		{"outer member", func(e document) {
+			e["attributes"].(document)["release"].(document)["effect"] = "other"
+		}, semreg.UnknownMember},
+		{"inner member", func(e document) { releaseArgument(e)["id"] = "evse.limit.other" }, semreg.UnknownMember},
+		{"missing argument", func(e document) { delete(e["attributes"].(document)["release"].(document), "argument") }, semreg.MissingMember},
+		{"missing kind", func(e document) { delete(releaseArgument(e), "value_kind") }, semreg.MissingMember},
+		{"missing false", func(e document) { delete(releaseArgument(e), "value") }, semreg.MissingMember},
+		{"other kind", func(e document) { releaseArgument(e)["value_kind"] = "quantity" }, semreg.InvalidValue},
+		{"true", func(e document) { releaseArgument(e)["value"] = true }, semreg.InvalidValue},
+		{"numeric zero", func(e document) { releaseArgument(e)["value"] = 0 }, semreg.InvalidValue},
+		{"null literal", func(e document) { releaseArgument(e)["value"] = nil }, semreg.InvalidValue},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := decodeDocument(t)
+			entry := element(t, doc, "evse.operation.set_allocated_current")
+			entry["attributes"].(document)["release"] = releaseLiteral()
+			tc.mutate(entry)
+			sortElements(doc)
+			_, err := graph.Decode(encode(t, doc))
+			if semreg.ErrorIdentifier(err) != tc.want {
+				t.Fatalf("Decode = %v, want release error %s", err, tc.want)
+			}
+		})
+	}
+}
+
+func releaseArgument(entry document) document {
+	return entry["attributes"].(document)["release"].(document)["argument"].(document)
+}
+
+type releaseMetadataPack struct {
+	semreg.PackValidator
+	metadata semreg.PackMetadata
+}
+
+func (p releaseMetadataPack) Metadata() semreg.PackMetadata { return p.metadata }
+
+func TestCAT2LimitReleaseAgreement(t *testing.T) {
+	const id = "evse.operation.set_allocated_current"
+	for _, name := range []string{"catalog missing", "metadata missing", "both missing", "metadata value differs", "metadata kind differs"} {
+		t.Run(name, func(t *testing.T) {
+			doc := decodeDocument(t)
+			attributes := element(t, doc, id)["attributes"].(document)
+			attributes["release"] = releaseLiteral()
+			if name == "catalog missing" || name == "both missing" {
+				delete(attributes, "release")
+			}
+			catalog, err := graph.Decode(encode(t, doc))
+			if err != nil {
+				t.Fatal(err)
+			}
+			sources := graph.AcceptedPackMetadata()
+			for i := range sources {
+				source := &sources[i]
+				for j := range source.Metadata.Operations {
+					op := &source.Metadata.Operations[j]
+					if op.Ref != evseRef(id) {
+						continue
+					}
+					switch name {
+					case "metadata missing", "both missing":
+						op.Release = nil
+					case "metadata value differs":
+						value := true
+						op.Release = &semreg.ReleaseMetadata{Argument: semreg.Value{Kind: semreg.ValueBoolean, Boolean: &value}}
+					case "metadata kind differs":
+						value := "false"
+						op.Release = &semreg.ReleaseMetadata{Argument: semreg.Value{Kind: semreg.ValueText, Text: &value}}
+					}
+				}
+				// Exercise agreement with independent metadata, not provider consistency.
+				if source.Metadata.Pack == evsePack {
+					source.Validator = releaseMetadataPack{source.Validator, source.Metadata}
+				}
+			}
+			findings, err := graph.Check(catalog, sources)
+			if err != nil {
+				t.Fatal(err)
+			}
+			requireFinding(t, findings, "CAT-2", "", semreg.InvalidValue, id)
+			detail := "release differs from the pack operation release"
+			if name == "both missing" {
+				detail = "operation must declare its release case"
+			}
+			requireDetail(t, findings, detail)
+		})
+	}
+}
+
 func TestCAT2Agreement(t *testing.T) {
 	t.Run("service fact-key dimension", func(t *testing.T) {
 		doc := decodeDocument(t)
