@@ -564,7 +564,7 @@ func TestSupersedeRefusesPreviousAnchorNeverResolved(t *testing.T) {
 
 // gateStore blocks the first Lookup until released. It marks the span from
 // that lookup to the commit that ends the same resolution, and records
-// whether a commit by another caller landed inside it.
+// whether another caller read or committed inside it.
 type gateStore struct {
 	*MemoryStore
 	looked   chan struct{}
@@ -574,6 +574,11 @@ type gateStore struct {
 }
 
 func (s *gateStore) Lookup(key AnchorKey) (Entry, bool, error) {
+	// A lookup by another caller inside the span is an overlap even when the
+	// caller is then refused and never commits.
+	if atomic.LoadInt32(&s.inFlight) == 1 {
+		atomic.StoreInt32(&s.atCommit, 1)
+	}
 	entry, ok, err := s.MemoryStore.Lookup(key)
 	s.gated.Do(func() {
 		atomic.StoreInt32(&s.inFlight, 1)
