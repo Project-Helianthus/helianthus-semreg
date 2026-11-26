@@ -198,6 +198,7 @@ type walkRecord struct {
 	Attributes map[string]string
 	Methods    int
 	Report     WalkReport
+	Links      []runtime.PlannedLink
 }
 
 func walkAll(t *testing.T, ctx context.Context, cut *Cut, page int) walkRecord {
@@ -214,6 +215,9 @@ func walkAll(t *testing.T, ctx context.Context, cut *Cut, page int) walkRecord {
 			record.Attributes[string(e.Descriptor.Ref)] = string(e.Value.Encoded)
 		case tree.EntryMethod:
 			record.Methods++
+		}
+		if e.Link != nil {
+			record.Links = append(record.Links, *e.Link)
 		}
 		return nil
 	})
@@ -251,6 +255,7 @@ func expectedIndexRefs(installation string) []string {
 type secondHostRun struct {
 	Walk      walkRecord
 	Graph     graphRecord
+	Lens      graph.LensResult
 	Outcome   tree.Outcome
 	Receipt   tree.Receipt
 	Request   driver.OperationRequest
@@ -277,7 +282,7 @@ func runSecondHost(t *testing.T, cfg Config, factory *synthFactory, page int, ta
 		}
 		defer cut.Close()
 		out.Walk = walkAll(t, ctx, cut, page)
-		out.Graph, _ = graphOf(t, ctx, site, cut)
+		out.Graph, out.Lens = graphOf(t, ctx, site, cut)
 		consumer := factory.started["consumer.one"]
 		input := consumer.session.SemanticInput()
 		captured, err := input.Capture(ctx, driver.Filter{})
@@ -444,13 +449,50 @@ func TestHostSecondHost(t *testing.T) {
 		t.Fatalf("graph kinds %v, want %v", first.Graph.Kinds, wantKinds)
 	}
 
+	// The walk exposes the three planned bridge-to-link relations: one relays
+	// relation per transport-claiming instance, all from the one bridge node, each
+	// to its own link node, with the native observation basis, and every end is an
+	// equipment resource of the same capture's graph.
+	assertPlannedLinks(t, first, 3)
+
 	// A second lifecycle over the same state directory shows the same graph.
 	second := runSecondHost(t, cfg, newSynthFactory(clock), 100, targetCoefficient)
 	if strings.Join(second.Walk.Nodes, "\n") != strings.Join(first.Walk.Nodes, "\n") {
 		t.Fatalf("nodes differ across lifecycles:\n%v\n%v", second.Walk.Nodes, first.Walk.Nodes)
 	}
+	assertPlannedLinks(t, second, 3)
+	if fmt.Sprint(second.Walk.Links) != fmt.Sprint(first.Walk.Links) {
+		t.Fatalf("planned links differ across lifecycles:\n%+v\n%+v", second.Walk.Links, first.Walk.Links)
+	}
 	if fmt.Sprint(second.Graph) != fmt.Sprint(first.Graph) {
 		t.Fatalf("graph differs across lifecycles:\n%+v\n%+v", second.Graph, first.Graph)
+	}
+}
+
+func assertPlannedLinks(t *testing.T, run secondHostRun, want int) {
+	t.Helper()
+	links := run.Walk.Links
+	if len(links) != want {
+		t.Fatalf("planned links %+v, want %d", links, want)
+	}
+	equipment := map[v1.ResourceID]bool{}
+	for _, r := range run.Lens.Resources {
+		if r.Resource.Kind == "resource.equipment" {
+			equipment[r.Resource.ResourceID] = true
+		}
+	}
+	ends := map[v1.ResourceID]bool{}
+	for _, link := range links {
+		if link.Relation != "relation.relays" || link.Basis != v1.RelationNativeObservation {
+			t.Fatalf("link %+v: want relation.relays with the native observation basis", link)
+		}
+		if link.From != links[0].From || link.To.ID == link.From.ID || ends[link.To.ID] {
+			t.Fatalf("link %+v: want one bridge start and a distinct link end", link)
+		}
+		ends[link.To.ID] = true
+		if !equipment[link.From.ID] || !equipment[link.To.ID] {
+			t.Fatalf("link %+v has an end that is not an equipment resource of the capture", link)
+		}
 	}
 }
 
@@ -1417,6 +1459,181 @@ func TestHostResumesManagedPublicationAfterProcessLoss(t *testing.T) {
 				}
 				if restored == 0 {
 					t.Fatal("STOP: the committed publication was never restored, so nothing was withdrawn")
+				}
+			}
+		})
+	}
+}
+
+type controlRecord struct {
+	Instances map[string]struct {
+		Current *struct {
+			Kind                   string `json:"kind"`
+			Phase                  string `json:"phase"`
+			Epoch                  string `json:"epoch"`
+			NativeClosePending     bool   `json:"native_close_pending"`
+			SemanticCleanupPending bool   `json:"semantic_cleanup_pending"`
+		} `json:"current"`
+	} `json:"instances"`
+}
+
+func readControl(t *testing.T, path string) controlRecord {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var store controlRecord
+	if err := json.Unmarshal(raw, &store); err != nil {
+		t.Fatal(err)
+	}
+	return store
+}
+
+// TestHostRecoveredCleanupFailureKeepsNativeProofAndRetries loses the child
+// host with a stop or restart committed, then reopens with the first durable
+// write of the recovered settlement failing once. The settlement is retried
+// under the original correlation until both obligations clear, with no second
+// construction of the owner or the peer, and the healthy peer stays available.
+func TestHostRecoveredCleanupFailureKeepsNativeProofAndRetries(t *testing.T) {
+	ctx := context.Background()
+	for _, method := range []life.Method{life.MethodStop, life.MethodRestart} {
+		t.Run(string(method), func(t *testing.T) {
+			clock := newFixedClock(baseTime.Add(time.Second))
+			cfg := baseConfig(t, clock)
+			cfg.Instances = []InstanceConfig{cfg.Instances[0], cfg.Instances[4]}
+			ref := life.Ref{Driver: kindOwner, Instance: "owner.one"}
+			peer := life.Ref{Driver: kindPlain, Instance: "plain.c"}
+			cmd := exec.Command(os.Args[0], "-test.run=^TestHostChildProcess$")
+			cmd.Env = append(os.Environ(), childEnv+"="+cfg.StateDir, childEnv+"_METHOD="+string(method))
+			if err := cmd.Start(); err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
+			var originalEpoch string
+			for deadline := time.Now().Add(60 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+				if raw, err := os.ReadFile(filepath.Join(cfg.StateDir, "child.ready")); err == nil {
+					originalEpoch = string(raw)
+					break
+				}
+			}
+			if originalEpoch == "" {
+				t.Fatal("the child host never committed its transition")
+			}
+			control := filepath.Join(cfg.StateDir, "lifecycle", "runtime-control.json")
+			var committed []byte
+			for stable := 0; stable < 5; {
+				time.Sleep(60 * time.Millisecond)
+				raw, err := os.ReadFile(control)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if bytes.Equal(raw, committed) {
+					stable++
+				} else {
+					committed, stable = raw, 0
+				}
+			}
+			if err := cmd.Process.Kill(); err != nil {
+				t.Fatal(err)
+			}
+			_ = cmd.Wait()
+
+			factory := newSynthFactory(clock)
+			site, err := Open(ctx, cfg, factory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer site.Close(ctx)
+			// The first durable write of the recovered settlement fails once: the
+			// temporary file of the control store is an empty directory, which the
+			// store removes when its write fails, so the retry succeeds.
+			blocker := control + ".tmp"
+			if err := site.Start(ctx); err != nil {
+				t.Fatalf("start: %v", err)
+			}
+			if err := os.Mkdir(blocker, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			id := string(ref.ID())
+			var seen []string
+			for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+				cur := readControl(t, control).Instances[id].Current
+				if cur == nil {
+					break
+				}
+				state := fmt.Sprintf("%s/original=%v/native=%v/semantic=%v", cur.Phase, cur.Epoch == originalEpoch, cur.NativeClosePending, cur.SemanticCleanupPending)
+				if len(seen) == 0 || seen[len(seen)-1] != state {
+					seen = append(seen, state)
+				}
+			}
+			if _, err := os.Stat(blocker); err == nil {
+				t.Fatalf("no durable write of the recovered settlement met the failure: %v", seen)
+			}
+			if len(seen) == 0 || seen[0] != "ACTIVE/original=true/native=true/semantic=true" {
+				t.Fatalf("the recovered settlement did not start from the original correlation's two obligations: %v", seen)
+			}
+			if record := readControl(t, control).Instances[id]; record.Current != nil {
+				t.Fatalf("the original correlation was not settled after the failure: %+v", record.Current)
+			}
+			// The failure did not cost the healthy peer its availability, and the
+			// retry did not construct the peer or the owner a second time.
+			for deadline := time.Now().Add(15 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+				if st, _ := site.Snapshot(peer); st.ObservedState == life.ObservedRunning {
+					break
+				}
+			}
+			if st, _ := site.Snapshot(peer); st.ObservedState != life.ObservedRunning {
+				t.Fatalf("the independent peer is not available: %+v", st)
+			}
+			var owned, peers int
+			for _, name := range factory.constructedNames() {
+				if strings.HasPrefix(name, string(kindOwner)+"/") {
+					owned++
+				} else {
+					peers++
+				}
+			}
+			if peers != 1 {
+				t.Fatalf("the peer was constructed %d times", peers)
+			}
+			switch method {
+			case life.MethodStop:
+				if st, _ := site.Snapshot(ref); st.ObservedState != life.ObservedStopped || owned != 0 {
+					t.Fatalf("STOP: %+v with %d constructions: stopped, none constructed", st, owned)
+				}
+				cut, err := site.Tree().SemanticInput(driver.Filter{}).Capture(ctx, driver.Filter{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if value, _ := zoneFactCoefficient(t, cut); value != "" {
+					t.Fatalf("STOP: the withdrawn value %q is current after the retried cleanup", value)
+				}
+				for _, snap := range cut.Snapshots {
+					for _, binding := range snap.Bindings {
+						if binding.State == v1.BindingCurrent {
+							t.Fatalf("STOP: binding %s is current after the retried cleanup", binding.BindingID)
+						}
+					}
+				}
+			case life.MethodRestart:
+				var st life.Status
+				for deadline := time.Now().Add(15 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+					if st, _ = site.Snapshot(ref); st.ObservedState == life.ObservedRunning && string(st.Epoch) != originalEpoch {
+						break
+					}
+				}
+				if st.ObservedState != life.ObservedRunning || string(st.Epoch) == originalEpoch {
+					t.Fatalf("RESTART: %+v: running under a new correlation after the settlement", st)
+				}
+				owned = 0
+				for _, name := range factory.constructedNames() {
+					if strings.HasPrefix(name, string(kindOwner)+"/") {
+						owned++
+					}
+				}
+				if owned != 1 {
+					t.Fatalf("RESTART: %d constructions, want exactly one after the settlement", owned)
 				}
 			}
 		})

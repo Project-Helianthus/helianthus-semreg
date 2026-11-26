@@ -21,11 +21,13 @@ type WalkFilter struct {
 func AllVisible(pageSize int) WalkFilter { return WalkFilter{PageSize: pageSize} }
 
 // WalkEntry is one visited entry: its typed descriptor and, for an attribute,
-// its detached value or the read error.
+// its detached value or the read error. A planned directed link is visited as
+// an entry that carries Link and no descriptor.
 type WalkEntry struct {
 	Descriptor tree.Descriptor
 	Value      *tree.Value
 	Err        error
+	Link       *runtime.PlannedLink
 }
 
 // WalkReport reports the completeness of the walked cut and its omitted
@@ -64,6 +66,12 @@ func (c *Cut) Ref() graph.CutRef { return c.cut.Ref }
 // Links are the retained links of this capture under their effective endpoints,
 // each claim keeping its declared key and basis.
 func (c *Cut) Links() []identity.Link { return c.cut.Links }
+
+// Relays are the planned directed links of the installation, bridge to link
+// node, with their type, endpoints and basis.
+func (c *Cut) Relays() []runtime.PlannedLink {
+	return append([]runtime.PlannedLink(nil), c.cut.Relays...)
+}
 
 // Close closes the capture.
 func (c *Cut) Close() error { return c.cut.Close() }
@@ -117,6 +125,12 @@ func (c *Cut) Walk(ctx context.Context, filter WalkFilter, emit func(WalkEntry) 
 				break
 			}
 			token = page.Next
+		}
+	}
+	for i := range c.cut.Relays {
+		link := c.cut.Relays[i]
+		if err := emit(WalkEntry{Link: &link}); err != nil {
+			return report, err
 		}
 	}
 	return report, nil

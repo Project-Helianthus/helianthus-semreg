@@ -1,6 +1,7 @@
 package host
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -321,8 +322,10 @@ type Site struct {
 }
 
 type secretEntry struct {
-	kind driver.DriverKind
-	ref  string
+	kind      driver.DriverKind
+	ref       string
+	transport json.RawMessage
+	options   json.RawMessage
 }
 
 // secretScope holds the configured per-instance secret references so they reach
@@ -363,27 +366,48 @@ type secretScopedFactory struct {
 }
 
 func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan, error) {
-	entries := f.scope.refs[config.Instance]
-	if len(entries) == 0 {
+	if config.SecretRef == "" {
 		return f.Factory.Plan(config)
 	}
-	bare := config
-	bare.SecretRef = probeSecretRef
-	plans, err := f.Factory.Plan(bare)
-	if err != nil {
-		return nil, f.scope.redactErr(err)
-	}
-	for _, plan := range plans {
-		for _, entry := range entries {
-			if entry.kind == plan.Driver {
-				own := config
-				own.SecretRef = entry.ref
-				plans, err = f.Factory.Plan(own)
-				return plans, f.scope.redactErr(err)
-			}
+	// The record being planned is the one carrying exactly these operands and
+	// this reference; its kind, not another record's of the same instance key,
+	// decides whether this factory owns the reference.
+	kinds := map[driver.DriverKind]bool{}
+	for _, entry := range f.scope.refs[config.Instance] {
+		if entry.ref == config.SecretRef && bytes.Equal(entry.transport, config.Transport) && bytes.Equal(entry.options, config.Options) {
+			kinds[entry.kind] = true
 		}
 	}
-	return plans, nil
+	if len(kinds) == 0 {
+		return f.Factory.Plan(config)
+	}
+	owns := func(plans []driver.InstancePlan) bool {
+		for _, plan := range plans {
+			if kinds[plan.Driver] {
+				return true
+			}
+		}
+		return false
+	}
+	// Which factory owns the record is learned without the real reference: first
+	// with a stand-in, and when the factory rejects the stand-in, with none. A
+	// factory that plans the record's kind from either owns it and is asked with
+	// the real reference, whose answer is authoritative; one that needs a
+	// reference it was not given is the owner too.
+	for _, stand := range []string{probeSecretRef, ""} {
+		probe := config
+		probe.SecretRef = stand
+		plans, err := f.Factory.Plan(probe)
+		if err != nil {
+			continue
+		}
+		if !owns(plans) {
+			return plans, nil
+		}
+		break
+	}
+	plans, err := f.Factory.Plan(config)
+	return plans, f.scope.redactErr(err)
 }
 
 // Open maps the configuration onto the installation and opens the runtime. It
@@ -411,7 +435,7 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 	scoped := &secretScope{refs: map[string][]secretEntry{}}
 	for _, ic := range cfg.Instances {
 		if ic.SecretRef != "" {
-			scoped.refs[string(ic.Instance)] = append(scoped.refs[string(ic.Instance)], secretEntry{kind: ic.Kind, ref: ic.SecretRef})
+			scoped.refs[string(ic.Instance)] = append(scoped.refs[string(ic.Instance)], secretEntry{kind: ic.Kind, ref: ic.SecretRef, transport: ic.Transport, options: ic.Options})
 		}
 	}
 	for _, ic := range cfg.Instances {

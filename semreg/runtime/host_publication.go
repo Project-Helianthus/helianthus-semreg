@@ -303,8 +303,52 @@ func (p *hostPublisher) Begin(ctx context.Context) (driver.PublicationTransactio
 
 type hostTransaction struct {
 	driver.PublicationTransaction
-	session *Session
-	rt      *Runtime
+	session  *Session
+	rt       *Runtime
+	mu       sync.Mutex
+	facts    []v1.FactCandidate
+	declared []driver.Source
+}
+
+// DeclareSource stages the declaration and remembers it, so the commit admits
+// the transaction's accepted candidates of that element to the source.
+func (t *hostTransaction) DeclareSource(source driver.Source) error {
+	if err := t.PublicationTransaction.DeclareSource(source); err != nil {
+		return err
+	}
+	t.mu.Lock()
+	t.declared = append(t.declared, source)
+	t.mu.Unlock()
+	return nil
+}
+
+// stageSamples stages, with the same commit, a sample of every fact this
+// transaction upserted for the element of a source this session declared (in
+// this transaction or earlier). The commit admits the candidate and revision the
+// member accepted, and none a rejected commit leaves out.
+func (t *hostTransaction) stageSamples() error {
+	stager, ok := t.PublicationTransaction.(interface{ StageSample(driver.Sample) error })
+	if !ok {
+		return nil
+	}
+	t.session.mu.Lock()
+	sources := append([]driver.Source(nil), t.session.sources...)
+	t.session.mu.Unlock()
+	t.mu.Lock()
+	sources = append(sources, t.declared...)
+	facts := append([]v1.FactCandidate(nil), t.facts...)
+	t.mu.Unlock()
+	for _, source := range sources {
+		for _, fact := range facts {
+			if !sameFactKey(fact.Key, source.For.Key) {
+				continue
+			}
+			if err := stager.StageSample(driver.Sample{From: source, Candidate: fact}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (t *hostTransaction) Stage(batch v1.PublicationBatch) error {
@@ -312,17 +356,31 @@ func (t *hostTransaction) Stage(batch v1.PublicationBatch) error {
 	if err != nil {
 		return err
 	}
-	return t.PublicationTransaction.Stage(stamped)
+	if err := t.PublicationTransaction.Stage(stamped); err != nil {
+		return err
+	}
+	t.mu.Lock()
+	t.facts = append(t.facts, stamped.FactUpserts...)
+	t.mu.Unlock()
+	return nil
 }
 
 // Commit publishes the transaction and then persists the identity checkpoint,
 // so the statements and dispositions the commit made resolvable survive a
-// process loss without a clean shutdown.
+// process loss without a clean shutdown. The publication is already committed
+// when the checkpoint is written, so a checkpoint failure does not turn the
+// result into a failed publication: the next checkpoint write, at the following
+// commit, at WaitInitial or at Close, exports the whole identity state again and
+// reports its own failure.
 func (t *hostTransaction) Commit(ctx context.Context) error {
+	if err := t.stageSamples(); err != nil {
+		return err
+	}
 	if err := t.PublicationTransaction.Commit(ctx); err != nil {
 		return err
 	}
-	return t.rt.saveCheckpoint()
+	_ = t.rt.saveCheckpoint()
+	return nil
 }
 
 func (t *hostTransaction) DeclareSettingRoute(route driver.SettingRoute) error {
@@ -416,6 +474,12 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 		n.ServiceInstance = v1.ServiceInstanceID(scopedID(spec, string(n.ServiceInstance)))
 		n.BindingID = binding(n.BindingID)
 	}
+	for i := range b.RelationUpserts {
+		stampOrigin(spec, &b.RelationUpserts[i].Origin)
+	}
+	for i := range b.AbsenceUpserts {
+		stampOrigin(spec, &b.AbsenceUpserts[i].Origin)
+	}
 	mono, err := t.session.svc.liveMono()
 	if err != nil {
 		return v1.PublicationBatch{}, err
@@ -461,6 +525,24 @@ func (t *hostTransaction) stamp(b v1.PublicationBatch) (v1.PublicationBatch, err
 	}
 	b.BatchDigest = digest
 	return b, nil
+}
+
+// stampOrigin gives a native relation or absence origin the stamped binding,
+// source and epoch of the session, so it resolves to the batch's own binding;
+// the record's key, basis and evidence stay as declared.
+func stampOrigin(spec SessionSpec, o *v1.OriginRef) {
+	if o.BindingID != nil {
+		id := v1.NativeBindingID(scopedID(spec, string(*o.BindingID)))
+		o.BindingID = &id
+	}
+	if o.SourceID != nil {
+		source := spec.Source
+		o.SourceID = &source
+	}
+	if o.SourceEpochID != nil {
+		epoch := spec.Epoch
+		o.SourceEpochID = &epoch
+	}
 }
 
 // stampDerivation carries a derived candidate's exact dependencies through the

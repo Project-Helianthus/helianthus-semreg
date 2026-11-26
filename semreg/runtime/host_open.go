@@ -39,6 +39,18 @@ type HostCut struct {
 	// endpoints: an accepted rebind moves an endpoint to its survivor and a
 	// revoked one moves nothing. Each claim keeps its declared key and basis.
 	Links []identity.Link
+	// Relays are the planned directed links from the bridge to each link node:
+	// the relation type, the endpoints as allocated for this installation and
+	// the basis the plan carries.
+	Relays []PlannedLink
+}
+
+// PlannedLink is one planned directed relation between two installation nodes.
+type PlannedLink struct {
+	Relation v1.DefinitionID
+	From     driver.NodeRef
+	To       driver.NodeRef
+	Basis    v1.RelationBasis
 }
 
 // Runtime is one assembled host runtime. It holds no concrete driver and no
@@ -290,7 +302,30 @@ func (rt *Runtime) Cut(ctx context.Context) (*HostCut, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &HostCut{TreeCut: cut, Ref: sink.Ref, Identity: sink.Identity, Links: sink.Links}, nil
+	relays, err := rt.plannedLinks()
+	if err != nil {
+		_ = cut.Close()
+		return nil, err
+	}
+	return &HostCut{TreeCut: cut, Ref: sink.Ref, Identity: sink.Identity, Links: sink.Links, Relays: relays}, nil
+}
+
+// plannedLinks resolves the plan's directed edges to the node references the
+// installation publication allocated for their durable keys.
+func (rt *Runtime) plannedLinks() ([]PlannedLink, error) {
+	var out []PlannedLink
+	for _, edge := range rt.plan.Edges {
+		from, err := rt.svc.ledger.Node(rt.plan.Bridge, edge.From)
+		if err != nil {
+			return nil, err
+		}
+		to, err := rt.svc.ledger.Node(rt.plan.Bridge, edge.To)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, PlannedLink{Relation: edge.Relation, From: from, To: to, Basis: edge.Basis})
+	}
+	return out, nil
 }
 
 // Tree is SS09's tree.

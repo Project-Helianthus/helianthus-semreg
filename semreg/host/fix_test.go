@@ -420,3 +420,60 @@ func TestConcurrentFirstOpensCommitOneLocalIdentity(t *testing.T) {
 		}
 	}
 }
+
+// kindedFactory plans one driver kind. It records every configuration it is
+// asked to plan and rejects a reference that is not one it was configured with.
+type kindedFactory struct {
+	kind  driver.DriverKind
+	valid string
+	seen  []driver.Config
+}
+
+func (f *kindedFactory) Descriptor() driver.Descriptor { return driver.Descriptor{} }
+func (f *kindedFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
+	f.seen = append(f.seen, c)
+	if c.SecretRef != "" && c.SecretRef != f.valid {
+		return nil, fmt.Errorf("the reference %q is not a configured one", c.SecretRef)
+	}
+	return []driver.InstancePlan{{Driver: f.kind, Instance: driver.InstanceKey(c.Instance)}}, nil
+}
+func (f *kindedFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
+	return nil, errors.New("constructs nothing")
+}
+
+func TestPlanningKeepsEachKindInstancePairsOperandsAndReference(t *testing.T) {
+	ctx := context.Background()
+	const ref = "synthetic-ref-for-a"
+	a := &kindedFactory{kind: "synth.kind_a", valid: ref}
+	b := &kindedFactory{kind: "synth.kind_b"}
+	cfg := Config{
+		InstallationKey: "installation.test", BridgeID: "bridge.test", StateDir: t.TempDir(), Clock: newFixedClock(time.Now()), Calendar: ptr("UTC"),
+		Instances: []InstanceConfig{
+			{Kind: "synth.kind_a", Instance: "main", Enabled: true, Transport: []byte(`{"link":"a"}`), Options: []byte(`{"o":"a"}`), SecretRef: ref},
+			{Kind: "synth.kind_b", Instance: "main", Enabled: true, Transport: []byte(`{"link":"b"}`), Options: []byte(`{"o":"b"}`)},
+		},
+	}
+	site, err := Open(ctx, cfg, a, b)
+	if err != nil {
+		t.Fatalf("two kinds reusing one instance key must plan from their own records: %v", err)
+	}
+	defer func() { _ = site.Close(ctx) }()
+	plan := site.rt.Plan()
+	if len(plan.Instances) != 2 {
+		t.Fatalf("planned %+v", plan.Instances)
+	}
+	for _, planned := range plan.Instances {
+		wantRef, wantTransport := "", `{"link":"b"}`
+		if planned.Ref.Driver == "synth.kind_a" {
+			wantRef, wantTransport = ref, `{"link":"a"}`
+		}
+		if planned.Config.SecretRef != wantRef || string(planned.Config.Transport) != wantTransport {
+			t.Fatalf("%s planned with %+v, want reference %q and transport %s", planned.Ref, planned.Config, wantRef, wantTransport)
+		}
+	}
+	for _, c := range b.seen {
+		if c.SecretRef != "" && c.SecretRef != probeSecretRef {
+			t.Fatalf("the other kind's factory received a configured reference: %+v", c)
+		}
+	}
+}
