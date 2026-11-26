@@ -263,7 +263,6 @@ type secondHostRun struct {
 	Last      driver.Dispatch
 	Executed  int
 	Feed      driver.Changes
-	FeedFrom  driver.Cursor
 	SumBefore graph.MemberSum
 	LensA     []byte
 	LensB     []byte
@@ -289,7 +288,6 @@ func runSecondHost(t *testing.T, cfg Config, factory *synthFactory, page int, ta
 		if err != nil {
 			return err
 		}
-		out.FeedFrom = cut.Tree().Cursor().Semantic
 		out.LensA, _ = mustLens(t, ctx, input, captured.Ref)
 		sum, err := input.SumMembers(ctx, captured.Ref, lensRequest(), v1.DefinitionRef{Pack: facts.op.Ref.Pack, ID: facts.op.Argument.ID, Version: facts.op.Ref.Version}, anyResource(t, ctx, input, captured.Ref))
 		if err != nil {
@@ -315,7 +313,7 @@ func runSecondHost(t *testing.T, cfg Config, factory *synthFactory, page int, ta
 		out.LensB, _ = mustLens(t, ctx, input, captured.Ref)
 		feedCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		out.Feed, err = input.Resume(feedCtx, out.FeedFrom, driver.Filter{})
+		out.Feed, err = input.Resume(feedCtx, driver.Cursor{}, driver.Filter{})
 		if err != nil {
 			st, _ := site.Snapshot(life.Ref{Driver: kindOwner, Instance: "owner.one"})
 			return fmt.Errorf("feed: %w (outcome %+v) owner %+v errs %v", err, out.Outcome.Operation, st, factory.startErrs)

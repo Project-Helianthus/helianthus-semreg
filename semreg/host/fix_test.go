@@ -536,6 +536,31 @@ func (f *referenceOnlyFactory) Construct(context.Context, driver.InstancePlan) (
 	return nil, errors.New("constructs nothing")
 }
 
+func TestFailingUnrelatedFactoryBesideAReferenceOnlyOwnerGetsNoReference(t *testing.T) {
+	ctx := context.Background()
+	const ref = "synthetic-ref-only-owner-beside-failing"
+	owner := &referenceOnlyFactory{kind: "synth.ref_only"}
+	failing := &bystander{fail: true}
+	cfg := Config{
+		InstallationKey: "installation.test", BridgeID: "bridge.test", StateDir: t.TempDir(), Clock: newFixedClock(time.Now()), Calendar: ptr("UTC"),
+		Instances: []InstanceConfig{
+			{Kind: "synth.ref_only", Instance: "main", Enabled: true, Transport: []byte(`{"link":"a"}`), Options: []byte(`{"o":"a"}`), SecretRef: ref},
+		},
+	}
+	site, err := Open(ctx, cfg, failing, owner)
+	if site != nil {
+		defer func() { _ = site.Close(ctx) }()
+	}
+	if len(failing.seen) == 0 {
+		t.Fatal("the failing factory was never asked to plan")
+	}
+	for _, c := range failing.seen {
+		if c.SecretRef == ref {
+			t.Fatalf("a factory that does not own the instance received its configured reference (open: %v)", err)
+		}
+	}
+}
+
 func TestFactoryPlanningOnlyWithAReferenceStillOwnsItsConfiguredInstance(t *testing.T) {
 	ctx := context.Background()
 	const ref = "synthetic-ref-only-owner"

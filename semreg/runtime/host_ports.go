@@ -26,6 +26,7 @@ type hostCuts struct {
 // own capture.
 type captureSink struct {
 	Ref      graph.CutRef
+	Cursor   driver.Cursor
 	Identity identity.Resolution
 	Links    []identity.Link
 }
@@ -70,7 +71,7 @@ func (h *hostCuts) Capture(ctx context.Context, filter driver.Filter) (tree.CutV
 			continue
 		}
 		if sink, ok := ctx.Value(refSinkKey{}).(*captureSink); ok {
-			sink.Ref, sink.Identity, sink.Links = view.Ref, resolution, links
+			sink.Ref, sink.Cursor, sink.Identity, sink.Links = view.Ref, view.Cursor, resolution, links
 		}
 		return h.viewOf(view), nil
 	}
@@ -236,20 +237,42 @@ func cloneResult(r driver.OperationResult) driver.OperationResult {
 type hostInput struct {
 	scoped  *tree.ScopedInput
 	session *Session
+
+	mu       sync.Mutex
+	captured *driver.Cursor
 }
 
 var _ driver.SemanticInput = (*hostInput)(nil)
 
 func (h *hostInput) Capture(ctx context.Context, filter driver.Filter) (driver.SemanticCut, error) {
-	cut, err := h.scoped.Capture(ctx, filter)
+	var sink captureSink
+	cut, err := h.scoped.Capture(withRefSink(ctx, &sink), filter)
 	if err != nil {
 		return driver.SemanticCut{}, err
 	}
 	h.session.Pin(cut.Ref)
+	// The cut carries no cursor; the commit position of this very capture is
+	// kept here, so the session resumes from its own baseline.
+	cursor := sink.Cursor
+	h.mu.Lock()
+	h.captured = &cursor
+	h.mu.Unlock()
 	return cut, nil
 }
 
+// Resume returns the commits after the cursor. The zero cursor stands for the
+// commit position of this session's latest capture; a session that has not
+// captured has no such position.
 func (h *hostInput) Resume(ctx context.Context, cursor driver.Cursor, filter driver.Filter) (driver.Changes, error) {
+	if cursor == (driver.Cursor{}) {
+		h.mu.Lock()
+		own := h.captured
+		h.mu.Unlock()
+		if own == nil {
+			return driver.Changes{}, errors.New("runtime: no capture to resume from")
+		}
+		cursor = *own
+	}
 	return h.scoped.Resume(ctx, cursor, filter)
 }
 
