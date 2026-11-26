@@ -51,8 +51,8 @@ func TestSecretReferenceReachesOnlyTheMatchingFactory(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer site.Close(ctx)
-	if len(other.seen) == 0 {
-		t.Fatal("the unrelated factory was never asked to plan")
+	if len(other.seen) != 0 {
+		t.Fatalf("the factory that declares no kind was asked to plan: %+v", other.seen)
 	}
 	for _, c := range other.seen {
 		if c.SecretRef == secretAlpha || c.SecretRef == secretBeta {
@@ -61,17 +61,21 @@ func TestSecretReferenceReachesOnlyTheMatchingFactory(t *testing.T) {
 	}
 	assertConfigMapping(t, owner, cfg)
 
-	failing := &bystander{fail: true}
+	failing := &failingOwner{}
 	broken := cfg
 	broken.StateDir = t.TempDir()
-	_, err = Open(ctx, broken, failing, newSynthFactory(clock))
-	if err == nil {
-		t.Fatal("a failing factory must fail planning")
+	_, err = Open(ctx, broken, newSynthFactory(clock), failing)
+	if err != nil {
+		t.Fatalf("the failing factory declares no configured kind: %v", err)
 	}
-	if strings.Contains(err.Error(), secretAlpha) || strings.Contains(err.Error(), secretBeta) {
-		t.Fatalf("a diagnostic exposes a reference: %v", err)
+	if len(failing.seen) != 0 {
+		t.Fatalf("a factory that owns none of the instances was asked to plan: %+v", failing.seen)
 	}
 }
+
+type failingOwner struct{ bystander }
+
+func (f *failingOwner) Descriptor() driver.Descriptor { return driver.Descriptor{} }
 
 // requiringFactory validates that an instance configured with a reference
 // carries a nonempty one when it plans.
@@ -429,7 +433,9 @@ type kindedFactory struct {
 	seen  []driver.Config
 }
 
-func (f *kindedFactory) Descriptor() driver.Descriptor { return driver.Descriptor{} }
+func (f *kindedFactory) Descriptor() driver.Descriptor {
+	return driver.Descriptor{Kinds: []driver.DriverKind{f.kind}}
+}
 func (f *kindedFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	f.seen = append(f.seen, c)
 	if c.SecretRef != "" && c.SecretRef != f.valid {
@@ -484,12 +490,13 @@ func TestFailingUnrelatedFactoryNeverReceivesAnOwnedReference(t *testing.T) {
 	cfg := baseConfig(t, clock)
 	failing := &bystander{fail: true}
 	owner := newSynthFactory(clock)
-	if site, err := Open(ctx, cfg, failing, owner); err == nil {
-		_ = site.Close(ctx)
-		t.Fatal("a failing factory must fail planning")
+	site, err := Open(ctx, cfg, failing, owner)
+	if err != nil {
+		t.Fatalf("a factory that declares no kind must not fail planning: %v", err)
 	}
-	if len(failing.seen) == 0 {
-		t.Fatal("the failing factory was never asked to plan")
+	_ = site.Close(ctx)
+	if len(failing.seen) != 0 {
+		t.Fatalf("the factory that declares no kind was asked to plan: %+v", failing.seen)
 	}
 	for _, c := range failing.seen {
 		if c.SecretRef != "" {
@@ -507,8 +514,8 @@ func TestFailingUnrelatedFactoryBesideAReferenceRequiringOwnerGetsNoReference(t 
 	if site, err := Open(ctx, cfg, failing, owner); err == nil {
 		_ = site.Close(ctx)
 	}
-	if len(failing.seen) == 0 {
-		t.Fatal("the failing factory was never asked to plan")
+	if len(failing.seen) != 0 {
+		t.Fatalf("the factory that declares no kind was asked to plan: %+v", failing.seen)
 	}
 	for _, c := range failing.seen {
 		if c.SecretRef != "" {
@@ -524,7 +531,9 @@ type referenceOnlyFactory struct {
 	seen []driver.Config
 }
 
-func (f *referenceOnlyFactory) Descriptor() driver.Descriptor { return driver.Descriptor{} }
+func (f *referenceOnlyFactory) Descriptor() driver.Descriptor {
+	return driver.Descriptor{Kinds: []driver.DriverKind{f.kind}}
+}
 func (f *referenceOnlyFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	f.seen = append(f.seen, c)
 	if c.SecretRef == "" {
@@ -551,8 +560,8 @@ func TestFailingUnrelatedFactoryBesideAReferenceOnlyOwnerGetsNoReference(t *test
 	if site != nil {
 		defer func() { _ = site.Close(ctx) }()
 	}
-	if len(failing.seen) == 0 {
-		t.Fatal("the failing factory was never asked to plan")
+	if len(failing.seen) != 0 {
+		t.Fatalf("the factory that declares no kind was asked to plan: %+v", failing.seen)
 	}
 	for _, c := range failing.seen {
 		if c.SecretRef == ref {
@@ -603,5 +612,49 @@ func TestOpenWithoutACalendarIgnoresTheMachineZoneVariable(t *testing.T) {
 				t.Fatal("no site")
 			}
 		})
+	}
+}
+
+// erroringFactory declares one kind and fails to plan any record that is not an
+// instance of it.
+type erroringFactory struct {
+	seen []driver.Config
+}
+
+func (f *erroringFactory) Descriptor() driver.Descriptor {
+	return driver.Descriptor{Kinds: []driver.DriverKind{"synth.erroring"}}
+}
+func (f *erroringFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
+	f.seen = append(f.seen, c)
+	return nil, fmt.Errorf("unsupported record %s", c.Instance)
+}
+func (f *erroringFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
+	return nil, errors.New("constructs nothing")
+}
+
+func TestUnselectedKindIsUnmatchedAndItsReferenceReachesNoFactory(t *testing.T) {
+	ctx := context.Background()
+	const ref = "synthetic-ref-of-the-unselected-kind"
+	clock := newFixedClock(time.Now())
+	cfg := baseConfig(t, clock)
+	cfg.Instances = append(cfg.Instances, InstanceConfig{Kind: "synth.unselected", Instance: "stray.one", Enabled: true, SecretRef: ref})
+	erroring := &erroringFactory{}
+	owner := newSynthFactory(clock)
+	site, err := Open(ctx, cfg, erroring, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = site.Close(ctx) }()
+	if err := site.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := site.Unmatched(); len(got) != 1 || got[0] != "synth.unselected/stray.one" {
+		t.Fatalf("unmatched = %v", got)
+	}
+	if len(erroring.seen) != 0 {
+		t.Fatalf("the factory that declares another kind was asked to plan: %+v", erroring.seen)
+	}
+	if _, err := site.Snapshot(life.Ref{Driver: kindOwner, Instance: "owner.one"}); err != nil {
+		t.Fatalf("a matched peer did not start: %v", err)
 	}
 }

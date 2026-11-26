@@ -202,7 +202,9 @@ type claimSpec struct {
 	Domain   string `json:"domain"`
 }
 
-func (f *synthFactory) Descriptor() driver.Descriptor { return driver.Descriptor{Families: f.families} }
+func (f *synthFactory) Descriptor() driver.Descriptor {
+	return driver.Descriptor{Families: f.families, Kinds: []driver.DriverKind{kindOwner, kindConsumer, kindPlain}}
+}
 
 func (f *synthFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
 	f.mu.Lock()

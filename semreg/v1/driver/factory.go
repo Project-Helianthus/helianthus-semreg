@@ -109,13 +109,20 @@ func (p InstancePlan) Validate() error {
 
 // Descriptor carries the families a driver declares. The record type is
 // catalog.Family, the one family record of SemReg, so any host reads every linked
-// driver's families through SemReg.
+// driver's families through SemReg. Kinds are the driver kinds the factory
+// plans; the host takes the owner of a configured instance from them alone.
 type Descriptor struct {
 	Families []catalog.Family
+	Kinds    []DriverKind
 }
 
-// Validate checks every family record.
+// Validate checks every family record and every declared kind.
 func (d Descriptor) Validate() error {
+	for i, k := range d.Kinds {
+		if err := k.Validate(); err != nil {
+			return fmt.Errorf("kinds[%d]: %w", i, err)
+		}
+	}
 	for i, f := range d.Families {
 		if err := f.Validate(); err != nil {
 			return fmt.Errorf("families[%d] %q: %w", i, f.FamilyID, err)
