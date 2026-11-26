@@ -24,7 +24,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 	if err := x.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(x.Fields) != 95 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
+	if len(x.Fields) != 103 || len(x.Services) != 6 || len(x.Capabilities) != 8 || len(x.Operations) != 2 || len(x.EffectRules) != 2 {
 		t.Fatal(x)
 	}
 	for _, s := range fields {
@@ -47,7 +47,7 @@ func TestPVFieldsIndexAndRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 64; i++ {
-				if len(v.Definitions().Fields) != 95 {
+				if len(v.Definitions().Fields) != 103 {
 					t.Error("index")
 				}
 			}
@@ -92,10 +92,10 @@ func TestPVMachineVectors(t *testing.T) {
 
 // pvFixtureSHA256 is the SHA-256 of fixtures/v1/pv-inverter-pack-vectors.json.
 var pvFixtureSHA256 = [sha256.Size]byte{
-	0xa0, 0x00, 0xcd, 0xb9, 0x7a, 0xea, 0x32, 0x18,
-	0xf0, 0xc7, 0x3f, 0x09, 0x24, 0x4a, 0x84, 0x76,
-	0x9c, 0xfa, 0x39, 0xc3, 0xcf, 0xc2, 0x7d, 0x74,
-	0x2e, 0xd5, 0x50, 0x60, 0xb1, 0xb0, 0xb3, 0x0e,
+	0x9d, 0x9e, 0x8a, 0xd6, 0x98, 0x08, 0x0d, 0x20,
+	0x2a, 0x2a, 0xdd, 0xb8, 0x47, 0x8f, 0x51, 0x63,
+	0xdd, 0x32, 0x0c, 0x31, 0xb0, 0x0f, 0x23, 0xc4,
+	0x09, 0xf0, 0x6c, 0x91, 0xd0, 0x77, 0xc8, 0x07,
 }
 
 // pvRelations lists the accepted PV relations in declared order; every one

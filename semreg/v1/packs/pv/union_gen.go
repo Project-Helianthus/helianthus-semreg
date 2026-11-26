@@ -148,15 +148,23 @@ var unionOperations = map[semreg.DefinitionID]operationSpec{
 }
 
 var unionFieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
-	"pv.accuracy.measured":             []semreg.DefinitionID{"pv.dimension.measurement_type"},
-	"pv.accuracy.ratio_maximum":        []semreg.DefinitionID{"pv.dimension.measurement_type"},
-	"pv.energy.yield_history":          []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
-	"pv.moi.ac_yield_day":              []semreg.DefinitionID{"pv.dimension.period"},
-	"pv.moi.ac_yield_day_historical":   []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
-	"pv.moi.ac_yield_month":            []semreg.DefinitionID{"pv.dimension.period"},
-	"pv.moi.ac_yield_month_historical": []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
-	"pv.moi.ac_yield_year":             []semreg.DefinitionID{"pv.dimension.period"},
-	"pv.moi.ac_yield_year_historical":  []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
+	"pv.accuracy.measured":                        []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.ratio_maximum":                   []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_minimum_active_current": []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_minimum_active_power":   []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_maximum_active_current": []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.measured_maximum_active_power":   []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.range_minimum_active_current":    []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.range_minimum_active_power":      []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.range_maximum_active_current":    []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.accuracy.range_maximum_active_power":      []semreg.DefinitionID{"pv.dimension.measurement_type"},
+	"pv.energy.yield_history":                     []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
+	"pv.moi.ac_yield_day":                         []semreg.DefinitionID{"pv.dimension.period"},
+	"pv.moi.ac_yield_day_historical":              []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
+	"pv.moi.ac_yield_month":                       []semreg.DefinitionID{"pv.dimension.period"},
+	"pv.moi.ac_yield_month_historical":            []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
+	"pv.moi.ac_yield_year":                        []semreg.DefinitionID{"pv.dimension.period"},
+	"pv.moi.ac_yield_year_historical":             []semreg.DefinitionID{"pv.dimension.period", "pv.dimension.period_offset"},
 }
 
 var unionQualifierSymbols = map[semreg.DefinitionID][]string{
