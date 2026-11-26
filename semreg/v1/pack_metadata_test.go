@@ -278,6 +278,63 @@ func TestPackMetadataProviderReturnsFreshAuthoritativeSnapshot(t *testing.T) {
 	}
 }
 
+type callbackMetadataProvider struct {
+	semreg.PackValidator
+	metadata func() semreg.PackMetadata
+}
+
+func (p callbackMetadataProvider) Metadata() semreg.PackMetadata { return p.metadata() }
+
+func TestPackMetadataRelease(t *testing.T) {
+	source := func(t *testing.T) semreg.PackMetadataSource {
+		t.Helper()
+		provider := thermal.New()
+		metadata := thermal.Metadata()
+		literal := false
+		metadata.Operations[0].Release = &semreg.ReleaseMetadata{Argument: semreg.Value{Kind: semreg.ValueBoolean, Boolean: &literal}}
+		return semreg.PackMetadataSource{Validator: driftingMetadataProvider{provider, metadata}, Metadata: metadata}
+	}
+	t.Run("valid literal keeps the primary operation lookup", func(t *testing.T) {
+		s := source(t)
+		registry, err := semreg.NewPackMetadataRegistry(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		op := s.Metadata.Operations[0]
+		if !registry.OperationMatches(op.Ref, op.Capability, op.Service, op.Argument, op.Effect) {
+			t.Fatal("release changed the operation's primary lookup")
+		}
+	})
+	t.Run("matching provider cannot supply a malformed literal", func(t *testing.T) {
+		s := source(t)
+		s.Metadata.Operations[0].Release.Argument.Boolean = nil
+		if _, err := semreg.NewPackMetadataRegistry(s); semreg.ErrorIdentifier(err) != semreg.InvalidValue {
+			t.Fatalf("malformed literal: %v", err)
+		}
+	})
+	t.Run("release belongs to the operation owner", func(t *testing.T) {
+		s := source(t)
+		s.Validator = thermal.New()
+		if _, err := semreg.NewPackMetadataRegistry(s); semreg.ErrorIdentifier(err) != semreg.DefinitionOwnerConflict {
+			t.Fatalf("undeclared release: %v", err)
+		}
+	})
+	t.Run("copies the release and its literal payload", func(t *testing.T) {
+		s := source(t)
+		original := s.Metadata.Operations[0].Release
+		owner := thermal.Metadata()
+		literal := false
+		owner.Operations[0].Release = &semreg.ReleaseMetadata{Argument: semreg.Value{Kind: semreg.ValueBoolean, Boolean: &literal}}
+		s.Validator = callbackMetadataProvider{s.Validator, func() semreg.PackMetadata {
+			*original.Argument.Boolean = true
+			return owner
+		}}
+		if _, err := semreg.NewPackMetadataRegistry(s); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
 func TestPackMetadataConcurrentQueries(t *testing.T) {
 	registry, err := packs.NewMetadataRegistry()
 	if err != nil {

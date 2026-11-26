@@ -152,10 +152,87 @@ func (p Precondition) Validate() error {
 	return mostSpecific(p.Fact.Validate(), p.CandidateID.Validate(), revisionErr, p.Operator.Validate(), p.Expected.Validate())
 }
 
-// Validate checks the rule reference, fact key, operator and expected value.
-// Agreement with the pack-derived effect is checked by Kernel.ValidateIntent.
+// Unconfirmed reports whether the effect carries only a rule, with no predicate.
+func (e ExpectedEffect) Unconfirmed() bool {
+	fact, operator, expected := e.predicatePresence()
+	return !fact && !operator && !expected
+}
+
+func (e ExpectedEffect) predicatePresence() (fact, operator, expected bool) {
+	return !reflect.DeepEqual(e.Fact, semreg.FactKey{}), e.Operator != "", !reflect.DeepEqual(e.Expected, semreg.Value{})
+}
+
+// Validate checks the rule and the optional complete predicate. Agreement with
+// the pack-owned operation is checked by Kernel.ValidateIntent.
 func (e ExpectedEffect) Validate() error {
+	fact, operator, expected := e.predicatePresence()
+	if err := effectPredicateForm(fact, operator, expected); err != nil {
+		return mostSpecific(e.Rule.Validate(), err)
+	}
+	if !fact {
+		return e.Rule.Validate()
+	}
 	return mostSpecific(e.Rule.Validate(), e.Fact.Validate(), e.Operator.Validate(), e.Expected.Validate())
+}
+
+func effectPredicateForm(fact, operator, expected bool) error {
+	if fact != operator || fact != expected {
+		return opError(semreg.InvalidValue, "partial effect predicate")
+	}
+	return nil
+}
+
+// MarshalJSON keeps the existing predicate wire form and omits all three
+// predicate members for a rule-only effect.
+func (e ExpectedEffect) MarshalJSON() ([]byte, error) {
+	if e.Unconfirmed() {
+		return json.Marshal(struct {
+			Rule semreg.DefinitionRef `json:"rule"`
+		}{e.Rule})
+	}
+	type wire ExpectedEffect
+	return json.Marshal(wire(e))
+}
+
+// UnmarshalJSON binds both forms without letting an explicit null or partially
+// supplied predicate turn into a rule-only effect.
+func (e *ExpectedEffect) UnmarshalJSON(raw []byte) error {
+	if err := effectWireForm(raw); err != nil {
+		return err
+	}
+	type wire ExpectedEffect
+	var decoded wire
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return err
+	}
+	*e = ExpectedEffect(decoded)
+	return nil
+}
+
+func effectWireForm(raw []byte) error {
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &members); err != nil {
+		return err
+	}
+	if members == nil {
+		return opError(semreg.MissingMember, "expected effect")
+	}
+	if members["rule"] == nil {
+		return opError(semreg.MissingMember, "rule")
+	}
+	known := 0
+	for _, name := range []string{"rule", "fact", "operator", "expected"} {
+		if value, present := members[name]; present {
+			known++
+			if bytes.Equal(value, []byte("null")) {
+				return opError(semreg.MissingMember, name)
+			}
+		}
+	}
+	if known != len(members) {
+		return opError(semreg.UnknownMember, "expected effect member")
+	}
+	return effectPredicateForm(members["fact"] != nil, members["operator"] != nil, members["expected"] != nil)
 }
 
 // Validate performs the state-independent structural checks of an intent:
@@ -203,9 +280,16 @@ func (i Intent) validate(lifetime bool) error {
 	if len(i.Arguments) > 64 {
 		errs = append(errs, opError(semreg.BoundsExceeded, "intent arguments"))
 	}
+	ruleOnly := i.ExpectedEffect.Unconfirmed()
+	if ruleOnly && len(i.Arguments) != 1 {
+		errs = append(errs, opError(semreg.InvalidValue, "rule-only intent requires exactly one argument"))
+	}
 	seenArguments := make(map[semreg.DefinitionID]struct{}, len(i.Arguments))
 	for index, field := range i.Arguments {
 		errs = append(errs, field.Validate())
+		if ruleOnly {
+			continue
+		}
 		if field.ID.Validate() == nil {
 			if _, duplicate := seenArguments[field.ID]; duplicate {
 				errs = append(errs, opError(semreg.DuplicateKey, "intent arguments"))
@@ -348,7 +432,7 @@ func (r ExecutionRecord) Validate() error {
 	if r.Acknowledgement != nil {
 		errs = append(errs, r.Acknowledgement.Validate())
 	}
-	if r.Readback != nil {
+	if r.Readback != nil && !r.Intent.ExpectedEffect.Unconfirmed() {
 		errs = append(errs, r.Readback.Validate())
 	}
 	if r.ErrorID != nil {
@@ -363,6 +447,14 @@ func (r ExecutionRecord) Validate() error {
 }
 
 func (r ExecutionRecord) outcomeCombinationError() error {
+	if r.Intent.ExpectedEffect.Unconfirmed() {
+		if r.Readback != nil || r.Outcome == OutcomeApplied || r.Outcome == OutcomeConflict {
+			return opError(semreg.InvalidOutcome, "rule-only intent cannot report an effect")
+		}
+		if r.Outcome == OutcomeNoEffect && (r.Acknowledgement == nil || r.Acknowledgement.State != AckRejected) {
+			return opError(semreg.InvalidOutcome, "rule-only no-effect outcome requires a rejected acknowledgement")
+		}
+	}
 	if r.Outcome == OutcomeRejected {
 		if r.ErrorID == nil || r.AdmittedAt != nil || r.AdmittedRevision != nil || r.Route != nil || r.Dispatch != nil || r.Acknowledgement != nil || r.Readback != nil {
 			return opError(semreg.InvalidOutcome, "rejected evidence")
@@ -442,14 +534,14 @@ func wallChronological(start, end semreg.TimePoint, strict bool) error {
 // ContractOperationV1 and duplicate or misordered precondition keys are
 // rejected; the most specific error wins and no partial value is returned.
 func DecodeIntent(raw []byte) (Intent, error) {
-	return decodeOperationDocument[Intent](raw, operationPreconditionWireError(raw, false))
+	return decodeOperationDocument[Intent](raw, operationIntentWireError(raw, false))
 }
 
 // DecodeExecutionRecord strictly decodes one ExecutionRecord document under the
 // same rules as DecodeIntent; the contract check applies to the record and the
 // precondition key checks to its nested intent.
 func DecodeExecutionRecord(raw []byte) (ExecutionRecord, error) {
-	return decodeOperationDocument[ExecutionRecord](raw, operationPreconditionWireError(raw, true))
+	return decodeOperationDocument[ExecutionRecord](raw, operationIntentWireError(raw, true))
 }
 
 // Operation wrappers own their document discriminator. Keep the root decoder's
@@ -472,10 +564,9 @@ func decodeOperationDocument[T semreg.Record](raw []byte, collectionErr error) (
 	return value, nil
 }
 
-// The semantic root cannot import this operation package, so operation owns
-// partial wire collection for its precondition tuple. Only fully valid key
-// components participate; malformed non-key members do not hide a valid key.
-func operationPreconditionWireError(raw []byte, nested bool) error {
+// The operation package owns conditional predicate presence and precondition
+// tuple checks, including when an independent wire member is malformed.
+func operationIntentWireError(raw []byte, nested bool) error {
 	var document map[string]json.RawMessage
 	if json.Unmarshal(raw, &document) != nil || document == nil {
 		return nil
@@ -492,17 +583,16 @@ func operationPreconditionWireError(raw []byte, nested bool) error {
 	if json.Unmarshal(intentRaw, &intent) != nil || intent == nil {
 		return nil
 	}
-	preconditionsRaw, present := intent["preconditions"]
-	if !present {
-		return nil
+	var errs []error
+	if effect, present := intent["expected_effect"]; present {
+		errs = append(errs, effectWireForm(effect))
 	}
 	var preconditions []json.RawMessage
-	if json.Unmarshal(preconditionsRaw, &preconditions) != nil {
-		return nil
+	if json.Unmarshal(intent["preconditions"], &preconditions) != nil {
+		return mostSpecific(errs...)
 	}
 	seen := make(map[string]struct{}, len(preconditions))
 	var prior *Precondition
-	var errs []error
 	for _, rawPrecondition := range preconditions {
 		precondition, valid := wirePreconditionCollectionKey(rawPrecondition)
 		if !valid {

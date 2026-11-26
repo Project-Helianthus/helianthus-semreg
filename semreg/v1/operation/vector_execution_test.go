@@ -542,7 +542,86 @@ func completeVectorIndex(index semreg.DefinitionIndex) semreg.DefinitionIndex {
 	return index
 }
 
+func TestReleaseVectorsExecute(t *testing.T) {
+	for _, vector := range loadOperationVectorDocument(t).ReleaseVectors {
+		t.Run(vector.ID, func(t *testing.T) {
+			fixture, pack := newReleaseFixture(t)
+			before, err := semreg.CanonicalJSON(fixture.snapshot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expansion := vectorExpansion{Intent: &fixture.intent, Snapshot: &fixture.snapshot, Current: &fixture.current}
+			var got error
+			switch vector.Operation {
+			case "admit":
+				var input struct {
+					Arguments []semreg.TypedField `json:"arguments"`
+					Predicate bool                `json:"predicate"`
+				}
+				decodeVectorInput(t, vector.Input, &input)
+				fixture.intent.Arguments = input.Arguments
+				if input.Predicate {
+					fixture.intent.ExpectedEffect = expectedEffect(false)
+					pack.allowBoolField = true
+				}
+				_, got = fixture.kernel.Admit(fixture.snapshot, fixture.current, fixture.intent, operation.AuthorityResolverFunc(authorize))
+			case "record":
+				var input struct {
+					Outcome  operation.Outcome          `json:"outcome"`
+					Ack      operation.AckState         `json:"acknowledgement"`
+					Relation operation.ReadbackRelation `json:"relation"`
+				}
+				decodeVectorInput(t, vector.Input, &input)
+				admission := mustAdmit(t, fixture)
+				record := admittedRecord(admission)
+				record.Outcome = input.Outcome
+				record.Dispatch = dispatch(operation.DeliverySent, true)
+				record.Acknowledgement = &operation.Acknowledgement{State: input.Ack, At: timePoint("210"), Evidence: []semreg.EvidenceRef{evidence(8)}}
+				if input.Relation != "" {
+					record.Readback = readback(fixture.snapshot, input.Relation)
+				}
+				expansion.Record = &record
+				stored, err := fixture.kernel.Record(admission, record, nil)
+				got = err
+				if err == nil && (stored.Outcome != input.Outcome || stored.Readback != nil) {
+					t.Fatalf("unexpected release record: %+v", stored)
+				}
+			default:
+				t.Fatalf("unknown release vector operation %q", vector.Operation)
+			}
+			switch vector.Expect.Result {
+			case "accept":
+				if got != nil {
+					t.Fatal(got)
+				}
+			case "reject":
+				errorID(t, got, vector.Expect.ErrorID)
+				after, err := semreg.CanonicalJSON(fixture.snapshot)
+				if err != nil || !bytes.Equal(before, after) {
+					t.Fatal("rejected vector mutated semantic state")
+				}
+			default:
+				t.Fatalf("unknown release vector result %q", vector.Expect.Result)
+			}
+			if pack.readbackCalls != 0 {
+				t.Fatal("release vector reached the readback hook")
+			}
+			logVectorExpansion(t, vector, expansion)
+		})
+	}
+}
+
+type operationVectorDocument struct {
+	Vectors        []operationVector `json:"vectors"`
+	ReleaseVectors []operationVector `json:"release_vectors"`
+}
+
 func loadOperationVectors(t *testing.T) []operationVector {
+	t.Helper()
+	return loadOperationVectorDocument(t).Vectors
+}
+
+func loadOperationVectorDocument(t *testing.T) operationVectorDocument {
 	t.Helper()
 	_, source, _, ok := runtime.Caller(0)
 	if !ok {
@@ -555,13 +634,11 @@ func loadOperationVectors(t *testing.T) []operationVector {
 	if err := rejectDuplicateJSONKeys(raw); err != nil {
 		t.Fatal(err)
 	}
-	var document struct {
-		Vectors []operationVector `json:"vectors"`
-	}
+	var document operationVectorDocument
 	if err := json.Unmarshal(raw, &document); err != nil {
 		t.Fatal(err)
 	}
-	return document.Vectors
+	return document
 }
 
 func decodeVectorInput(t *testing.T, raw json.RawMessage, target any) {

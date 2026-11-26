@@ -47,7 +47,7 @@ func (k *Kernel) Record(admission *Admission, record ExecutionRecord, laterSnaps
 	if record.Acknowledgement != nil && record.Dispatch != nil {
 		errs = append(errs, acknowledgementAfterStart(record.Dispatch.Started.EvaluatedAt, record.Acknowledgement.At))
 	}
-	if record.Readback != nil {
+	if record.Readback != nil && !record.Intent.ExpectedEffect.Unconfirmed() {
 		if laterSnapshot == nil {
 			errs = append(errs, opError(semreg.DanglingReference, "readback snapshot"))
 		} else if snapshotErr == nil {
@@ -139,7 +139,7 @@ func (k *Kernel) RecordRejection(intent Intent, errorID semreg.ErrorID, evidence
 // the original typed record, while an invalid snapshot never reaches a hook.
 func validateRecordInputs(record ExecutionRecord, snapshot *semreg.Snapshot) (recordErr, snapshotErr error) {
 	recordErr = record.Validate()
-	if record.Readback != nil && snapshot != nil {
+	if record.Readback != nil && snapshot != nil && !record.Intent.ExpectedEffect.Unconfirmed() {
 		snapshotErr = snapshot.Validate()
 	}
 	return recordErr, snapshotErr

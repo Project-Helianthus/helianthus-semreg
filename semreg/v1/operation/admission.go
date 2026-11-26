@@ -192,8 +192,11 @@ func (k *Kernel) validateIntent(intent Intent, lifetime bool) (error, bool) {
 	}
 	packValidator, packErr := k.registry.Validator(intent.Kind.Pack)
 	errs = append(errs, packErr)
-	constraintsSafe := packErr == nil
-	if packErr == nil {
+	releaseErr := operationValidator.validateRelease(intent)
+	errs = append(errs, releaseErr)
+	constraintsSafe := packErr == nil && releaseErr == nil
+	checkPredicate := !intent.ExpectedEffect.Unconfirmed() && releaseErr == nil
+	if packErr == nil && checkPredicate {
 		index := packValidator.Definitions()
 		for _, argument := range intent.Arguments {
 			var exact *semreg.DefinitionRef
@@ -242,7 +245,9 @@ func (k *Kernel) validateIntent(intent Intent, lifetime bool) (error, bool) {
 			errs = append(errs, opError(semreg.DefinitionOwnerMissing, "required capability definition"))
 		}
 	}
-	errs = append(errs, k.registry.ValidateFact(intent.ExpectedEffect.Fact, &intent.ExpectedEffect.Expected))
+	if checkPredicate {
+		errs = append(errs, k.registry.ValidateFact(intent.ExpectedEffect.Fact, &intent.ExpectedEffect.Expected))
+	}
 	for _, precondition := range intent.Preconditions {
 		errs = append(errs, k.registry.ValidateFact(precondition.Fact, &precondition.Expected))
 	}
@@ -256,6 +261,42 @@ func (k *Kernel) validateIntent(intent Intent, lifetime bool) (error, bool) {
 		errs = append(errs, stableHookError(hookErr, "operation intent"))
 	}
 	return mostSpecific(append([]error{typedErr}, errs...)...), constraintsSafe
+}
+
+// validateRelease checks the alternative declared by the exact operation owner.
+// It leaves predicate-bearing set intents on the existing validation path.
+func (v *lockedOperationValidator) validateRelease(intent Intent) error {
+	ruleOnly := intent.ExpectedEffect.Unconfirmed()
+	if v != nil {
+		if provider, ok := v.hook.(semreg.PackMetadataProvider); ok {
+			v.mu.Lock()
+			defer v.mu.Unlock()
+			for _, op := range provider.Metadata().Operations {
+				if op.Ref != intent.Kind || op.Release == nil {
+					continue
+				}
+				matchesLiteral := func(arg semreg.TypedField) bool {
+					return arg.ID == op.Argument.ID && reflect.DeepEqual(arg.Value, op.Release.Argument)
+				}
+				if ruleOnly {
+					if intent.ExpectedEffect.Rule != op.Effect || len(intent.Arguments) != 1 || !matchesLiteral(intent.Arguments[0]) {
+						return opError(semreg.InvalidValue, "release rule or argument differs from pack metadata")
+					}
+				} else {
+					for _, arg := range intent.Arguments {
+						if matchesLiteral(arg) {
+							return opError(semreg.InvalidValue, "release intent cannot carry a predicate")
+						}
+					}
+				}
+				return nil
+			}
+		}
+	}
+	if ruleOnly {
+		return opError(semreg.InvalidValue, "operation has no declared release")
+	}
+	return nil
 }
 
 func intentSafeForHooks(err error) bool {
@@ -664,8 +705,14 @@ func (k *Kernel) routes(snapshot semreg.Snapshot, intent Intent, invokeConstrain
 		if definitionErr == nil {
 			if !invokeConstraintHook {
 				skippedConstraints = true
-			} else if err := validator.MatchConstraints(clone(capability), clone(intent.Arguments)); err != nil {
-				errs = append(errs, opError(semreg.AmbiguousRoute, "capability constraints"))
+			} else {
+				fields := intent.Arguments
+				if intent.ExpectedEffect.Unconfirmed() {
+					fields = []semreg.TypedField{}
+				}
+				if err := validator.MatchConstraints(clone(capability), clone(fields)); err != nil {
+					errs = append(errs, opError(semreg.AmbiguousRoute, "capability constraints"))
+				}
 			}
 		}
 		if err := mostSpecific(errs...); err != nil {

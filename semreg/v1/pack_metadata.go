@@ -29,7 +29,7 @@ type CapabilityMetadata struct {
 
 // OperationMetadata describes one exact, pack-owned operation shape.
 // Parameters keeps the declared order and is omitted when empty. Argument
-// and Effect stay the primary pair.
+// and Effect stay the primary pair; Release uses their existing identifiers.
 type OperationMetadata struct {
 	Ref        DefinitionRef
 	Capability DefinitionRef
@@ -37,6 +37,12 @@ type OperationMetadata struct {
 	Argument   DefinitionRef
 	Effect     DefinitionRef
 	Parameters []DefinitionRef
+	Release    *ReleaseMetadata `json:",omitempty"`
+}
+
+// ReleaseMetadata declares the alternative literal for an operation's argument.
+type ReleaseMetadata struct {
+	Argument Value
 }
 
 // PackMetadata is a fresh, protocol-neutral description exported by one pack.
@@ -327,6 +333,11 @@ func registerOperations(r *PackMetadataRegistry, pack PackRef, operations []Oper
 		if index[operation.Ref] != DefinitionOperation || index[operation.Argument] != DefinitionField || index[operation.Effect] != DefinitionEffectRule {
 			return errID(DefinitionOwnerMissing, "metadata operation definition")
 		}
+		if operation.Release != nil {
+			if err := operation.Release.Argument.Validate(); err != nil {
+				return err
+			}
+		}
 		seenParameter := map[DefinitionRef]struct{}{}
 		for _, parameter := range operation.Parameters {
 			if err := metadataRefOwns(pack, parameter); err != nil {
@@ -472,6 +483,9 @@ func clonePackMetadata(in PackMetadata) PackMetadata {
 	out.Operations = make([]OperationMetadata, len(in.Operations))
 	for i, operation := range in.Operations {
 		out.Operations[i] = operation
+		if operation.Release != nil {
+			out.Operations[i].Release = &ReleaseMetadata{Argument: copyHookValue(operation.Release.Argument)}
+		}
 		if operation.Parameters != nil {
 			out.Operations[i].Parameters = append([]DefinitionRef(nil), operation.Parameters...)
 		}

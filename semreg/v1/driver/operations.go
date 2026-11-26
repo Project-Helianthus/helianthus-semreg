@@ -174,7 +174,8 @@ type ScopedOperations interface {
 // Dispatch is what the router hands the setting owner: the admitted request, the
 // route, the guard claims, the expected effect and the admission time and
 // revision, detached from router state. A call-bound invocation carries no
-// finite-wire intent and no invented UTC or causal expiry.
+// finite-wire intent and no invented UTC or causal expiry. An admitted release
+// carries a rule-only ExpectedEffect, not a readback predicate.
 type Dispatch struct {
 	Request          OperationRequest
 	Route            operation.Route

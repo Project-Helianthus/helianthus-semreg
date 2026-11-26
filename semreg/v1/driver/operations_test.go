@@ -205,3 +205,9 @@ func TestRegisterExecutorSignatures(t *testing.T) {
 		t.Error("a registration for an invalid route was accepted")
 	}
 }
+
+func TestDispatchAcceptsRuleOnlyExpectedEffect(t *testing.T) {
+	d := dispatch()
+	d.ExpectedEffect = operation.ExpectedEffect{Rule: d.ExpectedEffect.Rule}
+	wantValid(t, "dispatch with rule-only expected effect", d.Validate())
+}
