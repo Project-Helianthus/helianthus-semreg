@@ -29,7 +29,7 @@ type CutID string
 // NodeRef refers to a node by bridge and resource id.
 type NodeRef = driver.NodeRef
 
-// Ref is the path of a node or the key of an attribute or a method.
+// Ref is the path of a node or the key of an attribute, method or view.
 type Ref string
 
 // AttrRef is the key of an attribute.
@@ -68,6 +68,7 @@ const (
 	EntryNode      EntryKind = "node"
 	EntryAttribute EntryKind = "attribute"
 	EntryMethod    EntryKind = "method"
+	EntryView      EntryKind = "view"
 )
 
 // Filter narrows a List by what the descriptors declare. An unset member does
@@ -88,7 +89,7 @@ type Page struct {
 	Filter Filter
 }
 
-// Descriptor is the typed descriptor of a node, an attribute or a method.
+// Descriptor is the typed descriptor of a node, attribute, method or view.
 type Descriptor struct {
 	Ref        Ref
 	Kind       EntryKind
@@ -109,6 +110,7 @@ type Descriptor struct {
 	Bounds     *driver.ValueLimits
 	State      *InstanceState
 	Withdrawn  bool
+	View       *ViewDescription `json:",omitempty"`
 }
 
 // Entries is one page of a listing, pinned to one cut.
@@ -696,6 +698,11 @@ func (c *TreeCut) children(path NodePath) []Descriptor {
 			out = append(out, c.methodDescriptor(m))
 		}
 	}
+	for _, view := range c.reg.views {
+		if view.key.Node.equal(path) {
+			out = append(out, c.viewDescriptor(view))
+		}
+	}
 	if level, _ := path.Level(); level == LevelInstallation {
 		out = append(out, c.semanticDescriptors()...)
 	}
@@ -766,7 +773,7 @@ func parseToken(token string) (pageToken, error) {
 	return out, nil
 }
 
-// List returns the children of a node: child nodes, attributes and methods, in
+// List returns the children of a node: child nodes, attributes, methods and views, in
 // the order of their canonical id bytes, one page of the caller's size, pinned
 // to this cut.
 func (c *TreeCut) List(ctx context.Context, node NodeRef, page Page) (Entries, error) {
@@ -813,7 +820,7 @@ func (c *TreeCut) List(ctx context.Context, node NodeRef, page Page) (Entries, e
 	return out, nil
 }
 
-// Describe returns the descriptor of a node, an attribute or a method.
+// Describe returns the descriptor of a node, attribute, method or view.
 func (c *TreeCut) Describe(ctx context.Context, ref Ref) (Descriptor, error) {
 	if path, err := ParseNodePath(string(ref)); err == nil {
 		if d, ok := c.nodeDescriptor(path); ok {
@@ -823,7 +830,13 @@ func (c *TreeCut) Describe(ctx context.Context, ref Ref) (Descriptor, error) {
 	}
 	key, err := ParseKey(string(ref))
 	if err != nil {
-		return Descriptor{}, err
+		if _, viewErr := parseViewKey(string(ref)); viewErr != nil {
+			return Descriptor{}, err
+		}
+		if view, ok := c.reg.views[string(ref)]; ok {
+			return c.viewDescriptor(view), nil
+		}
+		return Descriptor{}, treeError(semreg.DanglingReference, "view")
 	}
 	if key.Domain == KeywordNative {
 		if key.Facet == KeywordAttributes {

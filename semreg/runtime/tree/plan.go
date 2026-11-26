@@ -86,7 +86,7 @@ func knownVerb(verb Verb) bool {
 	return false
 }
 
-// DriverName is the name of one verb on one member in both surfaces, and the
+// DriverName is the name of one verb on a member or view in both surfaces, and the
 // key that is its one argument in both.
 type DriverName struct {
 	GraphQL string
@@ -94,19 +94,23 @@ type DriverName struct {
 	Key     string
 }
 
-// DriverNames derives the names of a driver namespace's member from the
-// NamespaceID the driver reserved and the member's tree key: the surface name is
+// DriverNames derives the names of a member or view from the NamespaceID the
+// driver reserved and the entry's tree key: the surface name is
 // <namespace>_<verb> in GraphQL and <namespace>_v1_<verb> in MCP, and the key is
 // the one argument of both. An attribute takes describe and read; a method takes
-// describe, prepare and call. A NamespaceID that is not a valid name in both
-// surfaces, or a key that is not a native key of that namespace, has no name.
+// describe, prepare and call; a view takes describe only. A NamespaceID that
+// is not valid in both surfaces, or a key outside that namespace, has no name.
 func DriverNames(namespace driver.NamespaceID, verb Verb, key string) (DriverName, error) {
 	if !namespacePattern.MatchString(string(namespace)) {
 		return DriverName{}, fmt.Errorf("%w: namespace %q", ErrNoName, namespace)
 	}
 	parsed, err := ParseKey(key)
 	if err != nil {
-		return DriverName{}, err
+		var viewErr error
+		parsed, viewErr = parseViewKey(key)
+		if viewErr != nil {
+			return DriverName{}, err
+		}
 	}
 	if parsed.Domain != KeywordNative {
 		return DriverName{}, fmt.Errorf("%w: %s is not a native key", ErrNoName, key)
@@ -119,6 +123,7 @@ func DriverNames(namespace driver.NamespaceID, verb Verb, key string) (DriverNam
 		return DriverName{}, fmt.Errorf("%w: key belongs to namespace %q", ErrNoName, owner)
 	}
 	switch {
+	case parsed.Facet == keywordViews && verb == VerbDescribe:
 	case parsed.Facet == KeywordAttributes && (verb == VerbDescribe || verb == VerbRead):
 	case parsed.Facet == KeywordMethods && (verb == VerbDescribe || verb == VerbPrepare || verb == VerbCall):
 	default:

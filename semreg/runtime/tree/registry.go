@@ -52,6 +52,7 @@ const (
 	ChangeNode      ChangeKind = "node"
 	ChangeMember    ChangeKind = "member"
 	ChangeMethod    ChangeKind = "method"
+	ChangeView      ChangeKind = "view"
 	ChangeWithdrawn ChangeKind = "withdrawn"
 )
 
@@ -116,6 +117,7 @@ type Registry struct {
 	nodes     map[string]*nodeRecord
 	members   map[string]*memberRecord
 	methods   map[string]*methodRecord
+	views     map[string]*viewRecord
 	log       []Change
 	stop      func()
 }
@@ -136,7 +138,7 @@ func NewRegistry(cfg RegistryConfig) (*Registry, error) {
 	}
 	r := &Registry{
 		cfg: cfg, reserved: map[driver.NamespaceID]driver.Namespace{}, instances: map[InstanceRef]*instanceRecord{},
-		nodes: map[string]*nodeRecord{}, members: map[string]*memberRecord{}, methods: map[string]*methodRecord{},
+		nodes: map[string]*nodeRecord{}, members: map[string]*memberRecord{}, methods: map[string]*methodRecord{}, views: map[string]*viewRecord{},
 	}
 	root := NodePath{Installation: cfg.Installation}
 	r.nodes[root.String()] = &nodeRecord{path: root}
@@ -239,6 +241,11 @@ func (r *Registry) Fence(f Fence) {
 	for _, m := range r.methods {
 		if m.instance == f.Instance && m.generation <= record.fenced && !m.withdrawn {
 			m.withdrawn, m.call, changed = true, nil, true
+		}
+	}
+	for _, v := range r.views {
+		if v.instance == f.Instance && v.generation <= record.fenced && !v.withdrawn {
+			v.withdrawn, changed = true, true
 		}
 	}
 	if changed {
@@ -426,6 +433,7 @@ type registered struct {
 	nodes   map[string]nodeRecord
 	members map[string]memberRecord
 	methods map[string]methodRecord
+	views   map[string]viewRecord
 }
 
 // detach copies every registration together with the log position of the same
@@ -433,7 +441,7 @@ type registered struct {
 func (r *Registry) detach() (registered, uint64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	out := registered{nodes: map[string]nodeRecord{}, members: map[string]memberRecord{}, methods: map[string]methodRecord{}}
+	out := registered{nodes: map[string]nodeRecord{}, members: map[string]memberRecord{}, methods: map[string]methodRecord{}, views: map[string]viewRecord{}}
 	for k, v := range r.nodes {
 		out.nodes[k] = *v
 	}
@@ -442,6 +450,9 @@ func (r *Registry) detach() (registered, uint64) {
 	}
 	for k, v := range r.methods {
 		out.methods[k] = *v
+	}
+	for k, v := range r.views {
+		out.views[k] = *v
 	}
 	return out, uint64(len(r.log))
 }

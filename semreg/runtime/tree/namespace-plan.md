@@ -69,6 +69,17 @@ with a letter, a key that is not a native key of that namespace, and a verb the
 member's facet does not take have no name. A member or read with no name from
 this rule is a stop-and-report point; no name is invented.
 
+A driver may also register a typed view on its instance root. Its key is the
+instance path followed by `views/native/<key>`, with a segment holding the
+namespace and the name of the view's root record. Record names are unique
+within the instance's namespace. The existing `list` verb lists views beside
+members; `<namespace>_describe` in GraphQL and `<namespace>_v1_describe` in MCP
+address the view by the same unchanged key. A view takes no arguments. The
+view's declaration supplies the record names, field names, types and units;
+each field binds to an already registered readable member in the same
+instance, namespace and generation. Both surfaces read field values by the
+bound members' unchanged keys, not by a separate view read or a bus request.
+
 ## 4. Tree keys
 
 ```
