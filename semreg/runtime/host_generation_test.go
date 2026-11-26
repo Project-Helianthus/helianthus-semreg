@@ -352,6 +352,23 @@ func TestHostCheckpointFailureAfterCommitIsNotAFailedPublication(t *testing.T) {
 	if saveErr := rt.saveCheckpoint(); saveErr == nil {
 		t.Fatal("the checkpoint write was expected to fail")
 	}
+	// The failure of the commit's own checkpoint write stays observable, and a
+	// later write exports the whole identity state once the path is writable.
+	if rt.CheckpointErr() == nil {
+		t.Fatal("the failed checkpoint write is not reported")
+	}
+	if err := os.Remove(rt.statePath + ".tmp"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rt.saveCheckpoint(); err != nil {
+		t.Fatalf("the checkpoint write still fails: %v", err)
+	}
+	if rt.CheckpointErr() != nil {
+		t.Fatal("a successful checkpoint write left the failure reported")
+	}
+	if _, err := os.Stat(rt.statePath); err != nil {
+		t.Fatalf("the identity checkpoint was not persisted: %v", err)
+	}
 }
 
 func TestHostStampingResolvesNativeResourceOriginsToTheBatchBinding(t *testing.T) {
@@ -455,6 +472,96 @@ func TestHostDoesNotAssignACandidateToPathsThatDidNotSupplyIt(t *testing.T) {
 	for path, has := range held {
 		if has {
 			t.Fatalf("path %q holds a sample although the driver never said it supplied one", path)
+		}
+	}
+}
+
+// A withdrawal retires the epoch its correlation published under. The retry of
+// the same correlation must publish under a fresh epoch, and a later withdrawal
+// must reach what the retry published.
+func TestHostRetryOfAWithdrawnCorrelationPublishesUnderAFreshEpoch(t *testing.T) {
+	ctx := context.Background()
+	rt, ref := openBinder(t, binderFactory{})
+	status, err := rt.Snapshot(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	corr := life.LifecycleCorrelation{InstanceID: ref.ID(), Epoch: status.Epoch, Generation: status.Generation}
+	spec := rt.specFor(ref, corr)
+	current := func() v1.Snapshot {
+		rt.svc.mu.Lock()
+		kernel := rt.svc.kernels[spec.Asset]
+		rt.svc.mu.Unlock()
+		snap, _, ok := kernel.Current()
+		if !ok {
+			t.Fatal("the instance published nothing")
+		}
+		return snap
+	}
+	currentBindings := func() (n int) {
+		for _, binding := range current().Bindings {
+			if binding.State == v1.BindingCurrent {
+				n++
+			}
+		}
+		return n
+	}
+	if err := rt.pub.Withdraw(ctx, corr); err != nil {
+		t.Fatal(err)
+	}
+	if n := currentBindings(); n != 0 {
+		t.Fatalf("%d bindings stay current after the withdrawal", n)
+	}
+	session, err := rt.pub.OpenSession(ctx, corr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := (&binderInstance{}).publish(ctx, session); err != nil {
+		t.Fatalf("the retry of the withdrawn correlation could not publish: %v", err)
+	}
+	if n := currentBindings(); n != 1 {
+		t.Fatalf("%d current bindings after the retry published, want 1", n)
+	}
+	for _, binding := range current().Bindings {
+		if binding.State == v1.BindingCurrent && binding.SourceEpochID == spec.Epoch {
+			t.Fatal("the retry revived the failed attempt's epoch")
+		}
+	}
+	if err := rt.pub.Withdraw(ctx, corr); err != nil {
+		t.Fatal(err)
+	}
+	if n := currentBindings(); n != 0 {
+		t.Fatalf("%d bindings the retry published stay current after its withdrawal", n)
+	}
+}
+
+// A declaration a recovery replay restored lives in the source table and the
+// declaration map only: its replay session is not registered and no sample ever
+// named its asset. The withdrawal of its generation must still stop it.
+func TestHostWithdrawalStopsARecoveredDeclarationThatNeverHeldASample(t *testing.T) {
+	ctx := context.Background()
+	rt, ref := openBinder(t, binderFactory{twoPaths: true})
+	status, err := rt.Snapshot(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt.svc.mu.Lock()
+	rt.svc.sessions = nil
+	declared := len(rt.svc.declared)
+	if declared != 2 || len(rt.svc.assetOf) != 0 {
+		rt.svc.mu.Unlock()
+		t.Fatalf("%d declarations and %d sampled sources, want two declarations and no sample", declared, len(rt.svc.assetOf))
+	}
+	rt.svc.mu.Unlock()
+	corr := life.LifecycleCorrelation{InstanceID: ref.ID(), Epoch: status.Epoch, Generation: status.Generation}
+	if err := rt.pub.Withdraw(ctx, corr); err != nil {
+		t.Fatal(err)
+	}
+	rt.svc.mu.Lock()
+	defer rt.svc.mu.Unlock()
+	for key := range rt.svc.declared {
+		if !rt.svc.stopped[key] {
+			t.Fatalf("declared source %s never received the generation stop", key)
 		}
 	}
 }

@@ -516,3 +516,52 @@ func TestFailingUnrelatedFactoryBesideAReferenceRequiringOwnerGetsNoReference(t 
 		}
 	}
 }
+
+// referenceOnlyFactory plans its kind only for a record that carries a
+// reference; without one it plans nothing and reports no error.
+type referenceOnlyFactory struct {
+	kind driver.DriverKind
+	seen []driver.Config
+}
+
+func (f *referenceOnlyFactory) Descriptor() driver.Descriptor { return driver.Descriptor{} }
+func (f *referenceOnlyFactory) Plan(c driver.Config) ([]driver.InstancePlan, error) {
+	f.seen = append(f.seen, c)
+	if c.SecretRef == "" {
+		return nil, nil
+	}
+	return []driver.InstancePlan{{Driver: f.kind, Instance: driver.InstanceKey(c.Instance)}}, nil
+}
+func (f *referenceOnlyFactory) Construct(context.Context, driver.InstancePlan) (driver.Instance, error) {
+	return nil, errors.New("constructs nothing")
+}
+
+func TestFactoryPlanningOnlyWithAReferenceStillOwnsItsConfiguredInstance(t *testing.T) {
+	ctx := context.Background()
+	const ref = "synthetic-ref-only-owner"
+	owner := &referenceOnlyFactory{kind: "synth.ref_only"}
+	other := &bystander{}
+	cfg := Config{
+		InstallationKey: "installation.test", BridgeID: "bridge.test", StateDir: t.TempDir(), Clock: newFixedClock(time.Now()), Calendar: ptr("UTC"),
+		Instances: []InstanceConfig{
+			{Kind: "synth.ref_only", Instance: "main", Enabled: true, Transport: []byte(`{"link":"a"}`), Options: []byte(`{"o":"a"}`), SecretRef: ref},
+		},
+	}
+	site, err := Open(ctx, cfg, other, owner)
+	if err != nil {
+		t.Fatalf("the configured instance of a reference-planning factory was rejected: %v", err)
+	}
+	defer func() { _ = site.Close(ctx) }()
+	if unmatched := site.Unmatched(); len(unmatched) != 0 {
+		t.Fatalf("the owner's configured instance was reported unmatched: %v", unmatched)
+	}
+	plan := site.rt.Plan()
+	if len(plan.Instances) != 1 || plan.Instances[0].Config.SecretRef != ref || string(plan.Instances[0].Config.Transport) != `{"link":"a"}` || string(plan.Instances[0].Config.Options) != `{"o":"a"}` {
+		t.Fatalf("the owner did not plan from the configured operands: %+v", plan.Instances)
+	}
+	for _, c := range other.seen {
+		if c.SecretRef == ref {
+			t.Fatalf("an unrelated factory received the configured reference: %+v", c)
+		}
+	}
+}

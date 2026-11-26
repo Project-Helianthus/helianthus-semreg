@@ -396,7 +396,19 @@ func (f *secretScopedFactory) Plan(config driver.Config) ([]driver.InstancePlan,
 	probe.SecretRef = ""
 	plans, err := f.Factory.Plan(probe)
 	if err == nil && !owns(plans) {
-		return plans, nil
+		if len(plans) > 0 {
+			return plans, nil
+		}
+		// A factory that plans nothing without a reference may plan the kind
+		// only for a record that carries one. A placeholder, which is no
+		// configured reference, shows whether this factory is that owner without
+		// sending it the real one.
+		probe.SecretRef = ownershipProbeRef
+		withPlaceholder, perr := f.Factory.Plan(probe)
+		if perr != nil || !owns(withPlaceholder) {
+			return plans, nil
+		}
+		probe.SecretRef = ""
 	}
 	if err != nil {
 		// A factory that fails without the reference is the owner only when
@@ -467,18 +479,35 @@ func open(ctx context.Context, env environment, cfg Config, selected []driver.Fa
 	return &Site{rt: rt, selected: selected, unmatched: unmatched, secrets: scoped}, nil
 }
 
+// ownershipProbeRef stands in for a configured reference when the host learns
+// whether a factory plans a kind only for a record that carries a reference. It
+// is not a configured reference and names no credential.
+const ownershipProbeRef = "host.ownership-probe"
+
 // matches reports whether a selected factory plans the kind for the
 // configuration. A factory that fails to plan counts as a match, so the planning
-// error is reported by the runtime.
+// error is reported by the runtime. A record that carries a reference also
+// matches a factory that plans the kind only when a reference is present; the
+// reference itself is not given to any factory here.
 func matches(selected []driver.Factory, kind driver.DriverKind, config driver.Config) bool {
+	hasRef := config.SecretRef != ""
+	claims := func(plans []driver.InstancePlan) bool {
+		for _, plan := range plans {
+			if plan.Driver == kind {
+				return true
+			}
+		}
+		return false
+	}
 	for _, factory := range selected {
 		config.SecretRef = ""
 		plans, err := factory.Plan(config)
-		if err != nil {
+		if err != nil || claims(plans) {
 			return true
 		}
-		for _, plan := range plans {
-			if plan.Driver == kind {
+		if hasRef && len(plans) == 0 {
+			config.SecretRef = ownershipProbeRef
+			if plans, err := factory.Plan(config); err == nil && claims(plans) {
 				return true
 			}
 		}

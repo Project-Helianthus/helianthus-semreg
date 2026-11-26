@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/Project-Helianthus/helianthus-semreg/semreg/runtime/call"
@@ -80,7 +81,7 @@ func (p *hostPublication) OpenSession(_ context.Context, corr life.LifecycleCorr
 	if !ok {
 		return nil, fmt.Errorf("runtime: no planned instance for %s", corr.InstanceID)
 	}
-	spec := p.rt.specFor(planned.Ref, corr)
+	spec := p.rt.openSpec(p.rt.specFor(planned.Ref, corr))
 	svc := p.rt.svc
 	svc.mu.Lock()
 	delete(svc.fencedGen, fenceKey(spec.Source, spec.Epoch, spec.Generation))
@@ -130,12 +131,80 @@ func (p *hostPublication) Withdraw(ctx context.Context, corr life.LifecycleCorre
 		attempt.scoped.Retire()
 		p.rt.lifecycle.fence(tree.Fence{Instance: attempt.ref, Generation: attempt.number})
 	}
-	spec := p.rt.specFor(planned.Ref, corr)
+	spec := p.rt.withdrawSpec(p.rt.specFor(planned.Ref, corr))
 	if err := p.rt.withdrawCommitted(ctx, spec); err != nil {
 		return err
 	}
-	p.rt.svc.withdrawGeneration(spec.Asset, spec.Source, spec.Epoch, spec.Generation)
+	root := tree.NodePath{Installation: p.rt.plan.Installation, Driver: planned.Ref.Driver, Instance: planned.Ref.Instance}.NodeID()
+	p.rt.svc.withdrawGeneration(spec.Asset, spec.Source, spec.Epoch, spec.Generation, root)
 	return nil
+}
+
+// retryEpoch names the n-th source epoch of one lifecycle correlation. A
+// withdrawal retires the epoch it publishes under, and a retired epoch accepts no
+// publication, so a retry of the same correlation publishes under the next one.
+func retryEpoch(base v1.SourceEpochID, n int) v1.SourceEpochID {
+	if n == 0 {
+		return base
+	}
+	return v1.SourceEpochID(fmt.Sprintf("%s.retry%d", base, n))
+}
+
+// epochStates lists the states of the epochs of the spec's source.
+func (rt *Runtime) epochStates(spec SessionSpec) map[v1.SourceEpochID]v1.SourceState {
+	rt.svc.mu.Lock()
+	kernel := rt.svc.kernels[spec.Asset]
+	rt.svc.mu.Unlock()
+	states := map[v1.SourceEpochID]v1.SourceState{}
+	if kernel == nil {
+		return states
+	}
+	current, _, ok := kernel.Current()
+	if !ok {
+		return states
+	}
+	for _, source := range current.Sources {
+		if source.SourceID == spec.Source {
+			states[source.SourceEpochID] = source.State
+		}
+	}
+	return states
+}
+
+// openSpec gives the spec the first epoch of its correlation that is not
+// retired. A retry after a withdrawal opens a fresh epoch: the failed attempt's
+// bindings, routes and executor stay withdrawn and fenced under the old one.
+func (rt *Runtime) openSpec(spec SessionSpec) SessionSpec {
+	states := rt.epochStates(spec)
+	base := spec.Epoch
+	for n := 0; ; n++ {
+		epoch := retryEpoch(base, n)
+		if state, ok := states[epoch]; ok && state != v1.SourceCurrent {
+			continue
+		}
+		spec.Epoch = epoch
+		return spec
+	}
+}
+
+// withdrawSpec gives the spec the latest epoch of its correlation that is
+// current, so a withdrawal reaches what a retry published; with none current it
+// keeps the correlation's own epoch.
+func (rt *Runtime) withdrawSpec(spec SessionSpec) SessionSpec {
+	states := rt.epochStates(spec)
+	base := spec.Epoch
+	for n := 0; ; n++ {
+		state, ok := states[retryEpoch(base, n)]
+		if !ok {
+			if n == 0 {
+				continue
+			}
+			return spec
+		}
+		if state == v1.SourceCurrent {
+			spec.Epoch = retryEpoch(base, n)
+		}
+	}
 }
 
 // withdrawCommitted commits, through the managed publication path, the
@@ -241,8 +310,11 @@ func candidateIDsAscending(envelopes []v1.FactEnvelope) []v1.CandidateID {
 }
 
 // withdrawGeneration marks the generation fenced, its routes not live and every
-// source declared for the asset stopped, so SS06 resolves no value from it.
-func (s *Service) withdrawGeneration(asset v1.AssetID, source v1.SourceID, epoch v1.SourceEpochID, generation v1.Uint64) {
+// source declared for the asset stopped, so SS06 resolves no value from it. A
+// declaration that never held a sample, and one a recovery replay restored
+// through a session that is no longer registered, belongs to the asset by its
+// producer: a node at or below the instance's root.
+func (s *Service) withdrawGeneration(asset v1.AssetID, source v1.SourceID, epoch v1.SourceEpochID, generation v1.Uint64, root v1.ResourceID) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.stopGeneration(source, epoch, generation)
@@ -252,6 +324,13 @@ func (s *Service) withdrawGeneration(asset v1.AssetID, source v1.SourceID, epoch
 		}
 		declared, ok := s.declared[key]
 		if !ok {
+			continue
+		}
+		s.table.GenerationStopped(driver.SourceRef{For: declared.For, Producer: declared.Producer, PathKey: declared.PathKey})
+		s.stopped[key] = true
+	}
+	for key, declared := range s.declared {
+		if declared.Producer.ID != root && !strings.HasPrefix(string(declared.Producer.ID), string(root)+"/") {
 			continue
 		}
 		s.table.GenerationStopped(driver.SourceRef{For: declared.For, Producer: declared.Producer, PathKey: declared.PathKey})
@@ -397,9 +476,10 @@ func (t *hostTransaction) Stage(batch v1.PublicationBatch) error {
 // so the statements and dispositions the commit made resolvable survive a
 // process loss without a clean shutdown. The publication is already committed
 // when the checkpoint is written, so a checkpoint failure does not turn the
-// result into a failed publication: the next checkpoint write, at the following
-// commit, at WaitInitial or at Close, exports the whole identity state again and
-// reports its own failure.
+// result into a failed publication. The failure stays reported by
+// Runtime.CheckpointErr, and the next checkpoint write, at the following commit,
+// at WaitInitial or at Close, exports the whole identity state again and reports
+// its own failure.
 func (t *hostTransaction) Commit(ctx context.Context) error {
 	if err := t.stageSamples(); err != nil {
 		return err

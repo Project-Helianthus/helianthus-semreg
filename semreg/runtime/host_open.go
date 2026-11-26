@@ -74,6 +74,7 @@ type Runtime struct {
 	// then may it write the identity checkpoint.
 	exclusive bool
 	checkMu   sync.Mutex
+	checkErr  error
 	captureMu chan struct{}
 }
 
@@ -256,6 +257,11 @@ func (rt *Runtime) saveCheckpoint() error {
 	if !rt.exclusive || !rt.control.Exclusive() {
 		return nil
 	}
+	rt.checkErr = rt.writeCheckpointLocked()
+	return rt.checkErr
+}
+
+func (rt *Runtime) writeCheckpointLocked() error {
 	data, err := rt.svc.Ledger().Export()
 	if err != nil {
 		return err
@@ -265,6 +271,17 @@ func (rt *Runtime) saveCheckpoint() error {
 		return err
 	}
 	return os.Rename(tmp, rt.statePath)
+}
+
+// CheckpointErr reports the failure of the latest identity checkpoint write, or
+// nil when the latest write succeeded or none has failed. A commit whose
+// checkpoint write failed is still a committed publication; the failure stays
+// reported here until a later write, which exports the whole identity state
+// again, succeeds.
+func (rt *Runtime) CheckpointErr() error {
+	rt.checkMu.Lock()
+	defer rt.checkMu.Unlock()
+	return rt.checkErr
 }
 
 // Start restores the committed publication, publishes the installation and
