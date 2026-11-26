@@ -32,8 +32,8 @@ func TestReleaseReachesTheSettingOwner(t *testing.T) {
 		validator                                                 semreg.PackValidator
 		value                                                     semreg.Value
 	}{
-		{"pv", "pv.operation.set_active_power_limit", "pv.limit.active_power_enabled", "pv.effect.release_active_power_limit", "pv.dimension.inverter", "resource:inverter:01", "asset:pv", pv.New(), wattExp("1", 3)},
-		{"evse", "evse.operation.set_allocated_current", "evse.limit.allocated_current_enabled", "evse.effect.release_allocated_current", "evse.dimension.connector", "resource:connector:01", "asset:evse", evse.New(), ampere("16")},
+		{"pv", "pv.operation.set_active_power_limit", "pv.limit.active_power", "pv.effect.set_active_power_limit", "pv.dimension.inverter", "resource:inverter:01", "asset:pv", pv.New(), wattExp("1", 3)},
+		{"evse", "evse.operation.set_allocated_current", "evse.limit.allocated_current", "evse.effect.set_allocated_current", "evse.dimension.connector", "resource:connector:01", "asset:evse", evse.New(), ampere("16")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -45,11 +45,15 @@ func TestReleaseReachesTheSettingOwner(t *testing.T) {
 				t.Fatalf("calls %d sends %d result %#v", calls, sends, result)
 			}
 			effect := rig.exec.last.ExpectedEffect
-			if effect.Rule.ID != semreg.DefinitionID(tc.effect) || effect.Operator != semreg.PredicateEqual || effect.Fact.FactID != semreg.DefinitionID(tc.fact) || effect.Fact.Dimensions[0].ID != semreg.DefinitionID(tc.dimension) {
+			if effect.Rule.ID != semreg.DefinitionID(tc.effect) || !effect.Unconfirmed() {
 				t.Fatalf("effect %#v", effect)
 			}
-			if effect.Expected.Boolean == nil || *effect.Expected.Boolean || len(rig.exec.last.Request.Arguments) != 1 {
-				t.Fatalf("release value %#v args %#v", effect.Expected, rig.exec.last.Request.Arguments)
+			args := rig.exec.last.Request.Arguments
+			if len(args) != 1 || args[0].ID != semreg.DefinitionID(tc.fact) || args[0].Value.Boolean == nil || *args[0].Value.Boolean {
+				t.Fatalf("args %#v", args)
+			}
+			if result.KernelOutcome != operation.OutcomeAcknowledgedUnverified || result.ReadbackRelation != "" {
+				t.Fatalf("result %#v", result)
 			}
 			if rig.exec.last.Route.BindingID != rig.plant.binding || rig.exec.last.Route.CapabilityInstance != rig.plant.capability {
 				t.Fatalf("route %#v", rig.exec.last.Route)
@@ -93,7 +97,7 @@ func TestReleaseGuardChangeSendsNothing(t *testing.T) {
 		rig.plant.cut([]driver.SettingRoute{rig.plant.settingRoute(nil)}, rig.plant.snapshot),
 		rig.plant.cut([]driver.SettingRoute{rig.plant.settingRoute(nil)}, second),
 	})
-	result := rig.invoke(nil, rig.plant.request([]semreg.TypedField{{ID: "pv.limit.active_power_enabled", Value: booleanValue(false)}}, 20*time.Second))
+	result := rig.invoke(nil, rig.plant.request([]semreg.TypedField{{ID: "pv.limit.active_power", Value: booleanValue(false)}}, 20*time.Second))
 	assertIdle(t, rig.exec)
 	if result.Status != StatusFailed || result.Delivery != operation.DeliveryNotSent {
 		t.Fatalf("%#v", result)
@@ -109,13 +113,13 @@ func TestReleaseRejectionsSendNothing(t *testing.T) {
 		skip   bool
 		clear  bool
 	}{
-		{name: "true", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power_enabled", Value: booleanValue(true)}}, reason: ReasonReleaseTrue},
-		{name: "mixed", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power", Value: wattExp("1", 3)}, {ID: "pv.limit.active_power_enabled", Value: booleanValue(false)}}, reason: ReasonMixedRelease},
+		{name: "true", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power", Value: booleanValue(true)}}, reason: ReasonReleaseTrue},
+		{name: "mixed", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power", Value: booleanValue(false)}, {ID: "pv.limit.other", Value: wattExp("1", 3)}}, reason: ReasonMixedRelease},
 		{name: "negative pv", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power", Value: watt("-1")}}, reason: ReasonNegativeSet},
 		{name: "negative evse", spec: evseSpec(ampere("16")), args: []semreg.TypedField{{ID: "evse.limit.allocated_current", Value: ampere("-1")}}, reason: ReasonNegativeSet},
 		{name: "no release case", spec: thermalSpec(), args: []semreg.TypedField{{ID: "thermal.limit.enabled", Value: booleanValue(false)}}, reason: ReasonNoReleaseCase},
-		{name: "missing owner", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power_enabled", Value: booleanValue(false)}}, reason: ReasonNoRoute, clear: true},
-		{name: "missing executor", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power_enabled", Value: booleanValue(false)}}, reason: ReasonExecutorMissing, skip: true},
+		{name: "missing owner", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power", Value: booleanValue(false)}}, reason: ReasonNoRoute, clear: true},
+		{name: "missing executor", spec: pvSpec(wattExp("1", 3)), args: []semreg.TypedField{{ID: "pv.limit.active_power", Value: booleanValue(false)}}, reason: ReasonExecutorMissing, skip: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -139,7 +143,7 @@ func TestReleaseOutcomes(t *testing.T) {
 		t.Helper()
 		return newRig(t, pvSpec(wattExp("1", 3)))
 	}
-	args := []semreg.TypedField{{ID: "pv.limit.active_power_enabled", Value: booleanValue(false)}}
+	args := []semreg.TypedField{{ID: "pv.limit.active_power", Value: booleanValue(false)}}
 	t.Run("protocol_ack", func(t *testing.T) {
 		rig := newRelease(t)
 		result := rig.invoke(nil, rig.plant.request(args, 20*time.Second))
@@ -147,15 +151,15 @@ func TestReleaseOutcomes(t *testing.T) {
 			t.Fatalf("%#v", result)
 		}
 	})
-	t.Run("readback_confirmed", func(t *testing.T) {
+	t.Run("readback_ignored", func(t *testing.T) {
 		rig := newRelease(t)
 		request := rig.plant.request(args, 20*time.Second)
-		later := rig.plant.booleanSnapshot("pv.limit.active_power_enabled", false, rig.now.Add(3*time.Second))
+		later := rig.plant.snapshot
 		rig.exec.complete = func(_ context.Context, dispatch driver.Dispatch) (driver.Completion, error) {
 			return readbackCompletion(dispatch, later, "candidate:release", "1", rig.now.Add(4*time.Second), operation.OutcomeApplied), nil
 		}
 		result := rig.invoke(nil, request)
-		if result.Status != StatusReadbackConfirmed || result.ReadbackRelation != operation.ReadbackConfirms {
+		if result.Status != StatusProtocolAck || result.KernelOutcome != operation.OutcomeAcknowledgedUnverified || result.ReadbackRelation != "" {
 			t.Fatalf("%#v", result)
 		}
 	})

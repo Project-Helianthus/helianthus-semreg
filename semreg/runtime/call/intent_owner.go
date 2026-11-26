@@ -48,17 +48,12 @@ func (o intentOwner) Complete(ctx context.Context, draft Draft) (operation.Inten
 	instance := draft.Request.CapabilityInstanceID
 	text := string(draft.Resource)
 	intent := operation.Intent{
-		Contract: operation.ContractOperationV1,
-		IntentID: semreg.IntentID(freshID("intent")),
-		Kind:     op.Ref,
-		ExpectedEffect: operation.ExpectedEffect{
-			Rule:     draft.Selection.EffectRule,
-			Fact:     effectFact(op, draft.Selection, text),
-			Operator: semreg.PredicateEqual,
-			Expected: draft.Selection.Value,
-		},
-		AssetID:   draft.Request.AssetID,
-		Arguments: copyFields(draft.Request.Arguments),
+		Contract:       operation.ContractOperationV1,
+		IntentID:       semreg.IntentID(freshID("intent")),
+		Kind:           op.Ref,
+		ExpectedEffect: expectedEffect(op, draft.Selection, text),
+		AssetID:        draft.Request.AssetID,
+		Arguments:      copyFields(draft.Request.Arguments),
 		RequiredCapability: operation.CapabilityRequirement{
 			Pack:         op.Capability.Pack,
 			DefinitionID: op.Capability.ID,
@@ -119,12 +114,20 @@ func copyPreconditions(in []operation.Precondition) []operation.Precondition {
 	return out
 }
 
-func effectFact(op semreg.OperationMetadata, sel Selection, resource string) semreg.FactKey {
-	return semreg.FactKey{
-		PackID:      op.Ref.Pack.ID,
-		PackVersion: op.Ref.Pack.Version,
-		FactID:      sel.EffectField,
-		Dimensions:  []semreg.Dimension{{ID: sel.Dimension, Value: textValue(resource)}},
+func expectedEffect(op semreg.OperationMetadata, sel Selection, resource string) operation.ExpectedEffect {
+	if sel.Release {
+		return operation.ExpectedEffect{Rule: sel.EffectRule}
+	}
+	return operation.ExpectedEffect{
+		Rule: sel.EffectRule,
+		Fact: semreg.FactKey{
+			PackID:      op.Ref.Pack.ID,
+			PackVersion: op.Ref.Pack.Version,
+			FactID:      op.Argument.ID,
+			Dimensions:  []semreg.Dimension{{ID: sel.Dimension, Value: textValue(resource)}},
+		},
+		Operator: semreg.PredicateEqual,
+		Expected: sel.Value,
 	}
 }
 
@@ -215,4 +218,8 @@ func nextMajor(version semreg.SemanticVersion) semreg.SemanticVersion {
 		major = major*10 + int(c-'0')
 	}
 	return semreg.SemanticVersion(strconv.Itoa(major+1) + ".0.0")
+}
+
+func textValue(v string) semreg.Value {
+	return semreg.Value{Kind: semreg.ValueText, Text: &v}
 }

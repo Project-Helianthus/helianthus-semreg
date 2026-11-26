@@ -214,6 +214,10 @@ func (r *Router) invoke(ctx context.Context, request driver.OperationRequest, ca
 		return driver.OperationResult{Status: StatusUnknown, KernelOutcome: operation.OutcomeIndeterminate, Delivery: operation.DeliveryUnknown, Reason: ReasonUnavailable}, nil
 	}
 	_, admittedRevision, _ := admission.AdmittedAt()
+	if selection.Release {
+		completion.Readback = nil
+		completion.ReadbackSnapshot = nil
+	}
 	relation, qualified := r.correlate(intent, admittedRoute, admittedRevision, completion)
 	result = project(completion, relation, qualified)
 	if !callBound {
