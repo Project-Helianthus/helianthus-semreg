@@ -163,4 +163,5 @@ type NativeRegistry interface {
 	Node(NodeSpec) (NodeRef, error)
 	ReadMember(NodeRef, MemberSpec, NativeReader) error
 	Method(NodeRef, MethodSpec, NativeMethod) error
+	View(ViewSpec) error
 }
