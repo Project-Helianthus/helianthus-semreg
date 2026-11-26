@@ -757,3 +757,28 @@ func pilotSubjectSymbol(key semreg.FactKey, id semreg.DefinitionID) semreg.FactK
 	}
 	return key
 }
+
+func TestPhasePowerFactorIsASignedRatioPerPhase(t *testing.T) {
+	spec, ok := findField("infrastructure.ac.phase_power_factor")
+	if !ok || spec.unit != "unit.ratio" || spec.dimension != "infrastructure.dimension.phase" {
+		t.Fatalf("phase power factor = %+v", spec)
+	}
+	v := New()
+	graphValidator := New().(semreg.GraphFactValidator)
+	subject := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.phase"}
+	for _, item := range []struct{ resource, coefficient string }{
+		{"resource:phase:01", "-91"}, {"resource:phase:02", "72"}, {"resource:phase:03", "-63"},
+	} {
+		key := infrastructureFactKey(spec, item.resource)
+		value := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: item.coefficient, Exponent10: -2}, Unit: "unit.ratio"}}
+		if err := v.ValidateFact(key, &value); err != nil {
+			t.Fatalf("%s ValidateFact %s: %v", item.resource, item.coefficient, err)
+		}
+		if err := graphValidator.ValidateGraphFact(key, &value, subject); err != nil {
+			t.Fatalf("%s ValidateGraphFact %s: %v", item.resource, item.coefficient, err)
+		}
+		joule := semreg.Value{Kind: semreg.ValueQuantity, Quantity: &semreg.Quantity{Number: semreg.Decimal{Coefficient: item.coefficient, Exponent10: -2}, Unit: "unit.joule"}}
+		requireErrorID(t, v.ValidateFact(key, &joule), semreg.InvalidValue)
+		requireErrorID(t, graphValidator.ValidateGraphFact(key, &joule, subject), semreg.InvalidValue)
+	}
+}
