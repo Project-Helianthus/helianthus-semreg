@@ -39,6 +39,10 @@ type Router struct {
 	validators []semreg.PackValidator
 	registry   *executorRegistry
 
+	packOnce     sync.Once
+	packRegistry *semreg.Registry
+	packErr      error
+
 	mu       sync.Mutex
 	busy     int
 	reserve  int
@@ -327,7 +331,7 @@ func (r *Router) replay(request driver.OperationRequest) driver.OperationResult 
 
 func (r *Router) correlate(intent operation.Intent, route operation.Route, admitted semreg.RevisionVector, completion driver.Completion) (operation.ReadbackRelation, bool) {
 	if completion.Readback != nil && completion.Readback.NoCandidate() {
-		return contradictionRelation(intent, route, admitted, completion), false
+		return r.contradictionRelation(intent, route, admitted, completion), false
 	}
 	if completion.Readback == nil || completion.ReadbackSnapshot == nil {
 		if completion.Readback != nil {
@@ -346,12 +350,19 @@ func (r *Router) correlate(intent operation.Intent, route operation.Route, admit
 	return relation, readbackQualified(intent, route, admitted, completion, candidate, envelope)
 }
 
-func contradictionRelation(intent operation.Intent, route operation.Route, admitted semreg.RevisionVector, completion driver.Completion) operation.ReadbackRelation {
+// contradictionRelation applies, in both invocation forms, the conditions under
+// which Kernel.Record accepts the no-candidate readback as conflict: delivery
+// sent with a possible side effect, and a later snapshot that passes the pack
+// validation of every record it holds and the kernel's readback checks.
+func (r *Router) contradictionRelation(intent operation.Intent, route operation.Route, admitted semreg.RevisionVector, completion driver.Completion) operation.ReadbackRelation {
 	readback, snap, dispatch := completion.Readback, completion.ReadbackSnapshot, completion.Dispatch
 	if readback == nil || snap == nil || dispatch == nil || readback.Relation != operation.ReadbackContradicts || readback.Validate() != nil || snap.Validate() != nil {
 		return operation.ReadbackInconclusive
 	}
-	if dispatch.Delivery == operation.DeliveryNotSent {
+	if dispatch.Delivery != operation.DeliverySent || !dispatch.PossibleSideEffect {
+		return operation.ReadbackInconclusive
+	}
+	if !r.snapshotPackValid(*snap) {
 		return operation.ReadbackInconclusive
 	}
 	if snap.AssetID != intent.AssetID || snap.SnapshotID != readback.SnapshotID || snap.Revisions != readback.Revisions {
@@ -367,6 +378,35 @@ func contradictionRelation(intent operation.Intent, route operation.Route, admit
 		return operation.ReadbackInconclusive
 	}
 	return operation.ReadbackContradicts
+}
+
+// snapshotPackValid repeats the pack validation of every service, capability and
+// fact candidate of a snapshot that the kernel applies to a readback snapshot.
+func (r *Router) snapshotPackValid(snap semreg.Snapshot) bool {
+	r.packOnce.Do(func() { r.packRegistry, r.packErr = semreg.NewRegistry(r.validators...) })
+	if r.packErr != nil {
+		return false
+	}
+	for _, service := range snap.Services {
+		if r.packRegistry.ValidateService(service) != nil {
+			return false
+		}
+	}
+	for _, capability := range snap.Capabilities {
+		structural := capability
+		structural.Qualification, structural.Availability = semreg.QualificationQualified, semreg.AvailabilityAvailable
+		if capability.Validate() != nil || r.packRegistry.ValidateCapability(structural) != nil {
+			return false
+		}
+	}
+	for _, envelope := range snap.Facts {
+		for _, candidate := range envelope.Candidates {
+			if r.packRegistry.ValidateFactCandidate(candidate) != nil {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (r *Router) evaluate(intent operation.Intent, candidate semreg.FactCandidate) (operation.ReadbackRelation, error) {

@@ -33,6 +33,20 @@ func invocationForms() []invocationForm {
 	}
 }
 
+// permissiveUnit publishes a value the thermal pack refuses, so that a later
+// snapshot can be built that is well formed but fails the pack validation the
+// router and the kernel apply to a readback snapshot.
+type permissiveUnit struct {
+	semreg.PackValidator
+}
+
+func (p permissiveUnit) ValidateFact(key semreg.FactKey, value *semreg.Value) error {
+	if value != nil && value.Quantity != nil && value.Quantity.Unit == "unit.ampere" {
+		return nil
+	}
+	return p.PackValidator.ValidateFact(key, value)
+}
+
 func noCandidateCompletion(dispatch driver.Dispatch, snap semreg.Snapshot, wall time.Time, relation operation.ReadbackRelation) driver.Completion {
 	completion := readbackCompletion(dispatch, snap, "", "", wall, operation.OutcomeConflict)
 	completion.Readback.Relation = relation
@@ -117,7 +131,33 @@ func TestContradictingReadbackWithoutCandidateInBothForms(t *testing.T) {
 					return completion, nil
 				}
 				result := form.invoke(rig, request)
-				if result.Status != StatusUnknown || result.KernelOutcome != operation.OutcomeIndeterminate {
+				if result.Status != StatusUnknown || result.KernelOutcome != operation.OutcomeIndeterminate || result.ReadbackRelation == operation.ReadbackContradicts {
+					t.Fatalf("%#v", result)
+				}
+			})
+			t.Run("sent without a possible side effect is not conflict", func(t *testing.T) {
+				rig, request, later := setup()
+				rig.exec.complete = func(_ context.Context, dispatch driver.Dispatch) (driver.Completion, error) {
+					completion := noCandidateCompletion(dispatch, later, rig.now.Add(4*time.Second), operation.ReadbackContradicts)
+					completion.Dispatch.PossibleSideEffect = false
+					return completion, nil
+				}
+				result := form.invoke(rig, request)
+				if result.KernelOutcome == operation.OutcomeConflict || result.ReadbackRelation == operation.ReadbackContradicts || result.Status != StatusProtocolAck {
+					t.Fatalf("%#v", result)
+				}
+			})
+			t.Run("a later snapshot failing pack validation is not conflict", func(t *testing.T) {
+				spec := thermalSpec()
+				spec.validator = permissiveUnit{spec.validator}
+				rig := newRig(t, spec)
+				request := rig.plant.request([]semreg.TypedField{{ID: rig.plant.operation.Argument.ID, Value: zoneTemperature()}}, form.timeout)
+				broken := rig.plant.laterFact(rig.plant.argumentFact, qtyExp("1", 0, "unit.ampere"), rig.now.Add(3*time.Second), "candidate:wrong-unit", "2")
+				rig.exec.complete = func(_ context.Context, dispatch driver.Dispatch) (driver.Completion, error) {
+					return noCandidateCompletion(dispatch, broken, rig.now.Add(4*time.Second), operation.ReadbackContradicts), nil
+				}
+				result := form.invoke(rig, request)
+				if result.KernelOutcome == operation.OutcomeConflict || result.ReadbackRelation == operation.ReadbackContradicts || result.Status != StatusProtocolAck {
 					t.Fatalf("%#v", result)
 				}
 			})
