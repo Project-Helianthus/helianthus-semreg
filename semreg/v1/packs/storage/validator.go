@@ -38,11 +38,11 @@ func (v validator) ValidateFact(k semreg.FactKey, value *semreg.Value) error {
 // dimension carries an opaque resource identifier and every qualifier
 // dimension keeps the shape it has without the catalog.
 func (v validator) ValidateGraphFact(k semreg.FactKey, value *semreg.Value, subject semreg.GraphFactSubject) error {
-	return validateFact(k, value, func(values []semreg.Dimension, expected semreg.DefinitionID) error {
-		return graphDimensionsOK(values, expected, subject)
+	return validateFact(k, value, func(values []semreg.Dimension, spec fieldSpec) error {
+		return graphDimensionsOK(values, spec.dimension, subject)
 	})
 }
-func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, semreg.DefinitionID) error) error {
+func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]semreg.Dimension, fieldSpec) error) error {
 	if err := k.Validate(); err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func validateFact(k semreg.FactKey, value *semreg.Value, dimensionsCheck func([]
 	if !ok {
 		return fail(semreg.DefinitionOwnerMissing, "storage fact")
 	}
-	if err := dimensionsCheck(k.Dimensions, s.dimension); err != nil {
+	if err := dimensionsCheck(k.Dimensions, s); err != nil {
 		return err
 	}
 	return valueOK(s, *value)
@@ -229,7 +229,7 @@ func (v validator) ValidateIntent(i operation.Intent) error {
 		return fail(semreg.InvalidValue, "storage expected effect")
 	}
 	s, _ := findField(field)
-	if err := dimensionsOK(e.Fact.Dimensions, s.dimension); err != nil {
+	if err := dimensionsOK(e.Fact.Dimensions, s); err != nil {
 		return err
 	}
 	if err := valueOK(s, e.Expected); err != nil {
@@ -308,15 +308,28 @@ func findField(id semreg.DefinitionID) (fieldSpec, bool) {
 	}
 	return fieldSpec{}, false
 }
-func dimensionsOK(ds []semreg.Dimension, want semreg.DefinitionID) error {
-	if len(ds) != 1 {
+func dimensionsOK(ds []semreg.Dimension, spec fieldSpec) error {
+	want := append([]semreg.DefinitionID{}, fieldQualifiers[spec.id]...)
+	want = append(want, spec.dimension)
+	sort.Slice(want, func(i, j int) bool { return want[i] < want[j] })
+	if len(ds) != len(want) {
 		return fail(semreg.InvalidValue, "storage dimensions")
 	}
-	d := ds[0]
-	if d.ID != want || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
-		return fail(semreg.InvalidValue, "storage dimension")
+	for i, d := range ds {
+		if d.ID != want[i] || !dimensionShapeOK(d) {
+			return fail(semreg.InvalidValue, "storage dimension")
+		}
 	}
 	return nil
+}
+
+// dimensionShapeOK accepts a declared symbol qualifier only as a listed
+// symbol; every other dimension is opaque text.
+func dimensionShapeOK(d semreg.Dimension) bool {
+	if kind, ok := qualifierKinds[d.ID]; ok && kind == semreg.ValueSymbol {
+		return d.Value.Kind == semreg.ValueSymbol && symbolListed(d.ID, qualifierSymbols[d.ID], d.Value.Symbol)
+	}
+	return d.Value.Kind == semreg.ValueText && d.Value.Text != nil
 }
 func (v validator) constraintsOK(values []semreg.TypedField, want []semreg.DefinitionID) error {
 	if values == nil {
@@ -435,7 +448,7 @@ func graphDimensionsOK(values []semreg.Dimension, expected semreg.DefinitionID, 
 	}
 	own := false
 	for i, d := range values {
-		if d.ID != declared[i] || d.Value.Kind != semreg.ValueText || d.Value.Text == nil {
+		if d.ID != declared[i] || !dimensionShapeOK(d) {
 			return fail(semreg.InvalidValue, "storage dimension")
 		}
 		if subject.Resolved && d.ID == subject.Dimension && semreg.ResourceID(*d.Value.Text).Validate() != nil {

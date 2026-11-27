@@ -218,7 +218,12 @@ func storageVectorFailure(t *testing.T, id string, document map[string]any) stri
 
 func storageVectorFact(spec fieldSpec) (semreg.FactKey, semreg.Value) {
 	name := "vector-interface"
-	key := semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	key := testKey(spec)
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == spec.dimension {
+			key.Dimensions[i].Value.Text = &name
+		}
+	}
 	switch spec.kind {
 	case semreg.ValueQuantity:
 		value := semreg.Decimal{Coefficient: "0"}
