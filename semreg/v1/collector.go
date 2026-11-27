@@ -403,11 +403,13 @@ func conditionalMemberErrors(node jsonNode, t reflect.Type) []error {
 		if qualification != "" && availability != "" && qualification != string(QualificationUnsupported) && qualification != string(QualificationRejected) && availability != string(AvailabilityWithdrawn) {
 			required = append(required, "value")
 		}
-		switch stringAt("quality", "assertion") {
-		case string(AssertionInferred):
-			required = append(required, "derivation")
-		case string(AssertionObserved):
-			required = append(required, "binding_id", "source_epoch_id", "driver_generation")
+		if stringAt("origin", "kind") != string(OriginDeclared) {
+			switch stringAt("quality", "assertion") {
+			case string(AssertionInferred):
+				required = append(required, "derivation")
+			case string(AssertionObserved):
+				required = append(required, "binding_id", "source_epoch_id", "driver_generation")
+			}
 		}
 		switch stringAt("origin", "kind") {
 		case string(OriginNativeObservation):

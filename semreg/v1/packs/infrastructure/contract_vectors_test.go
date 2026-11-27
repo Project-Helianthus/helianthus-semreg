@@ -18,10 +18,10 @@ import (
 // infrastructureFixtureSHA256 is the SHA-256 of
 // fixtures/v1/infrastructure-pack-vectors.json.
 var infrastructureFixtureSHA256 = [sha256.Size]byte{
-	0xc5, 0x88, 0xaf, 0xc8, 0xea, 0x8d, 0x91, 0x51,
-	0x9e, 0xad, 0x9e, 0xdc, 0x00, 0x03, 0xeb, 0xb6,
-	0x74, 0x3b, 0x84, 0xb2, 0x0c, 0xb0, 0x82, 0x2a,
-	0xd2, 0x31, 0x70, 0x23, 0xeb, 0x61, 0x30, 0x04,
+	0x94, 0x8d, 0x6a, 0x74, 0x73, 0x99, 0xdb, 0x19,
+	0xcf, 0xdf, 0xf8, 0x26, 0x5a, 0x8f, 0x7c, 0xca,
+	0x49, 0x31, 0x88, 0x8e, 0x03, 0x16, 0xde, 0x2f,
+	0x98, 0xf6, 0xf9, 0x4c, 0x90, 0x89, 0xb3, 0x3a,
 }
 
 type machineVector struct {
@@ -137,7 +137,7 @@ func TestStaticRelationAndPortalMetadata(t *testing.T) {
 		"infrastructure.portal.read.feeder":          {"infrastructure.service.feeder", []string{}},
 		"infrastructure.portal.read.circuit":         {"infrastructure.service.circuit", []string{"infrastructure.ac.neutral_current", "infrastructure.status.breaker", "infrastructure.status.interlock"}},
 		"infrastructure.portal.read.phase":           {"infrastructure.service.phase", []string{"infrastructure.ac.active_power", "infrastructure.ac.apparent_current", "infrastructure.ac.apparent_power", "infrastructure.ac.current", "infrastructure.ac.harmonic_current", "infrastructure.ac.harmonic_phase", "infrastructure.ac.phase_power_factor", "infrastructure.ac.reactive_current", "infrastructure.ac.reactive_power", "infrastructure.ac.voltage", "infrastructure.energy.phase_export", "infrastructure.energy.phase_import", "infrastructure.load.phase_active_power"}},
-		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum", "infrastructure.energy.apparent_export", "infrastructure.energy.apparent_import", "infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.reactive_export", "infrastructure.energy.reactive_import", "infrastructure.energy.self_consumption", "infrastructure.meter.apparent_power_threshold", "infrastructure.meter.kind", "infrastructure.meter.point_of_delivery", "infrastructure.meter.power_threshold", "infrastructure.meter.power_threshold_source", "infrastructure.meter.protocol_version"}},
+		"infrastructure.portal.read.meter":           {"infrastructure.service.meter", []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.measured_maximum_active_current", "infrastructure.accuracy.measured_maximum_active_power", "infrastructure.accuracy.measured_minimum_active_current", "infrastructure.accuracy.measured_minimum_active_power", "infrastructure.accuracy.range_maximum_active_current", "infrastructure.accuracy.range_maximum_active_power", "infrastructure.accuracy.range_minimum_active_current", "infrastructure.accuracy.range_minimum_active_power", "infrastructure.accuracy.ratio_maximum", "infrastructure.energy.apparent_export", "infrastructure.energy.apparent_import", "infrastructure.energy.export", "infrastructure.energy.import", "infrastructure.energy.reactive_export", "infrastructure.energy.reactive_import", "infrastructure.energy.self_consumption", "infrastructure.meter.apparent_power_threshold", "infrastructure.meter.kind", "infrastructure.meter.point_of_delivery", "infrastructure.meter.power_threshold", "infrastructure.meter.power_threshold_source", "infrastructure.meter.protocol_version"}},
 		"infrastructure.portal.read.line_pair":       {"infrastructure.service.line_pair", []string{"infrastructure.ac.voltage_line_line"}},
 		"infrastructure.portal.read.load":            {"infrastructure.service.load", []string{"infrastructure.load.active_power", "infrastructure.load.energy_consumed", "infrastructure.load.energy_produced", "infrastructure.mpc.ac_power", "infrastructure.mpc.ac_voltage", "infrastructure.mpc.actor", "infrastructure.mpc.one", "infrastructure.mpc.per", "infrastructure.mpc.slots", "infrastructure.mpc.use_case_name", "infrastructure.mpc.use_case_version", "infrastructure.mpc.value_range_min", "infrastructure.mpc.value_state"}},
 	}

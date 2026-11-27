@@ -87,8 +87,8 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 		counts[element.ElementKind]++
 	}
 	want := map[graph.ElementKind]int{
-		graph.KindResourceKind: 47, graph.KindRelation: 47, graph.KindDimension: 87, graph.KindService: 52,
-		graph.KindFact: 1154, graph.KindCapability: 163, graph.KindOperation: 125, graph.KindEffectRule: 125,
+		graph.KindResourceKind: 47, graph.KindRelation: 47, graph.KindDimension: 89, graph.KindService: 52,
+		graph.KindFact: 1182, graph.KindCapability: 163, graph.KindOperation: 125, graph.KindEffectRule: 125,
 		graph.KindEvidenceState: 12, graph.KindLifecycleState: 13, graph.KindPresentation: 58, graph.KindEvent: 28,
 	}
 	for kind, n := range want {
@@ -96,8 +96,8 @@ func TestCommittedCatalogIsAccepted(t *testing.T) {
 			t.Errorf("%s entries = %d, want %d", kind, counts[kind], n)
 		}
 	}
-	if n := len(catalog.Elements()); n != 1911 {
-		t.Errorf("entries = %d, want 1911", n)
+	if n := len(catalog.Elements()); n != 1941 {
+		t.Errorf("entries = %d, want 1941", n)
 	}
 	if n := len(catalog.Planes()); n != 6 {
 		t.Errorf("planes = %d, want 6", n)
@@ -236,8 +236,8 @@ func TestLookups(t *testing.T) {
 			t.Fatalf("dimension %s role %s", entry.Ref.ID, entry.Dimension.Role)
 		}
 	}
-	if qualifiers != 34 {
-		t.Errorf("qualifier dimensions = %d, want 34", qualifiers)
+	if qualifiers != 36 {
+		t.Errorf("qualifier dimensions = %d, want 36", qualifiers)
 	}
 	if kind, ok := catalog.ServiceSubjectKind(evseRef("evse.service.connector")); !ok || kind != "resource.connector" {
 		t.Fatalf("ServiceSubjectKind(connector) = %q %v", kind, ok)
@@ -553,7 +553,13 @@ func TestCAT1Completeness(t *testing.T) {
 // id, the pack version, the element id and the element version.
 func TestCAT1QualifierDimensionIsNamedByTheFactsItQualifies(t *testing.T) {
 	const dimension = "infrastructure.dimension.measurement_type"
-	facts := []string{"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum"}
+	facts := []string{
+		"infrastructure.accuracy.measured", "infrastructure.accuracy.ratio_maximum",
+		"infrastructure.accuracy.measured_minimum_active_current", "infrastructure.accuracy.measured_minimum_active_power",
+		"infrastructure.accuracy.measured_maximum_active_current", "infrastructure.accuracy.measured_maximum_active_power",
+		"infrastructure.accuracy.range_minimum_active_current", "infrastructure.accuracy.range_minimum_active_power",
+		"infrastructure.accuracy.range_maximum_active_current", "infrastructure.accuracy.range_maximum_active_power",
+	}
 	uncovered := func(findings []graph.Finding) bool {
 		for _, finding := range findings {
 			if finding.Rule == "CAT-1" && finding.ID == semreg.DefinitionOwnerMissing && strings.Contains(finding.Entry, dimension) {

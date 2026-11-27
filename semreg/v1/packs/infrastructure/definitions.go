@@ -50,6 +50,14 @@ var fields = []fieldSpec{
 	{id: "infrastructure.ac.voltage_line_line", kind: semreg.ValueQuantity, unit: "unit.volt", dimension: "infrastructure.dimension.line_pair", minimum: bound("0", 0), maximum: bound("1", 3)},
 	{id: "infrastructure.accuracy.measured", kind: semreg.ValueBoolean, dimension: "infrastructure.dimension.meter"},
 	{id: "infrastructure.accuracy.ratio_maximum", kind: semreg.ValueQuantity, unit: "unit.ratio", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.measured_minimum_active_current", kind: semreg.ValueQuantity, unit: "unit.ampere", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.measured_minimum_active_power", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.measured_maximum_active_current", kind: semreg.ValueQuantity, unit: "unit.ampere", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.measured_maximum_active_power", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.range_minimum_active_current", kind: semreg.ValueQuantity, unit: "unit.ampere", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.range_minimum_active_power", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.range_maximum_active_current", kind: semreg.ValueQuantity, unit: "unit.ampere", dimension: "infrastructure.dimension.meter"},
+	{id: "infrastructure.accuracy.range_maximum_active_power", kind: semreg.ValueQuantity, unit: "unit.watt", dimension: "infrastructure.dimension.meter"},
 	{id: "infrastructure.energy.export", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
 	{id: "infrastructure.energy.import", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
 	{id: "infrastructure.energy.self_consumption", kind: semreg.ValueQuantity, unit: "unit.joule", dimension: "infrastructure.dimension.meter", minimum: bound("0", 0), maximum: bound("36", 17)},
@@ -84,8 +92,16 @@ var measurementSymbols = []string{
 }
 
 var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
-	"infrastructure.accuracy.measured":      {"infrastructure.dimension.measurement_type"},
-	"infrastructure.accuracy.ratio_maximum": {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured":                        {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.ratio_maximum":                   {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_minimum_active_current": {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_minimum_active_power":   {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_maximum_active_current": {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_maximum_active_power":   {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_minimum_active_current":    {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_minimum_active_power":      {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_maximum_active_current":    {"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_maximum_active_power":      {"infrastructure.dimension.measurement_type"},
 }
 
 var qualifierSymbols = map[semreg.DefinitionID][]string{

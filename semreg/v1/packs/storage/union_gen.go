@@ -192,6 +192,21 @@ var operationParameters = map[semreg.DefinitionID][]semreg.DefinitionID{
 
 var unionEvents = []semreg.DefinitionID{"storage.event.charge_fault_change", "storage.event.fault_change"}
 
-var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{}
-var qualifierSymbols = map[semreg.DefinitionID][]string{}
-var qualifierKinds = map[semreg.DefinitionID]semreg.ValueKind{}
+var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
+	"storage.accuracy.measured":                        {"storage.dimension.measurement_type"},
+	"storage.accuracy.ratio_maximum":                   {"storage.dimension.measurement_type"},
+	"storage.accuracy.measured_minimum_active_current": {"storage.dimension.measurement_type"},
+	"storage.accuracy.measured_minimum_active_power":   {"storage.dimension.measurement_type"},
+	"storage.accuracy.measured_maximum_active_current": {"storage.dimension.measurement_type"},
+	"storage.accuracy.measured_maximum_active_power":   {"storage.dimension.measurement_type"},
+	"storage.accuracy.range_minimum_active_current":    {"storage.dimension.measurement_type"},
+	"storage.accuracy.range_minimum_active_power":      {"storage.dimension.measurement_type"},
+	"storage.accuracy.range_maximum_active_current":    {"storage.dimension.measurement_type"},
+	"storage.accuracy.range_maximum_active_power":      {"storage.dimension.measurement_type"},
+}
+var qualifierSymbols = map[semreg.DefinitionID][]string{
+	"storage.dimension.measurement_type": {"active_current", "active_power", "apparent_current", "apparent_energy", "apparent_power", "electrical_energy", "frequency", "neutral_current", "power_factor", "reactive_current", "reactive_energy", "reactive_power", "rms_current", "rms_power", "rms_voltage", "unspecified", "voltage"},
+}
+var qualifierKinds = map[semreg.DefinitionID]semreg.ValueKind{
+	"storage.dimension.measurement_type": semreg.ValueSymbol,
+}

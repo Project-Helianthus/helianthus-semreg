@@ -218,13 +218,17 @@ type OriginKind string
 
 // OriginKind values. Only OriginNativeObservation carries a native source
 // path; OriginDerived requires a Derivation on the candidate and
-// OriginProjection requires a causal context.
+// OriginProjection requires a causal context. OriginDeclared states a value
+// that a document states about a device and that no device published; it
+// carries no native path and no Derivation, and its evidence includes one
+// reference of kind EvidenceKindCertification.
 const (
 	OriginNativeObservation OriginKind = "native_observation"
 	OriginDerived           OriginKind = "derived"
 	OriginOperator          OriginKind = "operator"
 	OriginAutomation        OriginKind = "automation"
 	OriginProjection        OriginKind = "projection"
+	OriginDeclared          OriginKind = "declared"
 )
 
 // OriginRef records lineage. The source, epoch and binding pointers are

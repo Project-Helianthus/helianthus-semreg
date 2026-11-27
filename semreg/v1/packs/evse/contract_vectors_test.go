@@ -14,10 +14,10 @@ import (
 
 // fixtureHash is the SHA-256 of fixtures/v1/evse-pack-vectors.json.
 var fixtureHash = [sha256.Size]byte{
-	0xff, 0x68, 0x39, 0x85, 0x96, 0x31, 0xda, 0x1e,
-	0x5f, 0x7d, 0xb9, 0x1a, 0xe4, 0x39, 0xb9, 0x63,
-	0x16, 0xc2, 0xe4, 0xf6, 0xb8, 0x3b, 0xaf, 0x2e,
-	0x6c, 0xce, 0x22, 0x09, 0x27, 0x14, 0xb0, 0x3d,
+	0x4b, 0xb9, 0x2a, 0x19, 0x68, 0x8b, 0x6c, 0xe0,
+	0x95, 0x09, 0x1f, 0xdd, 0x4b, 0x69, 0xad, 0xcc,
+	0x79, 0x61, 0x43, 0x46, 0xd0, 0x95, 0xa9, 0xcf,
+	0x16, 0x54, 0x98, 0x4f, 0xd2, 0x26, 0x2e, 0x16,
 }
 
 type evseVector struct {
@@ -139,7 +139,7 @@ func validateEVSEBaseline(t *testing.T, document map[string]any) {
 	for _, count := range []struct {
 		value any
 		want  int
-	}{{definitions["fields"], 298}, {definitions["fact_dimensions"], 7}, {definitions["services"], 6}, {definitions["relations"], 6}, {definitions["capabilities"], 18}, {definitions["operations"], 12}, {definitions["effect_rules"], 12}, {definitions["portal_contributions"], 7}} {
+	}{{definitions["fields"], 308}, {definitions["fact_dimensions"], 7}, {definitions["services"], 6}, {definitions["relations"], 6}, {definitions["capabilities"], 18}, {definitions["operations"], 12}, {definitions["effect_rules"], 12}, {definitions["portal_contributions"], 7}} {
 		if len(evseArray(t, count.value)) != count.want {
 			t.Fatalf("catalog count %d", count.want)
 		}

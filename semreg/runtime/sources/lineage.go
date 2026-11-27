@@ -134,3 +134,13 @@ func first(errs ...error) error {
 	}
 	return nil
 }
+
+// CheckDeclaredAgreement requires a declared lineage and the origin of the
+// candidate it describes to agree: a lineage of kind declared goes with a
+// candidate of origin kind declared and with no other.
+func CheckDeclaredAgreement(origin driver.Origin, candidate v1.FactCandidate) error {
+	if (origin.Kind == driver.OriginDeclared) != (candidate.Origin.Kind == v1.OriginDeclared) {
+		return errors.New("a declared lineage and the candidate origin kind disagree")
+	}
+	return nil
+}

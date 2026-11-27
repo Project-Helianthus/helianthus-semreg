@@ -15,7 +15,7 @@ import (
 func TestDefinitionIndexIsExactAndReadOnly(t *testing.T) {
 	validator := New()
 	first := validator.Definitions()
-	if first.Pack != pack || len(first.Fields) != 68 || len(first.Services) != 8 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
+	if first.Pack != pack || len(first.Fields) != 76 || len(first.Services) != 8 || len(first.Capabilities) != 6 || len(first.Operations) != 0 || len(first.EffectRules) != 0 {
 		t.Fatalf("unexpected definition index: %+v", first)
 	}
 	if err := first.Validate(); err != nil {

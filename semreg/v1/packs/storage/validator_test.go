@@ -20,7 +20,7 @@ func TestStorageDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 96 || len(index.Services) != 7 || len(index.Capabilities) != 20 || len(index.Operations) != 17 || len(index.EffectRules) != 17 {
+	if len(index.Fields) != 106 || len(index.Services) != 7 || len(index.Capabilities) != 20 || len(index.Operations) != 17 || len(index.EffectRules) != 17 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {
