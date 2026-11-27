@@ -37,8 +37,8 @@ and `api/v1/packs/storage-bms-contract-tables.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units, for `helianthus.pack.storage@1.1.0`; their SHA-256 values are
 respectively
-`f34765e50b0f850e932ad6c19eca398a1b57952b3087032c6e3533e3c517e0b3` and
-`5a02679995aa43fcdbac776a0e21e9bb9f66db76943ea5e626536529beb4908f`.
+`7421d02f6c50f3c6fb7fbdaa35adf25a50ea732127a1c73586ef6d9669264896` and
+`764fa0f757f3aea45751e02fc6b6e24ed8a6663f9f8db8de914a39fec7cb9c0e`.
 State of charge and state of health are in `unit.ratio` from 0 to 1. The two
 energy counters and the three energy capacities (`storage.energy.remaining`,
 `storage.energy.usable_capacity` and `storage.energy.nominal_capacity`) are in
@@ -57,7 +57,7 @@ mapping, a route, authority, or live operation.
 copy of `api/v1/packs/evse-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units. Its SHA-256 is
-`ff6839859631da1e5f7db91ae439b96316c2e4f6b83baf2e6cce22092714b03d`.
+`4bb92a19688b6ce095091fdd4b69adcc79614346d095a9cf1654984fd2262e16`.
 The session and lifetime energy are in `unit.joule` with a maximum of
 3.6 × 10^18. `evse.limit.allocated_current_phase` is in ampere on the phase
 dimension, with the same bounds as the connector allocation, and the
@@ -98,7 +98,7 @@ is a byte-for-byte copy of
 `api/v1/packs/infrastructure-acceptance-vectors.json` from
 `Project-Helianthus/helianthus-docs-semantic`, as edited in place for the SI
 units. Its SHA-256 is
-`c588afc8ea8d91519ead9edc0003ebb6743b84b20cb0822ad2317023eb613004`.
+`948d6a747399db19cfdff8265a8f7cca4931888e0316de2f98f6f94c9089b33a`.
 The import and export energy are in `unit.joule` with a maximum of
 3.6 × 10^18. Line-to-line voltage is `infrastructure.ac.voltage_line_line`
 on `infrastructure.dimension.line_pair`, with that dimension, its service
@@ -370,12 +370,12 @@ limit ratio, the infrastructure self-consumption, point-of-coupling power
 and fallback limit, and the pilot accuracy, measurement-type and storage
 current entries, and for the PV active power and EVSE allocated current
 release declarations. Its SHA-256 is
-`1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df`; the
+`0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35`; the
 constant `graph.PinnedDigest` holds the same value and `graph.Load` accepts no
 other bytes. Every in-place edit of the source catalog moves the copy, this
 digest, the constant, the root package's pinned catalog digest and the catalog
 bytes embedded in `semreg/v1/graph` together. The catalog lists six planes,
-seven core relation types, 1911 entries and ten lenses, and marks
+seven core relation types, 1941 entries and ten lenses, and marks
 `resource.site` as the installation root. It lists the identification schemes
 `scheme.ieee.eui48` and `scheme.ieee.eui64`, both with issuer `none`. It has
 no entry of disposition `unknown`; a test that needs an unknown entry sets one
@@ -389,7 +389,7 @@ authority.
 [`v1/graph-acceptance-vectors.json`](v1/graph-acceptance-vectors.json) is the
 `helianthus.semantic.graph.acceptance/v1` document exercised by this module.
 Its SHA-256 is
-`d3ae08905676719f3755a3b99c87a9e277233e598b91d96bbd7084dbdbb50cb0`;
+`e70217fb20ca997a3ee2b321126e8c10f83e5a67d4f132d34fdd2c1bce1fe590`;
 `TestGraphAcceptanceVectorsPin` in `semreg/v1/graph` holds the same digest as
 bytes. The document records the catalog digest of the pinned catalog copy.
 The element catalog copy and `graph.PinnedDigest` are that pin. The document holds
@@ -407,6 +407,14 @@ public API; it adds only members the document leaves out, omits a present
 empty graph collection, and decodes every record strictly. All records are
 synthetic: they prove no native fact,
 qualification, route or authority.
+
+[`v1/certification-origin-vectors.json`](v1/certification-origin-vectors.json) holds
+the `helianthus.semreg.certification-origin-vectors/v1` vectors of the declared
+origin kind: a candidate whose value a document states carries origin kind
+`declared`, no native source, epoch, binding or generation, no derivation, and
+origin evidence with at least one reference of kind `certification`; that kind
+is accepted on no other origin. `TestCertificationOriginVectors` in `semreg/v1`
+executes them. All values are synthetic.
 
 Fixtures must run from a standalone clone without private data, sibling
 repositories, network access, or live I/O. Future compatibility fixtures must

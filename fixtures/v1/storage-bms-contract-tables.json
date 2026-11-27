@@ -15,7 +15,17 @@
         "storage.status.operating",
         "storage.status.alarm",
         "storage.status.protection",
-        "storage.status.warning"
+        "storage.status.warning",
+        "storage.accuracy.measured",
+        "storage.accuracy.ratio_maximum",
+        "storage.accuracy.measured_minimum_active_current",
+        "storage.accuracy.measured_maximum_active_current",
+        "storage.accuracy.range_minimum_active_current",
+        "storage.accuracy.range_maximum_active_current",
+        "storage.accuracy.measured_minimum_active_power",
+        "storage.accuracy.measured_maximum_active_power",
+        "storage.accuracy.range_minimum_active_power",
+        "storage.accuracy.range_maximum_active_power"
       ],
       "id": "storage.capability.read.pack",
       "operation": null,
@@ -502,6 +512,86 @@
       }
     ],
     "fields": [
+      {
+        "id": "storage.accuracy.measured",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.measured_maximum_active_current",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.measured_maximum_active_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.measured_minimum_active_current",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.measured_minimum_active_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.range_maximum_active_current",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.range_maximum_active_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.range_minimum_active_current",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.range_minimum_active_power",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
+      {
+        "id": "storage.accuracy.ratio_maximum",
+        "pack": {
+          "id": "helianthus.pack.storage",
+          "version": "1.1.0"
+        },
+        "version": "1.1.0"
+      },
       {
         "id": "storage.capacity.charge",
         "pack": {
@@ -2641,6 +2731,141 @@
       "optional": true
     },
     {
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.measured",
+      "kind": "boolean",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ]
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.ratio_maximum",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.ratio"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.measured_minimum_active_current",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.ampere"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.measured_maximum_active_current",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.ampere"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.range_minimum_active_current",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.ampere"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.range_maximum_active_current",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.ampere"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.measured_minimum_active_power",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.watt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.measured_maximum_active_power",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.watt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.range_minimum_active_power",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.watt"
+    },
+    {
+      "bounds": {
+        "maximum": null,
+        "minimum": null
+      },
+      "dimension": "storage.dimension.pack",
+      "id": "storage.accuracy.range_maximum_active_power",
+      "kind": "quantity",
+      "optional": true,
+      "qualifiers": [
+        "storage.dimension.measurement_type"
+      ],
+      "unit": "unit.watt"
+    },
+    {
       "dimension": "storage.dimension.interface",
       "id": "storage.status.interlock",
       "kind": "symbol",
@@ -3129,7 +3354,17 @@
         "storage.status.operating",
         "storage.status.alarm",
         "storage.status.protection",
-        "storage.status.warning"
+        "storage.status.warning",
+        "storage.accuracy.measured",
+        "storage.accuracy.ratio_maximum",
+        "storage.accuracy.measured_minimum_active_current",
+        "storage.accuracy.measured_maximum_active_current",
+        "storage.accuracy.range_minimum_active_current",
+        "storage.accuracy.range_maximum_active_current",
+        "storage.accuracy.measured_minimum_active_power",
+        "storage.accuracy.measured_maximum_active_power",
+        "storage.accuracy.range_minimum_active_power",
+        "storage.accuracy.range_maximum_active_power"
       ],
       "id": "storage.portal.read.pack",
       "order": 10,
@@ -3172,6 +3407,31 @@
       "operation": "storage.operation.set_discharge_limit",
       "order": 50,
       "service": "storage.service.interface"
+    }
+  ],
+  "qualifier_dimensions": [
+    {
+      "id": "storage.dimension.measurement_type",
+      "kind": "symbol",
+      "symbols": [
+        "active_current",
+        "active_power",
+        "apparent_current",
+        "apparent_energy",
+        "apparent_power",
+        "electrical_energy",
+        "frequency",
+        "neutral_current",
+        "power_factor",
+        "reactive_current",
+        "reactive_energy",
+        "reactive_power",
+        "rms_current",
+        "rms_power",
+        "rms_voltage",
+        "unspecified",
+        "voltage"
+      ]
     }
   ],
   "relations": [

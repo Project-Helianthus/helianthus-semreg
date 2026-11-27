@@ -6,7 +6,7 @@ import (
 
 func validateEvidence(e EvidenceRef) error {
 	var syntax error
-	if !validDefinition(e.Owner) || !validDefinition(e.Kind) || !validContract(e.Contract) || !digestRE.MatchString(string(e.Digest)) {
+	if !validDefinition(e.Owner) || !(validDefinition(e.Kind) || e.Kind == EvidenceKindCertification) || !validContract(e.Contract) || !digestRE.MatchString(string(e.Digest)) {
 		syntax = errID(InvalidEvidence, "evidence reference")
 	}
 	var enum error
@@ -65,7 +65,7 @@ func (o OriginRef) Validate() error {
 	var errs []error
 	errs = append(errs, o.OriginID.Validate(), validateEvidenceSet(o.Evidence, 1, 32))
 	var enum error
-	if o.Kind != OriginNativeObservation && o.Kind != OriginDerived && o.Kind != OriginOperator && o.Kind != OriginAutomation && o.Kind != OriginProjection {
+	if o.Kind != OriginNativeObservation && o.Kind != OriginDerived && o.Kind != OriginOperator && o.Kind != OriginAutomation && o.Kind != OriginProjection && o.Kind != OriginDeclared {
 		enum = errID(InvalidEnum, "origin kind")
 	}
 	errs = append(errs, enum)
@@ -78,6 +78,7 @@ func (o OriginRef) Validate() error {
 	if o.BindingID != nil {
 		errs = append(errs, o.BindingID.Validate())
 	}
+	errs = append(errs, o.declaredEvidenceError())
 	if o.Kind == OriginNativeObservation {
 		if o.SourceID == nil || o.SourceEpochID == nil || o.BindingID == nil {
 			errs = append(errs, errID(MissingMember, "native origin path"))

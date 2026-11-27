@@ -147,10 +147,18 @@ var unionCapabilities = map[semreg.DefinitionID]semreg.DefinitionID{
 }
 
 var unionFieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
-	"infrastructure.ac.harmonic_current":    []semreg.DefinitionID{"infrastructure.dimension.harmonic_order"},
-	"infrastructure.ac.harmonic_phase":      []semreg.DefinitionID{"infrastructure.dimension.harmonic_order"},
-	"infrastructure.accuracy.measured":      []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
-	"infrastructure.accuracy.ratio_maximum": []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.ac.harmonic_current":                      []semreg.DefinitionID{"infrastructure.dimension.harmonic_order"},
+	"infrastructure.ac.harmonic_phase":                        []semreg.DefinitionID{"infrastructure.dimension.harmonic_order"},
+	"infrastructure.accuracy.measured":                        []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.ratio_maximum":                   []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_minimum_active_current": []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_minimum_active_power":   []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_maximum_active_current": []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.measured_maximum_active_power":   []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_minimum_active_current":    []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_minimum_active_power":      []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_maximum_active_current":    []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
+	"infrastructure.accuracy.range_maximum_active_power":      []semreg.DefinitionID{"infrastructure.dimension.measurement_type"},
 }
 
 var unionQualifierSymbols = map[semreg.DefinitionID][]string{

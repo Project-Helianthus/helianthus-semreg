@@ -526,6 +526,13 @@ func (c stagedCommit) lineage(session *Session) ([]sources.Lineage, error) {
 	if !c.hasLine {
 		return nil, nil
 	}
+	for _, candidate := range c.batch.FactUpserts {
+		if candidate.CandidateID == c.self.Candidate {
+			if err := sources.CheckDeclaredAgreement(c.origin, candidate); err != nil {
+				return nil, err
+			}
+		}
+	}
 	line, err := sources.CheckLineage(c.self, c.origin, c.formula, session.resolveInput)
 	if err != nil {
 		return nil, err

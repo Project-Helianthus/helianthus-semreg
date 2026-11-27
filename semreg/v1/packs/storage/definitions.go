@@ -58,6 +58,16 @@ var fields = []fieldSpec{
 	{"storage.status.protection", semreg.ValueSymbol, "", "storage.dimension.pack", nil, nil, []string{"storage.status.protection.active", "storage.status.protection.clear"}},
 	{"storage.status.warning", semreg.ValueSymbol, "", "storage.dimension.pack", nil, nil, []string{"storage.status.warning.clear", "storage.status.warning.present"}},
 	{"storage.status.interlock", semreg.ValueSymbol, "", "storage.dimension.interface", nil, nil, []string{"storage.status.interlock.active", "storage.status.interlock.clear"}},
+	{"storage.accuracy.measured", semreg.ValueBoolean, "", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.ratio_maximum", semreg.ValueQuantity, "unit.ratio", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.measured_minimum_active_current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.measured_minimum_active_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.measured_maximum_active_current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.measured_maximum_active_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.range_minimum_active_current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.range_minimum_active_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.range_maximum_active_current", semreg.ValueQuantity, "unit.ampere", "storage.dimension.pack", nil, nil, nil},
+	{"storage.accuracy.range_maximum_active_power", semreg.ValueQuantity, "unit.watt", "storage.dimension.pack", nil, nil, nil},
 }
 
 var services = map[semreg.DefinitionID]semreg.DefinitionID{

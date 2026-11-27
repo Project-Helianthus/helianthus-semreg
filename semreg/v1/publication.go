@@ -505,7 +505,7 @@ func publicationHeaderOwnershipError(kernelAsset AssetID, batch PublicationBatch
 		check(link.AssetID != batch.AssetID, "identity asset")
 	}
 	for _, candidate := range batch.FactUpserts {
-		if candidate.Quality.Assertion != AssertionObserved {
+		if !candidate.observedPath() {
 			continue
 		}
 		check(suppliedObservedOwnershipMismatch(candidate, batch), "candidate ownership")
@@ -556,14 +556,14 @@ func publicationRetainedSourceOwnershipError(current *Snapshot, batch Publicatio
 	if len(batch.FactUpserts) != 0 || len(batch.FactWithdrawals) != 0 {
 		for _, envelope := range current.Facts {
 			for _, candidate := range envelope.Candidates {
-				if candidate.Quality.Assertion == AssertionObserved && candidate.BindingID != nil {
+				if candidate.observedPath() && candidate.BindingID != nil {
 					candidates[candidate.CandidateID] = *candidate.BindingID
 				}
 			}
 		}
 	}
 	for _, candidate := range batch.FactUpserts {
-		if candidate.Quality.Assertion == AssertionObserved && candidate.BindingID != nil {
+		if candidate.observedPath() && candidate.BindingID != nil {
 			checkBinding(*candidate.BindingID, "retained candidate binding source ownership")
 		}
 		if binding, ok := candidates[candidate.CandidateID]; ok {
@@ -1006,7 +1006,7 @@ func (r *candidateGraphResolver) resolve(id CandidateID) (candidateGraphResult, 
 		r.states[id], r.results[id] = 2, result
 		return result, err
 	}
-	if candidate.Quality.Assertion == AssertionObserved {
+	if candidate.observedPath() {
 		if candidate.BindingID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil || candidate.Origin.SourceID == nil {
 			return finish(errID(DanglingReference, "observed candidate path"))
 		}
@@ -1021,6 +1021,9 @@ func (r *candidateGraphResolver) resolve(id CandidateID) (candidateGraphResult, 
 			return finish(errID(DanglingReference, "observed candidate path"))
 		}
 		result.paths = []SourcePathRef{{BindingID: *candidate.BindingID, SourceID: *candidate.Origin.SourceID, SourceEpochID: *candidate.SourceEpochID, DriverGeneration: *candidate.DriverGeneration}}
+		return finish(nil)
+	}
+	if candidate.Origin.Kind == OriginDeclared {
 		return finish(nil)
 	}
 	if candidate.Derivation == nil {

@@ -729,6 +729,190 @@
           "order": 260
         },
         {
+          "id": "infrastructure.accuracy.measured_minimum_active_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.measured_minimum_active_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 261
+        },
+        {
+          "id": "infrastructure.accuracy.measured_maximum_active_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.measured_maximum_active_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 262
+        },
+        {
+          "id": "infrastructure.accuracy.range_minimum_active_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.range_minimum_active_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 263
+        },
+        {
+          "id": "infrastructure.accuracy.range_maximum_active_current",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.range_maximum_active_current",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.ampere",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 264
+        },
+        {
+          "id": "infrastructure.accuracy.measured_minimum_active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.measured_minimum_active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 265
+        },
+        {
+          "id": "infrastructure.accuracy.measured_maximum_active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.measured_maximum_active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 266
+        },
+        {
+          "id": "infrastructure.accuracy.range_minimum_active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.range_minimum_active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 267
+        },
+        {
+          "id": "infrastructure.accuracy.range_maximum_active_power",
+          "ref": {
+            "pack": {
+              "id": "helianthus.pack.infrastructure",
+              "version": "1.0.0"
+            },
+            "id": "infrastructure.accuracy.range_maximum_active_power",
+            "version": "1.0.0"
+          },
+          "kind": "quantity",
+          "unit": "unit.watt",
+          "dimension": "infrastructure.dimension.meter",
+          "bounds": {
+            "minimum": null,
+            "maximum": null
+          },
+          "qualifiers": [
+            "infrastructure.dimension.measurement_type"
+          ],
+          "optional": true,
+          "order": 268
+        },
+        {
           "id": "infrastructure.load.active_power",
           "ref": {
             "pack": {
@@ -2090,6 +2274,14 @@
           "service": "infrastructure.service.meter",
           "fields": [
             "infrastructure.accuracy.measured",
+            "infrastructure.accuracy.measured_maximum_active_current",
+            "infrastructure.accuracy.measured_maximum_active_power",
+            "infrastructure.accuracy.measured_minimum_active_current",
+            "infrastructure.accuracy.measured_minimum_active_power",
+            "infrastructure.accuracy.range_maximum_active_current",
+            "infrastructure.accuracy.range_maximum_active_power",
+            "infrastructure.accuracy.range_minimum_active_current",
+            "infrastructure.accuracy.range_minimum_active_power",
             "infrastructure.accuracy.ratio_maximum",
             "infrastructure.energy.apparent_export",
             "infrastructure.energy.apparent_import",

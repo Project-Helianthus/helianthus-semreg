@@ -49,6 +49,16 @@ var fields = []fieldSpec{
 	{"evse.status.fault", semreg.ValueSymbol, "", "evse.dimension.evse", nil, nil, []string{"evse.status.fault.clear", "evse.status.fault.present"}},
 	{"evse.status.interlock", semreg.ValueSymbol, "", "evse.dimension.connector", nil, nil, []string{"evse.status.interlock.active", "evse.status.interlock.clear"}},
 	{"evse.status.readiness", semreg.ValueSymbol, "", "evse.dimension.evse", nil, nil, []string{"evse.status.readiness.not_ready", "evse.status.readiness.ready"}},
+	{"evse.accuracy.measured", semreg.ValueBoolean, "", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.ratio_maximum", semreg.ValueQuantity, "unit.ratio", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.measured_minimum_active_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.measured_minimum_active_power", semreg.ValueQuantity, "unit.watt", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.measured_maximum_active_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.measured_maximum_active_power", semreg.ValueQuantity, "unit.watt", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.range_minimum_active_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.range_minimum_active_power", semreg.ValueQuantity, "unit.watt", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.range_maximum_active_current", semreg.ValueQuantity, "unit.ampere", "evse.dimension.meter", nil, nil, nil},
+	{"evse.accuracy.range_maximum_active_power", semreg.ValueQuantity, "unit.watt", "evse.dimension.meter", nil, nil, nil},
 }
 var dimensions = map[semreg.DefinitionID]semreg.ValueKind{"evse.dimension.asset": semreg.ValueText, "evse.dimension.evse": semreg.ValueText, "evse.dimension.connector": semreg.ValueText, "evse.dimension.phase": semreg.ValueText, "evse.dimension.session": semreg.ValueText, "evse.dimension.meter": semreg.ValueText}
 var services = map[semreg.DefinitionID]semreg.DefinitionID{"evse.service.evse": "evse.dimension.evse", "evse.service.connector": "evse.dimension.connector", "evse.service.phase": "evse.dimension.phase", "evse.service.session": "evse.dimension.session", "evse.service.meter": "evse.dimension.meter"}

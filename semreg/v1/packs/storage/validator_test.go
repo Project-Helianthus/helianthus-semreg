@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -20,7 +21,7 @@ func TestStorageDefinitionAndFields(t *testing.T) {
 	if err := index.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if len(index.Fields) != 96 || len(index.Services) != 7 || len(index.Capabilities) != 20 || len(index.Operations) != 17 || len(index.EffectRules) != 17 {
+	if len(index.Fields) != 106 || len(index.Services) != 7 || len(index.Capabilities) != 20 || len(index.Operations) != 17 || len(index.EffectRules) != 17 {
 		t.Fatalf("definition index: %+v", index)
 	}
 	for _, spec := range fields {
@@ -87,7 +88,69 @@ func TestStorageCapabilitiesAndRace(t *testing.T) {
 }
 func testKey(spec fieldSpec) semreg.FactKey {
 	name := "id"
-	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}}
+	ds := []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}
+	for _, q := range fieldQualifiers[spec.id] {
+		ds = append(ds, semreg.Dimension{ID: q, Value: semreg.Value{Kind: semreg.ValueSymbol, Symbol: &semreg.Symbol{Namespace: q, Token: "active_power", Known: true}}})
+	}
+	sort.Slice(ds, func(i, j int) bool { return ds[i].ID < ds[j].ID })
+	return semreg.FactKey{PackID: pack.ID, PackVersion: pack.Version, FactID: spec.id, Dimensions: ds}
+}
+
+// A storage accuracy fact carries the measurement-type qualifier as one of the
+// declared symbols; a missing qualifier and an unlisted token are refused,
+// under graph enforcement too.
+func TestAccuracyFactCarriesTheMeasurementTypeQualifier(t *testing.T) {
+	const id = "storage.accuracy.measured"
+	const q = "storage.dimension.measurement_type"
+	spec, ok := findField(id)
+	if !ok {
+		t.Fatal("field missing")
+	}
+	val := testValue(spec)
+	v := New()
+	subject := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment", Qualifiers: []semreg.DefinitionID{q}}
+	gv := v.(semreg.GraphFactValidator)
+	if err := v.ValidateFact(testKey(spec), &val); err != nil {
+		t.Fatalf("qualified key refused: %v", err)
+	}
+	key := testKey(spec)
+	// graph enforcement requires the resource id to be a valid ResourceID
+	for i := range key.Dimensions {
+		if key.Dimensions[i].ID == spec.dimension {
+			r := "res-1"
+			key.Dimensions[i].Value.Text = &r
+		}
+	}
+	if err := gv.ValidateGraphFact(key, &val, subject); err != nil {
+		t.Fatalf("graph qualified key refused: %v", err)
+	}
+	missing := testKey(spec)
+	missing.Dimensions = missing.Dimensions[:0:0]
+	name := "id"
+	missing.Dimensions = []semreg.Dimension{{ID: spec.dimension, Value: semreg.Value{Kind: semreg.ValueText, Text: &name}}}
+	if err := v.ValidateFact(missing, &val); err == nil {
+		t.Fatal("missing qualifier accepted")
+	}
+	bad := testKey(spec)
+	for i := range bad.Dimensions {
+		if bad.Dimensions[i].ID == q {
+			bad.Dimensions[i].Value.Symbol = &semreg.Symbol{Namespace: q, Token: "zz_unlisted", Known: true}
+		}
+	}
+	if err := v.ValidateFact(bad, &val); err == nil {
+		t.Fatal("unlisted token accepted")
+	}
+	badGraph := bad
+	badGraph.Dimensions = append([]semreg.Dimension{}, bad.Dimensions...)
+	for i := range badGraph.Dimensions {
+		if badGraph.Dimensions[i].ID == spec.dimension {
+			r := "res-1"
+			badGraph.Dimensions[i].Value.Text = &r
+		}
+	}
+	if err := gv.ValidateGraphFact(badGraph, &val, subject); err == nil {
+		t.Fatal("graph: unlisted token accepted")
+	}
 }
 func testValue(spec fieldSpec) semreg.Value {
 	switch spec.kind {
@@ -200,11 +263,16 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 		key, value := testKey(spec), testValue(spec)
 		withText := func(text string) semreg.FactKey {
 			changed := key
-			changed.Dimensions = []semreg.Dimension{{ID: key.Dimensions[0].ID, Value: semreg.Value{Kind: semreg.ValueText, Text: &text}}}
+			changed.Dimensions = append([]semreg.Dimension{}, key.Dimensions...)
+			for i := range changed.Dimensions {
+				if changed.Dimensions[i].ID == spec.dimension {
+					changed.Dimensions[i].Value = semreg.Value{Kind: semreg.ValueText, Text: &text}
+				}
+			}
 			return changed
 		}
-		resource := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment"}
-		qualifier := semreg.GraphFactSubject{Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{spec.dimension}}
+		resource := semreg.GraphFactSubject{Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment", Qualifiers: fieldQualifiers[spec.id]}
+		qualifier := semreg.GraphFactSubject{Disposition: semreg.GraphUnknown, Qualifiers: append([]semreg.DefinitionID{spec.dimension}, fieldQualifiers[spec.id]...)}
 		if err := graphValidator.ValidateGraphFact(withText("resource:unit:01"), &value, resource); err != nil {
 			t.Fatalf("%s: resource identifier refused: %v", spec.id, err)
 		}
@@ -219,7 +287,7 @@ func TestValidateGraphFactUsesTheDeclaredDimensions(t *testing.T) {
 		}
 		for subjectName, subject := range map[string]semreg.GraphFactSubject{
 			"another resource dimension":      {Disposition: semreg.GraphMember, Resolved: true, Dimension: "zz.dimension.other", Kind: "resource.equipment"},
-			"an undeclared extra qualifier":   {Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment", Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
+			"an undeclared extra qualifier":   {Disposition: semreg.GraphMember, Resolved: true, Dimension: spec.dimension, Kind: "resource.equipment", Qualifiers: append([]semreg.DefinitionID{"zz.dimension.role"}, fieldQualifiers[spec.id]...)},
 			"no declared dimension":           {Disposition: semreg.GraphUnknown},
 			"another declared qualifier only": {Disposition: semreg.GraphUnknown, Qualifiers: []semreg.DefinitionID{"zz.dimension.role"}},
 		} {

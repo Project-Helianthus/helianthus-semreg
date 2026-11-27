@@ -1,0 +1,35 @@
+{
+  "contract": "helianthus.semreg.certification-origin-vectors/v1",
+  "description": "Candidates whose value is stated by a document. A vector names a baseline candidate and the mutations applied to it; the expectation is the stable error identifier of FactCandidate.Validate, or none. Every value is synthetic.",
+  "baselines": {
+    "declared": "origin kind declared, no native source, epoch, binding or generation, no derivation, origin evidence of kind certification",
+    "native_observation": "origin kind native_observation with source, epoch and binding, evidence of a kind other than certification"
+  },
+  "mutations": [
+    "origin_source_id",
+    "origin_source_epoch_id",
+    "origin_binding_id",
+    "candidate_binding_id",
+    "candidate_source_epoch_id",
+    "candidate_driver_generation",
+    "candidate_derivation",
+    "origin_evidence_empty",
+    "origin_evidence_without_certification",
+    "origin_evidence_certification",
+    "candidate_evidence_certification"
+  ],
+  "vectors": [
+    {"id": "CO-POS-001", "baseline": "declared", "mutations": [], "expect": null},
+    {"id": "CO-NEG-001", "baseline": "declared", "mutations": ["origin_source_id"], "expect": "invalid_value"},
+    {"id": "CO-NEG-002", "baseline": "declared", "mutations": ["origin_source_epoch_id"], "expect": "invalid_value"},
+    {"id": "CO-NEG-003", "baseline": "declared", "mutations": ["origin_binding_id"], "expect": "invalid_value"},
+    {"id": "CO-NEG-004", "baseline": "declared", "mutations": ["candidate_binding_id"], "expect": "invalid_value"},
+    {"id": "CO-NEG-005", "baseline": "declared", "mutations": ["candidate_source_epoch_id"], "expect": "invalid_value"},
+    {"id": "CO-NEG-006", "baseline": "declared", "mutations": ["candidate_driver_generation"], "expect": "invalid_value"},
+    {"id": "CO-NEG-007", "baseline": "declared", "mutations": ["candidate_derivation"], "expect": "invalid_value"},
+    {"id": "CO-NEG-008", "baseline": "declared", "mutations": ["origin_evidence_empty"], "expect": "missing_member"},
+    {"id": "CO-NEG-009", "baseline": "declared", "mutations": ["origin_evidence_without_certification"], "expect": "missing_member"},
+    {"id": "CO-NEG-010", "baseline": "native_observation", "mutations": ["origin_evidence_certification"], "expect": "invalid_value"},
+    {"id": "CO-NEG-011", "baseline": "native_observation", "mutations": ["candidate_evidence_certification"], "expect": "invalid_value"}
+  ]
+}

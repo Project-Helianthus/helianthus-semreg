@@ -339,11 +339,11 @@ func (s *applyState) stageFactUpserts() {
 	s.upsertedCandidates = make(map[CandidateID]struct{}, len(batch.FactUpserts))
 	for _, candidate := range batch.FactUpserts {
 		s.check(s.registry.ValidateFactCandidate(candidate))
-		if candidate.Quality.Assertion == AssertionObserved {
+		if candidate.observedPath() {
 			s.check(validateObservedForBatch(candidate, batch, s.bindings))
 		}
 		if existing, ok := s.originalCandidates[candidate.CandidateID]; ok {
-			if existing.Quality.Assertion == AssertionObserved {
+			if existing.observedPath() {
 				// Observations may revise their path across a valid transition;
 				// unlike service/capability instances, they leave no tombstone.
 				if s.originalBindings[*existing.BindingID].SourceID != batch.SourceID {
@@ -375,7 +375,7 @@ func (s *applyState) stageFactWithdrawals() {
 func (s *applyState) stageFactWithdrawal(id CandidateID) {
 	batch := s.batch
 	candidate, ok := s.originalCandidates[id]
-	if ok && candidate.Quality.Assertion == AssertionObserved && candidate.SourceEpochID != nil && candidate.DriverGeneration != nil && (containsFence(batch.GenerationFences, batch.SourceID, *candidate.SourceEpochID, *candidate.DriverGeneration) || func() bool {
+	if ok && candidate.observedPath() && candidate.SourceEpochID != nil && candidate.DriverGeneration != nil && (containsFence(batch.GenerationFences, batch.SourceID, *candidate.SourceEpochID, *candidate.DriverGeneration) || func() bool {
 		_, retiring := findRetirement(batch.SourceRetirements, *candidate.SourceEpochID)
 		return retiring
 	}()) {
@@ -391,7 +391,7 @@ func (s *applyState) stageFactWithdrawal(id CandidateID) {
 		s.check(errID(DanglingReference, "fact withdrawal"))
 		return
 	}
-	if ok && candidate.Quality.Assertion == AssertionObserved {
+	if ok && candidate.observedPath() {
 		binding, bindingOK := s.originalBindings[*candidate.BindingID]
 		if !bindingOK || !withdrawalCovered(batch, binding.SourceID, binding.SourceEpochID, binding.DriverGeneration) {
 			s.check(errID(InvalidValue, "fact withdrawal ownership"))
@@ -543,7 +543,7 @@ func (s *applyState) retainNoncurrentObservations() {
 		if _, withdrawn := explicitWithdrawals[id]; withdrawn {
 			continue
 		}
-		if candidate.Quality.Assertion != AssertionObserved {
+		if !candidate.observedPath() {
 			continue
 		}
 		binding, exists := s.bindings[*candidate.BindingID]

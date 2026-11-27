@@ -1,7 +1,7 @@
 {
   "contract": "helianthus.semantic.graph.acceptance/v1",
   "kernel_contract": "helianthus.semantic.kernel/v1",
-  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df"},
+  "element_catalog": {"path": "api/v1/element-catalog-v1.json", "contract": "helianthus.semantic.element-catalog/v1", "sha256": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35"},
   "synthetic_identification_schemes": ["synthetic.serial"],
   "error_ids": [
     "ambiguous_route",
@@ -14962,7 +14962,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+          "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15021,7 +15021,7 @@
             {
               "contract": "helianthus.semantic.lens-result/v1",
               "lens": "lens.equipment_composition",
-              "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+              "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
               "cut": {
                 "completeness": "complete",
                 "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15072,7 +15072,7 @@
             {
               "contract": "helianthus.semantic.lens-result/v1",
               "lens": "lens.equipment_composition",
-              "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+              "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
               "cut": {
                 "completeness": "complete",
                 "cut_id": "sha256:81ba7cde051b3bb37ddfccdd5bfcd8fd243725c1ef4374858fcb7eb7c7272189",
@@ -15221,7 +15221,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.energy_flow",
-          "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+          "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
           "cut": {
             "completeness": "partial",
             "cut_id": "sha256:ab58e4e3b210de8c104d2b037b1a40a7be92f6dd5ae5ad28ebb9254f08497966",
@@ -90699,7 +90699,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+          "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:f9d648bb3d1596e1096063f72fe2efa02f8c8ddc6fae9a3d13bb2690cc2c4be8",
@@ -91080,7 +91080,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+          "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:09e3d6d9758c1cecfedf36a1ff542a1a39dabce087b187a0c5ba7a27afb672a8",
@@ -91304,7 +91304,7 @@
         "read": {
           "contract": "helianthus.semantic.lens-result/v1",
           "lens": "lens.equipment_composition",
-          "catalog": "sha256:1f40c35781f914f634785156585487a28fdbd75a9c85ec6e1535ed02ac71a8df",
+          "catalog": "sha256:0844b99139f4ec0611e13c4abcc88fe539373d98b6ff026aebbd9bfdb8dfca35",
           "cut": {
             "completeness": "complete",
             "cut_id": "sha256:c8c1b3d6a01d8b133b3de559e0915b353361857d495c0acf4aa499963ea4f647",

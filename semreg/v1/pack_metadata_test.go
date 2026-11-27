@@ -67,10 +67,10 @@ func TestPackMetadataBuiltinQueries(t *testing.T) {
 		want := map[semreg.DefinitionID]struct{ units, fields, services, capabilities, operations, events int }{
 			"helianthus.pack.energy_management": {8, 261, 2, 21, 19, 2},
 			"helianthus.pack.equipment":         {7, 59, 2, 3, 1, 5},
-			"helianthus.pack.evse":              {10, 298, 6, 18, 12, 2},
-			"helianthus.pack.infrastructure":    {10, 68, 8, 6, 0, 2},
+			"helianthus.pack.evse":              {10, 308, 6, 18, 12, 2},
+			"helianthus.pack.infrastructure":    {10, 76, 8, 6, 0, 2},
 			"helianthus.pack.pv":                {13, 103, 6, 8, 2, 0},
-			"helianthus.pack.storage":           {9, 96, 7, 20, 17, 2},
+			"helianthus.pack.storage":           {9, 106, 7, 20, 17, 2},
 			"helianthus.pack.thermal":           {12, 269, 21, 87, 74, 15},
 		}[metadata.Pack.ID]
 		if got := struct{ units, fields, services, capabilities, operations, events int }{len(metadata.Units), len(metadata.Fields), len(metadata.Services), len(metadata.Capabilities), len(metadata.Operations), len(metadata.Events)}; got != want {

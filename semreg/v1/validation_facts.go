@@ -376,7 +376,9 @@ func (c FactCandidate) Validate() error {
 	if !valueForbidden && c.Value == nil {
 		errs = append(errs, errID(MissingMember, "candidate value"))
 	}
-	if c.Quality.Assertion == AssertionInferred {
+	errs = append(errs, c.declaredError())
+	declared := c.Origin.Kind == OriginDeclared
+	if c.Quality.Assertion == AssertionInferred && !declared {
 		if c.BindingID != nil || c.SourceEpochID != nil || c.DriverGeneration != nil {
 			errs = append(errs, errID(InvalidValue, "inferred source path"))
 		}
@@ -384,7 +386,7 @@ func (c FactCandidate) Validate() error {
 			errs = append(errs, errID(MissingMember, "derivation"))
 		}
 	}
-	if c.Quality.Assertion == AssertionObserved {
+	if c.Quality.Assertion == AssertionObserved && !declared {
 		if c.Derivation != nil {
 			errs = append(errs, errID(InvalidValue, "observed derivation"))
 		}

@@ -647,6 +647,95 @@
           "kind": "text"
         },
         {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.measured",
+          "kind": "boolean",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ]
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.ratio_maximum",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.ratio"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.measured_minimum_active_current",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.ampere"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.measured_maximum_active_current",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.ampere"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.range_minimum_active_current",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.ampere"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.range_maximum_active_current",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.ampere"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.measured_minimum_active_power",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.measured_maximum_active_power",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.range_minimum_active_power",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.watt"
+        },
+        {
+          "dimension": "storage.dimension.pack",
+          "id": "storage.accuracy.range_maximum_active_power",
+          "kind": "quantity",
+          "qualifiers": [
+            "storage.dimension.measurement_type"
+          ],
+          "unit": "unit.watt"
+        },
+        {
           "dimension": "storage.dimension.interface",
           "id": "storage.status.interlock",
           "kind": "symbol",
@@ -679,6 +768,9 @@
         "operation": "current_admission_only",
         "read": "all_fields_exactly_once"
       },
+      "qualifier_dimensions": [
+        "measurement_type"
+      ],
       "relations": [
         "system_battery",
         "battery_pack",
@@ -865,7 +957,7 @@
         "mutations": [
           {
             "op": "set",
-            "path": "definitions.fields.95.symbols.1",
+            "path": "definitions.fields.105.symbols.1",
             "value": "storage.status.interlock.active"
           }
         ]

@@ -408,6 +408,21 @@ var operationParameters = map[semreg.DefinitionID][]semreg.DefinitionID{
 
 var unionEvents = []semreg.DefinitionID{"evse.event.fault", "evse.event.rfid"}
 
-var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{}
-var qualifierSymbols = map[semreg.DefinitionID][]string{}
-var qualifierKinds = map[semreg.DefinitionID]semreg.ValueKind{}
+var fieldQualifiers = map[semreg.DefinitionID][]semreg.DefinitionID{
+	"evse.accuracy.measured":                        {"evse.dimension.measurement_type"},
+	"evse.accuracy.ratio_maximum":                   {"evse.dimension.measurement_type"},
+	"evse.accuracy.measured_minimum_active_current": {"evse.dimension.measurement_type"},
+	"evse.accuracy.measured_minimum_active_power":   {"evse.dimension.measurement_type"},
+	"evse.accuracy.measured_maximum_active_current": {"evse.dimension.measurement_type"},
+	"evse.accuracy.measured_maximum_active_power":   {"evse.dimension.measurement_type"},
+	"evse.accuracy.range_minimum_active_current":    {"evse.dimension.measurement_type"},
+	"evse.accuracy.range_minimum_active_power":      {"evse.dimension.measurement_type"},
+	"evse.accuracy.range_maximum_active_current":    {"evse.dimension.measurement_type"},
+	"evse.accuracy.range_maximum_active_power":      {"evse.dimension.measurement_type"},
+}
+var qualifierSymbols = map[semreg.DefinitionID][]string{
+	"evse.dimension.measurement_type": {"active_current", "active_power", "apparent_current", "apparent_energy", "apparent_power", "electrical_energy", "frequency", "neutral_current", "power_factor", "reactive_current", "reactive_energy", "reactive_power", "rms_current", "rms_power", "rms_voltage", "unspecified", "voltage"},
+}
+var qualifierKinds = map[semreg.DefinitionID]semreg.ValueKind{
+	"evse.dimension.measurement_type": semreg.ValueSymbol,
+}

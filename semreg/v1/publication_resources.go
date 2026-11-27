@@ -303,7 +303,7 @@ func (s *applyState) checkFactSubjects(catalog GraphResourceCatalog) {
 			s.check(errID(InvalidValue, "fact without its resource dimension"))
 			continue
 		}
-		if subjectID != nil && candidate.Quality.Assertion == AssertionObserved {
+		if subjectID != nil && candidate.observedPath() {
 			s.check(s.identityQualificationError(candidate, *subjectID))
 		}
 	}
