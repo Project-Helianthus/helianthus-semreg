@@ -155,11 +155,16 @@ const (
 // revision exceeds the admitted one. The candidate's binding, source, source
 // epoch and driver generation must equal these fields and the admitted Route;
 // Evaluation is the context used to evaluate that snapshot.
+//
+// A readback whose candidate id and candidate revision are both empty is the
+// no-candidate form: both members are omitted from the serialization. It is
+// valid only with relation contradicts, names its contradicting evidence in
+// Evidence, and yields the conflict outcome (see NoCandidate).
 type Readback struct {
 	SnapshotID        semreg.SnapshotID        `json:"snapshot_id"`
 	Revisions         semreg.RevisionVector    `json:"revisions"`
-	CandidateID       semreg.CandidateID       `json:"candidate_id"`
-	CandidateRevision semreg.Uint64            `json:"candidate_revision"`
+	CandidateID       semreg.CandidateID       `json:"candidate_id,omitempty"`
+	CandidateRevision semreg.Uint64            `json:"candidate_revision,omitempty"`
 	BindingID         semreg.NativeBindingID   `json:"binding_id"`
 	SourceID          semreg.SourceID          `json:"source_id"`
 	SourceEpochID     semreg.SourceEpochID     `json:"source_epoch_id"`

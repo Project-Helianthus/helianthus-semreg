@@ -187,11 +187,18 @@ func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapsh
 	if readback.BindingID != record.Route.BindingID || readback.SourceID != record.Route.SourceID {
 		errs = append(errs, opError(semreg.InvalidOutcome, "readback route"))
 	}
-	candidate, envelope, found := candidateByID(snapshot, readback.CandidateID)
-	resolvedCandidate := found && candidate.Revision == readback.CandidateRevision
-	if !resolvedCandidate {
+	noCandidate := readback.NoCandidate()
+	var candidate semreg.FactCandidate
+	var envelope semreg.FactEnvelope
+	resolvedCandidate := false
+	if !noCandidate {
+		var found bool
+		candidate, envelope, found = candidateByID(snapshot, readback.CandidateID)
+		resolvedCandidate = found && candidate.Revision == readback.CandidateRevision
+	}
+	if !noCandidate && !resolvedCandidate {
 		errs = append(errs, opError(semreg.DanglingReference, "readback candidate"))
-	} else {
+	} else if resolvedCandidate {
 		if candidate.Quality.Assertion != semreg.AssertionObserved || candidate.BindingID == nil || candidate.SourceEpochID == nil || candidate.DriverGeneration == nil {
 			errs = append(errs, opError(semreg.InvalidOutcome, "readback observed candidate"))
 		}
@@ -210,7 +217,7 @@ func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapsh
 	}
 	errs = append(errs, snapshotRouteCurrent(snapshot, *record.Route, record.Intent.AssetID))
 	view, err := semreg.EvaluateSnapshot(snapshot, readback.Evaluation)
-	if err != nil {
+	if err != nil && !noCandidate {
 		errs = append(errs, opError(semreg.InvalidOutcome, "readback evaluation"))
 	}
 	var evaluated *semreg.EvaluatedFact
@@ -241,7 +248,7 @@ func (k *Kernel) validateReadback(record ExecutionRecord, snapshot semreg.Snapsh
 	validator, ok := k.validators[record.Intent.Kind.Pack]
 	if !ok {
 		errs = append(errs, opError(semreg.DefinitionOwnerMissing, "readback operation pack"))
-	} else if bound && mostSpecific(errs...) == nil {
+	} else if bound && !noCandidate && mostSpecific(errs...) == nil {
 		// Only an exactly owned admission and safely resolved route/candidate may
 		// cross this boundary. The hook receives detached admitted input bytes.
 		relation, hookErr := func() (ReadbackRelation, error) {

@@ -391,14 +391,32 @@ func (a Acknowledgement) Validate() error {
 	return mostSpecific(enumErr, a.At.Validate(), requiredEvidence(a.Evidence, "acknowledgement evidence"))
 }
 
+// NoCandidate reports the no-candidate form: the candidate id and the candidate
+// revision are both empty.
+func (r Readback) NoCandidate() bool {
+	return r.CandidateID == "" && r.CandidateRevision == ""
+}
+
 // Validate checks identifiers, revisions, the relation value, the evaluation
-// context and the evidence list. Resolution against the later snapshot and
-// the admitted route happens in Kernel.Record.
+// context and the evidence list. A readback without a candidate is valid only
+// with relation contradicts; with relation confirms or inconclusive it is a
+// dangling_reference. Resolution against the later snapshot and the admitted
+// route happens in Kernel.Record.
 func (r Readback) Validate() error {
 	var errs []error
-	errs = append(errs, r.SnapshotID.Validate(), r.Revisions.Validate(), r.CandidateID.Validate(), r.BindingID.Validate(),
+	errs = append(errs, r.SnapshotID.Validate(), r.Revisions.Validate(), r.BindingID.Validate(),
 		r.SourceID.Validate(), r.SourceEpochID.Validate(), r.Evaluation.Validate(), requiredEvidence(r.Evidence, "readback evidence"))
-	if !positive(r.CandidateRevision) || !positive(r.DriverGeneration) {
+	if r.NoCandidate() {
+		if r.Relation == ReadbackConfirms || r.Relation == ReadbackInconclusive {
+			errs = append(errs, opError(semreg.DanglingReference, "readback candidate"))
+		}
+	} else {
+		errs = append(errs, r.CandidateID.Validate())
+		if !positive(r.CandidateRevision) {
+			errs = append(errs, opError(semreg.InvalidIdentifier, "readback revision"))
+		}
+	}
+	if !positive(r.DriverGeneration) {
 		errs = append(errs, opError(semreg.InvalidIdentifier, "readback revision"))
 	}
 	if r.Relation != ReadbackConfirms && r.Relation != ReadbackContradicts && r.Relation != ReadbackInconclusive {
@@ -466,6 +484,10 @@ func (r ExecutionRecord) outcomeCombinationError() error {
 	}
 	if r.Dispatch == nil {
 		return opError(semreg.InvalidOutcome, "missing dispatch")
+	}
+	if r.Readback != nil && r.Readback.NoCandidate() &&
+		(r.Outcome != OutcomeConflict || r.Dispatch.Delivery == DeliveryNotSent) {
+		return opError(semreg.InvalidOutcome, "readback without candidate")
 	}
 	switch r.Outcome {
 	case OutcomeFailedNoContact:
