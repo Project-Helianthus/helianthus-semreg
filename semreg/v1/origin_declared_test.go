@@ -156,3 +156,30 @@ func TestDeclaredCandidateDecodesFromWire(t *testing.T) {
 		t.Fatal("a native candidate with certification evidence was decoded")
 	}
 }
+
+func TestPublicationAcceptsADeclaredCandidateAndKeepsItsOrigin(t *testing.T) {
+	for _, assertion := range []AssertionKind{AssertionInferred, AssertionObserved} {
+		t.Run(string(assertion), func(t *testing.T) {
+			kernel := newTestPublicationKernel(t, "asset:site")
+			batch := publicationBatch("asset:site", "source:a", "epoch:a", "1", "1", "0")
+			batch.SourceUpserts = []SourceDescriptor{publicationSource("source:a", "epoch:a")}
+			batch.BindingUpserts = []NativeBinding{publicationBinding("asset:site", "source:a", "epoch:a", "binding:a", "1")}
+			batch.IdentityLinkUpserts = []IdentityLink{publicationLink("asset:site", "binding:a")}
+			candidate := declaredCandidate()
+			candidate.CandidateID, candidate.Key.FactID = "candidate:declared", "fact.power"
+			candidate.Quality.Assertion = assertion
+			batch.FactUpserts = []FactCandidate{candidate}
+			sealPublicationBatch(t, &batch)
+			snapshot, _, err := kernel.Apply(batch, publicationMonotonic)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := candidateByID(t, snapshot, "candidate:declared").Origin.Kind; got != OriginDeclared {
+				t.Fatalf("stored origin kind %q", got)
+			}
+			if err := snapshot.Validate(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

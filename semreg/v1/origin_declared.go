@@ -49,3 +49,10 @@ func (c FactCandidate) declaredError() error {
 	}
 	return bestError(errs...)
 }
+
+// observedPath reports whether the candidate is a device observation that
+// resolves through a native binding path. A declared candidate has no such
+// path whatever its assertion.
+func (c FactCandidate) observedPath() bool {
+	return c.Quality.Assertion == AssertionObserved && c.Origin.Kind != OriginDeclared
+}
