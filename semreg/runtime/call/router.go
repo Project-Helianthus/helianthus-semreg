@@ -233,6 +233,11 @@ func (r *Router) invoke(ctx context.Context, request driver.OperationRequest, ca
 			recorded.ReadbackSnapshot = nil
 			storedRelation = ""
 		}
+		if completion.Readback != nil && completion.Readback.NoCandidate() && result.KernelOutcome != operation.OutcomeConflict {
+			recorded.Readback = nil
+			recorded.ReadbackSnapshot = nil
+			storedRelation = ""
+		}
 		if recordErr := r.record(kernel, admission, intent, result.KernelOutcome, recorded, storedRelation); recordErr != nil && possibleSend(completion) {
 			if result.KernelOutcome == operation.OutcomeApplied || result.KernelOutcome == operation.OutcomeConflict {
 				result.Status = StatusUnknown
@@ -321,6 +326,9 @@ func (r *Router) replay(request driver.OperationRequest) driver.OperationResult 
 }
 
 func (r *Router) correlate(intent operation.Intent, route operation.Route, admitted semreg.RevisionVector, completion driver.Completion) (operation.ReadbackRelation, bool) {
+	if completion.Readback != nil && completion.Readback.NoCandidate() {
+		return contradictionRelation(intent, route, admitted, completion), false
+	}
 	if completion.Readback == nil || completion.ReadbackSnapshot == nil {
 		if completion.Readback != nil {
 			return completion.Readback.Relation, false
@@ -336,6 +344,29 @@ func (r *Router) correlate(intent operation.Intent, route operation.Route, admit
 		return operation.ReadbackInconclusive, false
 	}
 	return relation, readbackQualified(intent, route, admitted, completion, candidate, envelope)
+}
+
+func contradictionRelation(intent operation.Intent, route operation.Route, admitted semreg.RevisionVector, completion driver.Completion) operation.ReadbackRelation {
+	readback, snap, dispatch := completion.Readback, completion.ReadbackSnapshot, completion.Dispatch
+	if readback == nil || snap == nil || dispatch == nil || readback.Relation != operation.ReadbackContradicts || readback.Validate() != nil || snap.Validate() != nil {
+		return operation.ReadbackInconclusive
+	}
+	if dispatch.Delivery == operation.DeliveryNotSent {
+		return operation.ReadbackInconclusive
+	}
+	if snap.AssetID != intent.AssetID || snap.SnapshotID != readback.SnapshotID || snap.Revisions != readback.Revisions {
+		return operation.ReadbackInconclusive
+	}
+	if compareUint(readback.Revisions.Semantic, admitted.Semantic) <= 0 {
+		return operation.ReadbackInconclusive
+	}
+	if readback.BindingID != route.BindingID || readback.SourceID != route.SourceID || readback.SourceEpochID != route.SourceEpochID || readback.DriverGeneration != route.DriverGeneration {
+		return operation.ReadbackInconclusive
+	}
+	if !routeStillCurrent(*snap, route, intent.AssetID) {
+		return operation.ReadbackInconclusive
+	}
+	return operation.ReadbackContradicts
 }
 
 func (r *Router) evaluate(intent operation.Intent, candidate semreg.FactCandidate) (operation.ReadbackRelation, error) {
